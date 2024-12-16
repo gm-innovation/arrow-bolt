@@ -20,6 +20,8 @@ import {
   Bell,
   Calendar,
   FileText,
+  Building2,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "./ui/button";
 
@@ -34,23 +36,25 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
 
   const superAdminMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/super-admin/dashboard" },
-    { title: "Companies", icon: Ship, path: "/super-admin/companies" },
-    { title: "Users", icon: Users, path: "/super-admin/users" },
-    { title: "Settings", icon: Settings, path: "/super-admin/settings" },
+    { title: "Empresas", icon: Building2, path: "/super-admin/companies" },
+    { title: "Usuários", icon: Users, path: "/super-admin/users" },
+    { title: "Assinaturas", icon: CreditCard, path: "/super-admin/subscriptions" },
+    { title: "Configurações", icon: Settings, path: "/super-admin/settings" },
+    { title: "Relatórios", icon: FileText, path: "/super-admin/reports" },
   ];
 
   const adminMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-    { title: "Service Orders", icon: ClipboardList, path: "/admin/orders" },
-    { title: "Calendar", icon: Calendar, path: "/admin/calendar" },
-    { title: "Reports", icon: FileText, path: "/admin/reports" },
+    { title: "Ordens de Serviço", icon: ClipboardList, path: "/admin/orders" },
+    { title: "Agenda", icon: Calendar, path: "/admin/calendar" },
+    { title: "Relatórios", icon: FileText, path: "/admin/reports" },
   ];
 
   const techMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/tech/dashboard" },
-    { title: "Tasks", icon: ClipboardList, path: "/tech/tasks" },
-    { title: "Reports", icon: FileText, path: "/tech/reports" },
-    { title: "Notifications", icon: Bell, path: "/tech/notifications" },
+    { title: "Tarefas", icon: ClipboardList, path: "/tech/tasks" },
+    { title: "Relatórios", icon: FileText, path: "/tech/reports" },
+    { title: "Notificações", icon: Bell, path: "/tech/notifications" },
   ];
 
   const menuItems = {
