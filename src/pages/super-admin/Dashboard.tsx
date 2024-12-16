@@ -1,8 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
-import { Building2, Users, ClipboardList, Bell, PlusCircle, CreditCard, Settings } from "lucide-react";
+import { Building2, Users, ClipboardList, Bell, PlusCircle, CreditCard, Settings, Eye } from "lucide-react";
 import { Area, AreaChart, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 // Mock data - replace with real data when backend is integrated
 const companyGrowthData = [
@@ -26,20 +28,54 @@ const notifications = [
 ];
 
 const SuperAdminDashboard = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleNewCompany = () => {
+    navigate("/super-admin/companies");
+    toast({
+      title: "Nova Empresa",
+      description: "Redirecionando para o formulário de nova empresa",
+    });
+  };
+
+  const handleManageSubscriptions = () => {
+    navigate("/super-admin/subscriptions");
+    toast({
+      title: "Gerenciar Assinaturas",
+      description: "Redirecionando para gestão de assinaturas",
+    });
+  };
+
+  const handleSettings = () => {
+    navigate("/super-admin/settings");
+    toast({
+      title: "Configurações",
+      description: "Redirecionando para configurações do sistema",
+    });
+  };
+
+  const handleViewDetails = (notificationId: number) => {
+    toast({
+      title: "Ver Detalhes",
+      description: "Detalhes da notificação serão implementados em breve",
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Dashboard Global</h1>
         <div className="flex gap-4">
-          <Button>
+          <Button onClick={handleNewCompany}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Nova Empresa
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleManageSubscriptions}>
             <CreditCard className="mr-2 h-4 w-4" />
             Gerenciar Assinaturas
           </Button>
-          <Button variant="ghost">
+          <Button variant="ghost" onClick={handleSettings}>
             <Settings className="mr-2 h-4 w-4" />
             Configurações
           </Button>
@@ -185,7 +221,12 @@ const SuperAdminDashboard = () => {
                   <p className="text-sm font-medium">{notification.message}</p>
                   <p className="text-xs text-muted-foreground">{notification.time}</p>
                 </div>
-                <Button variant="ghost" size="sm">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => handleViewDetails(notification.id)}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
                   Ver Detalhes
                 </Button>
               </div>
