@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
 import Login from "./pages/Login";
 import DashboardLayout from "./components/DashboardLayout";
 import SuperAdminDashboard from "./pages/super-admin/Dashboard";
@@ -17,42 +18,44 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          
-          {/* Super Admin Routes */}
-          <Route
-            path="/super-admin/dashboard"
-            element={
-              <DashboardLayout userType="super-admin">
-                <SuperAdminDashboard />
-              </DashboardLayout>
-            }
-          />
-          
-          {/* Admin Routes */}
-          <Route
-            path="/admin/dashboard"
-            element={
-              <DashboardLayout userType="admin">
-                <AdminDashboard />
-              </DashboardLayout>
-            }
-          />
-          
-          {/* Tech Routes */}
-          <Route
-            path="/tech/dashboard"
-            element={
-              <DashboardLayout userType="tech">
-                <TechDashboard />
-              </DashboardLayout>
-            }
-          />
+        <SidebarProvider>
+          <Routes>
+            <Route path="/" element={<Login />} />
+            
+            {/* Super Admin Routes */}
+            <Route
+              path="/super-admin/dashboard"
+              element={
+                <DashboardLayout userType="super-admin">
+                  <SuperAdminDashboard />
+                </DashboardLayout>
+              }
+            />
+            
+            {/* Admin Routes */}
+            <Route
+              path="/admin/dashboard"
+              element={
+                <DashboardLayout userType="admin">
+                  <AdminDashboard />
+                </DashboardLayout>
+              }
+            />
+            
+            {/* Tech Routes */}
+            <Route
+              path="/tech/dashboard"
+              element={
+                <DashboardLayout userType="tech">
+                  <TechDashboard />
+                </DashboardLayout>
+              }
+            />
 
-          {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+            {/* Catch all route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </SidebarProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
