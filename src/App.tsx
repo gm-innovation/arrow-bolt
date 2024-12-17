@@ -30,11 +30,18 @@ import ReportForm from "./pages/tech/ReportForm";
 import TechNotifications from "./pages/tech/Notifications";
 import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
 
-// Create a new QueryClient instance outside of the component
-const queryClient = new QueryClient();
+// Create a new QueryClient instance with proper configuration
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
-const App = () => (
-  <StrictMode>
+const App = () => {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
@@ -233,7 +240,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
-  </StrictMode>
-);
+  );
+};
 
 export default App;
