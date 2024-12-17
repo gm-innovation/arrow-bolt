@@ -7,6 +7,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { StrictMode } from "react";
 import Login from "./pages/Login";
 import DashboardLayout from "./components/DashboardLayout";
+
 import SuperAdminDashboard from "./pages/super-admin/Dashboard";
 import Companies from "./pages/super-admin/Companies";
 import Users from "./pages/super-admin/Users";
@@ -20,7 +21,14 @@ import ServiceTransfers from "./pages/admin/ServiceTransfers";
 import ServiceHistory from "./pages/admin/ServiceHistory";
 import VesselHistory from "./pages/admin/VesselHistory";
 import TaskTypes from "./pages/admin/TaskTypes";
+
 import TechDashboard from "./pages/tech/Dashboard";
+import TechTasks from "./pages/tech/Tasks";
+import TaskDetails from "./pages/tech/TaskDetails";
+import TechReports from "./pages/tech/Reports";
+import ReportForm from "./pages/tech/ReportForm";
+import TechNotifications from "./pages/tech/Notifications";
+import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
 
 // Create a new QueryClient instance outside of the component
 const queryClient = new QueryClient();
@@ -158,6 +166,62 @@ const App = () => (
                 element={
                   <DashboardLayout userType="tech">
                     <TechDashboard />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/tech/tasks"
+                element={
+                  <DashboardLayout userType="tech">
+                    <TechTasks />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/tech/tasks/:taskId"
+                element={
+                  <DashboardLayout userType="tech">
+                    <TaskDetails />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/tech/reports"
+                element={
+                  <DashboardLayout userType="tech">
+                    <TechReports />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/tech/reports/new"
+                element={
+                  <DashboardLayout userType="tech">
+                    <ReportForm />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/tech/reports/:reportId/edit"
+                element={
+                  <DashboardLayout userType="tech">
+                    <ReportForm />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/tech/notifications"
+                element={
+                  <DashboardLayout userType="tech">
+                    <TechNotifications />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/tech/survey/:taskId"
+                element={
+                  <DashboardLayout userType="tech">
+                    <SatisfactionSurvey />
                   </DashboardLayout>
                 }
               />
