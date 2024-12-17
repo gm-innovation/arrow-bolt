@@ -60,6 +60,21 @@ const recentActivities = [
   },
 ];
 
+// Chart configurations
+const tasksChartConfig = {
+  tasks: {
+    label: "Tarefas",
+    color: "#1e3a8a", // navy blue
+  }
+};
+
+const timeChartConfig = {
+  time: {
+    label: "Tempo Médio",
+    color: "#1e3a8a", // navy blue
+  }
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -171,7 +186,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ChartContainer>
+              <ChartContainer config={tasksChartConfig}>
                 <BarChart data={techTasksData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
@@ -190,7 +205,7 @@ const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">
-              <ChartContainer>
+              <ChartContainer config={timeChartConfig}>
                 <LineChart data={completionTimeData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="date" />
