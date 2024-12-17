@@ -163,9 +163,7 @@ const ServiceOrders = () => {
                     </Button>
                   </TableCell>
                   <TableCell>{order.vessel}</TableCell>
-                  <TableCell>{order.techn
-
-icians.join(", ")}</TableCell>
+                  <TableCell>{order.technicians.join(", ")}</TableCell>
                   <TableCell>{order.status}</TableCell>
                   <TableCell>
                     {format(new Date(order.createdAt), "dd/MM/yyyy")}
