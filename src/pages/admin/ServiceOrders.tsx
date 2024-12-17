@@ -16,7 +16,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -26,7 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MoreHorizontal, Plus, Download, Filter } from "lucide-react";
+import { MoreHorizontal, Plus, Download } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -47,7 +46,6 @@ const ServiceOrders = () => {
       status: "Planejado",
       createdAt: "2024-03-15",
     },
-    // Add more mock data as needed
   ];
 
   const handleCreateOrder = () => {
@@ -165,7 +163,9 @@ const ServiceOrders = () => {
                     </Button>
                   </TableCell>
                   <TableCell>{order.vessel}</TableCell>
-                  <TableCell>{order.technicians.join(", ")}</TableCell>
+                  <TableCell>{order.techn
+
+icians.join(", ")}</TableCell>
                   <TableCell>{order.status}</TableCell>
                   <TableCell>
                     {format(new Date(order.createdAt), "dd/MM/yyyy")}

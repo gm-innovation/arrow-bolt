@@ -13,6 +13,12 @@ import Subscriptions from "./pages/super-admin/Subscriptions";
 import Settings from "./pages/super-admin/Settings";
 import Reports from "./pages/super-admin/Reports";
 import AdminDashboard from "./pages/admin/Dashboard";
+import ServiceOrders from "./pages/admin/ServiceOrders";
+import ServiceCalendar from "./pages/admin/ServiceCalendar";
+import ServiceTransfers from "./pages/admin/ServiceTransfers";
+import ServiceHistory from "./pages/admin/ServiceHistory";
+import VesselHistory from "./pages/admin/VesselHistory";
+import TaskTypes from "./pages/admin/TaskTypes";
 import TechDashboard from "./pages/tech/Dashboard";
 
 const queryClient = new QueryClient();
