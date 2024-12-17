@@ -86,6 +86,62 @@ const App = () => (
                 </DashboardLayout>
               }
             />
+            <Route
+              path="/admin/orders"
+              element={
+                <DashboardLayout userType="admin">
+                  <ServiceOrders />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/admin/calendar"
+              element={
+                <DashboardLayout userType="admin">
+                  <ServiceCalendar />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/admin/reports"
+              element={
+                <DashboardLayout userType="admin">
+                  <Reports />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/admin/transfers"
+              element={
+                <DashboardLayout userType="admin">
+                  <ServiceTransfers />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/admin/history"
+              element={
+                <DashboardLayout userType="admin">
+                  <ServiceHistory />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/admin/vessels"
+              element={
+                <DashboardLayout userType="admin">
+                  <VesselHistory />
+                </DashboardLayout>
+              }
+            />
+            <Route
+              path="/admin/task-types"
+              element={
+                <DashboardLayout userType="admin">
+                  <TaskTypes />
+                </DashboardLayout>
+              }
+            />
             
             {/* Tech Routes */}
             <Route

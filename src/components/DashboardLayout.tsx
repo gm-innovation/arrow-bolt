@@ -48,6 +48,10 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
     { title: "Ordens de Serviço", icon: ClipboardList, path: "/admin/orders" },
     { title: "Agenda", icon: Calendar, path: "/admin/calendar" },
     { title: "Relatórios", icon: FileText, path: "/admin/reports" },
+    { title: "Transferências", icon: Users, path: "/admin/transfers" },
+    { title: "Histórico", icon: ClipboardList, path: "/admin/history" },
+    { title: "Embarcações", icon: Ship, path: "/admin/vessels" },
+    { title: "Tipos de Tarefas", icon: ClipboardList, path: "/admin/task-types" },
   ];
 
   const techMenuItems = [
