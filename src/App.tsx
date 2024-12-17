@@ -22,6 +22,7 @@ import VesselHistory from "./pages/admin/VesselHistory";
 import TaskTypes from "./pages/admin/TaskTypes";
 import TechDashboard from "./pages/tech/Dashboard";
 
+// Create a new QueryClient instance outside of the component
 const queryClient = new QueryClient();
 
 const App = () => (
