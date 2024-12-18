@@ -1,0 +1,101 @@
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, ChevronRight, Search, Settings, HelpCircle, Menu } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+interface CalendarHeaderProps {
+  currentDate: Date;
+  view: "day" | "week" | "month";
+  onViewChange: (view: "day" | "week" | "month") => void;
+  onDateChange: (date: Date) => void;
+}
+
+export const CalendarHeader = ({
+  currentDate,
+  view,
+  onViewChange,
+  onDateChange,
+}: CalendarHeaderProps) => {
+  const goToToday = () => onDateChange(new Date());
+  
+  const goToPrevious = () => {
+    const newDate = new Date(currentDate);
+    switch (view) {
+      case "day":
+        newDate.setDate(currentDate.getDate() - 1);
+        break;
+      case "week":
+        newDate.setDate(currentDate.getDate() - 7);
+        break;
+      case "month":
+        newDate.setMonth(currentDate.getMonth() - 1);
+        break;
+    }
+    onDateChange(newDate);
+  };
+
+  const goToNext = () => {
+    const newDate = new Date(currentDate);
+    switch (view) {
+      case "day":
+        newDate.setDate(currentDate.getDate() + 1);
+        break;
+      case "week":
+        newDate.setDate(currentDate.getDate() + 7);
+        break;
+      case "month":
+        newDate.setMonth(currentDate.getMonth() + 1);
+        break;
+    }
+    onDateChange(newDate);
+  };
+
+  return (
+    <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center gap-4">
+        <Button variant="outline" onClick={goToToday}>
+          Hoje
+        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={goToPrevious}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={goToNext}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+        <h2 className="text-xl font-semibold">
+          {view === "day"
+            ? format(currentDate, "d 'de' MMMM, yyyy", { locale: ptBR })
+            : format(currentDate, "MMMM yyyy", { locale: ptBR })}
+        </h2>
+      </div>
+
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon">
+          <Search className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon">
+          <HelpCircle className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon">
+          <Settings className="h-4 w-4" />
+        </Button>
+        <Select value={view} onValueChange={(value) => onViewChange(value as "day" | "week" | "month")}>
+          <SelectTrigger className="w-[120px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="day">Dia</SelectItem>
+            <SelectItem value="week">Semana</SelectItem>
+            <SelectItem value="month">Mês</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="ghost" size="icon">
+          <Menu className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
