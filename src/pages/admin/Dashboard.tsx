@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { Calendar } from "@/components/ui/calendar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   ClipboardList, 
   CheckCircle, 
@@ -10,6 +11,8 @@ import {
   UserCheck,
   Clock
 } from "lucide-react";
+import { useState } from "react";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { 
   BarChart, 
   Bar, 
@@ -23,7 +26,18 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
-// Mock data - replace with real data when backend is integrated
+// Mock data for service events
+const serviceEvents = [
+  {
+    id: 1,
+    title: "Manutenção Preventiva",
+    date: new Date(),
+    client: "Empresa A",
+    status: "scheduled"
+  },
+];
+
+// Mock data for the productivity chart
 const techTasksData = [
   { name: 'João Silva', tasks: 12 },
   { name: 'Maria Santos', tasks: 8 },
@@ -60,22 +74,23 @@ const recentActivities = [
   },
 ];
 
-// Chart configurations
 const tasksChartConfig = {
   tasks: {
     label: "Tarefas",
-    color: "#1e3a8a", // navy blue
+    color: "#1e3a8a",
   }
 };
 
 const timeChartConfig = {
   time: {
     label: "Tempo Médio",
-    color: "#1e3a8a", // navy blue
+    color: "#1e3a8a",
   }
 };
 
 const AdminDashboard = () => {
+  const [calendarView, setCalendarView] = useState("month");
+  const [date, setDate] = useState<Date | undefined>(new Date());
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -123,7 +138,6 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Performance Indicators */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -178,7 +192,48 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      {/* Performance Charts */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-lg font-medium">Agenda de Serviços</CardTitle>
+          <Select value={calendarView} onValueChange={setCalendarView}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Visualização" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="day">Dia</SelectItem>
+              <SelectItem value="week">Semana</SelectItem>
+              <SelectItem value="month">Mês</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardHeader>
+        <CardContent>
+          <div className="mt-4">
+            <Calendar
+              mode="single"
+              selected={date}
+              onSelect={setDate}
+              className="rounded-md border"
+            />
+            <div className="mt-4 space-y-2">
+              {serviceEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
+                >
+                  <div>
+                    <h4 className="font-medium">{event.title}</h4>
+                    <p className="text-sm text-muted-foreground">{event.client}</p>
+                  </div>
+                  <Button variant="ghost" size="sm">
+                    Ver detalhes
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
@@ -224,7 +279,6 @@ const AdminDashboard = () => {
         </Card>
       </div>
 
-      {/* Recent Activities */}
       <Card>
         <CardHeader>
           <CardTitle>Últimas Atividades</CardTitle>

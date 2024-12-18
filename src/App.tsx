@@ -29,6 +29,7 @@ import TechReports from "./pages/tech/Reports";
 import ReportForm from "./pages/tech/ReportForm";
 import TechNotifications from "./pages/tech/Notifications";
 import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
+import Clients from "./pages/admin/Clients";
 
 // Create a new QueryClient instance with proper configuration
 const queryClient = new QueryClient({
@@ -163,6 +164,14 @@ const App = () => {
                 element={
                   <DashboardLayout userType="admin">
                     <TaskTypes />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/admin/clients"
+                element={
+                  <DashboardLayout userType="admin">
+                    <Clients />
                   </DashboardLayout>
                 }
               />
