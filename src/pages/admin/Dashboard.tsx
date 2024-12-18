@@ -2,6 +2,7 @@ import { DashboardStats } from "@/components/admin/dashboard/DashboardStats";
 import { DashboardCharts } from "@/components/admin/dashboard/DashboardCharts";
 import { ServiceCalendar } from "@/components/admin/calendar/ServiceCalendar";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, FileText, UserCheck } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
