@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { OrderBasicInfo } from "./OrderBasicInfo";
@@ -84,25 +84,23 @@ export const NewOrderForm = () => {
         
         <SupervisorSelection form={form} />
 
-        <div>
-          <Form.Field
-            control={form.control}
-            name="scope"
-            render={({ field }) => (
-              <Form.Item>
-                <Form.Label>Escopo do Projeto</Form.Label>
-                <Form.Control>
-                  <Textarea
-                    {...field}
-                    placeholder="Descreva o escopo do projeto"
-                    className="min-h-[100px]"
-                  />
-                </Form.Control>
-                <Form.Message />
-              </Form.Item>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="scope"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Escopo do Projeto</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder="Descreva o escopo do projeto"
+                  className="min-h-[100px]"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <Button type="submit" className="w-full">
           Criar Ordem de Serviço
