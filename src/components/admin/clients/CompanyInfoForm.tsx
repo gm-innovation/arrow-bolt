@@ -12,6 +12,7 @@ type CompanyFormData = {
   address: string;
   city: string;
   state: string;
+  cep: string;
 };
 
 export const CompanyInfoForm = () => {
@@ -83,6 +84,19 @@ export const CompanyInfoForm = () => {
             )}
           />
         </div>
+        <FormField
+          control={form.control}
+          name="cep"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>CEP</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="address"

@@ -11,14 +11,18 @@ type VesselFormData = {
   type: string;
 };
 
-// Mock data for vessel types
+// Updated vessel types for oil & gas industry
 const vesselTypes = [
-  "Lancha",
-  "Iate",
-  "Veleiro",
-  "Catamarã",
-  "Jet Ski",
-  "Barco de Pesca",
+  "PLSV",
+  "PSV",
+  "AHTS",
+  "RSV",
+  "OSRV",
+  "Sonda",
+  "Plataforma",
+  "Balsa",
+  "Rebocador",
+  "Outros",
 ];
 
 export const VesselsForm = () => {

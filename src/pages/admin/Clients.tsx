@@ -1,11 +1,50 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Search, UserPlus } from "lucide-react";
+import { Users, Search, UserPlus, Edit, Phone, Mail, Ship } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NewClientForm } from "@/components/admin/clients/NewClientForm";
+import { useState } from "react";
+
+// Mock data for demonstration
+const mockClients = [
+  {
+    id: 1,
+    name: "Petrobras S.A.",
+    email: "contato@petrobras.com.br",
+    phone: "(21) 3224-4477",
+    contacts: [
+      { name: "João Silva", role: "Gerente de Operações" },
+      { name: "Maria Santos", role: "Coordenadora" },
+    ],
+    vessels: [
+      { name: "PB-001", type: "PLSV" },
+      { name: "PB-002", type: "PSV" },
+    ],
+  },
+  {
+    id: 2,
+    name: "Shell Brasil",
+    email: "contato@shell.com.br",
+    phone: "(21) 3224-1234",
+    contacts: [
+      { name: "Pedro Costa", role: "Supervisor" },
+    ],
+    vessels: [
+      { name: "SH-001", type: "AHTS" },
+    ],
+  },
+];
 
 const Clients = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClient, setSelectedClient] = useState(null);
+
+  const filteredClients = mockClients.filter(client =>
+    client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    client.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -33,6 +72,8 @@ const Clients = () => {
               placeholder="Buscar clientes..." 
               className="max-w-sm"
               type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
             <Button variant="outline">
               <Search className="h-4 w-4" />
@@ -41,10 +82,9 @@ const Clients = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Lista de clientes mockada */}
-            {[1, 2, 3].map((client) => (
+            {filteredClients.map((client) => (
               <div
-                key={client}
+                key={client.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
               >
                 <div className="flex items-center gap-4">
@@ -52,15 +92,33 @@ const Clients = () => {
                     <Users className="h-4 w-4 text-white" />
                   </div>
                   <div>
-                    <h4 className="font-semibold">Empresa {client}</h4>
-                    <p className="text-sm text-muted-foreground">
-                      contato@empresa{client}.com
-                    </p>
+                    <h4 className="font-semibold">{client.name}</h4>
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1">
+                        <Mail className="h-3 w-3" />
+                        {client.email}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Phone className="h-3 w-3" />
+                        {client.phone}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm">
-                  Ver detalhes
-                </Button>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={() => setSelectedClient(client)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-4xl">
+                    <DialogHeader>
+                      <DialogTitle>Editar Cliente - {client.name}</DialogTitle>
+                    </DialogHeader>
+                    <NewClientForm />
+                  </DialogContent>
+                </Dialog>
               </div>
             ))}
           </div>
