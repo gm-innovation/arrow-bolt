@@ -10,6 +10,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -23,16 +30,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { MoreHorizontal, Plus, Download } from "lucide-react";
 import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { NewOrderForm } from "@/components/admin/orders/NewOrderForm";
 
 const ServiceOrders = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [date, setDate] = useState<Date>();
   const [vessel, setVessel] = useState("");
   const [technician, setTechnician] = useState("");
   const [status, setStatus] = useState("");
@@ -47,13 +52,6 @@ const ServiceOrders = () => {
       createdAt: "2024-03-15",
     },
   ];
-
-  const handleCreateOrder = () => {
-    toast({
-      title: "Nova OS",
-      description: "Funcionalidade em desenvolvimento",
-    });
-  };
 
   const handleExport = () => {
     toast({
@@ -74,10 +72,20 @@ const ServiceOrders = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Ordens de Serviço</h2>
         <div className="flex gap-2">
-          <Button onClick={handleCreateOrder}>
-            <Plus className="mr-2 h-4 w-4" />
-            Nova OS
-          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nova OS
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+              </DialogHeader>
+              <NewOrderForm />
+            </DialogContent>
+          </Dialog>
           <Button variant="outline" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             Exportar Lista
@@ -86,20 +94,8 @@ const ServiceOrders = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <label>Data</label>
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={setDate}
-                locale={ptBR}
-              />
-            </div>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="space-y-2">
               <label>Embarcação</label>
               <Select value={vessel} onValueChange={setVessel}>
@@ -138,11 +134,7 @@ const ServiceOrders = () => {
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
 
-      <Card>
-        <CardContent className="pt-6">
           <Table>
             <TableHeader>
               <TableRow>
