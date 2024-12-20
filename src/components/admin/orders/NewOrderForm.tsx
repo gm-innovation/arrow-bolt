@@ -8,6 +8,7 @@ import { OrderBasicInfo } from "./OrderBasicInfo";
 import { ServiceDetails } from "./ServiceDetails";
 import { TechniciansSelection } from "./TechniciansSelection";
 import { SupervisorSelection } from "./SupervisorSelection";
+import { Input } from "@/components/ui/input";
 
 type OrderFormData = {
   orderNumber: string;
@@ -66,45 +67,68 @@ export const NewOrderForm = () => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 max-h-[calc(100vh-200px)] overflow-y-auto px-4">
-        <OrderBasicInfo 
-          form={form} 
-          client={client} 
-          onClientChange={setSelectedClient} 
-        />
-        
-        <ServiceDetails form={form} />
-        
-        <TechniciansSelection
-          selectedTechnicians={selectedTechnicians}
-          onTechnicianToggle={handleTechnicianToggle}
-          leadTechId={leadTechId}
-          onLeadTechChange={handleLeadTechChange}
-        />
-        
-        <SupervisorSelection form={form} />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="flex justify-end mb-4">
+          <FormField
+            control={form.control}
+            name="orderNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nº da OS</FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field} 
+                    maxLength={5} 
+                    className="w-[100px]" 
+                    placeholder="00000"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <FormField
-          control={form.control}
-          name="scope"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Escopo do Projeto</FormLabel>
-              <FormControl>
-                <Textarea
-                  {...field}
-                  placeholder="Descreva o escopo do projeto"
-                  className="min-h-[100px]"
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto px-4">
+          <OrderBasicInfo 
+            form={form} 
+            client={client} 
+            onClientChange={setSelectedClient} 
+          />
+          
+          <ServiceDetails form={form} />
+          
+          <TechniciansSelection
+            selectedTechnicians={selectedTechnicians}
+            onTechnicianToggle={handleTechnicianToggle}
+            leadTechId={leadTechId}
+            onLeadTechChange={handleLeadTechChange}
+          />
+          
+          <SupervisorSelection form={form} />
 
-        <Button type="submit" className="w-full">
-          Criar Ordem de Serviço
-        </Button>
+          <FormField
+            control={form.control}
+            name="scope"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Escopo do Projeto</FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    placeholder="Descreva o escopo do projeto"
+                    className="min-h-[100px]"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button type="submit" className="w-full">
+            Criar Ordem de Serviço
+          </Button>
+        </div>
       </form>
     </Form>
   );

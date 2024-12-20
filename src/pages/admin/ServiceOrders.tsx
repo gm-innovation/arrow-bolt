@@ -31,9 +31,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { MoreHorizontal, Plus, Download } from "lucide-react";
+import { MoreHorizontal, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { NewOrderForm } from "@/components/admin/orders/NewOrderForm";
+import { Input } from "@/components/ui/input";
 
 const ServiceOrders = () => {
   const navigate = useNavigate();
@@ -41,6 +42,7 @@ const ServiceOrders = () => {
   const [vessel, setVessel] = useState("");
   const [technician, setTechnician] = useState("");
   const [status, setStatus] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Mock data - replace with real data later
   const serviceOrders = [
@@ -53,86 +55,93 @@ const ServiceOrders = () => {
     },
   ];
 
-  const handleExport = () => {
-    toast({
-      title: "Exportar",
-      description: "Funcionalidade em desenvolvimento",
-    });
-  };
+  const filteredOrders = serviceOrders.filter((order) => {
+    const matchesSearch = 
+      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.vessel.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.technicians.some(tech => 
+        tech.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+
+    const matchesVessel = !vessel || order.vessel === vessel;
+    const matchesTechnician = !technician || 
+      order.technicians.some(tech => tech === technician);
+    const matchesStatus = !status || order.status === status;
+
+    return matchesSearch && matchesVessel && matchesTechnician && matchesStatus;
+  });
 
   const handleAction = (action: string, orderId: string) => {
-    toast({
-      title: action,
-      description: `${action} OS ${orderId}`,
-    });
+    switch (action) {
+      case "edit":
+        toast({
+          title: "Editar OS",
+          description: `Editando OS ${orderId}`,
+        });
+        break;
+      case "transfer":
+        toast({
+          title: "Transferir Técnicos",
+          description: `Transferindo técnicos da OS ${orderId}`,
+        });
+        break;
+      case "view":
+        toast({
+          title: "Visualizar Detalhes",
+          description: `Visualizando detalhes da OS ${orderId}`,
+        });
+        break;
+    }
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Ordens de Serviço</h2>
-        <div className="flex gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Nova OS
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
-              <DialogHeader>
-                <DialogTitle>Nova Ordem de Serviço</DialogTitle>
-              </DialogHeader>
-              <NewOrderForm />
-            </DialogContent>
-          </Dialog>
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Exportar Lista
-          </Button>
-        </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Nova OS
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+            </DialogHeader>
+            <NewOrderForm />
+          </DialogContent>
+        </Dialog>
       </div>
 
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="space-y-2">
-              <label>Embarcação</label>
-              <Select value={vessel} onValueChange={setVessel}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="navio1">Navio Alfa</SelectItem>
-                  <SelectItem value="navio2">Navio Beta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label>Técnico</label>
-              <Select value={technician} onValueChange={setTechnician}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tech1">João Silva</SelectItem>
-                  <SelectItem value="tech2">Maria Santos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label>Status</label>
-              <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="planned">Planejado</SelectItem>
-                  <SelectItem value="in_progress">Em Andamento</SelectItem>
-                  <SelectItem value="completed">Finalizado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Input 
+              placeholder="Buscar OS, embarcação ou técnico..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="md:col-span-2"
+            />
+            <Select value={vessel} onValueChange={setVessel}>
+              <SelectTrigger>
+                <SelectValue placeholder="Embarcação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="navio1">Navio Alfa</SelectItem>
+                <SelectItem value="navio2">Navio Beta</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="planned">Planejado</SelectItem>
+                <SelectItem value="in_progress">Em Andamento</SelectItem>
+                <SelectItem value="completed">Finalizado</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
 
           <Table>
@@ -147,10 +156,10 @@ const ServiceOrders = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {serviceOrders.map((order) => (
+              {filteredOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">
-                    <Button variant="link" className="p-0">
+                    <Button variant="link" className="p-0" onClick={() => handleAction("view", order.id)}>
                       {order.id}
                     </Button>
                   </TableCell>
@@ -168,19 +177,13 @@ const ServiceOrders = () => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => handleAction("Editar", order.id)}
-                        >
+                        <DropdownMenuItem onClick={() => handleAction("edit", order.id)}>
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleAction("Transferir", order.id)}
-                        >
+                        <DropdownMenuItem onClick={() => handleAction("transfer", order.id)}>
                           Transferir Técnicos
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleAction("Visualizar", order.id)}
-                        >
+                        <DropdownMenuItem onClick={() => handleAction("view", order.id)}>
                           Visualizar Detalhes
                         </DropdownMenuItem>
                       </DropdownMenuContent>
