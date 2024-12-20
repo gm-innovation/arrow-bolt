@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
 import {
   Table,
   TableBody,
@@ -30,11 +31,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { NewOrderForm } from "@/components/admin/orders/NewOrderForm";
 import { Input } from "@/components/ui/input";
+
+type FormData = {
+  orderNumber: string;
+};
 
 const ServiceOrders = () => {
   const navigate = useNavigate();
@@ -43,7 +49,7 @@ const ServiceOrders = () => {
   const [technician, setTechnician] = useState("");
   const [status, setStatus] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [orderNumber, setOrderNumber] = useState("");
+  const form = useForm<FormData>();
 
   // Mock data - replace with real data later
   const serviceOrders = [
@@ -109,24 +115,26 @@ const ServiceOrders = () => {
           <DialogContent className="max-w-4xl">
             <DialogHeader className="flex flex-row justify-between items-center">
               <DialogTitle>Nova Ordem de Serviço</DialogTitle>
-              <FormField
-                control={form.control}
-                name="orderNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nº da OS</FormLabel>
-                    <FormControl>
-                      <Input 
-                        {...field} 
-                        maxLength={5} 
-                        className="w-[100px]" 
-                        placeholder="00000"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <Form {...form}>
+                <FormField
+                  control={form.control}
+                  name="orderNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nº da OS</FormLabel>
+                      <FormControl>
+                        <Input 
+                          {...field} 
+                          maxLength={5} 
+                          className="w-[100px]" 
+                          placeholder="00000"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </Form>
             </DialogHeader>
             <NewOrderForm />
           </DialogContent>
