@@ -43,6 +43,7 @@ const ServiceOrders = () => {
   const [technician, setTechnician] = useState("");
   const [status, setStatus] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
 
   // Mock data - replace with real data later
   const serviceOrders = [
@@ -105,9 +106,27 @@ const ServiceOrders = () => {
               Nova OS
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl h-[90vh] overflow-y-auto">
-            <DialogHeader>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader className="flex flex-row justify-between items-center">
               <DialogTitle>Nova Ordem de Serviço</DialogTitle>
+              <FormField
+                control={form.control}
+                name="orderNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nº da OS</FormLabel>
+                    <FormControl>
+                      <Input 
+                        {...field} 
+                        maxLength={5} 
+                        className="w-[100px]" 
+                        placeholder="00000"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </DialogHeader>
             <NewOrderForm />
           </DialogContent>

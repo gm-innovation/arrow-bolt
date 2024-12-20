@@ -68,28 +68,7 @@ export const NewOrderForm = () => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="flex justify-end mb-4">
-          <FormField
-            control={form.control}
-            name="orderNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nº da OS</FormLabel>
-                <FormControl>
-                  <Input 
-                    {...field} 
-                    maxLength={5} 
-                    className="w-[100px]" 
-                    placeholder="00000"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto px-4">
+        <div className="space-y-6">
           <OrderBasicInfo 
             form={form} 
             client={client} 
