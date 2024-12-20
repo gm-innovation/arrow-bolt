@@ -18,33 +18,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Eye, Edit } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import { NewTaskTypeDialog } from "@/components/admin/task-types/NewTaskTypeDialog";
 
 const TaskTypes = () => {
   const [taskName, setTaskName] = useState("");
   const [category, setCategory] = useState("");
-  const { toast } = useToast();
-
-  const handleCreateTaskType = () => {
-    toast({
-      title: "Novo Tipo de Tarefa",
-      description: "Funcionalidade em desenvolvimento",
-    });
-  };
-
-  const handleViewHistory = (taskTypeId: string) => {
-    toast({
-      title: "Histórico",
-      description: `Visualizando histórico do tipo de tarefa ${taskTypeId}`,
-    });
-  };
-
-  const handleEdit = (taskTypeId: string) => {
-    toast({
-      title: "Editar",
-      description: `Editando tipo de tarefa ${taskTypeId}`,
-    });
-  };
+  const [open, setOpen] = useState(false);
 
   // Mock data - replace with real data later
   const taskTypes = [
@@ -61,10 +41,15 @@ const TaskTypes = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Tipos de Tarefas</h2>
-        <Button onClick={handleCreateTaskType}>
-          <Plus className="mr-2 h-4 w-4" />
-          Novo Tipo de Tarefa
-        </Button>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="mr-2 h-4 w-4" />
+              Novo Tipo de Tarefa
+            </Button>
+          </DialogTrigger>
+          <NewTaskTypeDialog />
+        </Dialog>
       </div>
 
       <Card>
