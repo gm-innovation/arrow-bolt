@@ -37,6 +37,7 @@ import { MoreHorizontal, Plus } from "lucide-react";
 import { format } from "date-fns";
 import { NewOrderForm } from "@/components/admin/orders/NewOrderForm";
 import { Input } from "@/components/ui/input";
+import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 
 type FormData = {
   orderNumber: string;
@@ -112,32 +113,7 @@ const ServiceOrders = () => {
               Nova OS
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl">
-            <DialogHeader className="flex flex-row justify-between items-center">
-              <DialogTitle>Nova Ordem de Serviço</DialogTitle>
-              <Form {...form}>
-                <FormField
-                  control={form.control}
-                  name="orderNumber"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nº da OS</FormLabel>
-                      <FormControl>
-                        <Input 
-                          {...field} 
-                          maxLength={5} 
-                          className="w-[100px]" 
-                          placeholder="00000"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </Form>
-            </DialogHeader>
-            <NewOrderForm />
-          </DialogContent>
+          <NewOrderDialog form={form} />
         </Dialog>
       </div>
 
