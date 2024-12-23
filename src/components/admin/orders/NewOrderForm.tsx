@@ -8,7 +8,6 @@ import { OrderBasicInfo } from "./OrderBasicInfo";
 import { ServiceDetails } from "./ServiceDetails";
 import { TechniciansSelection } from "./TechniciansSelection";
 import { SupervisorSelection } from "./SupervisorSelection";
-import { Input } from "@/components/ui/input";
 
 type OrderFormData = {
   orderNumber: string;
@@ -21,11 +20,17 @@ type OrderFormData = {
   taskTypes: string[];
   supervisorId: string;
   scope: string;
+  singleReport: boolean;
 };
 
 export const NewOrderForm = () => {
   const { toast } = useToast();
-  const form = useForm<OrderFormData>();
+  const form = useForm<OrderFormData>({
+    defaultValues: {
+      taskTypes: [],
+      singleReport: true
+    }
+  });
   const [selectedClient, setSelectedClient] = useState<string>("");
   const [selectedTechnicians, setSelectedTechnicians] = useState<string[]>([]);
   const [leadTechId, setLeadTechId] = useState<string>("");
