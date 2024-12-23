@@ -56,6 +56,10 @@ const Tasks = () => {
     navigate(`/tech/reports/new?taskId=${taskId}`);
   };
 
+  const handleCreateReport = (taskId: string) => {
+    navigate(`/tech/reports/new?taskId=${taskId}`);
+  };
+
   const handleViewDetails = (taskId: string) => {
     navigate(`/tech/tasks/${taskId}`);
   };
@@ -198,13 +202,22 @@ const Tasks = () => {
                       </Button>
                     )}
                     {task.status === "in_progress" && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleFinishTask(task.id)}
-                      >
-                        Finalizar
-                      </Button>
+                      <>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleCreateReport(task.id)}
+                        >
+                          Criar Relatório
+                        </Button>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleFinishTask(task.id)}
+                        >
+                          Finalizar
+                        </Button>
+                      </>
                     )}
                   </TableCell>
                 </TableRow>

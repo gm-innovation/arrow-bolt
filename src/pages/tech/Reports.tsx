@@ -36,10 +36,6 @@ const TechReports = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
-  const handleCreateReport = () => {
-    navigate("/tech/reports/new");
-  };
-
   const handleExportReports = () => {
     console.log("Exporting reports...");
   };
@@ -49,10 +45,6 @@ const TechReports = () => {
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Relatórios</h2>
         <div className="space-x-2">
-          <Button onClick={handleCreateReport}>
-            <FileText className="h-4 w-4 mr-2" />
-            Novo Relatório
-          </Button>
           <Button variant="outline" onClick={handleExportReports}>
             <Download className="h-4 w-4 mr-2" />
             Exportar
