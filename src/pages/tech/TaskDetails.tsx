@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { AdminInfo } from "@/components/tech/tasks/AdminInfo";
 
 // Mock data - replace with real API call
 const mockTask = {
@@ -15,6 +16,25 @@ const mockTask = {
   status: "waiting",
   technicians: ["João Silva", "Maria Santos"],
   adminNotes: "Verificar níveis de óleo e realizar limpeza dos filtros.",
+  taskType: {
+    name: "Manutenção Preventiva de Motor",
+    tools: [
+      { name: "Chave de fenda", quantity: 2 },
+      { name: "Alicate", quantity: 1 },
+      { name: "Kit de medição", quantity: 1 }
+    ],
+    steps: [
+      { order: 1, description: "Verificar níveis de óleo" },
+      { order: 2, description: "Limpar filtros" },
+      { order: 3, description: "Testar funcionamento" }
+    ],
+    photoLabels: [
+      { id: "1", description: "Estado inicial do motor" },
+      { id: "2", description: "Filtros removidos" },
+      { id: "3", description: "Filtros limpos" },
+      { id: "4", description: "Estado final do motor" }
+    ]
+  }
 };
 
 const TaskDetails = () => {
@@ -22,11 +42,25 @@ const TaskDetails = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleStartTask = () => {
-    toast({
-      title: "Tarefa iniciada",
-      description: `A tarefa ${taskId} foi iniciada com sucesso.`,
-    });
+  const handleStartTask = async () => {
+    try {
+      // TODO: Replace with actual API call
+      // await startTask(taskId);
+      
+      toast({
+        title: "Tarefa iniciada",
+        description: `A tarefa ${taskId} foi iniciada com sucesso.`,
+      });
+
+      // Refresh the page or update the task status
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: "Erro ao iniciar tarefa",
+        description: "Ocorreu um erro ao tentar iniciar a tarefa. Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -103,6 +137,8 @@ const TaskDetails = () => {
           </CardContent>
         </Card>
       </div>
+
+      <AdminInfo taskType={mockTask.taskType} />
 
       <Card>
         <CardContent className="pt-6">
