@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Ship, Calendar, Clock, User, Tool, ListChecks, Image } from "lucide-react";
+import { Ship, Calendar, Clock, User, Wrench, ListChecks, Image } from "lucide-react";
 import { format } from "date-fns";
 
 // Mock data types - replace with real types later
@@ -33,7 +33,7 @@ export const AdminInfo = ({ taskType }: AdminInfoProps) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Tool className="h-5 w-5" />
+            <Wrench className="h-5 w-5" />
             Ferramentas e Equipamentos Necessários
           </CardTitle>
         </CardHeader>

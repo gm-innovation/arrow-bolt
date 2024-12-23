@@ -20,11 +20,13 @@ import { Input } from "@/components/ui/input";
 import { Plus, Eye, Edit } from "lucide-react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { NewTaskTypeDialog } from "@/components/admin/task-types/NewTaskTypeDialog";
+import { useToast } from "@/hooks/use-toast";
 
 const TaskTypes = () => {
   const [taskName, setTaskName] = useState("");
   const [category, setCategory] = useState("");
   const [open, setOpen] = useState(false);
+  const { toast } = useToast();
 
   // Mock data - replace with real data later
   const taskTypes = [
@@ -36,6 +38,22 @@ const TaskTypes = () => {
       tasksCount: 25,
     },
   ];
+
+  const handleViewHistory = (taskTypeId: string) => {
+    // TODO: Implement view history functionality
+    toast({
+      title: "Visualizar histórico",
+      description: `Visualizando histórico do tipo de tarefa ${taskTypeId}`,
+    });
+  };
+
+  const handleEdit = (taskTypeId: string) => {
+    // TODO: Implement edit functionality
+    toast({
+      title: "Editar tipo de tarefa",
+      description: `Editando tipo de tarefa ${taskTypeId}`,
+    });
+  };
 
   return (
     <div className="space-y-6">
