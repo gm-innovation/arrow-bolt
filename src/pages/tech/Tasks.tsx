@@ -29,7 +29,7 @@ const mockTasks = [
     vesselName: "Navio Alpha",
     description: "Manutenção preventiva do motor principal",
     scheduledDate: new Date("2024-03-20T14:30:00"),
-    status: "waiting",
+    status: "waiting", // waiting, in_progress, completed
   },
 ];
 
@@ -40,8 +40,14 @@ const Tasks = () => {
   const [vesselFilter, setVesselFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [tasks, setTasks] = useState(mockTasks);
 
   const handleStartTask = (taskId: string) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId ? { ...task, status: "in_progress" } : task
+      )
+    );
     toast({
       title: "Tarefa iniciada",
       description: `A tarefa ${taskId} foi iniciada com sucesso.`,
@@ -49,11 +55,15 @@ const Tasks = () => {
   };
 
   const handleFinishTask = (taskId: string) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId ? { ...task, status: "completed" } : task
+      )
+    );
     toast({
       title: "Tarefa finalizada",
-      description: "Você será redirecionado para preencher o relatório.",
+      description: "Agora você pode criar o relatório da tarefa.",
     });
-    navigate(`/tech/reports/new?taskId=${taskId}`);
   };
 
   const handleCreateReport = (taskId: string) => {
@@ -70,6 +80,33 @@ const Tasks = () => {
       description: "A lista de tarefas foi atualizada com sucesso.",
     });
   };
+
+  const getStatusDisplay = (status: string) => {
+    switch (status) {
+      case "waiting":
+        return {
+          text: "Aguardando",
+          className: "bg-yellow-100 text-yellow-800"
+        };
+      case "in_progress":
+        return {
+          text: "Em Andamento",
+          className: "bg-blue-100 text-blue-800"
+        };
+      case "completed":
+        return {
+          text: "Finalizada",
+          className: "bg-green-100 text-green-800"
+        };
+      default:
+        return {
+          text: status,
+          className: "bg-gray-100 text-gray-800"
+        };
+    }
+  };
+
+  // ... keep existing code (filters section)
 
   return (
     <div className="space-y-6">
@@ -126,7 +163,7 @@ const Tasks = () => {
                 <SelectContent>
                   <SelectItem value="waiting">Aguardando</SelectItem>
                   <SelectItem value="in_progress">Em Andamento</SelectItem>
-                  <SelectItem value="finished">Finalizado</SelectItem>
+                  <SelectItem value="completed">Finalizado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -148,7 +185,7 @@ const Tasks = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockTasks.map((task) => (
+              {tasks.map((task) => (
                 <TableRow key={task.id}>
                   <TableCell>{task.id}</TableCell>
                   <TableCell>
@@ -171,21 +208,8 @@ const Tasks = () => {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${
-                          task.status === "waiting"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : task.status === "in_progress"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                    >
-                      {task.status === "waiting"
-                        ? "Aguardando"
-                        : task.status === "in_progress"
-                        ? "Em Andamento"
-                        : "Finalizado"}
+                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusDisplay(task.status).className}`}>
+                      {getStatusDisplay(task.status).text}
                     </div>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
@@ -206,22 +230,22 @@ const Tasks = () => {
                       </Button>
                     )}
                     {task.status === "in_progress" && (
-                      <>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleCreateReport(task.id)}
-                        >
-                          Criar Relatório
-                        </Button>
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleFinishTask(task.id)}
-                        >
-                          Finalizar
-                        </Button>
-                      </>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleFinishTask(task.id)}
+                      >
+                        Finalizar
+                      </Button>
+                    )}
+                    {task.status === "completed" && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleCreateReport(task.id)}
+                      >
+                        Criar Relatório
+                      </Button>
                     )}
                   </TableCell>
                 </TableRow>
