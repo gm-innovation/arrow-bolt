@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { AdminInfo } from "@/components/tech/tasks/AdminInfo";
 import { ServiceOrderInfo } from "@/components/tech/tasks/ServiceOrderInfo";
+import { AdminInfo } from "@/components/tech/tasks/AdminInfo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
@@ -10,6 +10,7 @@ import { Calendar, Clock } from "lucide-react";
 
 const mockServiceOrder = {
   id: "OS001",
+  scheduledDate: new Date("2024-03-20T14:30:00"),
   location: "Porto de Santos - Berço 123",
   access: "Terminal 4, Portão B - Apresentar-se na guarita principal",
   requester: {
@@ -47,8 +48,7 @@ const mockServiceOrder = {
           { id: "4", description: "Estado final do motor" }
         ]
       }
-    },
-    // Add more tasks as needed
+    }
   ]
 };
 
@@ -82,11 +82,11 @@ const TaskDetails = () => {
           <div className="flex items-center gap-4 mt-2 text-muted-foreground">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              {format(new Date(), "dd/MM/yyyy")}
+              {format(mockServiceOrder.scheduledDate, "dd/MM/yyyy")}
             </div>
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4" />
-              {format(new Date(), "HH:mm")}
+              {format(mockServiceOrder.scheduledDate, "HH:mm")}
             </div>
           </div>
         </div>

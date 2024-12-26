@@ -28,7 +28,7 @@ const mockTasks = [
     id: "OS001",
     vesselName: "Navio Alpha",
     description: "Manutenção preventiva do motor principal",
-    startDate: new Date(),
+    scheduledDate: new Date("2024-03-20T14:30:00"),
     status: "waiting",
   },
 ];
@@ -142,7 +142,7 @@ const Tasks = () => {
                 <TableHead>Número OS</TableHead>
                 <TableHead>Embarcação</TableHead>
                 <TableHead>Descrição</TableHead>
-                <TableHead>Data/Hora Início</TableHead>
+                <TableHead>Data/Hora</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
@@ -159,11 +159,15 @@ const Tasks = () => {
                   </TableCell>
                   <TableCell>{task.description}</TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4" />
-                      {format(task.startDate, "dd/MM/yyyy")}
-                      <Clock className="h-4 w-4 ml-2" />
-                      {format(task.startDate, "HH:mm")}
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4" />
+                        {format(task.scheduledDate, "dd/MM/yyyy")}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4" />
+                        {format(task.scheduledDate, "HH:mm")}
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>

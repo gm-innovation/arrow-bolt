@@ -1,7 +1,7 @@
 export type TimeEntry = {
   id: string;
   date: Date;
-  type: "work_normal" | "work_extra" | "travel_normal" | "travel_extra" | "wait_normal" | "wait_extra";
+  type: 'work_normal' | 'work_extra' | 'travel' | 'wait';
   startTime: string;
   endTime: string;
 };
