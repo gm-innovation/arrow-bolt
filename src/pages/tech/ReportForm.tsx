@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Save, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,7 +9,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TimeEntriesSection } from "@/components/tech/reports/TimeEntriesSection";
 import { EquipmentInfoSection } from "@/components/tech/reports/EquipmentInfoSection";
 import { ServiceDetailsSection } from "@/components/tech/reports/ServiceDetailsSection";
-import { TaskReport, TimeEntry } from "@/components/tech/reports/types";
+import { PhotosSection } from "@/components/tech/reports/PhotosSection";
+import { TaskReport, TimeEntry, PhotoWithCaption } from "@/components/tech/reports/types";
 
 const queryClient = new QueryClient();
 
@@ -92,14 +92,12 @@ const ReportFormContent = () => {
     }));
   };
 
-  const handlePhotoUpload = (taskId: string, files: FileList | null) => {
-    if (!files) return;
-
+  const handleUpdatePhotos = (taskId: string, photos: PhotoWithCaption[]) => {
     setTaskReports((prev) => ({
       ...prev,
       [taskId]: {
         ...prev[taskId],
-        photos: [...prev[taskId].photos, ...Array.from(files)],
+        photos,
       },
     }));
   };
@@ -171,23 +169,11 @@ const ReportFormContent = () => {
                   <CardTitle>Fotos</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={(e) => handlePhotoUpload(taskId, e.target.files)}
+                  <PhotosSection
+                    taskId={taskId}
+                    photos={report.photos}
+                    onUpdatePhotos={handleUpdatePhotos}
                   />
-                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {report.photos.map((photo, index) => (
-                      <div key={index} className="relative aspect-square">
-                        <img
-                          src={URL.createObjectURL(photo)}
-                          alt={`Foto ${index + 1}`}
-                          className="w-full h-full object-cover rounded-md"
-                        />
-                      </div>
-                    ))}
-                  </div>
                 </CardContent>
               </Card>
 

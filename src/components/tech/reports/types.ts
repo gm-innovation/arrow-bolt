@@ -6,6 +6,11 @@ export type TimeEntry = {
   endTime: string;
 };
 
+export type PhotoWithCaption = {
+  file: File;
+  caption: string;
+};
+
 export type TaskReport = {
   modelInfo: string;
   brandInfo: string;
@@ -15,6 +20,6 @@ export type TaskReport = {
   result: string;
   nextVisitWork: string;
   suppliedMaterial: string;
-  photos: File[];
+  photos: PhotoWithCaption[];
   timeEntries: TimeEntry[];
 };
