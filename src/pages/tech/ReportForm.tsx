@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TimeEntriesSection } from "@/components/tech/reports/TimeEntriesSection";
 import { EquipmentInfoSection } from "@/components/tech/reports/EquipmentInfoSection";
 import { ServiceDetailsSection } from "@/components/tech/reports/ServiceDetailsSection";
-import { TaskReport } from "@/components/tech/reports/types";
+import { TaskReport, TimeEntry } from "@/components/tech/reports/types";
 
 const queryClient = new QueryClient();
 
