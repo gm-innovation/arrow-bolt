@@ -14,9 +14,7 @@ const Login = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual authentication
     if (email && password) {
-      // Temporary navigation based on email domain
       if (email.includes("superadmin")) {
         navigate("/super-admin/dashboard");
       } else if (email.includes("admin")) {
@@ -26,22 +24,22 @@ const Login = () => {
       }
       
       toast({
-        title: "Login successful",
-        description: "Welcome back!",
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo de volta!",
       });
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-navy-light to-navy">
-      <Card className="w-[350px]">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-navy-light to-navy p-4">
+      <Card className="w-full max-w-[350px]">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-center mb-4">
             <Ship className="h-12 w-12 text-navy-bright" />
           </div>
           <CardTitle className="text-2xl text-center">Naval OS Manager</CardTitle>
           <CardDescription className="text-center">
-            Enter your credentials to access the system
+            Digite suas credenciais para acessar o sistema
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
@@ -49,7 +47,7 @@ const Login = () => {
             <div className="space-y-2">
               <Input
                 type="email"
-                placeholder="Email"
+                placeholder="E-mail"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -58,7 +56,7 @@ const Login = () => {
             <div className="space-y-2">
               <Input
                 type="password"
-                placeholder="Password"
+                placeholder="Senha"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -67,7 +65,7 @@ const Login = () => {
           </CardContent>
           <CardFooter>
             <Button type="submit" className="w-full bg-navy-bright hover:bg-navy-medium">
-              Sign In
+              Entrar
             </Button>
           </CardFooter>
         </form>
