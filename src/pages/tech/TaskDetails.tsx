@@ -5,8 +5,9 @@ import { AdminInfo } from "@/components/tech/tasks/AdminInfo";
 import { ServiceOrderInfo } from "@/components/tech/tasks/ServiceOrderInfo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
+import { format } from "date-fns";
+import { Calendar, Clock } from "lucide-react";
 
-// Mock data - replace with real API call
 const mockServiceOrder = {
   id: "OS001",
   location: "Porto de Santos - Berço 123",
@@ -58,7 +59,6 @@ const TaskDetails = () => {
 
   const handleStartTask = async () => {
     try {
-      // TODO: Replace with actual API call
       toast({
         title: "Tarefa iniciada",
         description: `A tarefa ${taskId} foi iniciada com sucesso.`,
@@ -75,9 +75,21 @@ const TaskDetails = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Ordem de Serviço - {mockServiceOrder.id}
-        </h2>
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Ordem de Serviço - {mockServiceOrder.id}
+          </h2>
+          <div className="flex items-center gap-4 mt-2 text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {format(new Date(), "dd/MM/yyyy")}
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              {format(new Date(), "HH:mm")}
+            </div>
+          </div>
+        </div>
         <Button onClick={() => navigate("/tech/tasks")}>Voltar</Button>
       </div>
 
