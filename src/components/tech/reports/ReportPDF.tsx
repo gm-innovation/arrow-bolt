@@ -24,6 +24,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     padding: 5,
   },
+  label: {
+    fontWeight: 'bold',
+    marginRight: 5,
+  },
+  value: {
+    flex: 1,
+  },
   photosGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -12,6 +12,7 @@ export type PhotoWithCaption = {
 };
 
 export type TaskReport = {
+  id?: string; // Making it optional for backward compatibility
   modelInfo: string;
   brandInfo: string;
   serialNumber: string;

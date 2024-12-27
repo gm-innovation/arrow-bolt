@@ -22,7 +22,7 @@ import { FileText, Download } from "lucide-react";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { TaskReport } from "@/components/tech/reports/types";
 
-// Mock data with proper structure
+// Update mock data to include id
 const mockReports = [
   {
     id: "REL001",

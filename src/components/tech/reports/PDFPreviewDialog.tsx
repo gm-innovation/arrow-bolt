@@ -14,6 +14,26 @@ interface PDFPreviewDialogProps {
   taskId: string;
 }
 
+// Mock service order data
+const mockServiceOrder = {
+  id: "OS-001",
+  date: new Date(),
+  location: "Porto de Santos",
+  access: "Acesso Principal",
+  requester: {
+    name: "João Silva",
+    role: "Supervisor de Operações",
+  },
+  supervisor: {
+    name: "Maria Santos",
+  },
+  team: {
+    leadTechnician: "Pedro Oliveira",
+    assistants: ["Carlos Souza", "Ana Lima"],
+  },
+  service: "Manutenção Preventiva",
+};
+
 export const PDFPreviewDialog = ({
   open,
   onOpenChange,
@@ -26,7 +46,11 @@ export const PDFPreviewDialog = ({
         <DialogHeader>
           <DialogTitle>Visualização do PDF</DialogTitle>
         </DialogHeader>
-        <ReportPDFViewer report={report} taskId={taskId} />
+        <ReportPDFViewer 
+          report={report} 
+          taskId={taskId} 
+          serviceOrder={mockServiceOrder}
+        />
       </DialogContent>
     </Dialog>
   );
