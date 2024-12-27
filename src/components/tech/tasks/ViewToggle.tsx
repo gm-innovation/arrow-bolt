@@ -1,4 +1,4 @@
-import { LayoutList, LayoutKanban } from "lucide-react";
+import { LayoutList, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ViewToggleProps {
@@ -22,7 +22,7 @@ export const ViewToggle = ({ view, onViewChange }: ViewToggleProps) => {
         size="sm"
         onClick={() => onViewChange("kanban")}
       >
-        <LayoutKanban className="h-4 w-4 mr-2" />
+        <LayoutGrid className="h-4 w-4 mr-2" />
         Kanban
       </Button>
     </div>

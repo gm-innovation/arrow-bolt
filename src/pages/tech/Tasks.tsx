@@ -21,6 +21,8 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ViewToggle } from "@/components/tech/tasks/ViewToggle";
 import { TasksKanbanView } from "@/components/tech/tasks/TasksKanbanView";
+import { Ship, Calendar, Clock } from "lucide-react";
+import { format } from "date-fns";
 
 // Mock data - replace with real API calls
 const mockTasks = [
@@ -29,7 +31,7 @@ const mockTasks = [
     vesselName: "Navio Alpha",
     description: "Manutenção preventiva do motor principal",
     scheduledDate: new Date("2024-03-20T14:30:00"),
-    status: "waiting", // waiting, in_progress, completed
+    status: "waiting" as const, // Type assertion to ensure correct status type
   },
 ];
 
