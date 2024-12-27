@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { format } from "date-fns";
-import { Calendar, Ship, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +19,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { ViewToggle } from "@/components/tech/tasks/ViewToggle";
+import { TasksKanbanView } from "@/components/tech/tasks/TasksKanbanView";
 
 // Mock data - replace with real API calls
 const mockTasks = [
@@ -41,6 +41,7 @@ const Tasks = () => {
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [tasks, setTasks] = useState(mockTasks);
+  const [view, setView] = useState<"list" | "kanban">("list");
 
   const handleStartTask = (taskId: string) => {
     setTasks(prevTasks =>
@@ -63,6 +64,18 @@ const Tasks = () => {
     toast({
       title: "Tarefa finalizada",
       description: "Agora você pode criar o relatório da tarefa.",
+    });
+  };
+
+  const handleStatusChange = (taskId: string, newStatus: string) => {
+    setTasks(prevTasks =>
+      prevTasks.map(task =>
+        task.id === taskId ? { ...task, status: newStatus } : task
+      )
+    );
+    toast({
+      title: "Status atualizado",
+      description: `O status da tarefa foi atualizado com sucesso.`,
     });
   };
 
@@ -106,13 +119,14 @@ const Tasks = () => {
     }
   };
 
-  // ... keep existing code (filters section)
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Tarefas Atribuídas</h2>
-        <Button onClick={handleRefreshTasks}>Atualizar Lista</Button>
+        <div className="flex gap-4">
+          <ViewToggle view={view} onViewChange={setView} />
+          <Button onClick={handleRefreshTasks}>Atualizar Lista</Button>
+        </div>
       </div>
 
       <Card>
@@ -173,85 +187,89 @@ const Tasks = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Número OS</TableHead>
-                <TableHead>Embarcação</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Data/Hora</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {tasks.map((task) => (
-                <TableRow key={task.id}>
-                  <TableCell>{task.id}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Ship className="h-4 w-4" />
-                      {task.vesselName}
-                    </div>
-                  </TableCell>
-                  <TableCell>{task.description}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4" />
-                        {format(task.scheduledDate, "dd/MM/yyyy")}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4" />
-                        {format(task.scheduledDate, "HH:mm")}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusDisplay(task.status).className}`}>
-                      {getStatusDisplay(task.status).text}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDetails(task.id)}
-                    >
-                      Detalhes
-                    </Button>
-                    {task.status === "waiting" && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleStartTask(task.id)}
-                      >
-                        Iniciar
-                      </Button>
-                    )}
-                    {task.status === "in_progress" && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleFinishTask(task.id)}
-                      >
-                        Finalizar
-                      </Button>
-                    )}
-                    {task.status === "completed" && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => handleCreateReport(task.id)}
-                      >
-                        Criar Relatório
-                      </Button>
-                    )}
-                  </TableCell>
+          {view === "list" ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Número OS</TableHead>
+                  <TableHead>Embarcação</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead>Data/Hora</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {tasks.map((task) => (
+                  <TableRow key={task.id}>
+                    <TableCell>{task.id}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Ship className="h-4 w-4" />
+                        {task.vesselName}
+                      </div>
+                    </TableCell>
+                    <TableCell>{task.description}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4" />
+                          {format(task.scheduledDate, "dd/MM/yyyy")}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4" />
+                          {format(task.scheduledDate, "HH:mm")}
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusDisplay(task.status).className}`}>
+                        {getStatusDisplay(task.status).text}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewDetails(task.id)}
+                      >
+                        Detalhes
+                      </Button>
+                      {task.status === "waiting" && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleStartTask(task.id)}
+                        >
+                          Iniciar
+                        </Button>
+                      )}
+                      {task.status === "in_progress" && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleFinishTask(task.id)}
+                        >
+                          Finalizar
+                        </Button>
+                      )}
+                      {task.status === "completed" && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleCreateReport(task.id)}
+                        >
+                          Criar Relatório
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <TasksKanbanView tasks={tasks} onStatusChange={handleStatusChange} />
+          )}
         </CardContent>
       </Card>
     </div>
