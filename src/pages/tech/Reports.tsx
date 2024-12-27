@@ -20,14 +20,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { FileText, Download } from "lucide-react";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
+import { TaskReport } from "@/components/tech/reports/types";
 
-// Mock data - replace with real API calls
+// Mock data with proper structure
 const mockReports = [
   {
     id: "REL001",
     vesselName: "Navio Alpha",
     status: "in_progress",
     createdAt: new Date(),
+    modelInfo: "Modelo XYZ",
+    brandInfo: "Marca ABC",
+    serialNumber: "123456",
+    reportedIssue: "Problema no motor",
+    executedWork: "Manutenção preventiva",
+    result: "Equipamento funcionando normalmente",
+    nextVisitWork: "Próxima manutenção em 6 meses",
+    suppliedMaterial: "Óleo lubrificante, filtros",
+    photos: [],
+    timeEntries: [],
   },
 ];
 
@@ -36,14 +47,14 @@ const TechReports = () => {
   const [vesselFilter, setVesselFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [selectedReport, setSelectedReport] = useState<TaskReport | null>(null);
   const [isPDFOpen, setIsPDFOpen] = useState(false);
 
   const handleExportReports = () => {
     console.log("Exporting reports...");
   };
 
-  const handleOpenPDF = (report: any) => {
+  const handleOpenPDF = (report: TaskReport) => {
     setSelectedReport(report);
     setIsPDFOpen(true);
   };

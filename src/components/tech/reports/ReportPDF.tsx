@@ -43,26 +43,26 @@ export const ReportPDFContent = ({ report, taskId }: ReportPDFProps) => (
         <Text style={styles.title}>Relatório de Serviço #{taskId}</Text>
         
         <Text style={styles.subtitle}>Informações do Equipamento</Text>
-        <Text style={styles.text}>Modelo: {report.modelInfo}</Text>
-        <Text style={styles.text}>Marca: {report.brandInfo}</Text>
-        <Text style={styles.text}>Número de Série: {report.serialNumber}</Text>
+        <Text style={styles.text}>Modelo: {report.modelInfo || 'N/A'}</Text>
+        <Text style={styles.text}>Marca: {report.brandInfo || 'N/A'}</Text>
+        <Text style={styles.text}>Número de Série: {report.serialNumber || 'N/A'}</Text>
 
         <Text style={styles.subtitle}>Detalhes do Serviço</Text>
-        <Text style={styles.text}>Defeito Encontrado: {report.reportedIssue}</Text>
-        <Text style={styles.text}>Trabalhos Executados: {report.executedWork}</Text>
-        <Text style={styles.text}>Resultado: {report.result}</Text>
-        <Text style={styles.text}>Próximo Atendimento: {report.nextVisitWork}</Text>
-        <Text style={styles.text}>Material Fornecido: {report.suppliedMaterial}</Text>
+        <Text style={styles.text}>Defeito Encontrado: {report.reportedIssue || 'N/A'}</Text>
+        <Text style={styles.text}>Trabalhos Executados: {report.executedWork || 'N/A'}</Text>
+        <Text style={styles.text}>Resultado: {report.result || 'N/A'}</Text>
+        <Text style={styles.text}>Próximo Atendimento: {report.nextVisitWork || 'N/A'}</Text>
+        <Text style={styles.text}>Material Fornecido: {report.suppliedMaterial || 'N/A'}</Text>
 
         <Text style={styles.subtitle}>Horários</Text>
-        {report.timeEntries.map((entry, index) => (
+        {(report.timeEntries || []).map((entry, index) => (
           <View key={index} style={styles.timeEntry}>
             <Text style={styles.text}>
               Data: {entry.date ? format(entry.date, 'dd/MM/yyyy') : 'N/A'}
             </Text>
-            <Text style={styles.text}>Tipo: {entry.type}</Text>
+            <Text style={styles.text}>Tipo: {entry.type || 'N/A'}</Text>
             <Text style={styles.text}>
-              Horário: {entry.startTime} - {entry.endTime}
+              Horário: {entry.startTime || 'N/A'} - {entry.endTime || 'N/A'}
             </Text>
           </View>
         ))}
