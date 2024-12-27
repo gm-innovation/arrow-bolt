@@ -1,24 +1,12 @@
 import { Document, Page, Text, View, StyleSheet, PDFViewer, Image } from '@react-pdf/renderer';
 import { TaskReport } from './types';
-import { format } from 'date-fns';
+import { CompanyHeader } from './pdf/CompanyHeader';
+import { ServiceOrderInfo } from './pdf/ServiceOrderInfo';
 
 const styles = StyleSheet.create({
   page: {
     padding: 30,
     fontSize: 12,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  logo: {
-    width: 120,
-    height: 60,
-  },
-  companyInfo: {
-    width: '50%',
-    textAlign: 'right',
   },
   title: {
     fontSize: 18,
@@ -35,17 +23,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     backgroundColor: '#f0f0f0',
     padding: 5,
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 5,
-  },
-  label: {
-    width: '30%',
-    fontWeight: 'bold',
-  },
-  value: {
-    width: '70%',
   },
   photosGrid: {
     flexDirection: 'row',
@@ -108,84 +85,80 @@ const styles = StyleSheet.create({
 interface ReportPDFProps {
   report: TaskReport;
   taskId: string;
+  serviceOrder: {
+    id: string;
+    date: Date;
+    location: string;
+    access: string;
+    requester: {
+      name: string;
+      role: string;
+    };
+    supervisor: {
+      name: string;
+    };
+    team: {
+      leadTechnician: string;
+      assistants: string[];
+    };
+    service: string;
+  };
 }
 
-export const ReportPDFContent = ({ report, taskId }: ReportPDFProps) => (
+export const ReportPDFContent = ({ report, taskId, serviceOrder }: ReportPDFProps) => (
   <Document>
     <Page size="A4" style={styles.page}>
-      {/* Cabeçalho com Logo e Informações da Empresa */}
-      <View style={styles.header}>
-        <Image 
-          src="/placeholder.svg"  // Substitua pelo caminho real do logo
-          style={styles.logo}
-        />
-        <View style={styles.companyInfo}>
-          <Text>Nome da Empresa LTDA</Text>
-          <Text>Rua Example, 123 - Cidade/UF</Text>
-          <Text>CEP: 12345-678</Text>
-          <Text>Tel: (11) 1234-5678</Text>
-          <Text>CNPJ: 12.345.678/0001-90</Text>
-        </View>
-      </View>
+      <CompanyHeader />
+      
+      <ServiceOrderInfo
+        orderNumber={serviceOrder.id}
+        date={serviceOrder.date}
+        location={serviceOrder.location}
+        access={serviceOrder.access}
+        requester={serviceOrder.requester}
+        supervisor={serviceOrder.supervisor}
+        team={serviceOrder.team}
+        service={serviceOrder.service}
+      />
 
-      <Text style={styles.title}>Relatório de Serviço #{taskId}</Text>
-
-      {/* Informações da OS */}
+      {/* Technical Report Section */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Informações da Ordem de Serviço</Text>
-        <View style={styles.row}>
-          <Text style={styles.label}>Cliente:</Text>
-          <Text style={styles.value}>Nome do Cliente</Text>
-        </View>
-        <View style={styles.row}>
-          <Text style={styles.label}>Data:</Text>
-          <Text style={styles.value}>{format(new Date(), 'dd/MM/yyyy')}</Text>
-        </View>
-      </View>
-
-      {/* Informações do Equipamento */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Informações do Equipamento</Text>
-        <View style={styles.row}>
+        <Text style={styles.sectionTitle}>Relatório Técnico</Text>
+        <View style={styles.section}>
           <Text style={styles.label}>Modelo:</Text>
           <Text style={styles.value}>{report.modelInfo || 'N/A'}</Text>
         </View>
-        <View style={styles.row}>
+        <View style={styles.section}>
           <Text style={styles.label}>Marca:</Text>
           <Text style={styles.value}>{report.brandInfo || 'N/A'}</Text>
         </View>
-        <View style={styles.row}>
+        <View style={styles.section}>
           <Text style={styles.label}>Número de Série:</Text>
           <Text style={styles.value}>{report.serialNumber || 'N/A'}</Text>
         </View>
-      </View>
-
-      {/* Detalhes do Serviço */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Detalhes do Serviço</Text>
-        <View style={styles.row}>
+        <View style={styles.section}>
           <Text style={styles.label}>Defeito Encontrado:</Text>
           <Text style={styles.value}>{report.reportedIssue || 'N/A'}</Text>
         </View>
-        <View style={styles.row}>
+        <View style={styles.section}>
           <Text style={styles.label}>Trabalhos Executados:</Text>
           <Text style={styles.value}>{report.executedWork || 'N/A'}</Text>
         </View>
-        <View style={styles.row}>
+        <View style={styles.section}>
           <Text style={styles.label}>Resultado:</Text>
           <Text style={styles.value}>{report.result || 'N/A'}</Text>
         </View>
-        <View style={styles.row}>
+        <View style={styles.section}>
           <Text style={styles.label}>Próximo Atendimento:</Text>
           <Text style={styles.value}>{report.nextVisitWork || 'N/A'}</Text>
         </View>
-        <View style={styles.row}>
+        <View style={styles.section}>
           <Text style={styles.label}>Material Fornecido:</Text>
           <Text style={styles.value}>{report.suppliedMaterial || 'N/A'}</Text>
         </View>
       </View>
 
-      {/* Fotos */}
+      {/* Photos Section */}
       {report.photos && report.photos.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
@@ -200,20 +173,7 @@ export const ReportPDFContent = ({ report, taskId }: ReportPDFProps) => (
         </View>
       )}
 
-      {/* Horários */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Horários</Text>
-        {(report.timeEntries || []).map((entry, index) => (
-          <View key={index} style={styles.row}>
-            <Text>
-              {entry.date ? format(entry.date, 'dd/MM/yyyy') : 'N/A'} - {entry.type || 'N/A'} - 
-              {entry.startTime || 'N/A'} até {entry.endTime || 'N/A'}
-            </Text>
-          </View>
-        ))}
-      </View>
-
-      {/* Pesquisa de Satisfação */}
+      {/* Survey Section */}
       <View style={styles.surveySection}>
         <Text style={styles.sectionTitle}>Pesquisa de Satisfação</Text>
         
@@ -236,7 +196,6 @@ export const ReportPDFContent = ({ report, taskId }: ReportPDFProps) => (
         <Text>Comentários:</Text>
         <View style={styles.commentsBox} />
 
-        {/* Assinaturas */}
         <View style={styles.signatures}>
           <View style={styles.signatureBox}>
             <View style={styles.signatureLine} />
@@ -252,8 +211,8 @@ export const ReportPDFContent = ({ report, taskId }: ReportPDFProps) => (
   </Document>
 );
 
-export const ReportPDFViewer = ({ report, taskId }: ReportPDFProps) => (
+export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps) => (
   <PDFViewer style={{ width: '100%', height: '600px' }}>
-    <ReportPDFContent report={report} taskId={taskId} />
+    <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />
   </PDFViewer>
 );
