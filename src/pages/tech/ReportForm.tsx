@@ -3,14 +3,15 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Send } from "lucide-react";
+import { FilePdf, Save, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TimeEntriesSection } from "@/components/tech/reports/TimeEntriesSection";
 import { EquipmentInfoSection } from "@/components/tech/reports/EquipmentInfoSection";
 import { ServiceDetailsSection } from "@/components/tech/reports/ServiceDetailsSection";
 import { PhotosSection } from "@/components/tech/reports/PhotosSection";
-import { TaskReport, TimeEntry, PhotoWithCaption } from "@/components/tech/reports/types";
+import { TaskReport, TimeEntry } from "@/components/tech/reports/types";
+import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const ReportFormContent = () => {
   const taskId = searchParams.get("taskId");
 
   const [selectedTask, setSelectedTask] = useState("task1");
+  const [isPDFOpen, setIsPDFOpen] = useState(false);
   const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({
     task1: {
       modelInfo: "",
@@ -124,6 +126,10 @@ const ReportFormContent = () => {
         <h2 className="text-3xl font-bold tracking-tight">
           {reportId ? "Editar Relatório" : "Novo Relatório"}
         </h2>
+        <Button variant="outline" onClick={() => setIsPDFOpen(true)}>
+          <FilePdf className="h-4 w-4 mr-2" />
+          Visualizar PDF
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
@@ -206,6 +212,13 @@ const ReportFormContent = () => {
           </Button>
         </div>
       </form>
+
+      <PDFPreviewDialog
+        open={isPDFOpen}
+        onOpenChange={setIsPDFOpen}
+        report={taskReports[selectedTask]}
+        taskId={selectedTask}
+      />
     </div>
   );
 };

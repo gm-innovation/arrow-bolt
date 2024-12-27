@@ -18,7 +18,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, FilePdf } from "lucide-react";
+import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 
 // Mock data - replace with real API calls
 const mockReports = [
@@ -35,9 +36,16 @@ const TechReports = () => {
   const [vesselFilter, setVesselFilter] = useState("");
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [selectedReport, setSelectedReport] = useState<any>(null);
+  const [isPDFOpen, setIsPDFOpen] = useState(false);
 
   const handleExportReports = () => {
     console.log("Exporting reports...");
+  };
+
+  const handleOpenPDF = (report: any) => {
+    setSelectedReport(report);
+    setIsPDFOpen(true);
   };
 
   return (
@@ -139,7 +147,16 @@ const TechReports = () => {
                       size="sm"
                       onClick={() => navigate(`/tech/reports/${report.id}/edit`)}
                     >
+                      <FileText className="h-4 w-4 mr-2" />
                       Editar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleOpenPDF(report)}
+                    >
+                      <FilePdf className="h-4 w-4 mr-2" />
+                      PDF
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -148,6 +165,15 @@ const TechReports = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {selectedReport && (
+        <PDFPreviewDialog
+          open={isPDFOpen}
+          onOpenChange={setIsPDFOpen}
+          report={selectedReport}
+          taskId={selectedReport.id}
+        />
+      )}
     </div>
   );
 };
