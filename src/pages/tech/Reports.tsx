@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { FileText, Download, FilePdf } from "lucide-react";
+import { FileText, Download } from "lucide-react";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 
 // Mock data - replace with real API calls
@@ -155,7 +155,7 @@ const TechReports = () => {
                       size="sm"
                       onClick={() => handleOpenPDF(report)}
                     >
-                      <FilePdf className="h-4 w-4 mr-2" />
+                      <FileText className="h-4 w-4 mr-2" />
                       PDF
                     </Button>
                   </TableCell>

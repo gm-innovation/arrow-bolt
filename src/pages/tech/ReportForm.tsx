@@ -3,14 +3,14 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { FilePdf, Save, Send } from "lucide-react";
+import { FileText, Save, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TimeEntriesSection } from "@/components/tech/reports/TimeEntriesSection";
 import { EquipmentInfoSection } from "@/components/tech/reports/EquipmentInfoSection";
 import { ServiceDetailsSection } from "@/components/tech/reports/ServiceDetailsSection";
 import { PhotosSection } from "@/components/tech/reports/PhotosSection";
-import { TaskReport, TimeEntry } from "@/components/tech/reports/types";
+import { TaskReport, TimeEntry, PhotoWithCaption } from "@/components/tech/reports/types";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 
 const queryClient = new QueryClient();
@@ -127,7 +127,7 @@ const ReportFormContent = () => {
           {reportId ? "Editar Relatório" : "Novo Relatório"}
         </h2>
         <Button variant="outline" onClick={() => setIsPDFOpen(true)}>
-          <FilePdf className="h-4 w-4 mr-2" />
+          <FileText className="h-4 w-4 mr-2" />
           Visualizar PDF
         </Button>
       </div>
