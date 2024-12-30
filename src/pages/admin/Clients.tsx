@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Search, UserPlus, Edit, Phone, Mail, Ship } from "lucide-react";
+import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NewClientForm } from "@/components/admin/clients/NewClientForm";
+import { ClientHistoryDialog } from "@/components/admin/clients/ClientHistoryDialog";
 import { useState } from "react";
 
 // Mock data for demonstration
@@ -39,6 +40,8 @@ const mockClients = [
 const Clients = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClient, setSelectedClient] = useState(null);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+  const [selectedClientForHistory, setSelectedClientForHistory] = useState<{ id: string; name: string } | null>(null);
 
   const filteredClients = mockClients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -105,25 +108,47 @@ const Clients = () => {
                     </div>
                   </div>
                 </div>
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={() => setSelectedClient(client)}>
-                      <Edit className="mr-2 h-4 w-4" />
-                      Editar
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-4xl">
-                    <DialogHeader>
-                      <DialogTitle>Editar Cliente - {client.name}</DialogTitle>
-                    </DialogHeader>
-                    <NewClientForm />
-                  </DialogContent>
-                </Dialog>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedClientForHistory({ id: client.id.toString(), name: client.name });
+                      setHistoryDialogOpen(true);
+                    }}
+                  >
+                    <History className="mr-2 h-4 w-4" />
+                    Histórico
+                  </Button>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm" onClick={() => setSelectedClient(client)}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Editar
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-4xl">
+                      <DialogHeader>
+                        <DialogTitle>Editar Cliente - {client.name}</DialogTitle>
+                      </DialogHeader>
+                      <NewClientForm />
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
+
+      {selectedClientForHistory && (
+        <ClientHistoryDialog
+          clientId={selectedClientForHistory.id}
+          clientName={selectedClientForHistory.name}
+          open={historyDialogOpen}
+          onOpenChange={setHistoryDialogOpen}
+        />
+      )}
     </div>
   );
 };
