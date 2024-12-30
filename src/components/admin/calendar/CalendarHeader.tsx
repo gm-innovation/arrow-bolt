@@ -9,6 +9,10 @@ interface CalendarHeaderProps {
   view: "day" | "week" | "month";
   onViewChange: (view: "day" | "week" | "month") => void;
   onDateChange: (date: Date) => void;
+  onSearchClick: () => void;
+  onHelpClick: () => void;
+  onSettingsClick: () => void;
+  onMenuClick: () => void;
 }
 
 export const CalendarHeader = ({
@@ -16,6 +20,10 @@ export const CalendarHeader = ({
   view,
   onViewChange,
   onDateChange,
+  onSearchClick,
+  onHelpClick,
+  onSettingsClick,
+  onMenuClick,
 }: CalendarHeaderProps) => {
   const goToToday = () => onDateChange(new Date());
   
@@ -73,13 +81,13 @@ export const CalendarHeader = ({
       </div>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={onSearchClick}>
           <Search className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={onHelpClick}>
           <HelpCircle className="h-4 w-4" />
         </Button>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={onSettingsClick}>
           <Settings className="h-4 w-4" />
         </Button>
         <Select value={view} onValueChange={(value) => onViewChange(value as "day" | "week" | "month")}>
@@ -92,7 +100,7 @@ export const CalendarHeader = ({
             <SelectItem value="month">Mês</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" onClick={onMenuClick}>
           <Menu className="h-4 w-4" />
         </Button>
       </div>

@@ -4,6 +4,7 @@ import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 // Mock data - replace with real data from your backend
 const mockEvents = [
@@ -24,6 +25,10 @@ const mockEvents = [
 export const ServiceCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"day" | "week" | "month">("week");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { toast } = useToast();
 
   const handleEventClick = (eventId: string) => {
@@ -36,6 +41,38 @@ export const ServiceCalendar = () => {
     }
   };
 
+  const handleSearch = () => {
+    toast({
+      title: "Buscar Serviços",
+      description: "Funcionalidade de busca será implementada em breve.",
+    });
+    setIsSearchOpen(false);
+  };
+
+  const handleHelp = () => {
+    toast({
+      title: "Ajuda",
+      description: "O guia de ajuda será implementado em breve.",
+    });
+    setIsHelpOpen(false);
+  };
+
+  const handleSettings = () => {
+    toast({
+      title: "Configurações",
+      description: "As configurações serão implementadas em breve.",
+    });
+    setIsSettingsOpen(false);
+  };
+
+  const handleMenu = () => {
+    toast({
+      title: "Menu",
+      description: "Opções adicionais serão implementadas em breve.",
+    });
+    setIsMenuOpen(false);
+  };
+
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow">
       <CalendarHeader
@@ -43,17 +80,57 @@ export const ServiceCalendar = () => {
         view={view}
         onViewChange={setView}
         onDateChange={setCurrentDate}
+        onSearchClick={handleSearch}
+        onHelpClick={handleHelp}
+        onSettingsClick={handleSettings}
+        onMenuClick={handleMenu}
       />
       
       {view === "day" && (
-        <DayView date={currentDate} events={mockEvents} onEventClick={handleEventClick} />
+        <DayView date={currentDate} events={mockEvents} />
       )}
       {view === "week" && (
         <WeekView date={currentDate} events={mockEvents} onEventClick={handleEventClick} />
       )}
       {view === "month" && (
-        <MonthView date={currentDate} events={mockEvents} onEventClick={handleEventClick} />
+        <MonthView date={currentDate} events={mockEvents} />
       )}
+
+      <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Buscar Serviços</DialogTitle>
+          </DialogHeader>
+          <p>Funcionalidade em desenvolvimento</p>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ajuda</DialogTitle>
+          </DialogHeader>
+          <p>Guia de ajuda em desenvolvimento</p>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configurações</DialogTitle>
+          </DialogHeader>
+          <p>Configurações em desenvolvimento</p>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isMenuOpen} onOpenChange={setIsMenuOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Menu</DialogTitle>
+          </DialogHeader>
+          <p>Menu em desenvolvimento</p>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
