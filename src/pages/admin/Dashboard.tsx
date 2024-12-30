@@ -3,20 +3,20 @@ import { DashboardCharts } from "@/components/admin/dashboard/DashboardCharts";
 import { ServiceCalendar } from "@/components/admin/calendar/ServiceCalendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, FileText, UserCheck } from "lucide-react";
+import { PlusCircle, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { NewOrderForm } from "@/components/admin/orders/NewOrderForm";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
 
   const handleCreateOS = () => {
-    navigate("/admin/orders/new");
-    toast({
-      title: "Nova OS",
-      description: "Redirecionando para criação de OS",
-    });
+    setIsNewOrderOpen(true);
   };
 
   const handleApproveReports = () => {
@@ -24,14 +24,6 @@ const AdminDashboard = () => {
     toast({
       title: "Aprovar Relatórios",
       description: "Redirecionando para relatórios pendentes",
-    });
-  };
-
-  const handleTransferService = () => {
-    navigate("/admin/transfers");
-    toast({
-      title: "Transferir Serviço",
-      description: "Redirecionando para transferências",
     });
   };
 
@@ -48,10 +40,6 @@ const AdminDashboard = () => {
             <FileText className="mr-2 h-4 w-4" />
             Aprovar Relatórios
           </Button>
-          <Button variant="ghost" onClick={handleTransferService}>
-            <UserCheck className="mr-2 h-4 w-4" />
-            Transferir Serviço
-          </Button>
         </div>
       </div>
 
@@ -67,6 +55,12 @@ const AdminDashboard = () => {
       </Card>
 
       <DashboardCharts />
+
+      <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <NewOrderForm />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

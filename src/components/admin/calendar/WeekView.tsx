@@ -9,9 +9,10 @@ interface WeekViewProps {
     start: Date;
     end: Date;
   }>;
+  onEventClick?: (eventId: string) => void;
 }
 
-export const WeekView = ({ date, events }: WeekViewProps) => {
+export const WeekView = ({ date, events, onEventClick }: WeekViewProps) => {
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const hours = Array.from({ length: 14 }, (_, i) => addHours(startOfDay(date), i + 7));
@@ -52,11 +53,12 @@ export const WeekView = ({ date, events }: WeekViewProps) => {
               .map((event) => (
                 <div
                   key={event.id}
-                  className="absolute left-0 right-0 mx-2 px-2 py-1 bg-blue-100 border border-blue-200 rounded"
+                  className="absolute left-0 right-0 mx-2 px-2 py-1 bg-blue-100 border border-blue-200 rounded cursor-pointer hover:bg-blue-200 transition-colors"
                   style={{
                     top: `${getEventTopPosition(event.start)}px`,
                     height: `${getEventHeight(event.start, event.end)}px`,
                   }}
+                  onClick={() => onEventClick?.(event.id)}
                 >
                   <div className="font-medium text-sm">{event.title}</div>
                   <div className="text-xs text-gray-600">

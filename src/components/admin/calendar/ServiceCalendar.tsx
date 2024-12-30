@@ -3,6 +3,7 @@ import { CalendarHeader } from "./CalendarHeader";
 import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data - replace with real data from your backend
 const mockEvents = [
@@ -23,6 +24,17 @@ const mockEvents = [
 export const ServiceCalendar = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"day" | "week" | "month">("week");
+  const { toast } = useToast();
+
+  const handleEventClick = (eventId: string) => {
+    const event = mockEvents.find(e => e.id === eventId);
+    if (event) {
+      toast({
+        title: "Detalhes do Serviço",
+        description: `${event.title} - ${event.start.toLocaleString()}`,
+      });
+    }
+  };
 
   return (
     <div className="flex flex-col h-full bg-white rounded-lg shadow">
@@ -34,13 +46,13 @@ export const ServiceCalendar = () => {
       />
       
       {view === "day" && (
-        <DayView date={currentDate} events={mockEvents} />
+        <DayView date={currentDate} events={mockEvents} onEventClick={handleEventClick} />
       )}
       {view === "week" && (
-        <WeekView date={currentDate} events={mockEvents} />
+        <WeekView date={currentDate} events={mockEvents} onEventClick={handleEventClick} />
       )}
       {view === "month" && (
-        <MonthView date={currentDate} events={mockEvents} />
+        <MonthView date={currentDate} events={mockEvents} onEventClick={handleEventClick} />
       )}
     </div>
   );
