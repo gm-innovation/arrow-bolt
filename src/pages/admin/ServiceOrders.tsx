@@ -12,9 +12,6 @@ import {
 } from "@/components/ui/table";
 import {
   Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -31,13 +28,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Card, CardContent } from "@/components/ui/card";
 import { MoreHorizontal, Plus } from "lucide-react";
 import { format } from "date-fns";
-import { NewOrderForm } from "@/components/admin/orders/NewOrderForm";
-import { Input } from "@/components/ui/input";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
+import { Input } from "@/components/ui/input";
+import { EditOrderDialog } from "@/components/admin/orders/EditOrderDialog";
+import { TransferTechniciansDialog } from "@/components/admin/orders/TransferTechniciansDialog";
+import { ViewOrderDetailsDialog } from "@/components/admin/orders/ViewOrderDetailsDialog";
 
 type FormData = {
   orderNumber: string;
@@ -50,6 +48,8 @@ const ServiceOrders = () => {
   const [technician, setTechnician] = useState("");
   const [status, setStatus] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [activeDialog, setActiveDialog] = useState<"edit" | "transfer" | "view" | null>(null);
   const form = useForm<FormData>();
 
   // Mock data - replace with real data later
@@ -79,27 +79,14 @@ const ServiceOrders = () => {
     return matchesSearch && matchesVessel && matchesTechnician && matchesStatus;
   });
 
-  const handleAction = (action: string, orderId: string) => {
-    switch (action) {
-      case "edit":
-        toast({
-          title: "Editar OS",
-          description: `Editando OS ${orderId}`,
-        });
-        break;
-      case "transfer":
-        toast({
-          title: "Transferir Técnicos",
-          description: `Transferindo técnicos da OS ${orderId}`,
-        });
-        break;
-      case "view":
-        toast({
-          title: "Visualizar Detalhes",
-          description: `Visualizando detalhes da OS ${orderId}`,
-        });
-        break;
-    }
+  const handleAction = (action: "edit" | "transfer" | "view", orderId: string) => {
+    setSelectedOrderId(orderId);
+    setActiveDialog(action);
+  };
+
+  const handleCloseDialog = () => {
+    setSelectedOrderId(null);
+    setActiveDialog(null);
   };
 
   return (
@@ -162,7 +149,11 @@ const ServiceOrders = () => {
               {filteredOrders.map((order) => (
                 <TableRow key={order.id}>
                   <TableCell className="font-medium">
-                    <Button variant="link" className="p-0" onClick={() => handleAction("view", order.id)}>
+                    <Button 
+                      variant="link" 
+                      className="p-0" 
+                      onClick={() => handleAction("view", order.id)}
+                    >
                       {order.id}
                     </Button>
                   </TableCell>
@@ -198,6 +189,24 @@ const ServiceOrders = () => {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Action Dialogs */}
+      <Dialog open={activeDialog === "edit"} onOpenChange={() => handleCloseDialog()}>
+        {selectedOrderId && <EditOrderDialog orderId={selectedOrderId} />}
+      </Dialog>
+
+      <Dialog open={activeDialog === "transfer"} onOpenChange={() => handleCloseDialog()}>
+        {selectedOrderId && (
+          <TransferTechniciansDialog 
+            orderId={selectedOrderId} 
+            onClose={handleCloseDialog}
+          />
+        )}
+      </Dialog>
+
+      <Dialog open={activeDialog === "view"} onOpenChange={() => handleCloseDialog()}>
+        {selectedOrderId && <ViewOrderDetailsDialog orderId={selectedOrderId} />}
+      </Dialog>
     </div>
   );
 };

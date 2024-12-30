@@ -23,7 +23,12 @@ type OrderFormData = {
   singleReport: boolean;
 };
 
-export const NewOrderForm = () => {
+interface NewOrderFormProps {
+  isEditing?: boolean;
+  orderId?: string;
+}
+
+export const NewOrderForm = ({ isEditing, orderId }: NewOrderFormProps) => {
   const { toast } = useToast();
   const form = useForm<OrderFormData>({
     defaultValues: {
@@ -65,8 +70,8 @@ export const NewOrderForm = () => {
     
     console.log(formData);
     toast({
-      title: "Ordem de Serviço criada",
-      description: "OS criada com sucesso!",
+      title: isEditing ? "Ordem de Serviço atualizada" : "Ordem de Serviço criada",
+      description: isEditing ? "OS atualizada com sucesso!" : "OS criada com sucesso!",
     });
   };
 
@@ -110,7 +115,7 @@ export const NewOrderForm = () => {
           />
 
           <Button type="submit" className="w-full">
-            Criar Ordem de Serviço
+            {isEditing ? "Atualizar" : "Criar"} Ordem de Serviço
           </Button>
         </div>
       </form>
