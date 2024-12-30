@@ -47,11 +47,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
     { title: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
     { title: "Ordens de Serviço", icon: ClipboardList, path: "/admin/orders" },
     { title: "Clientes", icon: Users, path: "/admin/clients" },
-    { title: "Agenda", icon: Calendar, path: "/admin/calendar" },
     { title: "Relatórios", icon: FileText, path: "/admin/reports" },
-    { title: "Transferências", icon: Users, path: "/admin/transfers" },
-    { title: "Histórico", icon: ClipboardList, path: "/admin/history" },
-    { title: "Embarcações", icon: Ship, path: "/admin/vessels" },
     { title: "Tipos de Tarefas", icon: ClipboardList, path: "/admin/task-types" },
   ];
 
