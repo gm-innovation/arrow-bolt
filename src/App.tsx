@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { StrictMode } from "react";
 import Login from "./pages/Login";
 import DashboardLayout from "./components/DashboardLayout";
 
@@ -14,6 +13,7 @@ import Users from "./pages/super-admin/Users";
 import Subscriptions from "./pages/super-admin/Subscriptions";
 import Settings from "./pages/super-admin/Settings";
 import Reports from "./pages/super-admin/Reports";
+
 import AdminDashboard from "./pages/admin/Dashboard";
 import ServiceOrders from "./pages/admin/ServiceOrders";
 import ServiceCalendar from "./pages/admin/ServiceCalendar";
@@ -21,6 +21,7 @@ import ServiceTransfers from "./pages/admin/ServiceTransfers";
 import ServiceHistory from "./pages/admin/ServiceHistory";
 import VesselHistory from "./pages/admin/VesselHistory";
 import TaskTypes from "./pages/admin/TaskTypes";
+import NewUser from "./pages/admin/NewUser";
 
 import TechDashboard from "./pages/tech/Dashboard";
 import TechTasks from "./pages/tech/Tasks";
@@ -168,10 +169,18 @@ const App = () => {
                 }
               />
               <Route
-                path="/admin/clients"
+                path="/admin/users"
                 element={
                   <DashboardLayout userType="admin">
-                    <Clients />
+                    <Users />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/admin/users/new"
+                element={
+                  <DashboardLayout userType="admin">
+                    <NewUser />
                   </DashboardLayout>
                 }
               />
