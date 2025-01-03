@@ -20,10 +20,11 @@ const AdminDashboard = () => {
   };
 
   const handleApproveReports = () => {
-    navigate("/admin/reports/pending");
+    navigate("/admin/reports");
     toast({
       title: "Aprovar Relatórios",
-      description: "Redirecionando para relatórios pendentes",
+      description: "Redirecionando para a página de relatórios pendentes",
+      duration: 3000,
     });
   };
 
