@@ -2,36 +2,24 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { ViewToggle } from "@/components/tech/tasks/ViewToggle";
 import { TasksKanbanView } from "@/components/tech/tasks/TasksKanbanView";
 import { Ship, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
+import { Task, TaskStatus } from "@/types/task";
 
-// Mock data - replace with real API calls
-const mockTasks = [
+// Mock data with proper typing
+const mockTasks: Task[] = [
   {
     id: "OS001",
     vesselName: "Navio Alpha",
     description: "Manutenção preventiva do motor principal",
     scheduledDate: new Date("2024-03-20T14:30:00"),
-    status: "waiting" as const, // Type assertion to ensure correct status type
+    status: "waiting",
   },
 ];
 
@@ -42,13 +30,13 @@ const Tasks = () => {
   const [vesselFilter, setVesselFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [tasks, setTasks] = useState(mockTasks);
+  const [tasks, setTasks] = useState<Task[]>(mockTasks);
   const [view, setView] = useState<"list" | "kanban">("list");
 
   const handleStartTask = (taskId: string) => {
     setTasks(prevTasks =>
       prevTasks.map(task =>
-        task.id === taskId ? { ...task, status: "in_progress" } : task
+        task.id === taskId ? { ...task, status: "in_progress" as TaskStatus } : task
       )
     );
     toast({
@@ -60,7 +48,7 @@ const Tasks = () => {
   const handleFinishTask = (taskId: string) => {
     setTasks(prevTasks =>
       prevTasks.map(task =>
-        task.id === taskId ? { ...task, status: "completed" } : task
+        task.id === taskId ? { ...task, status: "completed" as TaskStatus } : task
       )
     );
     toast({
@@ -69,7 +57,7 @@ const Tasks = () => {
     });
   };
 
-  const handleStatusChange = (taskId: string, newStatus: string) => {
+  const handleStatusChange = (taskId: string, newStatus: TaskStatus) => {
     setTasks(prevTasks =>
       prevTasks.map(task =>
         task.id === taskId ? { ...task, status: newStatus } : task
@@ -96,7 +84,7 @@ const Tasks = () => {
     });
   };
 
-  const getStatusDisplay = (status: string) => {
+  const getStatusDisplay = (status: TaskStatus) => {
     switch (status) {
       case "waiting":
         return {
@@ -112,11 +100,6 @@ const Tasks = () => {
         return {
           text: "Finalizada",
           className: "bg-green-100 text-green-800"
-        };
-      default:
-        return {
-          text: status,
-          className: "bg-gray-100 text-gray-800"
         };
     }
   };

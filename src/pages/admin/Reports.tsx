@@ -97,7 +97,7 @@ const Reports = () => {
     toast({
       title: "Aprovar Relatório",
       description: `Relatório ${reportId} aprovado`,
-      variant: "success",
+      variant: "default", // Changed from 'success' to 'default'
     });
   };
 
