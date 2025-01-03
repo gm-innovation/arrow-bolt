@@ -39,6 +39,19 @@ const mockReports = [
   },
 ];
 
+// Mock report data for PDF preview
+const mockReportData = {
+  modelInfo: "Motor XYZ",
+  brandInfo: "Brand ABC",
+  serialNumber: "123456",
+  reportedIssue: "Falha no sistema de refrigeração",
+  executedWork: "Substituição de componentes e manutenção preventiva",
+  result: "Sistema operando normalmente",
+  nextVisitWork: "Verificação em 3 meses",
+  suppliedMaterial: "Peças de reposição XYZ",
+  photos: []
+};
+
 const Reports = () => {
   const { toast } = useToast();
   const [vesselFilter, setVesselFilter] = useState("");
@@ -70,34 +83,57 @@ const Reports = () => {
   });
 
   const handleViewReport = (report) => {
-    setSelectedReport(report);
-    setIsPDFOpen(true);
-    toast({
-      title: "Visualizar Relatório",
-      description: `Visualizando relatório ${report.id}`,
+    setSelectedReport({
+      ...mockReportData,
+      id: report.id,
+      vesselName: report.vesselName,
+      date: report.date,
+      technician: report.technician
     });
+    setIsPDFOpen(true);
   };
 
   const handleRejectReport = (reportId) => {
+    // Aqui você implementaria a lógica real de rejeição do relatório
     toast({
       title: "Recusar Relatório",
-      description: `Relatório ${reportId} recusado`,
+      description: `Relatório ${reportId} foi recusado`,
       variant: "destructive",
     });
   };
 
-  const handleDownloadReport = (reportId) => {
-    toast({
-      title: "Baixar Relatório",
-      description: `Baixando relatório ${reportId}`,
-    });
+  const handleDownloadReport = async (reportId) => {
+    try {
+      // Aqui você implementaria a lógica real de download do PDF
+      toast({
+        title: "Download Iniciado",
+        description: `Baixando relatório ${reportId}`,
+        variant: "default",
+      });
+      
+      // Simulando um delay para demonstração
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      toast({
+        title: "Download Concluído",
+        description: `Relatório ${reportId} foi baixado com sucesso`,
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro no Download",
+        description: "Não foi possível baixar o relatório",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleApproveReport = (reportId) => {
+    // Aqui você implementaria a lógica real de aprovação do relatório
     toast({
       title: "Aprovar Relatório",
-      description: `Relatório ${reportId} aprovado`,
-      variant: "default", // Changed from 'success' to 'default'
+      description: `Relatório ${reportId} foi aprovado`,
+      variant: "default",
     });
   };
 
@@ -204,6 +240,7 @@ const Reports = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleViewReport(report)}
+                      title="Visualizar Relatório"
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -211,6 +248,8 @@ const Reports = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleRejectReport(report.id)}
+                      title="Recusar Relatório"
+                      disabled={report.status === "rejected"}
                     >
                       <XOctagon className="h-4 w-4" />
                     </Button>
@@ -218,6 +257,7 @@ const Reports = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleDownloadReport(report.id)}
+                      title="Baixar Relatório"
                     >
                       <Download className="h-4 w-4" />
                     </Button>
@@ -225,6 +265,8 @@ const Reports = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => handleApproveReport(report.id)}
+                      title="Aprovar Relatório"
+                      disabled={report.status === "approved"}
                     >
                       <CheckSquare className="h-4 w-4" />
                     </Button>
