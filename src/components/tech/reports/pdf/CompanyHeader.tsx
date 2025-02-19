@@ -1,3 +1,4 @@
+
 import { View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
@@ -7,8 +8,9 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   logo: {
-    width: 120,
-    height: 60,
+    width: 200,
+    height: 80,
+    objectFit: 'contain',
   },
   companyInfo: {
     width: '50%',
@@ -19,11 +21,11 @@ const styles = StyleSheet.create({
 export const CompanyHeader = () => (
   <View style={styles.header}>
     <Image 
-      src="/placeholder.svg"
+      src="/lovable-uploads/99776afb-688e-4743-927c-a8dfb9f3d1de.png"
       style={styles.logo}
     />
     <View style={styles.companyInfo}>
-      <Text>Nome da Empresa LTDA</Text>
+      <Text>Google Marine LTDA</Text>
       <Text>Rua Example, 123 - Cidade/UF</Text>
       <Text>CEP: 12345-678</Text>
       <Text>Tel: (11) 1234-5678</Text>
