@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +23,7 @@ import ServiceHistory from "./pages/admin/ServiceHistory";
 import VesselHistory from "./pages/admin/VesselHistory";
 import TaskTypes from "./pages/admin/TaskTypes";
 import NewUser from "./pages/admin/NewUser";
+import Clients from "./pages/admin/Clients";
 
 import TechDashboard from "./pages/tech/Dashboard";
 import TechTasks from "./pages/tech/Tasks";
@@ -30,7 +32,6 @@ import TechReports from "./pages/tech/Reports";
 import ReportForm from "./pages/tech/ReportForm";
 import TechNotifications from "./pages/tech/Notifications";
 import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
-import Clients from "./pages/admin/Clients";
 
 // Create a new QueryClient instance with proper configuration
 const queryClient = new QueryClient({
@@ -181,6 +182,14 @@ const App = () => {
                 element={
                   <DashboardLayout userType="admin">
                     <NewUser />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/admin/clients"
+                element={
+                  <DashboardLayout userType="admin">
+                    <Clients />
                   </DashboardLayout>
                 }
               />
