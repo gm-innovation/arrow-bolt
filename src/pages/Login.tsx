@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,27 +7,50 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Ship } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
+// Credenciais predefinidas para cada tipo de usuário
+const USER_CREDENTIALS = {
+  superAdmin: { email: "superadmin@naval.com", password: "super123" },
+  admin: { email: "admin@naval.com", password: "admin123" },
+  technician: { email: "tecnico@naval.com", password: "tecnico123" }
+};
+
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && password) {
-      if (email.includes("superadmin")) {
-        navigate("/super-admin/dashboard");
-      } else if (email.includes("admin")) {
-        navigate("/admin/dashboard");
-      } else {
-        navigate("/tech/dashboard");
-      }
-      
+    setError("");
+
+    if (!email || !password) {
+      setError("Por favor, preencha todos os campos");
+      return;
+    }
+
+    // Verificar as credenciais
+    if (email === USER_CREDENTIALS.superAdmin.email && password === USER_CREDENTIALS.superAdmin.password) {
+      navigate("/super-admin/dashboard");
       toast({
         title: "Login realizado com sucesso",
-        description: "Bem-vindo de volta!",
+        description: "Bem-vindo, Super Administrador!",
       });
+    } else if (email === USER_CREDENTIALS.admin.email && password === USER_CREDENTIALS.admin.password) {
+      navigate("/admin/dashboard");
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo, Administrador!",
+      });
+    } else if (email === USER_CREDENTIALS.technician.email && password === USER_CREDENTIALS.technician.password) {
+      navigate("/tech/dashboard");
+      toast({
+        title: "Login realizado com sucesso",
+        description: "Bem-vindo, Técnico!",
+      });
+    } else {
+      setError("Email ou senha incorretos");
     }
   };
 
@@ -61,6 +85,19 @@ const Login = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
+            </div>
+            {error && (
+              <div className="text-sm text-red-500 mt-2">
+                {error}
+              </div>
+            )}
+            <div className="text-sm text-gray-500">
+              <p className="mb-1">Credenciais para teste:</p>
+              <ul className="list-disc pl-5 space-y-1">
+                <li>Super Admin: superadmin@naval.com / super123</li>
+                <li>Admin: admin@naval.com / admin123</li>
+                <li>Técnico: tecnico@naval.com / tecnico123</li>
+              </ul>
             </div>
           </CardContent>
           <CardFooter>
