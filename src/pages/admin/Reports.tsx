@@ -17,7 +17,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -25,9 +24,12 @@ import { ptBR } from "date-fns/locale";
 import { Eye, Download, CheckCircle, XOctagon } from "lucide-react";
 import { ReportPDFViewer } from "@/components/tech/reports/ReportPDF";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/components/ui/use-toast";
+import { TaskReport } from "@/components/tech/reports/types";
+
+// Define the status type to ensure type safety
+type ReportStatus = "pending" | "approved" | "rejected";
 
 // Mock data for reports
 const mockReports = [
@@ -38,7 +40,7 @@ const mockReports = [
     clientName: "Petrobras S.A.",
     vesselName: "PB-001",
     createdAt: new Date(2023, 5, 15),
-    status: "pending", // pending, approved, rejected
+    status: "pending" as ReportStatus, // Type assertion to ensure correct type
     approvedBy: null,
     rejectionReason: null,
   },
@@ -49,7 +51,7 @@ const mockReports = [
     clientName: "Shell Brasil",
     vesselName: "SH-001",
     createdAt: new Date(2023, 5, 20),
-    status: "approved",
+    status: "approved" as ReportStatus,
     approvedBy: "Carlos Oliveira",
     rejectionReason: null,
   },
@@ -60,7 +62,7 @@ const mockReports = [
     clientName: "Petrobras S.A.",
     vesselName: "PB-002",
     createdAt: new Date(2023, 6, 5),
-    status: "rejected",
+    status: "rejected" as ReportStatus,
     approvedBy: null,
     rejectionReason: "Informações técnicas insuficientes. Por favor, detalhe melhor o problema encontrado.",
   },
@@ -87,7 +89,7 @@ const mockServiceOrder = {
 };
 
 // Mock report data (for PDF rendering)
-const mockReportData = {
+const mockReportData: TaskReport = {
   modelInfo: "NavSys 2000",
   brandInfo: "Navtec",
   serialNumber: "NS2000-567890",
@@ -97,10 +99,11 @@ const mockReportData = {
   nextVisitWork: "Verificação de calibração em 6 meses.",
   suppliedMaterial: "2x Placas de circuito NS-2000-PCB, 1x Kit de cabos NS-2000-CBL",
   photos: [],
+  timeEntries: [], // Adding the missing timeEntries property
 };
 
 type StatusProps = {
-  status: "pending" | "approved" | "rejected";
+  status: ReportStatus;
 };
 
 const StatusBadge = ({ status }: StatusProps) => {
@@ -124,7 +127,7 @@ const Reports = () => {
     setReports(prevReports => 
       prevReports.map(report => 
         report.id === reportId 
-          ? { ...report, status: "approved", approvedBy: "Admin Atual", rejectionReason: null } 
+          ? { ...report, status: "approved" as ReportStatus, approvedBy: "Admin Atual", rejectionReason: null } 
           : report
       )
     );
@@ -141,7 +144,7 @@ const Reports = () => {
     setReports(prevReports => 
       prevReports.map(report => 
         report.id === selectedReport.id 
-          ? { ...report, status: "rejected", approvedBy: null, rejectionReason } 
+          ? { ...report, status: "rejected" as ReportStatus, approvedBy: null, rejectionReason } 
           : report
       )
     );
