@@ -1,6 +1,7 @@
+
 import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -9,267 +10,244 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Eye, Download, CheckSquare, XOctagon } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Eye, Download, CheckCircle, XOctagon } from "lucide-react";
+import { ReportPDFViewer } from "@/components/tech/reports/ReportPDF";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/components/ui/use-toast";
 
-// Mock data - replace with real data when backend is integrated
+// Mock data for reports
 const mockReports = [
   {
-    id: "OS001",
-    vesselName: "Navio Alpha",
-    date: new Date("2024-03-15"),
-    technician: "João Silva",
-    status: "pending",
+    id: "REP-001",
+    taskId: "TSK-001",
+    technicianName: "João Silva",
+    clientName: "Petrobras S.A.",
+    vesselName: "PB-001",
+    createdAt: new Date(2023, 5, 15),
+    status: "pending", // pending, approved, rejected
+    approvedBy: null,
+    rejectionReason: null,
   },
   {
-    id: "OS002",
-    vesselName: "Navio Beta",
-    date: new Date("2024-03-16"),
-    technician: "Maria Santos",
+    id: "REP-002",
+    taskId: "TSK-002",
+    technicianName: "Maria Santos",
+    clientName: "Shell Brasil",
+    vesselName: "SH-001",
+    createdAt: new Date(2023, 5, 20),
     status: "approved",
+    approvedBy: "Carlos Oliveira",
+    rejectionReason: null,
+  },
+  {
+    id: "REP-003",
+    taskId: "TSK-003",
+    technicianName: "Pedro Costa",
+    clientName: "Petrobras S.A.",
+    vesselName: "PB-002",
+    createdAt: new Date(2023, 6, 5),
+    status: "rejected",
+    approvedBy: null,
+    rejectionReason: "Informações técnicas insuficientes. Por favor, detalhe melhor o problema encontrado.",
   },
 ];
 
-// Mock report data for PDF preview
+// Mock service order data (for PDF rendering)
+const mockServiceOrder = {
+  id: "SO-001",
+  date: new Date(),
+  location: "Rio de Janeiro, RJ",
+  access: "Via marítima",
+  requester: {
+    name: "Antonio Ferreira",
+    role: "Gerente de Operações",
+  },
+  supervisor: {
+    name: "Roberto Gomes",
+  },
+  team: {
+    leadTechnician: "João Silva",
+    assistants: ["Maria Santos"],
+  },
+  service: "Manutenção preventiva em sistema de navegação",
+};
+
+// Mock report data (for PDF rendering)
 const mockReportData = {
-  modelInfo: "Motor XYZ",
-  brandInfo: "Brand ABC",
-  serialNumber: "123456",
-  reportedIssue: "Falha no sistema de refrigeração",
-  executedWork: "Substituição de componentes e manutenção preventiva",
-  result: "Sistema operando normalmente",
-  nextVisitWork: "Verificação em 3 meses",
-  suppliedMaterial: "Peças de reposição XYZ",
-  photos: []
+  modelInfo: "NavSys 2000",
+  brandInfo: "Navtec",
+  serialNumber: "NS2000-567890",
+  reportedIssue: "Sistema apresentando falhas intermitentes na exibição de dados.",
+  executedWork: "Substituição de componentes eletrônicos e recalibração do sistema.",
+  result: "Sistema operando normalmente após os reparos.",
+  nextVisitWork: "Verificação de calibração em 6 meses.",
+  suppliedMaterial: "2x Placas de circuito NS-2000-PCB, 1x Kit de cabos NS-2000-CBL",
+  photos: [],
+};
+
+type StatusProps = {
+  status: "pending" | "approved" | "rejected";
+};
+
+const StatusBadge = ({ status }: StatusProps) => {
+  if (status === "pending") {
+    return <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-300">Pendente</Badge>;
+  } else if (status === "approved") {
+    return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300">Aprovado</Badge>;
+  } else {
+    return <Badge variant="outline" className="bg-red-50 text-red-800 border-red-300">Recusado</Badge>;
+  }
 };
 
 const Reports = () => {
-  const { toast } = useToast();
-  const [vesselFilter, setVesselFilter] = useState("");
-  const [dateFilter, setDateFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedReport, setSelectedReport] = useState(null);
-  const [isPDFOpen, setIsPDFOpen] = useState(false);
+  const [reports, setReports] = useState(mockReports);
+  const [selectedReport, setSelectedReport] = useState<null | typeof mockReports[0]>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
 
-  // Filter reports based on search and filter criteria
-  const filteredReports = mockReports.filter((report) => {
-    const matchesSearch =
-      !searchTerm ||
-      report.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.vesselName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      report.technician.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesVessel =
-      !vesselFilter || report.vesselName === vesselFilter;
-
-    const matchesDate =
-      !dateFilter ||
-      report.date.toISOString().split("T")[0] === dateFilter;
-
-    const matchesStatus =
-      !statusFilter || report.status === statusFilter;
-
-    return matchesSearch && matchesVessel && matchesDate && matchesStatus;
-  });
-
-  const handleViewReport = (report) => {
-    setSelectedReport({
-      ...mockReportData,
-      id: report.id,
-      vesselName: report.vesselName,
-      date: report.date,
-      technician: report.technician
-    });
-    setIsPDFOpen(true);
-  };
-
-  const handleRejectReport = (reportId) => {
-    // Aqui você implementaria a lógica real de rejeição do relatório
+  const handleApproveReport = (reportId: string) => {
+    setReports(prevReports => 
+      prevReports.map(report => 
+        report.id === reportId 
+          ? { ...report, status: "approved", approvedBy: "Admin Atual", rejectionReason: null } 
+          : report
+      )
+    );
+    
     toast({
-      title: "Recusar Relatório",
-      description: `Relatório ${reportId} foi recusado`,
-      variant: "destructive",
+      title: "Relatório aprovado",
+      description: "O relatório foi aprovado com sucesso.",
     });
   };
 
-  const handleDownloadReport = async (reportId) => {
-    try {
-      // Aqui você implementaria a lógica real de download do PDF
-      toast({
-        title: "Download Iniciado",
-        description: `Baixando relatório ${reportId}`,
-        variant: "default",
-      });
-      
-      // Simulando um delay para demonstração
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Download Concluído",
-        description: `Relatório ${reportId} foi baixado com sucesso`,
-        variant: "default",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro no Download",
-        description: "Não foi possível baixar o relatório",
-        variant: "destructive",
-      });
-    }
+  const handleRejectReport = () => {
+    if (!selectedReport) return;
+    
+    setReports(prevReports => 
+      prevReports.map(report => 
+        report.id === selectedReport.id 
+          ? { ...report, status: "rejected", approvedBy: null, rejectionReason } 
+          : report
+      )
+    );
+    
+    setRejectionReason("");
+    setRejectDialogOpen(false);
+    
+    toast({
+      title: "Relatório recusado",
+      description: "O relatório foi recusado e o técnico será notificado.",
+    });
   };
 
-  const handleApproveReport = (reportId) => {
-    // Aqui você implementaria a lógica real de aprovação do relatório
+  const handleDownloadReport = (reportId: string) => {
+    // In a real application, this would trigger a download
+    console.log(`Downloading report ${reportId}`);
+    
     toast({
-      title: "Aprovar Relatório",
-      description: `Relatório ${reportId} foi aprovado`,
-      variant: "default",
+      title: "Download iniciado",
+      description: "O relatório será baixado em alguns instantes.",
     });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Relatórios</h1>
-          <p className="text-muted-foreground">
-            Gerencie os relatórios de serviço
-          </p>
-        </div>
+      <div>
+        <h1 className="text-3xl font-bold">Relatórios</h1>
+        <p className="text-muted-foreground">
+          Gerencie os relatórios de serviços
+        </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Filtros</CardTitle>
+          <CardTitle>Relatórios de Serviço</CardTitle>
+          <CardDescription>
+            Revise e aprove relatórios enviados pelos técnicos
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-2">
-              <Input
-                placeholder="Buscar por OS, navio ou técnico..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Select value={vesselFilter} onValueChange={setVesselFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Embarcação" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Navio Alpha">Navio Alpha</SelectItem>
-                  <SelectItem value="Navio Beta">Navio Beta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="approved">Aprovado</SelectItem>
-                  <SelectItem value="rejected">Recusado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="pt-6">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>OS</TableHead>
-                <TableHead>Embarcação</TableHead>
-                <TableHead>Data</TableHead>
+                <TableHead>ID</TableHead>
                 <TableHead>Técnico</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Embarcação</TableHead>
+                <TableHead>Data de Criação</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredReports.map((report) => (
+              {reports.map((report) => (
                 <TableRow key={report.id}>
-                  <TableCell>{report.id}</TableCell>
+                  <TableCell className="font-medium">{report.id}</TableCell>
+                  <TableCell>{report.technicianName}</TableCell>
+                  <TableCell>{report.clientName}</TableCell>
                   <TableCell>{report.vesselName}</TableCell>
+                  <TableCell>{format(report.createdAt, "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                   <TableCell>
-                    {report.date.toLocaleDateString()}
+                    <StatusBadge status={report.status} />
                   </TableCell>
-                  <TableCell>{report.technician}</TableCell>
-                  <TableCell>
-                    <div
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${
-                          report.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : report.status === "approved"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                    >
-                      {report.status === "pending"
-                        ? "Pendente"
-                        : report.status === "approved"
-                        ? "Aprovado"
-                        : "Recusado"}
+                  <TableCell className="text-right">
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          setSelectedReport(report);
+                          setViewDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDownloadReport(report.id)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      {report.status === "pending" && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => handleApproveReport(report.id)}
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => {
+                              setSelectedReport(report);
+                              setRejectDialogOpen(true);
+                            }}
+                          >
+                            <XOctagon className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewReport(report)}
-                      title="Visualizar Relatório"
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRejectReport(report.id)}
-                      title="Recusar Relatório"
-                      disabled={report.status === "rejected"}
-                    >
-                      <XOctagon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownloadReport(report.id)}
-                      title="Baixar Relatório"
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleApproveReport(report.id)}
-                      title="Aprovar Relatório"
-                      disabled={report.status === "approved"}
-                    >
-                      <CheckSquare className="h-4 w-4" />
-                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -278,14 +256,106 @@ const Reports = () => {
         </CardContent>
       </Card>
 
-      {selectedReport && (
-        <PDFPreviewDialog
-          open={isPDFOpen}
-          onOpenChange={setIsPDFOpen}
-          report={selectedReport}
-          taskId={selectedReport.id}
-        />
-      )}
+      {/* View Report Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-5xl">
+          <DialogHeader>
+            <DialogTitle>
+              Visualizar Relatório {selectedReport?.id}
+            </DialogTitle>
+            <DialogDescription>
+              Relatório de serviço enviado por {selectedReport?.technicianName} para {selectedReport?.clientName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedReport && (
+            <div className="mt-4">
+              <div className="mb-4">
+                <div className="bg-muted p-4 rounded-md mb-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-semibold">Status</p>
+                      <StatusBadge status={selectedReport.status} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">Data</p>
+                      <p>{format(selectedReport.createdAt, "dd/MM/yyyy", { locale: ptBR })}</p>
+                    </div>
+                    
+                    {selectedReport.status === "approved" && selectedReport.approvedBy && (
+                      <div>
+                        <p className="text-sm font-semibold">Aprovado por</p>
+                        <p>{selectedReport.approvedBy}</p>
+                      </div>
+                    )}
+                    
+                    {selectedReport.status === "rejected" && selectedReport.rejectionReason && (
+                      <div className="col-span-2">
+                        <p className="text-sm font-semibold">Motivo da recusa</p>
+                        <p className="text-red-600">{selectedReport.rejectionReason}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <ReportPDFViewer 
+                  report={mockReportData} 
+                  taskId={selectedReport.taskId} 
+                  serviceOrder={mockServiceOrder} 
+                />
+              </div>
+              
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+                  Fechar
+                </Button>
+                <Button variant="default" onClick={() => handleDownloadReport(selectedReport.id)}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Baixar PDF
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Report Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Recusar Relatório</DialogTitle>
+            <DialogDescription>
+              Por favor, informe o motivo da recusa para que o técnico possa fazer as correções necessárias.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">Motivo da recusa</Label>
+              <Textarea
+                id="rejection-reason"
+                placeholder="Informe o motivo da recusa..."
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                rows={5}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleRejectReport}
+              disabled={!rejectionReason.trim()}
+            >
+              Recusar Relatório
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
