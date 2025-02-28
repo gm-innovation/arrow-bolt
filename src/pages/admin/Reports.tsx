@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -123,7 +123,18 @@ const Reports = () => {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
 
+  // Log state changes for debugging
+  useEffect(() => {
+    console.log("View dialog open state:", viewDialogOpen);
+    console.log("Selected report:", selectedReport);
+  }, [viewDialogOpen, selectedReport]);
+
+  useEffect(() => {
+    console.log("Reject dialog open state:", rejectDialogOpen);
+  }, [rejectDialogOpen]);
+
   const handleApproveReport = (reportId: string) => {
+    console.log("Approving report:", reportId);
     setReports(prevReports => 
       prevReports.map(report => 
         report.id === reportId 
@@ -140,6 +151,7 @@ const Reports = () => {
 
   const handleRejectReport = () => {
     if (!selectedReport) return;
+    console.log("Rejecting report:", selectedReport.id);
     
     setReports(prevReports => 
       prevReports.map(report => 
@@ -159,13 +171,24 @@ const Reports = () => {
   };
 
   const handleDownloadReport = (reportId: string) => {
-    // In a real application, this would trigger a download
-    console.log(`Downloading report ${reportId}`);
+    console.log("Downloading report:", reportId);
     
     toast({
       title: "Download iniciado",
       description: "O relatório será baixado em alguns instantes.",
     });
+  };
+
+  const handleViewReport = (report: typeof mockReports[0]) => {
+    console.log("Viewing report:", report.id);
+    setSelectedReport(report);
+    setViewDialogOpen(true);
+  };
+
+  const handleOpenRejectDialog = (report: typeof mockReports[0]) => {
+    console.log("Opening reject dialog for report:", report.id);
+    setSelectedReport(report);
+    setRejectDialogOpen(true);
   };
 
   return (
@@ -213,10 +236,7 @@ const Reports = () => {
                       <Button
                         variant="outline"
                         size="icon"
-                        onClick={() => {
-                          setSelectedReport(report);
-                          setViewDialogOpen(true);
-                        }}
+                        onClick={() => handleViewReport(report)}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
@@ -241,10 +261,7 @@ const Reports = () => {
                             variant="outline"
                             size="icon"
                             className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => {
-                              setSelectedReport(report);
-                              setRejectDialogOpen(true);
-                            }}
+                            onClick={() => handleOpenRejectDialog(report)}
                           >
                             <XOctagon className="h-4 w-4" />
                           </Button>
@@ -261,7 +278,7 @@ const Reports = () => {
 
       {/* View Report Dialog */}
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-5xl">
+        <DialogContent className="max-w-5xl h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               Visualizar Relatório {selectedReport?.id}
@@ -301,11 +318,13 @@ const Reports = () => {
                   </div>
                 </div>
                 
-                <ReportPDFViewer 
-                  report={mockReportData} 
-                  taskId={selectedReport.taskId} 
-                  serviceOrder={mockServiceOrder} 
-                />
+                <div className="w-full h-[400px] border border-gray-200 rounded-md overflow-hidden">
+                  <ReportPDFViewer 
+                    report={mockReportData} 
+                    taskId={selectedReport.taskId} 
+                    serviceOrder={mockServiceOrder} 
+                  />
+                </div>
               </div>
               
               <DialogFooter>
@@ -359,6 +378,25 @@ const Reports = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Fallback dialog for testing in case the Dialog component is problematic */}
+      {viewDialogOpen && selectedReport && !document.querySelector('[role="dialog"]') && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-2xl w-full">
+            <h2 className="text-xl font-bold mb-4">Visualizar Relatório (Fallback)</h2>
+            <p>ID: {selectedReport.id}</p>
+            <p>Técnico: {selectedReport.technicianName}</p>
+            <div className="mt-4 flex justify-end">
+              <button 
+                className="px-4 py-2 bg-gray-200 rounded-md mr-2"
+                onClick={() => setViewDialogOpen(false)}
+              >
+                Fechar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
