@@ -10,18 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Eye, Download, CheckCircle, XOctagon } from "lucide-react";
+import { Eye, Download, CheckCircle, XOctagon, X } from "lucide-react";
 import { ReportPDFViewer } from "@/components/tech/reports/ReportPDF";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -40,7 +32,7 @@ const mockReports = [
     clientName: "Petrobras S.A.",
     vesselName: "PB-001",
     createdAt: new Date(2023, 5, 15),
-    status: "pending" as ReportStatus, // Type assertion to ensure correct type
+    status: "pending" as ReportStatus,
     approvedBy: null,
     rejectionReason: null,
   },
@@ -99,7 +91,7 @@ const mockReportData: TaskReport = {
   nextVisitWork: "Verificação de calibração em 6 meses.",
   suppliedMaterial: "2x Placas de circuito NS-2000-PCB, 1x Kit de cabos NS-2000-CBL",
   photos: [],
-  timeEntries: [], // Adding the missing timeEntries property
+  timeEntries: [],
 };
 
 type StatusProps = {
@@ -120,18 +112,17 @@ const Reports = () => {
   const [reports, setReports] = useState(mockReports);
   const [selectedReport, setSelectedReport] = useState<null | typeof mockReports[0]>(null);
   const [rejectionReason, setRejectionReason] = useState("");
-  const [viewDialogOpen, setViewDialogOpen] = useState(false);
-  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
 
-  // Log state changes for debugging
   useEffect(() => {
-    console.log("View dialog open state:", viewDialogOpen);
+    console.log("View modal state:", showViewModal);
     console.log("Selected report:", selectedReport);
-  }, [viewDialogOpen, selectedReport]);
+  }, [showViewModal, selectedReport]);
 
   useEffect(() => {
-    console.log("Reject dialog open state:", rejectDialogOpen);
-  }, [rejectDialogOpen]);
+    console.log("Reject modal state:", showRejectModal);
+  }, [showRejectModal]);
 
   const handleApproveReport = (reportId: string) => {
     console.log("Approving report:", reportId);
@@ -162,7 +153,7 @@ const Reports = () => {
     );
     
     setRejectionReason("");
-    setRejectDialogOpen(false);
+    setShowRejectModal(false);
     
     toast({
       title: "Relatório recusado",
@@ -182,13 +173,13 @@ const Reports = () => {
   const handleViewReport = (report: typeof mockReports[0]) => {
     console.log("Viewing report:", report.id);
     setSelectedReport(report);
-    setViewDialogOpen(true);
+    setShowViewModal(true);
   };
 
   const handleOpenRejectDialog = (report: typeof mockReports[0]) => {
     console.log("Opening reject dialog for report:", report.id);
     setSelectedReport(report);
-    setRejectDialogOpen(true);
+    setShowRejectModal(true);
   };
 
   return (
@@ -276,123 +267,112 @@ const Reports = () => {
         </CardContent>
       </Card>
 
-      {/* View Report Dialog */}
-      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
-        <DialogContent className="max-w-5xl h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>
-              Visualizar Relatório {selectedReport?.id}
-            </DialogTitle>
-            <DialogDescription>
-              Relatório de serviço enviado por {selectedReport?.technicianName} para {selectedReport?.clientName}
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedReport && (
-            <div className="mt-4">
-              <div className="mb-4">
-                <div className="bg-muted p-4 rounded-md mb-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-semibold">Status</p>
-                      <StatusBadge status={selectedReport.status} />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold">Data</p>
-                      <p>{format(selectedReport.createdAt, "dd/MM/yyyy", { locale: ptBR })}</p>
-                    </div>
-                    
-                    {selectedReport.status === "approved" && selectedReport.approvedBy && (
-                      <div>
-                        <p className="text-sm font-semibold">Aprovado por</p>
-                        <p>{selectedReport.approvedBy}</p>
-                      </div>
-                    )}
-                    
-                    {selectedReport.status === "rejected" && selectedReport.rejectionReason && (
-                      <div className="col-span-2">
-                        <p className="text-sm font-semibold">Motivo da recusa</p>
-                        <p className="text-red-600">{selectedReport.rejectionReason}</p>
-                      </div>
-                    )}
+      {/* Custom View Modal */}
+      {showViewModal && selectedReport && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-bold">
+                Visualizar Relatório {selectedReport.id}
+              </h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowViewModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Relatório de serviço enviado por {selectedReport.technicianName} para {selectedReport.clientName}
+              </p>
+              
+              <div className="bg-muted p-4 rounded-md mb-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-semibold">Status</p>
+                    <StatusBadge status={selectedReport.status} />
                   </div>
-                </div>
-                
-                <div className="w-full h-[400px] border border-gray-200 rounded-md overflow-hidden">
-                  <ReportPDFViewer 
-                    report={mockReportData} 
-                    taskId={selectedReport.taskId} 
-                    serviceOrder={mockServiceOrder} 
-                  />
+                  <div>
+                    <p className="text-sm font-semibold">Data</p>
+                    <p>{format(selectedReport.createdAt, "dd/MM/yyyy", { locale: ptBR })}</p>
+                  </div>
+                  
+                  {selectedReport.status === "approved" && selectedReport.approvedBy && (
+                    <div>
+                      <p className="text-sm font-semibold">Aprovado por</p>
+                      <p>{selectedReport.approvedBy}</p>
+                    </div>
+                  )}
+                  
+                  {selectedReport.status === "rejected" && selectedReport.rejectionReason && (
+                    <div className="col-span-2">
+                      <p className="text-sm font-semibold">Motivo da recusa</p>
+                      <p className="text-red-600">{selectedReport.rejectionReason}</p>
+                    </div>
+                  )}
                 </div>
               </div>
               
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
-                  Fechar
-                </Button>
-                <Button variant="default" onClick={() => handleDownloadReport(selectedReport.id)}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Baixar PDF
-                </Button>
-              </DialogFooter>
+              <div className="w-full h-[500px] border border-gray-200 rounded-md overflow-hidden">
+                <ReportPDFViewer 
+                  report={mockReportData} 
+                  taskId={selectedReport.taskId} 
+                  serviceOrder={mockServiceOrder} 
+                />
+              </div>
             </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Reject Report Dialog */}
-      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Recusar Relatório</DialogTitle>
-            <DialogDescription>
-              Por favor, informe o motivo da recusa para que o técnico possa fazer as correções necessárias.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="rejection-reason">Motivo da recusa</Label>
-              <Textarea
-                id="rejection-reason"
-                placeholder="Informe o motivo da recusa..."
-                value={rejectionReason}
-                onChange={(e) => setRejectionReason(e.target.value)}
-                rows={5}
-              />
+            
+            <div className="flex justify-end space-x-2 p-4 border-t">
+              <Button variant="outline" onClick={() => setShowViewModal(false)}>
+                Fechar
+              </Button>
+              <Button variant="default" onClick={() => handleDownloadReport(selectedReport.id)}>
+                <Download className="mr-2 h-4 w-4" />
+                Baixar PDF
+              </Button>
             </div>
           </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleRejectReport}
-              disabled={!rejectionReason.trim()}
-            >
-              Recusar Relatório
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
 
-      {/* Fallback dialog for testing in case the Dialog component is problematic */}
-      {viewDialogOpen && selectedReport && !document.querySelector('[role="dialog"]') && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-          <div className="bg-white p-6 rounded-lg max-w-2xl w-full">
-            <h2 className="text-xl font-bold mb-4">Visualizar Relatório (Fallback)</h2>
-            <p>ID: {selectedReport.id}</p>
-            <p>Técnico: {selectedReport.technicianName}</p>
-            <div className="mt-4 flex justify-end">
-              <button 
-                className="px-4 py-2 bg-gray-200 rounded-md mr-2"
-                onClick={() => setViewDialogOpen(false)}
+      {/* Custom Reject Modal */}
+      {showRejectModal && selectedReport && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-xl font-bold">Recusar Relatório</h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowRejectModal(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            <div className="p-4">
+              <p className="text-sm text-muted-foreground mb-4">
+                Por favor, informe o motivo da recusa para que o técnico possa fazer as correções necessárias.
+              </p>
+              
+              <div className="space-y-2">
+                <Label htmlFor="rejection-reason">Motivo da recusa</Label>
+                <Textarea
+                  id="rejection-reason"
+                  placeholder="Informe o motivo da recusa..."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  rows={5}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end space-x-2 p-4 border-t">
+              <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={handleRejectReport}
+                disabled={!rejectionReason.trim()}
               >
-                Fechar
-              </button>
+                Recusar Relatório
+              </Button>
             </div>
           </div>
         </div>
