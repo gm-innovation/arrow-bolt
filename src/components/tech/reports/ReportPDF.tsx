@@ -279,43 +279,29 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
     try {
       setIsSaving(true);
       
-      // First generate and download the PDF blob
+      // Generate the PDF blob
       const blob = await generatePdfBlob();
       
       // Create a unique file name
       const fileName = `relatorio-${taskId}-${new Date().toISOString().replace(/:/g, '-')}.pdf`;
       
-      // Convert blob to File object with the correct MIME type
+      // Create a File object with the correct MIME type
       const file = new File([blob], fileName, { type: 'application/pdf' });
       
-      const filePath = `${taskId}/${fileName}`;
-      console.log(`Attempting to upload to: ${filePath}`);
-
-      // Create a FormData object to handle the file upload
-      const formData = new FormData();
-      formData.append('file', file);
+      // Upload to Supabase storage bucket
+      const { data, error } = await supabase.storage
+        .from('reports')
+        .upload(`${taskId}/${fileName}`, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
       
-      // Use the Supabase REST API directly for uploading
-      const supabaseUrl = 'https://ykehegyguicjssxacyoe.supabase.co';
-      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZWhlZ3lndWljanNzeGFjeW9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzEwMDU0NjcsImV4cCI6MjA0NjU4MTQ2N30.ayp1wZRHzkCKuIxkOk958ES7viF9p94h701WaC5MslU';
-      
-      const response = await fetch(`${supabaseUrl}/storage/v1/object/reports/${filePath}`, {
-        method: 'POST',
-        headers: {
-          'apikey': supabaseKey,
-          'Authorization': `Bearer ${supabaseKey}`,
-        },
-        body: formData,
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Upload failed:', errorData);
-        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+      if (error) {
+        console.error("Upload failed:", error);
+        throw new Error(`Upload failed: ${error.message}`);
       }
       
-      const data = await response.json();
-      console.log('Upload successful:', data);
+      console.log("Upload successful:", data);
       
       toast({
         title: "Relatório salvo",
