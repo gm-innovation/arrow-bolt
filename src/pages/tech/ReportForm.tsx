@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,18 +13,43 @@ import { ServiceDetailsSection } from "@/components/tech/reports/ServiceDetailsS
 import { PhotosSection } from "@/components/tech/reports/PhotosSection";
 import { TaskReport, TimeEntry, PhotoWithCaption } from "@/components/tech/reports/types";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
+import { supabase } from "@/integrations/supabase/client";
+import { pdf } from "@react-pdf/renderer";
+import { ReportPDFContent } from "@/components/tech/reports/ReportPDF";
 
 const queryClient = new QueryClient();
+
+// Mock service order data for PDF generation
+const mockServiceOrder = {
+  id: "OS-001",
+  date: new Date(),
+  location: "Porto de Santos",
+  access: "Acesso Principal",
+  requester: {
+    name: "João Silva",
+    role: "Supervisor de Operações",
+  },
+  supervisor: {
+    name: "Maria Santos",
+  },
+  team: {
+    leadTechnician: "Pedro Oliveira",
+    assistants: ["Carlos Souza", "Ana Lima"],
+  },
+  service: "Manutenção Preventiva",
+};
 
 const ReportFormContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { reportId } = useParams();
   const [searchParams] = useSearchParams();
-  const taskId = searchParams.get("taskId");
+  const taskId = searchParams.get("taskId") || "task1";
 
   const [selectedTask, setSelectedTask] = useState("task1");
   const [isPDFOpen, setIsPDFOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({
     task1: {
       modelInfo: "",
@@ -104,20 +130,81 @@ const ReportFormContent = () => {
     }));
   };
 
-  const handleSaveDraft = () => {
-    toast({
-      title: "Rascunho salvo",
-      description: "O relatório foi salvo como rascunho.",
-    });
+  const generateAndSavePDF = async (taskId: string, report: TaskReport, status: "draft" | "submitted") => {
+    try {
+      const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={mockServiceOrder} />;
+      const asPdf = pdf([]);
+      asPdf.updateContainer(pdfDoc);
+      const blob = await asPdf.toBlob();
+      
+      const fileName = `relatorio-${taskId}-${status}-${new Date().toISOString()}.pdf`;
+      const filePath = `${taskId}/${fileName}`;
+      
+      const { error } = await supabase.storage
+        .from('reports')
+        .upload(filePath, blob, {
+          upsert: true,
+          contentType: 'application/pdf'
+        });
+      
+      if (error) {
+        throw error;
+      }
+      
+      return filePath;
+    } catch (error) {
+      console.error(`Erro ao salvar PDF (${status}) no Supabase:`, error);
+      throw error;
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSaveDraft = async () => {
+    try {
+      setIsSaving(true);
+      const report = taskReports[selectedTask];
+      await generateAndSavePDF(selectedTask, report, "draft");
+      
+      toast({
+        title: "Rascunho salvo",
+        description: "O relatório foi salvo como rascunho no servidor.",
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar o rascunho. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Relatório enviado",
-      description: "O relatório foi enviado para aprovação.",
-    });
-    navigate("/tech/reports");
+    
+    try {
+      setIsSubmitting(true);
+      
+      // Save all reports as PDFs
+      for (const [taskId, report] of Object.entries(taskReports)) {
+        await generateAndSavePDF(taskId, report, "submitted");
+      }
+      
+      toast({
+        title: "Relatório enviado",
+        description: "O relatório foi enviado para aprovação e salvo no servidor.",
+      });
+      
+      navigate("/tech/reports");
+    } catch (error) {
+      console.error("Erro ao enviar relatório:", error);
+      toast({
+        title: "Erro ao enviar",
+        description: "Não foi possível enviar o relatório. Tente novamente.",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -202,13 +289,21 @@ const ReportFormContent = () => {
         </Tabs>
 
         <div className="flex justify-end space-x-2">
-          <Button type="button" variant="outline" onClick={handleSaveDraft}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={handleSaveDraft}
+            disabled={isSaving}
+          >
             <Save className="h-4 w-4 mr-2" />
-            Salvar Rascunho
+            {isSaving ? "Salvando..." : "Salvar Rascunho"}
           </Button>
-          <Button type="submit">
+          <Button 
+            type="submit"
+            disabled={isSubmitting}
+          >
             <Send className="h-4 w-4 mr-2" />
-            Enviar para Aprovação
+            {isSubmitting ? "Enviando..." : "Enviar para Aprovação"}
           </Button>
         </div>
       </form>

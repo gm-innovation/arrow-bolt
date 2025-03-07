@@ -1,7 +1,13 @@
-import { Document, Page, Text, View, StyleSheet, PDFViewer, Image } from '@react-pdf/renderer';
+
+import { Document, Page, Text, View, StyleSheet, PDFViewer, Image, pdf } from '@react-pdf/renderer';
 import { TaskReport } from './types';
 import { CompanyHeader } from './pdf/CompanyHeader';
 import { ServiceOrderInfo } from './pdf/ServiceOrderInfo';
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Download, Save } from 'lucide-react';
 
 const styles = StyleSheet.create({
   page: {
@@ -218,8 +224,104 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder }: ReportPDFProp
   </Document>
 );
 
-export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps) => (
-  <PDFViewer style={{ width: '100%', height: '600px' }}>
-    <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />
-  </PDFViewer>
-);
+export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps) => {
+  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const generatePdfBlob = async () => {
+    const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />;
+    const asPdf = pdf([]);
+    asPdf.updateContainer(pdfDoc);
+    const blob = await asPdf.toBlob();
+    return blob;
+  };
+
+  const handleDownloadPdf = async () => {
+    try {
+      setIsDownloading(true);
+      const blob = await generatePdfBlob();
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-${taskId}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Download concluído",
+        description: "O PDF foi baixado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Erro ao fazer download do PDF:", error);
+      toast({
+        title: "Erro no download",
+        description: "Não foi possível baixar o PDF. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const savePdfToSupabase = async () => {
+    try {
+      setIsSaving(true);
+      const blob = await generatePdfBlob();
+      const fileName = `relatorio-${taskId}-${new Date().toISOString()}.pdf`;
+      const filePath = `${taskId}/${fileName}`;
+      
+      const { error } = await supabase.storage
+        .from('reports')
+        .upload(filePath, blob, {
+          upsert: true,
+          contentType: 'application/pdf'
+        });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Relatório salvo",
+        description: "O PDF foi salvo com sucesso no Supabase.",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar PDF no Supabase:", error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar o PDF no servidor. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex gap-2 justify-end">
+        <Button 
+          variant="outline" 
+          onClick={handleDownloadPdf} 
+          disabled={isDownloading}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          {isDownloading ? "Baixando..." : "Baixar PDF"}
+        </Button>
+        <Button 
+          onClick={savePdfToSupabase} 
+          disabled={isSaving}
+        >
+          <Save className="h-4 w-4 mr-2" />
+          {isSaving ? "Salvando..." : "Salvar no Servidor"}
+        </Button>
+      </div>
+      <PDFViewer style={{ width: '100%', height: '600px' }}>
+        <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />
+      </PDFViewer>
+    </div>
+  );
+};
