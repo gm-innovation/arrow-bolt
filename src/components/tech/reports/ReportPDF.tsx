@@ -231,10 +231,13 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
 
   const generatePdfBlob = async () => {
     try {
+      console.log("Creating PDF document...");
       const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />;
       const asPdf = pdf();
       asPdf.updateContainer(pdfDoc);
+      console.log("PDF document created, generating blob...");
       const blob = await asPdf.toBlob();
+      console.log("Blob generated:", blob);
       return blob;
     } catch (error) {
       console.error("Error generating PDF blob:", error);
@@ -275,35 +278,51 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const savePdfToSupabase = async () => {
     try {
       setIsSaving(true);
+      
+      // First generate and download the PDF blob
       const blob = await generatePdfBlob();
       
-      // Convert blob to File object which Supabase handles better in browsers
-      const fileName = `relatorio-${taskId}-${new Date().toISOString()}.pdf`;
+      // Create a unique file name
+      const fileName = `relatorio-${taskId}-${new Date().toISOString().replace(/:/g, '-')}.pdf`;
+      
+      // Convert blob to File object with the correct MIME type
       const file = new File([blob], fileName, { type: 'application/pdf' });
       
       const filePath = `${taskId}/${fileName}`;
-      console.log(`Trying to upload ${filePath} to Supabase...`, file);
-      
-      const { error, data } = await supabase.storage
-        .from('reports')
-        .upload(filePath, file, {
-          upsert: true,
-          contentType: 'application/pdf'
-        });
+      console.log(`Attempting to upload to: ${filePath}`);
 
-      if (error) {
-        console.error("Upload error:", error);
-        throw error;
+      // Create a FormData object to handle the file upload
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      // Use the Supabase REST API directly for uploading
+      const supabaseUrl = 'https://ykehegyguicjssxacyoe.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZWhlZ3lndWljanNzeGFjeW9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzEwMDU0NjcsImV4cCI6MjA0NjU4MTQ2N30.ayp1wZRHzkCKuIxkOk958ES7viF9p94h701WaC5MslU';
+      
+      const response = await fetch(`${supabaseUrl}/storage/v1/object/reports/${filePath}`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Upload failed:', errorData);
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
       }
       
-      console.log("Successfully uploaded:", data);
+      const data = await response.json();
+      console.log('Upload successful:', data);
       
       toast({
         title: "Relatório salvo",
         description: "O PDF foi salvo com sucesso no servidor.",
       });
     } catch (error) {
-      console.error("Erro ao salvar PDF no Supabase:", error);
+      console.error("Erro ao salvar PDF no servidor:", error);
       toast({
         title: "Erro ao salvar",
         description: "Não foi possível salvar o PDF no servidor. Tente novamente.",

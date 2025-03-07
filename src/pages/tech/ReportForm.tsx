@@ -138,29 +138,38 @@ const ReportFormContent = () => {
       const blob = await asPdf.toBlob();
       console.log("Blob generated:", blob);
       
-      const fileName = `relatorio-${taskId}-${status}-${new Date().toISOString()}.pdf`;
+      const fileName = `relatorio-${taskId}-${status}-${new Date().toISOString().replace(/:/g, '-')}.pdf`;
       const file = new File([blob], fileName, { type: 'application/pdf' });
       
       const filePath = `${taskId}/${fileName}`;
+      console.log(`Attempting to upload to: ${filePath}`);
+
+      const supabaseUrl = 'https://ykehegyguicjssxacyoe.supabase.co';
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlrZWhlZ3lndWljanNzeGFjeW9lIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzEwMDU0NjcsImV4cCI6MjA0NjU4MTQ2N30.ayp1wZRHzkCKuIxkOk958ES7viF9p94h701WaC5MslU';
       
-      console.log(`Trying to upload ${filePath} to Supabase...`, file);
+      const formData = new FormData();
+      formData.append('file', file);
       
-      const { error, data } = await supabase.storage
-        .from('reports')
-        .upload(filePath, file, {
-          upsert: true,
-          contentType: 'application/pdf'
-        });
+      const response = await fetch(`${supabaseUrl}/storage/v1/object/reports/${filePath}`, {
+        method: 'POST',
+        headers: {
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+        },
+        body: formData,
+      });
       
-      if (error) {
-        console.error(`Upload error (${status}):`, error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error(`Upload error (${status}):`, errorData);
+        throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
       }
       
+      const data = await response.json();
       console.log(`Successfully uploaded to ${filePath}`, data);
       return filePath;
     } catch (error) {
-      console.error(`Erro ao salvar PDF (${status}) no Supabase:`, error);
+      console.error(`Erro ao salvar PDF (${status}):`, error);
       throw error;
     }
   };
