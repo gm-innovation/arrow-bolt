@@ -13,6 +13,8 @@ import { PhotosSection } from "@/components/tech/reports/PhotosSection";
 import { TaskReport, TimeEntry, PhotoWithCaption } from "@/components/tech/reports/types";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
+import { pdf } from "@react-pdf/renderer";
+import { ReportPDFContent } from "@/components/tech/reports/ReportPDF";
 
 const queryClient = new QueryClient();
 
@@ -128,14 +130,17 @@ const ReportFormContent = () => {
 
   const generateAndSavePDF = async (taskId: string, report: TaskReport, status: "draft" | "submitted") => {
     try {
-      const pdfBlob = new Blob([`Report data for ${taskId} - ${status}`], { type: 'application/pdf' });
+      const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={mockServiceOrder} />;
+      const asPdf = pdf([]);
+      asPdf.updateContainer(pdfDoc);
+      const blob = await asPdf.toBlob();
       
       const fileName = `relatorio-${taskId}-${status}-${new Date().toISOString()}.pdf`;
       const filePath = `${taskId}/${fileName}`;
       
       const { error } = await supabase.storage
         .from('reports')
-        .upload(filePath, pdfBlob, {
+        .upload(filePath, blob, {
           upsert: true,
           contentType: 'application/pdf'
         });

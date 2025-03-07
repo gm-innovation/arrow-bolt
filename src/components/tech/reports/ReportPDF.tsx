@@ -228,16 +228,32 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  const generatePdfBlob = async () => {
+    try {
+      const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />;
+      const asPdf = pdf([]);
+      asPdf.updateContainer(pdfDoc);
+      const blob = await asPdf.toBlob();
+      return blob;
+    } catch (error) {
+      console.error("Error generating PDF blob:", error);
+      throw error;
+    }
+  };
+
   const handleDownloadPdf = async () => {
     try {
       setIsDownloading(true);
+      const blob = await generatePdfBlob();
+      const url = URL.createObjectURL(blob);
       
-      const link = document.createElement('a');
-      link.href = `/api/download-pdf/${taskId}`;
-      link.download = `relatorio-${taskId}-${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `relatorio-${taskId}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       
       toast({
         title: "Download concluído",
@@ -258,19 +274,18 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const savePdfToSupabase = async () => {
     try {
       setIsSaving(true);
-      
-      const pdfBlob = new Blob(['Placeholder PDF content'], { type: 'application/pdf' });
+      const blob = await generatePdfBlob();
       
       const fileName = `relatorio-${taskId}-${new Date().toISOString()}.pdf`;
       const filePath = `${taskId}/${fileName}`;
       
       const { error } = await supabase.storage
         .from('reports')
-        .upload(filePath, pdfBlob, {
+        .upload(filePath, blob, {
           upsert: true,
           contentType: 'application/pdf'
         });
-      
+
       if (error) {
         console.error("Upload error:", error);
         throw error;
