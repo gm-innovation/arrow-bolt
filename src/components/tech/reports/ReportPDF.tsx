@@ -277,12 +277,16 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
       setIsSaving(true);
       const blob = await generatePdfBlob();
       
+      // Convert blob to File object which Supabase handles better in browsers
       const fileName = `relatorio-${taskId}-${new Date().toISOString()}.pdf`;
-      const filePath = `${taskId}/${fileName}`;
+      const file = new File([blob], fileName, { type: 'application/pdf' });
       
-      const { error } = await supabase.storage
+      const filePath = `${taskId}/${fileName}`;
+      console.log(`Trying to upload ${filePath} to Supabase...`, file);
+      
+      const { error, data } = await supabase.storage
         .from('reports')
-        .upload(filePath, blob, {
+        .upload(filePath, file, {
           upsert: true,
           contentType: 'application/pdf'
         });
@@ -291,6 +295,8 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
         console.error("Upload error:", error);
         throw error;
       }
+      
+      console.log("Successfully uploaded:", data);
       
       toast({
         title: "Relatório salvo",
