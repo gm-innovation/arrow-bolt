@@ -61,10 +61,41 @@ const TechReports = () => {
     updated_at: string;
     url: string;
   }[]>([]);
+  const [savedReports, setSavedReports] = useState<{
+    id: string;
+    task_id: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    report_data: Record<string, TaskReport>;
+    pdf_path?: string;
+  }[]>([]);
 
   useEffect(() => {
+    fetchSavedReports();
     fetchStoredReports();
   }, []);
+
+  const fetchSavedReports = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('task_reports')
+        .select('*')
+        .order('updated_at', { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching saved reports:", error);
+        return;
+      }
+      
+      if (data) {
+        console.log("Saved reports:", data);
+        setSavedReports(data);
+      }
+    } catch (error) {
+      console.error("Error in fetchSavedReports:", error);
+    }
+  };
 
   const fetchStoredReports = async () => {
     try {
@@ -120,9 +151,37 @@ const TechReports = () => {
     });
   };
 
+  const handleViewReport = (report: any) => {
+    navigate(`/tech/reports/edit?taskId=${report.task_id}`);
+  };
+
   const handleOpenPDF = (report: TaskReport) => {
     setSelectedReport(report);
     setIsPDFOpen(true);
+  };
+
+  const handleOpenReportPDF = async (reportData: Record<string, TaskReport>, taskId: string) => {
+    try {
+      // Pegamos o primeiro relatório disponível deste taskId
+      const firstTaskKey = Object.keys(reportData)[0];
+      if (firstTaskKey) {
+        setSelectedReport(reportData[firstTaskKey]);
+        setIsPDFOpen(true);
+      } else {
+        toast({
+          title: "Erro ao abrir PDF",
+          description: "Não foi possível encontrar dados do relatório.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error opening report PDF:", error);
+      toast({
+        title: "Erro ao abrir PDF",
+        description: "Ocorreu um erro ao tentar abrir o PDF.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDownloadStoredReport = async (url: string, fileName: string) => {
@@ -152,11 +211,43 @@ const TechReports = () => {
     }
   };
 
+  const formatStatus = (status: string) => {
+    switch (status) {
+      case "draft":
+        return { 
+          text: "Rascunho", 
+          className: "bg-yellow-100 text-yellow-800" 
+        };
+      case "submitted":
+        return { 
+          text: "Enviado para Aprovação", 
+          className: "bg-blue-100 text-blue-800" 
+        };
+      case "approved":
+        return { 
+          text: "Aprovado", 
+          className: "bg-green-100 text-green-800" 
+        };
+      default:
+        return { 
+          text: status, 
+          className: "bg-gray-100 text-gray-800" 
+        };
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Relatórios</h2>
         <div className="space-x-2">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate("/tech/reports/new")}
+          >
+            <FileText className="h-4 w-4 mr-2" />
+            Novo Relatório
+          </Button>
           <Button variant="outline" onClick={handleExportReports}>
             <Download className="h-4 w-4 mr-2" />
             Exportar
@@ -197,8 +288,8 @@ const TechReports = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="in_progress">Em Andamento</SelectItem>
-                  <SelectItem value="pending">Aguardando Aprovação</SelectItem>
+                  <SelectItem value="draft">Rascunho</SelectItem>
+                  <SelectItem value="submitted">Enviado para Aprovação</SelectItem>
                   <SelectItem value="approved">Aprovado</SelectItem>
                 </SelectContent>
               </Select>
@@ -207,76 +298,72 @@ const TechReports = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Relatórios em Andamento</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Número</TableHead>
-                <TableHead>Embarcação</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Data de Criação</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockReports.map((report) => (
-                <TableRow key={report.id}>
-                  <TableCell>{report.id}</TableCell>
-                  <TableCell>{report.vesselName}</TableCell>
-                  <TableCell>
-                    <div
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${
-                          report.status === "in_progress"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : report.status === "pending"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-green-100 text-green-800"
-                        }`}
-                    >
-                      {report.status === "in_progress"
-                        ? "Em Andamento"
-                        : report.status === "pending"
-                        ? "Aguardando Aprovação"
-                        : "Aprovado"}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {report.createdAt.toLocaleDateString()}
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/tech/reports/${report.id}/edit`)}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      Editar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleOpenPDF(report)}
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      PDF
-                    </Button>
-                  </TableCell>
+      {savedReports.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Relatórios</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>ID da Tarefa</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Última Atualização</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {savedReports
+                  .filter(report => 
+                    !statusFilter || report.status === statusFilter
+                  )
+                  .map((report) => {
+                    const statusInfo = formatStatus(report.status);
+                    return (
+                      <TableRow key={report.id}>
+                        <TableCell>{report.task_id}</TableCell>
+                        <TableCell>
+                          <div
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.className}`}
+                          >
+                            {statusInfo.text}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(report.updated_at).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewReport(report)}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleOpenReportPDF(report.report_data as Record<string, TaskReport>, report.task_id)}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            PDF
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {storedReports.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Relatórios Salvos no Servidor</CardTitle>
+            <CardTitle>Arquivos PDF no Servidor</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
             <Table>
@@ -327,7 +414,7 @@ const TechReports = () => {
           open={isPDFOpen}
           onOpenChange={setIsPDFOpen}
           report={selectedReport}
-          taskId={selectedReport.id}
+          taskId={selectedReport.id || "task1"}
         />
       )}
     </div>

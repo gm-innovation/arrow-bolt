@@ -1,11 +1,12 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { FileText, Save, Send } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { TimeEntriesSection } from "@/components/tech/reports/TimeEntriesSection";
 import { EquipmentInfoSection } from "@/components/tech/reports/EquipmentInfoSection";
 import { ServiceDetailsSection } from "@/components/tech/reports/ServiceDetailsSection";
@@ -48,6 +49,7 @@ const ReportFormContent = () => {
   const [isPDFOpen, setIsPDFOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({
     task1: {
       modelInfo: "",
@@ -62,6 +64,66 @@ const ReportFormContent = () => {
       timeEntries: [],
     },
   });
+
+  // Função para carregar relatórios do Supabase
+  const fetchTaskReports = async () => {
+    try {
+      console.log("Fetching task reports for taskId:", taskId);
+      const { data, error } = await supabase
+        .from('task_reports')
+        .select('*')
+        .eq('task_id', taskId)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+
+      if (error) {
+        console.error("Error fetching task reports:", error);
+        throw error;
+      }
+
+      if (data && data.length > 0) {
+        console.log("Found saved report:", data[0]);
+        // Recupera os dados do relatório do formato JSON
+        const reportData = data[0].report_data as Record<string, TaskReport>;
+        
+        // Precisamos recriar os objetos File para as fotos
+        const reportsWithRecreatedFiles: Record<string, TaskReport> = {};
+        
+        for (const [key, report] of Object.entries(reportData)) {
+          if (report.photos && Array.isArray(report.photos)) {
+            // Infelizmente não podemos recriar objetos File do zero sem os dados originais
+            // Vamos manter um array vazio por enquanto
+            reportsWithRecreatedFiles[key] = {
+              ...report,
+              photos: [], // Inicializa com array vazio
+            };
+          } else {
+            reportsWithRecreatedFiles[key] = report;
+          }
+        }
+        
+        setTaskReports(reportsWithRecreatedFiles);
+        return reportsWithRecreatedFiles;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error in fetchTaskReports:", error);
+      toast({
+        title: "Erro ao carregar relatório",
+        description: "Não foi possível carregar o relatório salvo. Iniciando um novo.",
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Carregar dados do relatório ao iniciar
+  useEffect(() => {
+    fetchTaskReports();
+  }, [taskId]);
 
   const handleAddTimeEntry = (taskId: string) => {
     const newEntry = {
@@ -128,6 +190,65 @@ const ReportFormContent = () => {
     }));
   };
 
+  // Função para salvar os dados do relatório no Supabase
+  const saveReportData = async (reportData: Record<string, TaskReport>, status: "draft" | "submitted") => {
+    try {
+      console.log("Saving report data to Supabase:", { taskId, status });
+      
+      // Precisamos criar uma cópia do relatório sem os objetos File, que não são serializáveis
+      const serializableReportData: Record<string, any> = {};
+      
+      for (const [key, report] of Object.entries(reportData)) {
+        // Remover as fotos, que contêm objetos File não serializáveis
+        const { photos, ...reportWithoutPhotos } = report;
+        serializableReportData[key] = reportWithoutPhotos;
+      }
+      
+      // Verificar se já existe um relatório para este taskId
+      const { data: existingReports, error: fetchError } = await supabase
+        .from('task_reports')
+        .select('id')
+        .eq('task_id', taskId)
+        .eq('status', status);
+
+      if (fetchError) {
+        console.error("Error checking for existing report:", fetchError);
+        throw fetchError;
+      }
+
+      let result;
+      if (existingReports && existingReports.length > 0) {
+        // Atualizar o relatório existente
+        result = await supabase
+          .from('task_reports')
+          .update({
+            report_data: serializableReportData,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existingReports[0].id);
+      } else {
+        // Inserir novo relatório
+        result = await supabase
+          .from('task_reports')
+          .insert({
+            task_id: taskId,
+            status: status,
+            report_data: serializableReportData
+          });
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
+      console.log("Report data saved successfully:", result.data);
+      return true;
+    } catch (error) {
+      console.error("Error saving report data:", error);
+      throw error;
+    }
+  };
+
   const generateAndSavePDF = async (taskId: string, report: TaskReport, status: "draft" | "submitted") => {
     try {
       console.log("Starting PDF generation...");
@@ -164,7 +285,28 @@ const ReportFormContent = () => {
     try {
       setIsSaving(true);
       const report = taskReports[selectedTask];
-      await generateAndSavePDF(selectedTask, report, "draft");
+      
+      // Primeiro salvamos os dados do relatório
+      await saveReportData(taskReports, "draft");
+      
+      // Depois geramos e salvamos o PDF
+      const pdfPath = await generateAndSavePDF(selectedTask, report, "draft");
+      
+      // Atualizamos o caminho do PDF no registro do relatório
+      if (pdfPath) {
+        const { data: existingReports } = await supabase
+          .from('task_reports')
+          .select('id')
+          .eq('task_id', taskId)
+          .eq('status', "draft");
+
+        if (existingReports && existingReports.length > 0) {
+          await supabase
+            .from('task_reports')
+            .update({ pdf_path: pdfPath })
+            .eq('id', existingReports[0].id);
+        }
+      }
       
       toast({
         title: "Rascunho salvo",
@@ -187,8 +329,28 @@ const ReportFormContent = () => {
     try {
       setIsSubmitting(true);
       
+      // Primeiro salvamos os dados do relatório
+      await saveReportData(taskReports, "submitted");
+      
+      // Depois geramos e salvamos o PDF para cada tarefa
       for (const [taskId, report] of Object.entries(taskReports)) {
-        await generateAndSavePDF(taskId, report, "submitted");
+        const pdfPath = await generateAndSavePDF(taskId, report, "submitted");
+        
+        // Atualizamos o caminho do PDF no registro do relatório
+        if (pdfPath) {
+          const { data: existingReports } = await supabase
+            .from('task_reports')
+            .select('id')
+            .eq('task_id', taskId)
+            .eq('status', "submitted");
+
+          if (existingReports && existingReports.length > 0) {
+            await supabase
+              .from('task_reports')
+              .update({ pdf_path: pdfPath })
+              .eq('id', existingReports[0].id);
+          }
+        }
       }
       
       toast({
@@ -207,6 +369,17 @@ const ReportFormContent = () => {
       setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Carregando relatório...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
