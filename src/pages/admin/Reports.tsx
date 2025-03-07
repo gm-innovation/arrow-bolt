@@ -17,7 +17,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -26,7 +25,7 @@ import { Eye, Download, CheckCircle, XOctagon } from "lucide-react";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { TaskReport } from "@/components/tech/reports/types";
 
 // Define the status type to ensure type safety
@@ -103,6 +102,7 @@ const Reports = () => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [isPDFPreviewOpen, setIsPDFPreviewOpen] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const { toast } = useToast();
 
   const handleApproveReport = (reportId: string) => {
     setReports(prevReports => 
