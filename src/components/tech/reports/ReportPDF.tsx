@@ -1,3 +1,4 @@
+
 import { Document, Page, Text, View, StyleSheet, PDFViewer, Image, pdf, PDFDownloadLink } from '@react-pdf/renderer';
 import { TaskReport } from './types';
 import { CompanyHeader } from './pdf/CompanyHeader';
@@ -231,7 +232,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const generatePdfBlob = async () => {
     try {
       const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />;
-      const asPdf = pdf([]);
+      const asPdf = pdf();
       asPdf.updateContainer(pdfDoc);
       const blob = await asPdf.toBlob();
       return blob;

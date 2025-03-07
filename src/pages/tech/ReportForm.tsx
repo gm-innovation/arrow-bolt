@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -131,14 +132,16 @@ const ReportFormContent = () => {
   const generateAndSavePDF = async (taskId: string, report: TaskReport, status: "draft" | "submitted") => {
     try {
       const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={mockServiceOrder} />;
-      const asPdf = pdf([]);
+      const asPdf = pdf();
       asPdf.updateContainer(pdfDoc);
       const blob = await asPdf.toBlob();
       
       const fileName = `relatorio-${taskId}-${status}-${new Date().toISOString()}.pdf`;
       const filePath = `${taskId}/${fileName}`;
       
-      const { error } = await supabase.storage
+      console.log(`Trying to upload ${filePath} to Supabase...`);
+      
+      const { error, data } = await supabase.storage
         .from('reports')
         .upload(filePath, blob, {
           upsert: true,
@@ -150,6 +153,7 @@ const ReportFormContent = () => {
         throw error;
       }
       
+      console.log(`Successfully uploaded to ${filePath}`, data);
       return filePath;
     } catch (error) {
       console.error(`Erro ao salvar PDF (${status}) no Supabase:`, error);
