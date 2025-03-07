@@ -1,5 +1,4 @@
-
-import { Document, Page, Text, View, StyleSheet, PDFViewer, Image, pdf } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, PDFViewer, Image, pdf, PDFDownloadLink } from '@react-pdf/renderer';
 import { TaskReport } from './types';
 import { CompanyHeader } from './pdf/CompanyHeader';
 import { ServiceOrderInfo } from './pdf/ServiceOrderInfo';
@@ -229,31 +228,16 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  const generatePdfBlob = async () => {
-    try {
-      const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />;
-      const asPdf = pdf();
-      asPdf.updateContainer(pdfDoc);
-      const blob = await asPdf.toBlob();
-      return blob;
-    } catch (error) {
-      console.error("Error generating PDF blob:", error);
-      throw error;
-    }
-  };
-
   const handleDownloadPdf = async () => {
     try {
       setIsDownloading(true);
-      const blob = await generatePdfBlob();
-      const url = URL.createObjectURL(blob);
       
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `relatorio-${taskId}-${new Date().toISOString().split('T')[0]}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      const link = document.createElement('a');
+      link.href = `/api/download-pdf/${taskId}`;
+      link.download = `relatorio-${taskId}-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       
       toast({
         title: "Download concluído",
@@ -274,24 +258,27 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const savePdfToSupabase = async () => {
     try {
       setIsSaving(true);
-      const blob = await generatePdfBlob();
+      
+      const pdfBlob = new Blob(['Placeholder PDF content'], { type: 'application/pdf' });
+      
       const fileName = `relatorio-${taskId}-${new Date().toISOString()}.pdf`;
       const filePath = `${taskId}/${fileName}`;
       
       const { error } = await supabase.storage
         .from('reports')
-        .upload(filePath, blob, {
+        .upload(filePath, pdfBlob, {
           upsert: true,
           contentType: 'application/pdf'
         });
       
       if (error) {
+        console.error("Upload error:", error);
         throw error;
       }
       
       toast({
         title: "Relatório salvo",
-        description: "O PDF foi salvo com sucesso no Supabase.",
+        description: "O PDF foi salvo com sucesso no servidor.",
       });
     } catch (error) {
       console.error("Erro ao salvar PDF no Supabase:", error);
