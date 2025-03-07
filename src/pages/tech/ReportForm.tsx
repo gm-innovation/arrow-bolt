@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,7 +64,6 @@ const ReportFormContent = () => {
     },
   });
 
-  // Função para carregar relatórios do Supabase
   const fetchTaskReports = async () => {
     try {
       console.log("Fetching task reports for taskId:", taskId);
@@ -83,19 +81,15 @@ const ReportFormContent = () => {
 
       if (data && data.length > 0) {
         console.log("Found saved report:", data[0]);
-        // Recupera os dados do relatório do formato JSON
-        const reportData = data[0].report_data as Record<string, TaskReport>;
+        const reportData = data[0].report_data as unknown as Record<string, TaskReport>;
         
-        // Precisamos recriar os objetos File para as fotos
         const reportsWithRecreatedFiles: Record<string, TaskReport> = {};
         
         for (const [key, report] of Object.entries(reportData)) {
           if (report.photos && Array.isArray(report.photos)) {
-            // Infelizmente não podemos recriar objetos File do zero sem os dados originais
-            // Vamos manter um array vazio por enquanto
             reportsWithRecreatedFiles[key] = {
               ...report,
-              photos: [], // Inicializa com array vazio
+              photos: [],
             };
           } else {
             reportsWithRecreatedFiles[key] = report;
@@ -120,7 +114,6 @@ const ReportFormContent = () => {
     }
   };
 
-  // Carregar dados do relatório ao iniciar
   useEffect(() => {
     fetchTaskReports();
   }, [taskId]);
@@ -190,21 +183,17 @@ const ReportFormContent = () => {
     }));
   };
 
-  // Função para salvar os dados do relatório no Supabase
   const saveReportData = async (reportData: Record<string, TaskReport>, status: "draft" | "submitted") => {
     try {
       console.log("Saving report data to Supabase:", { taskId, status });
       
-      // Precisamos criar uma cópia do relatório sem os objetos File, que não são serializáveis
       const serializableReportData: Record<string, any> = {};
       
       for (const [key, report] of Object.entries(reportData)) {
-        // Remover as fotos, que contêm objetos File não serializáveis
         const { photos, ...reportWithoutPhotos } = report;
         serializableReportData[key] = reportWithoutPhotos;
       }
       
-      // Verificar se já existe um relatório para este taskId
       const { data: existingReports, error: fetchError } = await supabase
         .from('task_reports')
         .select('id')
@@ -218,7 +207,6 @@ const ReportFormContent = () => {
 
       let result;
       if (existingReports && existingReports.length > 0) {
-        // Atualizar o relatório existente
         result = await supabase
           .from('task_reports')
           .update({
@@ -227,7 +215,6 @@ const ReportFormContent = () => {
           })
           .eq('id', existingReports[0].id);
       } else {
-        // Inserir novo relatório
         result = await supabase
           .from('task_reports')
           .insert({
@@ -286,13 +273,10 @@ const ReportFormContent = () => {
       setIsSaving(true);
       const report = taskReports[selectedTask];
       
-      // Primeiro salvamos os dados do relatório
       await saveReportData(taskReports, "draft");
       
-      // Depois geramos e salvamos o PDF
       const pdfPath = await generateAndSavePDF(selectedTask, report, "draft");
       
-      // Atualizamos o caminho do PDF no registro do relatório
       if (pdfPath) {
         const { data: existingReports } = await supabase
           .from('task_reports')
@@ -329,14 +313,11 @@ const ReportFormContent = () => {
     try {
       setIsSubmitting(true);
       
-      // Primeiro salvamos os dados do relatório
       await saveReportData(taskReports, "submitted");
       
-      // Depois geramos e salvamos o PDF para cada tarefa
       for (const [taskId, report] of Object.entries(taskReports)) {
         const pdfPath = await generateAndSavePDF(taskId, report, "submitted");
         
-        // Atualizamos o caminho do PDF no registro do relatório
         if (pdfPath) {
           const { data: existingReports } = await supabase
             .from('task_reports')

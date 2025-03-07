@@ -45,6 +45,17 @@ const mockReports = [
   },
 ];
 
+// Definir uma interface para os relatórios salvos
+interface SavedReport {
+  id: string;
+  task_id: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  report_data: Record<string, TaskReport>;
+  pdf_path?: string;
+}
+
 const TechReports = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -61,15 +72,7 @@ const TechReports = () => {
     updated_at: string;
     url: string;
   }[]>([]);
-  const [savedReports, setSavedReports] = useState<{
-    id: string;
-    task_id: string;
-    status: string;
-    created_at: string;
-    updated_at: string;
-    report_data: Record<string, TaskReport>;
-    pdf_path?: string;
-  }[]>([]);
+  const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
 
   useEffect(() => {
     fetchSavedReports();
@@ -90,7 +93,12 @@ const TechReports = () => {
       
       if (data) {
         console.log("Saved reports:", data);
-        setSavedReports(data);
+        // Precisamos converter o tipo Json para Record<string, TaskReport>
+        const typedReports = data.map(report => ({
+          ...report,
+          report_data: report.report_data as unknown as Record<string, TaskReport>
+        }));
+        setSavedReports(typedReports);
       }
     } catch (error) {
       console.error("Error in fetchSavedReports:", error);
@@ -151,7 +159,7 @@ const TechReports = () => {
     });
   };
 
-  const handleViewReport = (report: any) => {
+  const handleViewReport = (report: SavedReport) => {
     navigate(`/tech/reports/edit?taskId=${report.task_id}`);
   };
 
