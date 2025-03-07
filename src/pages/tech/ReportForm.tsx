@@ -133,7 +133,7 @@ const ReportFormContent = () => {
   const generateAndSavePDF = async (taskId: string, report: TaskReport, status: "draft" | "submitted") => {
     try {
       const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={mockServiceOrder} />;
-      const asPdf = pdf([]);
+      const asPdf = pdf();
       asPdf.updateContainer(pdfDoc);
       const blob = await asPdf.toBlob();
       

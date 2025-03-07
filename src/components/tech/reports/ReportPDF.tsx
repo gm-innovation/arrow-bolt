@@ -5,7 +5,7 @@ import { CompanyHeader } from './pdf/CompanyHeader';
 import { ServiceOrderInfo } from './pdf/ServiceOrderInfo';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Save } from 'lucide-react';
 
@@ -230,11 +230,16 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const [isDownloading, setIsDownloading] = useState(false);
 
   const generatePdfBlob = async () => {
-    const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />;
-    const asPdf = pdf([]);
-    asPdf.updateContainer(pdfDoc);
-    const blob = await asPdf.toBlob();
-    return blob;
+    try {
+      const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />;
+      const asPdf = pdf();
+      asPdf.updateContainer(pdfDoc);
+      const blob = await asPdf.toBlob();
+      return blob;
+    } catch (error) {
+      console.error("Error generating PDF blob:", error);
+      throw error;
+    }
   };
 
   const handleDownloadPdf = async () => {

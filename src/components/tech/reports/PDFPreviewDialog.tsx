@@ -2,6 +2,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -46,6 +47,9 @@ export const PDFPreviewDialog = ({
       <DialogContent className="max-w-[90vw] h-[80vh]">
         <DialogHeader>
           <DialogTitle>Visualização do PDF</DialogTitle>
+          <DialogDescription>
+            Visualize, baixe ou salve o relatório no servidor
+          </DialogDescription>
         </DialogHeader>
         <ReportPDFViewer 
           report={report} 
