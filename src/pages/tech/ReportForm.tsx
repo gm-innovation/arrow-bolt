@@ -138,23 +138,21 @@ const ReportFormContent = () => {
       const blob = await asPdf.toBlob();
       console.log("Blob generated:", blob);
       
-      const fileName = `relatorio-${taskId}-${status}-${new Date().toISOString().replace(/:/g, '-')}.pdf`;
-      
-      const file = new File([blob], fileName, { type: 'application/pdf' });
+      const fileName = `relatorio-${taskId}-${status}-${new Date().toISOString().split('T')[0]}.pdf`;
       
       const { data, error } = await supabase.storage
         .from('reports')
-        .upload(`${taskId}/${fileName}`, file, {
+        .upload(`${taskId}/${fileName}`, blob, {
+          contentType: 'application/pdf',
           cacheControl: '3600',
           upsert: true
         });
       
       if (error) {
-        console.error(`Upload error (${status}):`, error);
-        throw new Error(`Upload failed: ${error.message}`);
+        throw error;
       }
       
-      console.log(`Successfully uploaded to ${data?.path}`, data);
+      console.log("Upload successful:", data);
       return data?.path;
     } catch (error) {
       console.error(`Erro ao salvar PDF (${status}):`, error);

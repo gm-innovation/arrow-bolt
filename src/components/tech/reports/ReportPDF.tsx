@@ -1,4 +1,3 @@
-
 import { Document, Page, Text, View, StyleSheet, PDFViewer, Image, pdf, PDFDownloadLink } from '@react-pdf/renderer';
 import { TaskReport } from './types';
 import { CompanyHeader } from './pdf/CompanyHeader';
@@ -279,28 +278,21 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
     try {
       setIsSaving(true);
       
-      // Generate the PDF blob
       const blob = await generatePdfBlob();
+      const fileName = `relatorio-${taskId}-${new Date().toISOString().split('T')[0]}.pdf`;
       
-      // Create a unique file name
-      const fileName = `relatorio-${taskId}-${new Date().toISOString().replace(/:/g, '-')}.pdf`;
-      
-      // Create a File object with the correct MIME type
-      const file = new File([blob], fileName, { type: 'application/pdf' });
-      
-      // Upload to Supabase storage bucket
       const { data, error } = await supabase.storage
         .from('reports')
-        .upload(`${taskId}/${fileName}`, file, {
+        .upload(`${taskId}/${fileName}`, blob, {
+          contentType: 'application/pdf',
           cacheControl: '3600',
           upsert: true
         });
-      
+
       if (error) {
-        console.error("Upload failed:", error);
-        throw new Error(`Upload failed: ${error.message}`);
+        throw error;
       }
-      
+
       console.log("Upload successful:", data);
       
       toast({
