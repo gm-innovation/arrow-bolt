@@ -1,4 +1,3 @@
-
 import { ReactNode, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -96,7 +95,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   return (
     <div className="min-h-screen flex w-full overflow-hidden bg-gray-50">
       <Sidebar className={cn(
-        "transition-all duration-300 border-r border-gray-200 shadow-sm",
+        "transition-all duration-300 border-r border-gray-200 shadow-sm z-10",
         collapsed ? "w-20" : "w-64"
       )}>
         <SidebarContent>
@@ -175,10 +174,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
         </SidebarContent>
       </Sidebar>
       
-      <main className={cn(
-        "flex-1 transition-all duration-300",
-        collapsed ? "ml-20" : "ml-64"
-      )}>
+      <main className="flex-1">
         <div className="sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm">
           <div className="px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
