@@ -24,6 +24,7 @@ import VesselHistory from "./pages/admin/VesselHistory";
 import TaskTypes from "./pages/admin/TaskTypes";
 import NewUser from "./pages/admin/NewUser";
 import Clients from "./pages/admin/Clients";
+import Technicians from "./pages/admin/Technicians";
 
 import TechDashboard from "./pages/tech/Dashboard";
 import TechTasks from "./pages/tech/Tasks";
@@ -190,6 +191,14 @@ const App = () => {
                 element={
                   <DashboardLayout userType="admin">
                     <Clients />
+                  </DashboardLayout>
+                }
+              />
+              <Route
+                path="/admin/technicians"
+                element={
+                  <DashboardLayout userType="admin">
+                    <Technicians />
                   </DashboardLayout>
                 }
               />

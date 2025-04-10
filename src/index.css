@@ -96,7 +96,7 @@
   }
   
   html, body {
-    @apply overflow-x-hidden;
+    @apply overflow-hidden h-screen;
   }
 }
 
@@ -106,7 +106,7 @@
   }
   
   .card-responsive {
-    @apply w-full overflow-hidden;
+    @apply w-full;
   }
   
   .form-grid {
@@ -139,6 +139,35 @@
   
   .table-card-value {
     @apply text-base font-semibold;
+  }
+
+  /* New classes for technician management */
+  .tech-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow;
+  }
+  
+  .tech-avatar {
+    @apply w-16 h-16 rounded-full flex items-center justify-center bg-blue-100 text-blue-600 text-2xl font-bold mb-3;
+  }
+  
+  .tech-name {
+    @apply text-lg font-semibold mb-1;
+  }
+  
+  .tech-role {
+    @apply text-sm text-gray-500 mb-3;
+  }
+  
+  .tech-status {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .tech-status-active {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .tech-status-inactive {
+    @apply bg-gray-100 text-gray-800;
   }
 }
 

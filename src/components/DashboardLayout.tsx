@@ -27,6 +27,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  Wrench,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -64,6 +65,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   const adminMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
     { title: "Ordens de Serviço", icon: ClipboardList, path: "/admin/orders" },
+    { title: "Técnicos", icon: Wrench, path: "/admin/technicians" },
     { title: "Clientes", icon: Users, path: "/admin/clients" },
     { title: "Relatórios", icon: FileText, path: "/admin/reports" },
     { title: "Tipos de Tarefas", icon: ClipboardList, path: "/admin/task-types" },
@@ -249,14 +251,14 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   );
 
   return (
-    <div className="min-h-screen flex flex-row w-full overflow-hidden bg-gray-50">
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Desktop Sidebar - hidden on mobile */}
       {!isMobile && (
         <div className={cn(
-          "h-screen transition-all duration-300 z-10 hidden md:block",
+          "h-full flex-shrink-0 transition-all duration-300 z-10 hidden md:block",
           collapsed ? "w-20" : "w-64"
         )}>
-          <Sidebar className="border-r border-gray-200 shadow-sm h-full">
+          <Sidebar className="border-r border-gray-200 h-full">
             <SidebarContent>
               {renderSidebarHeader()}
               {renderMenu()}
@@ -281,7 +283,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
       
       {renderMobileMenu()}
       
-      <main className="flex-1 w-full">
+      <main className="flex-1 overflow-auto">
         <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
           <div className="px-4 md:px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -295,7 +297,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                 </Button>
               )}
               <h1 className="text-lg md:text-xl font-semibold text-gray-800 truncate">
-                {location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                {location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Dashboard"}
               </h1>
             </div>
             <div className="flex items-center gap-2">

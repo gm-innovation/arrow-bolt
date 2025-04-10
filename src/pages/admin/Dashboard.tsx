@@ -29,6 +29,15 @@ const AdminDashboard = () => {
     });
   };
 
+  const handleManageTechnicians = () => {
+    navigate("/admin/technicians");
+    toast({
+      title: "Gerenciar Técnicos",
+      description: "Redirecionando para a página de gerenciamento de técnicos",
+      duration: 3000,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
@@ -47,11 +56,11 @@ const AdminDashboard = () => {
 
       <DashboardStats />
       
-      <Card className="card-responsive">
+      <Card className="card-responsive overflow-hidden">
         <CardHeader>
           <CardTitle>Agenda de Serviços</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-auto">
+        <CardContent className="overflow-auto p-0 sm:p-6">
           <ServiceCalendar />
         </CardContent>
       </Card>
