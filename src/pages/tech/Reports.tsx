@@ -19,31 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { FileText, Download, Eye } from "lucide-react";
+import { FileText, Download, Eye, Filter, Search, Plus, ArrowRight } from "lucide-react";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { TaskReport } from "@/components/tech/reports/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-
-// Update mock data to include id
-const mockReports = [
-  {
-    id: "REL001",
-    vesselName: "Navio Alpha",
-    status: "in_progress",
-    createdAt: new Date(),
-    modelInfo: "Modelo XYZ",
-    brandInfo: "Marca ABC",
-    serialNumber: "123456",
-    reportedIssue: "Problema no motor",
-    executedWork: "Manutenção preventiva",
-    result: "Equipamento funcionando normalmente",
-    nextVisitWork: "Próxima manutenção em 6 meses",
-    suppliedMaterial: "Óleo lubrificante, filtros",
-    photos: [],
-    timeEntries: [],
-  },
-];
+import { Badge } from "@/components/ui/badge";
 
 // Definir uma interface para os relatórios salvos
 interface SavedReport {
@@ -73,6 +54,7 @@ const TechReports = () => {
     url: string;
   }[]>([]);
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
 
   useEffect(() => {
     fetchSavedReports();
@@ -224,101 +206,145 @@ const TechReports = () => {
       case "draft":
         return { 
           text: "Rascunho", 
-          className: "bg-yellow-100 text-yellow-800" 
+          className: "bg-yellow-100 text-yellow-800 border-yellow-300" 
         };
       case "submitted":
         return { 
           text: "Enviado para Aprovação", 
-          className: "bg-blue-100 text-blue-800" 
+          className: "bg-blue-100 text-blue-800 border-blue-300" 
         };
       case "approved":
         return { 
           text: "Aprovado", 
-          className: "bg-green-100 text-green-800" 
+          className: "bg-green-100 text-green-800 border-green-300" 
         };
       default:
         return { 
           text: status, 
-          className: "bg-gray-100 text-gray-800" 
+          className: "bg-gray-100 text-gray-800 border-gray-300" 
         };
     }
   };
 
+  const toggleFilters = () => {
+    setIsFiltersOpen(!isFiltersOpen);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Relatórios</h2>
+        <h2 className="text-3xl font-bold tracking-tight text-gray-900">Relatórios</h2>
         <div className="space-x-2">
           <Button 
             variant="outline" 
             onClick={() => navigate("/tech/reports/new")}
+            className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
           >
             <FileText className="h-4 w-4 mr-2" />
             Novo Relatório
           </Button>
-          <Button variant="outline" onClick={handleExportReports}>
+          <Button 
+            variant="outline" 
+            onClick={handleExportReports}
+            className="bg-white border-green-300 text-green-700 hover:bg-green-50"
+          >
             <Download className="h-4 w-4 mr-2" />
             Exportar
           </Button>
         </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <label>Embarcação</label>
-              <Select value={vesselFilter} onValueChange={setVesselFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="vessel1">Navio Alpha</SelectItem>
-                  <SelectItem value="vessel2">Navio Beta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <label>Data de Criação</label>
-              <Input
-                type="date"
-                value={dateFilter}
-                onChange={(e) => setDateFilter(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <label>Status</label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Rascunho</SelectItem>
-                  <SelectItem value="submitted">Enviado para Aprovação</SelectItem>
-                  <SelectItem value="approved">Aprovado</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+      <Card className="border border-gray-200 shadow-sm overflow-hidden">
+        <CardHeader className="bg-gray-50 border-b border-gray-200">
+          <div className="flex justify-between items-center">
+            <CardTitle className="text-gray-800">Filtros</CardTitle>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={toggleFilters}
+              className="text-gray-500"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              {isFiltersOpen ? "Ocultar Filtros" : "Mostrar Filtros"}
+            </Button>
           </div>
-        </CardContent>
+        </CardHeader>
+        {isFiltersOpen && (
+          <CardContent className="pt-6 bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Embarcação</label>
+                <Select value={vesselFilter} onValueChange={setVesselFilter}>
+                  <SelectTrigger className="border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="vessel1">Navio Alpha</SelectItem>
+                    <SelectItem value="vessel2">Navio Beta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Data de Criação</label>
+                <Input
+                  type="date"
+                  value={dateFilter}
+                  onChange={(e) => setDateFilter(e.target.value)}
+                  className="border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Status</label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white">
+                    <SelectItem value="draft">Rascunho</SelectItem>
+                    <SelectItem value="submitted">Enviado para Aprovação</SelectItem>
+                    <SelectItem value="approved">Aprovado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="mt-4 flex justify-end">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="mr-2 border-gray-300"
+                onClick={() => {
+                  setVesselFilter("");
+                  setDateFilter("");
+                  setStatusFilter("");
+                }}
+              >
+                Limpar
+              </Button>
+              <Button 
+                size="sm"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Search className="h-4 w-4 mr-2" />
+                Aplicar Filtros
+              </Button>
+            </div>
+          </CardContent>
+        )}
       </Card>
 
       {savedReports.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Relatórios</CardTitle>
+        <Card className="border border-gray-200 shadow-sm overflow-hidden card-transition">
+          <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b border-gray-200">
+            <CardTitle className="text-blue-800">Relatórios</CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 bg-white p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gray-50">
                 <TableRow>
-                  <TableHead>ID da Tarefa</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Última Atualização</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="font-semibold">ID da Tarefa</TableHead>
+                  <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Última Atualização</TableHead>
+                  <TableHead className="text-right font-semibold">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -329,14 +355,12 @@ const TechReports = () => {
                   .map((report) => {
                     const statusInfo = formatStatus(report.status);
                     return (
-                      <TableRow key={report.id}>
-                        <TableCell>{report.task_id}</TableCell>
+                      <TableRow key={report.id} className="hover:bg-blue-50 transition-colors">
+                        <TableCell className="font-medium text-blue-800">{report.task_id}</TableCell>
                         <TableCell>
-                          <div
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusInfo.className}`}
-                          >
+                          <Badge className={`font-medium border ${statusInfo.className}`}>
                             {statusInfo.text}
-                          </div>
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           {new Date(report.updated_at).toLocaleString()}
@@ -345,6 +369,7 @@ const TechReports = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="border-blue-300 text-blue-700 hover:bg-blue-50"
                             onClick={() => handleViewReport(report)}
                           >
                             <FileText className="h-4 w-4 mr-2" />
@@ -353,9 +378,10 @@ const TechReports = () => {
                           <Button
                             variant="outline"
                             size="sm"
+                            className="border-gray-300 text-gray-700 hover:bg-gray-50"
                             onClick={() => handleOpenReportPDF(report.report_data as Record<string, TaskReport>, report.task_id)}
                           >
-                            <FileText className="h-4 w-4 mr-2" />
+                            <Eye className="h-4 w-4 mr-2" />
                             PDF
                           </Button>
                         </TableCell>
@@ -369,24 +395,24 @@ const TechReports = () => {
       )}
 
       {storedReports.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Arquivos PDF no Servidor</CardTitle>
+        <Card className="border border-gray-200 shadow-sm overflow-hidden card-transition">
+          <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 border-b border-gray-200">
+            <CardTitle className="text-green-800">Arquivos PDF no Servidor</CardTitle>
           </CardHeader>
-          <CardContent className="pt-6">
+          <CardContent className="pt-6 bg-white p-0">
             <Table>
-              <TableHeader>
+              <TableHeader className="bg-gray-50">
                 <TableRow>
-                  <TableHead>ID da Tarefa</TableHead>
-                  <TableHead>Nome do Arquivo</TableHead>
-                  <TableHead>Data de Criação</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                  <TableHead className="font-semibold">ID da Tarefa</TableHead>
+                  <TableHead className="font-semibold">Nome do Arquivo</TableHead>
+                  <TableHead className="font-semibold">Data de Criação</TableHead>
+                  <TableHead className="text-right font-semibold">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {storedReports.map((report) => (
-                  <TableRow key={report.id}>
-                    <TableCell>{report.taskId}</TableCell>
+                  <TableRow key={report.id} className="hover:bg-green-50 transition-colors">
+                    <TableCell className="font-medium text-green-800">{report.taskId}</TableCell>
                     <TableCell>{report.name}</TableCell>
                     <TableCell>
                       {new Date(report.created_at).toLocaleDateString()}
@@ -395,6 +421,7 @@ const TechReports = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="border-blue-300 text-blue-700 hover:bg-blue-50"
                         onClick={() => window.open(report.url, '_blank')}
                       >
                         <Eye className="h-4 w-4 mr-2" />
@@ -403,6 +430,7 @@ const TechReports = () => {
                       <Button
                         variant="outline"
                         size="sm"
+                        className="border-green-300 text-green-700 hover:bg-green-50"
                         onClick={() => handleDownloadStoredReport(report.url, report.name)}
                       >
                         <Download className="h-4 w-4 mr-2" />
@@ -413,6 +441,27 @@ const TechReports = () => {
                 ))}
               </TableBody>
             </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {!savedReports.length && !storedReports.length && (
+        <Card className="border border-gray-200 shadow-sm">
+          <CardContent className="py-12">
+            <div className="text-center space-y-4">
+              <FileText className="h-12 w-12 text-gray-400 mx-auto" />
+              <h3 className="text-lg font-medium text-gray-900">Nenhum relatório encontrado</h3>
+              <p className="text-gray-500 max-w-md mx-auto">
+                Você ainda não criou nenhum relatório. Clique no botão abaixo para criar seu primeiro relatório.
+              </p>
+              <Button 
+                onClick={() => navigate("/tech/reports/new")}
+                className="mt-4 bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Criar Relatório
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
