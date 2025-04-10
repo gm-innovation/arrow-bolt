@@ -1,3 +1,4 @@
+
 import { DashboardStats } from "@/components/admin/dashboard/DashboardStats";
 import { DashboardCharts } from "@/components/admin/dashboard/DashboardCharts";
 import { ServiceCalendar } from "@/components/admin/calendar/ServiceCalendar";
@@ -30,14 +31,14 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <div className="flex gap-4">
-          <Button onClick={handleCreateOS}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+          <Button onClick={handleCreateOS} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" />
             Nova OS
           </Button>
-          <Button variant="outline" onClick={handleApproveReports}>
+          <Button variant="outline" onClick={handleApproveReports} className="w-full sm:w-auto">
             <FileText className="mr-2 h-4 w-4" />
             Aprovar Relatórios
           </Button>
@@ -46,11 +47,11 @@ const AdminDashboard = () => {
 
       <DashboardStats />
       
-      <Card>
+      <Card className="card-responsive">
         <CardHeader>
           <CardTitle>Agenda de Serviços</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="overflow-auto">
           <ServiceCalendar />
         </CardContent>
       </Card>

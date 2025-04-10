@@ -249,32 +249,34 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   );
 
   return (
-    <div className="min-h-screen flex w-full overflow-hidden bg-gray-50">
+    <div className="min-h-screen flex flex-row w-full overflow-hidden bg-gray-50">
       {/* Desktop Sidebar - hidden on mobile */}
       {!isMobile && (
-        <Sidebar className={cn(
-          "transition-all duration-300 border-r border-gray-200 shadow-sm z-10 hidden md:block",
+        <div className={cn(
+          "h-screen transition-all duration-300 z-10 hidden md:block",
           collapsed ? "w-20" : "w-64"
         )}>
-          <SidebarContent>
-            {renderSidebarHeader()}
-            {renderMenu()}
-            
-            <div className="mt-auto p-4 border-t border-gray-200">
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-3 text-red-500 hover:text-red-700 hover:bg-red-50",
-                  collapsed && "p-2"
-                )}
-                onClick={handleLogout}
-              >
-                <LogOut className="h-5 w-5" />
-                {!collapsed && <span>Sair</span>}
-              </Button>
-            </div>
-          </SidebarContent>
-        </Sidebar>
+          <Sidebar className="border-r border-gray-200 shadow-sm h-full">
+            <SidebarContent>
+              {renderSidebarHeader()}
+              {renderMenu()}
+              
+              <div className="mt-auto p-4 border-t border-gray-200">
+                <Button
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start gap-3 text-red-500 hover:text-red-700 hover:bg-red-50",
+                    collapsed && "p-2"
+                  )}
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-5 w-5" />
+                  {!collapsed && <span>Sair</span>}
+                </Button>
+              </div>
+            </SidebarContent>
+          </Sidebar>
+        </div>
       )}
       
       {renderMobileMenu()}

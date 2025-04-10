@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,13 +105,88 @@ const Tasks = () => {
     }
   };
 
+  // Mobile card view for tasks
+  const renderMobileTaskCard = (task: Task) => (
+    <div key={task.id} className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-4">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <div className="font-semibold">{task.id}</div>
+          <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
+            <Ship className="h-4 w-4" />
+            {task.vesselName}
+          </div>
+        </div>
+        <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusDisplay(task.status).className}`}>
+          {getStatusDisplay(task.status).text}
+        </div>
+      </div>
+      
+      <p className="text-sm text-gray-700 mb-3">{task.description}</p>
+      
+      <div className="flex flex-wrap gap-3 mb-4 text-sm text-gray-600">
+        <div className="flex items-center gap-1">
+          <Calendar className="h-4 w-4" />
+          {format(task.scheduledDate, "dd/MM/yyyy")}
+        </div>
+        <div className="flex items-center gap-1">
+          <Clock className="h-4 w-4" />
+          {format(task.scheduledDate, "HH:mm")}
+        </div>
+      </div>
+      
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="flex-1"
+          onClick={() => handleViewDetails(task.id)}
+        >
+          Detalhes
+        </Button>
+        
+        {task.status === "waiting" && (
+          <Button
+            variant="default"
+            size="sm"
+            className="flex-1"
+            onClick={() => handleStartTask(task.id)}
+          >
+            Iniciar
+          </Button>
+        )}
+        
+        {task.status === "in_progress" && (
+          <Button
+            variant="default"
+            size="sm"
+            className="flex-1"
+            onClick={() => handleFinishTask(task.id)}
+          >
+            Finalizar
+          </Button>
+        )}
+        
+        {task.status === "completed" && (
+          <Button
+            variant="default"
+            size="sm"
+            className="flex-1"
+            onClick={() => handleCreateReport(task.id)}
+          >
+            Criar Relatório
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">Tarefas Atribuídas</h2>
-        <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Tarefas Atribuídas</h2>
+        <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
           <ViewToggle view={view} onViewChange={setView} />
-          <Button onClick={handleRefreshTasks}>Atualizar Lista</Button>
+          <Button onClick={handleRefreshTasks} className="w-full sm:w-auto">Atualizar Lista</Button>
         </div>
       </div>
 
@@ -119,7 +195,7 @@ const Tasks = () => {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label>Data</label>
               <Input
@@ -173,85 +249,95 @@ const Tasks = () => {
       <Card>
         <CardContent className="pt-6">
           {view === "list" ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número OS</TableHead>
-                  <TableHead>Embarcação</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead>Data/Hora</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tasks.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell>{task.id}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Ship className="h-4 w-4" />
-                        {task.vesselName}
-                      </div>
-                    </TableCell>
-                    <TableCell>{task.description}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="h-4 w-4" />
-                          {format(task.scheduledDate, "dd/MM/yyyy")}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4" />
-                          {format(task.scheduledDate, "HH:mm")}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusDisplay(task.status).className}`}>
-                        {getStatusDisplay(task.status).text}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleViewDetails(task.id)}
-                      >
-                        Detalhes
-                      </Button>
-                      {task.status === "waiting" && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleStartTask(task.id)}
-                        >
-                          Iniciar
-                        </Button>
-                      )}
-                      {task.status === "in_progress" && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleFinishTask(task.id)}
-                        >
-                          Finalizar
-                        </Button>
-                      )}
-                      {task.status === "completed" && (
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleCreateReport(task.id)}
-                        >
-                          Criar Relatório
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              {/* Mobile card view */}
+              <div className="md:hidden">
+                {tasks.map(renderMobileTaskCard)}
+              </div>
+              
+              {/* Desktop table view */}
+              <div className="hidden md:block table-responsive">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Número OS</TableHead>
+                      <TableHead>Embarcação</TableHead>
+                      <TableHead>Descrição</TableHead>
+                      <TableHead>Data/Hora</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {tasks.map((task) => (
+                      <TableRow key={task.id}>
+                        <TableCell>{task.id}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Ship className="h-4 w-4" />
+                            {task.vesselName}
+                          </div>
+                        </TableCell>
+                        <TableCell>{task.description}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" />
+                              {format(task.scheduledDate, "dd/MM/yyyy")}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="h-4 w-4" />
+                              {format(task.scheduledDate, "HH:mm")}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusDisplay(task.status).className}`}>
+                            {getStatusDisplay(task.status).text}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleViewDetails(task.id)}
+                          >
+                            Detalhes
+                          </Button>
+                          {task.status === "waiting" && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleStartTask(task.id)}
+                            >
+                              Iniciar
+                            </Button>
+                          )}
+                          {task.status === "in_progress" && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleFinishTask(task.id)}
+                            >
+                              Finalizar
+                            </Button>
+                          )}
+                          {task.status === "completed" && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => handleCreateReport(task.id)}
+                            >
+                              Criar Relatório
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
           ) : (
             <TasksKanbanView tasks={tasks} onStatusChange={handleStatusChange} />
           )}

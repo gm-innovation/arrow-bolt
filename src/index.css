@@ -116,6 +116,30 @@
   .mobile-menu-item {
     @apply flex items-center gap-3 px-4 py-3 text-sm font-medium border-b border-gray-100;
   }
+  
+  /* Improved responsive chart container */
+  .chart-container {
+    @apply w-full overflow-hidden;
+    min-height: 300px;
+    max-height: 400px;
+  }
+  
+  /* Mobile-friendly table cards */
+  .table-card {
+    @apply p-4 rounded-lg border border-gray-200 bg-white mb-4 shadow-sm;
+  }
+  
+  .table-card-header {
+    @apply flex justify-between items-center mb-2;
+  }
+  
+  .table-card-label {
+    @apply text-sm font-medium text-gray-500;
+  }
+  
+  .table-card-value {
+    @apply text-base font-semibold;
+  }
 }
 
 @layer utilities {
@@ -155,6 +179,14 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+  
+  .flex-responsive {
+    @apply flex flex-col sm:flex-row;
+  }
+  
+  .button-responsive {
+    @apply w-full sm:w-auto;
+  }
 }
 
 @keyframes fadeIn {
@@ -177,30 +209,62 @@
   }
 }
 
-/* Responsive table utilities */
+/* Responsive table utilities - Improved for mobile */
 @media (max-width: 768px) {
   .responsive-table thead {
     @apply hidden;
   }
   
   .responsive-table tbody tr {
-    @apply block border-b border-gray-200 py-4;
+    @apply block border border-gray-200 rounded-lg mb-4 shadow-sm bg-white;
   }
   
   .responsive-table tbody td {
-    @apply block pl-4 text-right py-2;
+    @apply block p-3 text-right;
+    position: relative;
   }
   
   .responsive-table tbody td::before {
     content: attr(data-label);
     @apply float-left font-medium text-gray-700;
   }
+  
+  .responsive-table tbody td:not(:last-child) {
+    @apply border-b border-gray-100;
+  }
+  
+  /* Card view for responsive tables */
+  .card-view-table tr {
+    @apply flex flex-col bg-white p-4 rounded-lg shadow-sm mb-3;
+  }
+  
+  .card-view-table td {
+    @apply flex justify-between items-center py-2;
+  }
+  
+  .card-view-table td::before {
+    content: attr(data-label);
+    @apply font-medium text-gray-700;
+  }
 }
 
 /* Responsive card layouts */
+.grid-cards {
+  @apply grid gap-4;
+}
+
 @media (max-width: 640px) {
   .grid-cards {
     @apply grid-cols-1;
+  }
+  
+  .action-buttons {
+    @apply flex flex-col space-y-2;
+  }
+  
+  .action-buttons button, 
+  .action-buttons a {
+    @apply w-full;
   }
 }
 
@@ -208,10 +272,29 @@
   .grid-cards {
     @apply grid-cols-2;
   }
+  
+  .dashboard-stats {
+    @apply grid-cols-2;
+  }
 }
 
 @media (min-width: 1025px) {
   .grid-cards {
     @apply grid-cols-3;
+  }
+  
+  .dashboard-stats {
+    @apply grid-cols-4;
+  }
+}
+
+/* Calendar responsiveness */
+@media (max-width: 768px) {
+  .calendar-container {
+    @apply overflow-x-auto;
+  }
+  
+  .calendar-day {
+    min-width: 120px;
   }
 }

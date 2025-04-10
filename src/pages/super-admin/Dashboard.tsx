@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
@@ -64,25 +65,25 @@ const SuperAdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard Global</h1>
-        <div className="flex gap-4">
-          <Button onClick={handleNewCompany}>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard Global</h1>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+          <Button onClick={handleNewCompany} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" />
             Nova Empresa
           </Button>
-          <Button variant="outline" onClick={handleManageSubscriptions}>
+          <Button variant="outline" onClick={handleManageSubscriptions} className="w-full sm:w-auto">
             <CreditCard className="mr-2 h-4 w-4" />
             Gerenciar Assinaturas
           </Button>
-          <Button variant="ghost" onClick={handleSettings}>
+          <Button variant="ghost" onClick={handleSettings} className="w-full sm:w-auto">
             <Settings className="mr-2 h-4 w-4" />
             Configurações
           </Button>
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Empresas</CardTitle>
@@ -129,7 +130,7 @@ const SuperAdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
+        <Card className="card-responsive">
           <CardHeader>
             <CardTitle>Crescimento de Empresas</CardTitle>
           </CardHeader>
@@ -138,37 +139,39 @@ const SuperAdminDashboard = () => {
               <ChartContainer config={{
                 companies: { theme: { light: "#2C74B3", dark: "#144272" } }
               }}>
-                <AreaChart data={companyGrowthData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="font-medium">Empresas:</div>
-                            <div>{payload[0].value}</div>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={companyGrowthData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="rounded-lg border bg-background p-2 shadow-sm">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="font-medium">Empresas:</div>
+                              <div>{payload[0].value}</div>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }} />
-                  <Area
-                    type="monotone"
-                    dataKey="companies"
-                    stroke="var(--color-companies)"
-                    fill="var(--color-companies)"
-                    fillOpacity={0.2}
-                  />
-                </AreaChart>
+                        );
+                      }
+                      return null;
+                    }} />
+                    <Area
+                      type="monotone"
+                      dataKey="companies"
+                      stroke="var(--color-companies)"
+                      fill="var(--color-companies)"
+                      fillOpacity={0.2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </ChartContainer>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-responsive">
           <CardHeader>
             <CardTitle>Uso do Sistema</CardTitle>
           </CardHeader>
@@ -178,28 +181,30 @@ const SuperAdminDashboard = () => {
                 orders: { theme: { light: "#2C74B3", dark: "#144272" } },
                 technicians: { theme: { light: "#205295", dark: "#0A2647" } }
               }}>
-                <BarChart data={systemUsageData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      return (
-                        <div className="rounded-lg border bg-background p-2 shadow-sm">
-                          <div className="grid grid-cols-2 gap-2">
-                            <div className="font-medium">OS:</div>
-                            <div>{payload[0].value}</div>
-                            <div className="font-medium">Técnicos:</div>
-                            <div>{payload[1].value}</div>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={systemUsageData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        return (
+                          <div className="rounded-lg border bg-background p-2 shadow-sm">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="font-medium">OS:</div>
+                              <div>{payload[0].value}</div>
+                              <div className="font-medium">Técnicos:</div>
+                              <div>{payload[1].value}</div>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }} />
-                  <Bar dataKey="orders" fill="var(--color-orders)" />
-                  <Bar dataKey="technicians" fill="var(--color-technicians)" />
-                </BarChart>
+                        );
+                      }
+                      return null;
+                    }} />
+                    <Bar dataKey="orders" fill="var(--color-orders)" />
+                    <Bar dataKey="technicians" fill="var(--color-technicians)" />
+                  </BarChart>
+                </ResponsiveContainer>
               </ChartContainer>
             </div>
           </CardContent>
@@ -215,7 +220,7 @@ const SuperAdminDashboard = () => {
             {notifications.map((notification) => (
               <div
                 key={notification.id}
-                className="flex items-center justify-between p-4 rounded-lg border bg-card"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-lg border bg-card gap-3"
               >
                 <div>
                   <p className="text-sm font-medium">{notification.message}</p>
@@ -224,6 +229,7 @@ const SuperAdminDashboard = () => {
                 <Button 
                   variant="ghost" 
                   size="sm"
+                  className="w-full sm:w-auto"
                   onClick={() => handleViewDetails(notification.id)}
                 >
                   <Eye className="mr-2 h-4 w-4" />
