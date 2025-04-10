@@ -94,6 +94,28 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+  
+  html, body {
+    @apply overflow-x-hidden;
+  }
+}
+
+@layer components {
+  .table-responsive {
+    @apply w-full overflow-x-auto;
+  }
+  
+  .card-responsive {
+    @apply w-full overflow-hidden;
+  }
+  
+  .form-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4;
+  }
+  
+  .mobile-menu-item {
+    @apply flex items-center gap-3 px-4 py-3 text-sm font-medium border-b border-gray-100;
+  }
 }
 
 @layer utilities {
@@ -111,6 +133,27 @@
 
   .card-transition {
     @apply transition-all duration-300 hover:shadow-md hover:translate-y-[-2px];
+  }
+  
+  .truncate-1 {
+    @apply truncate;
+  }
+  
+  .truncate-2 {
+    @apply line-clamp-2;
+  }
+  
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -131,5 +174,44 @@
   to {
     transform: translateY(0);
     opacity: 1;
+  }
+}
+
+/* Responsive table utilities */
+@media (max-width: 768px) {
+  .responsive-table thead {
+    @apply hidden;
+  }
+  
+  .responsive-table tbody tr {
+    @apply block border-b border-gray-200 py-4;
+  }
+  
+  .responsive-table tbody td {
+    @apply block pl-4 text-right py-2;
+  }
+  
+  .responsive-table tbody td::before {
+    content: attr(data-label);
+    @apply float-left font-medium text-gray-700;
+  }
+}
+
+/* Responsive card layouts */
+@media (max-width: 640px) {
+  .grid-cards {
+    @apply grid-cols-1;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 1024px) {
+  .grid-cards {
+    @apply grid-cols-2;
+  }
+}
+
+@media (min-width: 1025px) {
+  .grid-cards {
+    @apply grid-cols-3;
   }
 }

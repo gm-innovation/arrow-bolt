@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,8 +18,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Eye, Download, CheckSquare, XOctagon } from "lucide-react";
+import { Eye, Download, CheckSquare, XOctagon, Filter } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { useIsMobile } from "@/hooks/use-mobile";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
 
 // Mock data - replace with real data when backend is integrated
 const mockReports = [
@@ -44,6 +61,8 @@ const Reports = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleViewReport = (reportId: string) => {
     toast({
@@ -77,31 +96,108 @@ const Reports = () => {
     });
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Relatórios</h1>
-          <p className="text-muted-foreground">
-            Gerencie os relatórios de serviço
-          </p>
-        </div>
-      </div>
+  const renderStatusBadge = (status: string) => {
+    if (status === "pending") {
+      return <Badge variant="warning">Pendente</Badge>;
+    } else if (status === "approved") {
+      return <Badge variant="success">Aprovado</Badge>;
+    } else {
+      return <Badge variant="destructive">Recusado</Badge>;
+    }
+  };
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Filtros</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+  const renderMobileCard = (report: typeof mockReports[0]) => (
+    <Card key={report.id} className="mb-4">
+      <CardContent className="pt-6">
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="font-semibold">{report.id}</div>
+            <div className="text-sm text-gray-500">{report.vesselName}</div>
+          </div>
+          {renderStatusBadge(report.status)}
+        </div>
+        
+        <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+          <div className="text-gray-500">Técnico:</div>
+          <div>{report.technician}</div>
+          
+          <div className="text-gray-500">Data:</div>
+          <div>{report.date.toLocaleDateString()}</div>
+        </div>
+        
+        <div className="mt-4 flex justify-end space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => handleViewReport(report.id)}
+          >
+            <Eye className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-2"
+            onClick={() => handleDownloadReport(report.id)}
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+          {report.status === "pending" && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+                onClick={() => handleApproveReport(report.id)}
+              >
+                <CheckSquare className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                onClick={() => handleRejectReport(report.id)}
+              >
+                <XOctagon className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  // Filters for mobile as a sheet
+  const renderMobileFilters = () => (
+    <>
+      <Button 
+        variant="outline" 
+        size="sm" 
+        className="flex items-center gap-2"
+        onClick={() => setFilterSheetOpen(true)}
+      >
+        <Filter className="h-4 w-4" />
+        <span>Filtros</span>
+      </Button>
+      
+      <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+        <SheetContent side="bottom" className="h-[80vh] sm:h-[60vh] p-4">
+          <SheetHeader>
+            <SheetTitle>Filtros</SheetTitle>
+          </SheetHeader>
+          
+          <div className="space-y-4 py-4">
             <div className="space-y-2">
+              <label className="text-sm font-medium">Buscar</label>
               <Input
                 placeholder="Buscar por OS, navio ou técnico..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            
             <div className="space-y-2">
+              <label className="text-sm font-medium">Embarcação</label>
               <Select value={vesselFilter} onValueChange={setVesselFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Embarcação" />
@@ -112,14 +208,18 @@ const Reports = () => {
                 </SelectContent>
               </Select>
             </div>
+            
             <div className="space-y-2">
+              <label className="text-sm font-medium">Data</label>
               <Input
                 type="date"
                 value={dateFilter}
                 onChange={(e) => setDateFilter(e.target.value)}
               />
             </div>
+            
             <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
                   <SelectValue placeholder="Status" />
@@ -132,85 +232,190 @@ const Reports = () => {
               </Select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          
+          <SheetFooter>
+            <Button className="w-full" onClick={() => setFilterSheetOpen(false)}>
+              Aplicar Filtros
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+    </>
+  );
 
-      <Card>
-        <CardContent className="pt-6">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>OS</TableHead>
-                <TableHead>Embarcação</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Técnico</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockReports.map((report) => (
-                <TableRow key={report.id}>
-                  <TableCell>{report.id}</TableCell>
-                  <TableCell>{report.vesselName}</TableCell>
-                  <TableCell>
-                    {report.date.toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>{report.technician}</TableCell>
-                  <TableCell>
-                    <div
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                        ${
-                          report.status === "pending"
-                            ? "bg-yellow-100 text-yellow-800"
-                            : report.status === "approved"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                    >
-                      {report.status === "pending"
-                        ? "Pendente"
-                        : report.status === "approved"
-                        ? "Aprovado"
-                        : "Recusado"}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewReport(report.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRejectReport(report.id)}
-                    >
-                      <XOctagon className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownloadReport(report.id)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleApproveReport(report.id)}
-                    >
-                      <CheckSquare className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+  // Regular desktop filters
+  const renderDesktopFilters = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Filtros</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="space-y-2">
+            <Input
+              placeholder="Buscar por OS, navio ou técnico..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Select value={vesselFilter} onValueChange={setVesselFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Embarcação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="navio-alpha">Navio Alpha</SelectItem>
+                <SelectItem value="navio-beta">Navio Beta</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="approved">Aprovado</SelectItem>
+                <SelectItem value="rejected">Recusado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderMobileActionMenu = (report: typeof mockReports[0]) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm">
+          Ações
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => handleViewReport(report.id)}>
+          <Eye className="mr-2 h-4 w-4" />
+          <span>Visualizar</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleDownloadReport(report.id)}>
+          <Download className="mr-2 h-4 w-4" />
+          <span>Baixar</span>
+        </DropdownMenuItem>
+        {report.status === "pending" && (
+          <>
+            <DropdownMenuItem onClick={() => handleApproveReport(report.id)}>
+              <CheckSquare className="mr-2 h-4 w-4 text-green-600" />
+              <span>Aprovar</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleRejectReport(report.id)}>
+              <XOctagon className="mr-2 h-4 w-4 text-red-600" />
+              <span>Recusar</span>
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold">Relatórios</h1>
+          <p className="text-muted-foreground">
+            Gerencie os relatórios de serviço
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      {isMobile ? renderMobileFilters() : renderDesktopFilters()}
+
+      {/* Mobile view - cards */}
+      {isMobile && (
+        <div className="mt-4">
+          {mockReports.map(report => renderMobileCard(report))}
+        </div>
+      )}
+
+      {/* Desktop view - table */}
+      {!isMobile && (
+        <Card>
+          <CardContent className="pt-6 overflow-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>OS</TableHead>
+                  <TableHead>Embarcação</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Técnico</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+              </TableHeader>
+              <TableBody>
+                {mockReports.map((report) => (
+                  <TableRow key={report.id}>
+                    <TableCell className="font-medium">{report.id}</TableCell>
+                    <TableCell>{report.vesselName}</TableCell>
+                    <TableCell>
+                      {report.date.toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{report.technician}</TableCell>
+                    <TableCell>
+                      {renderStatusBadge(report.status)}
+                    </TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewReport(report.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadReport(report.id)}
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                      {report.status === "pending" && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                            onClick={() => handleApproveReport(report.id)}
+                          >
+                            <CheckSquare className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            onClick={() => handleRejectReport(report.id)}
+                          >
+                            <XOctagon className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
