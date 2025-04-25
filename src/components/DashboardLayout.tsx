@@ -1,4 +1,3 @@
-
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -10,6 +9,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarProvider
 } from "@/components/ui/sidebar";
 import {
   Ship,
@@ -46,7 +46,6 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  // Auto-collapse sidebar on mobile screens
   useEffect(() => {
     if (isMobile) {
       setCollapsed(true);
@@ -175,7 +174,6 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
     </div>
   );
 
-  // Mobile menu as a slide-in sheet
   const renderMobileMenu = () => (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
       <SheetContent side="left" className="p-0 max-w-[85%] sm:max-w-[350px]">
@@ -251,16 +249,35 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50">
-      {/* Desktop Sidebar - hidden on mobile */}
-      {!isMobile && (
-        <div className={cn(
-          "h-full flex-shrink-0 transition-all duration-300 z-10 hidden md:block",
-          collapsed ? "w-20" : "w-64"
-        )}>
-          <Sidebar className="border-r border-gray-200 h-full">
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full bg-gray-50">
+        {!isMobile && (
+          <Sidebar 
+            className="border-r border-gray-200 flex-shrink-0" 
+            variant="sidebar"
+            collapsible={collapsed ? "icon" : "offcanvas"}
+          >
             <SidebarContent>
-              {renderSidebarHeader()}
+              <div className={cn(
+                "flex items-center gap-3 p-4 bg-gradient-to-r", 
+                userColors[userType]
+              )}>
+                <Ship className="h-8 w-8 text-white" />
+                {!collapsed && (
+                  <div className="flex flex-col">
+                    <span className="font-bold text-lg text-white">Naval OS</span>
+                    <span className="text-xs text-white/80">{getUserTitle()}</span>
+                  </div>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="ml-auto text-white hover:bg-white/20"
+                  onClick={toggleSidebar}
+                >
+                  {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+                </Button>
+              </div>
               {renderMenu()}
               
               <div className="mt-auto p-4 border-t border-gray-200">
@@ -278,45 +295,47 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
               </div>
             </SidebarContent>
           </Sidebar>
-        </div>
-      )}
-      
-      {renderMobileMenu()}
-      
-      <main className="flex-1 overflow-auto">
-        <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
-          <div className="px-4 md:px-6 py-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {isMobile && (
+        )}
+
+        {renderMobileMenu()}
+
+        <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
+          <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+            <div className="px-4 md:px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {isMobile && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => setMobileMenuOpen(true)}
+                  >
+                    <Menu className="h-5 w-5" />
+                  </Button>
+                )}
+                <h1 className="text-lg md:text-xl font-semibold text-gray-800 truncate">
+                  {location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Dashboard"}
+                </h1>
+              </div>
+              <div className="flex items-center gap-2">
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={() => setMobileMenuOpen(true)}
+                  className="text-gray-500 hover:text-gray-700"
                 >
-                  <Menu className="h-5 w-5" />
+                  <Bell className="h-5 w-5" />
                 </Button>
-              )}
-              <h1 className="text-lg md:text-xl font-semibold text-gray-800 truncate">
-                {location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Dashboard"}
-              </h1>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <Bell className="h-5 w-5" />
-              </Button>
-              <div className="h-8 w-8 rounded-full bg-ocean-light text-white flex items-center justify-center font-medium">
-                {userType === "super-admin" ? "SA" : userType === "admin" ? "A" : "T"}
+                <div className="h-8 w-8 rounded-full bg-ocean-light text-white flex items-center justify-center font-medium">
+                  {userType === "super-admin" ? "SA" : userType === "admin" ? "A" : "T"}
+                </div>
               </div>
             </div>
           </div>
+          <div className="flex-1 p-4 md:p-6 overflow-y-auto">
+            {children}
+          </div>
         </div>
-        <div className="p-4 md:p-6">{children}</div>
-      </main>
-    </div>
+      </div>
+    </SidebarProvider>
   );
 };
 
