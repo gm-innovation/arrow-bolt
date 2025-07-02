@@ -1,11 +1,13 @@
+
 import { TaskReport } from "./types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 
 type PhotoWithCaption = {
-  file: File;
+  file?: File;
   caption: string;
+  storagePath?: string;
 };
 
 export type PhotosSectionProps = {
@@ -24,6 +26,17 @@ export const PhotosSection = ({ taskId, photos, onUpdatePhotos }: PhotosSectionP
     }));
 
     onUpdatePhotos(taskId, [...photos, ...newPhotos]);
+  };
+
+  const renderPhotoPreview = (photo: PhotoWithCaption, index: number) => {
+    if (photo.file) {
+      return URL.createObjectURL(photo.file);
+    } else if (photo.storagePath) {
+      // For saved photos, we would need to get the public URL from Supabase
+      // This is a placeholder - in a real implementation, you'd get the public URL
+      return `/placeholder-image.png`;
+    }
+    return `/placeholder-image.png`;
   };
 
   return (
@@ -68,12 +81,17 @@ export const PhotosSection = ({ taskId, photos, onUpdatePhotos }: PhotosSectionP
           {photos.map((photo, index) => (
             <div key={index} className="relative">
               <img
-                src={URL.createObjectURL(photo.file)}
+                src={renderPhotoPreview(photo, index)}
                 alt={photo.caption}
                 className="w-full aspect-square object-cover rounded-md"
               />
               <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white p-2 text-sm rounded-b-md">
                 {photo.caption}
+                {photo.storagePath && (
+                  <div className="text-xs opacity-75">
+                    (Salva no servidor)
+                  </div>
+                )}
               </div>
             </div>
           ))}

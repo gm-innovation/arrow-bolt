@@ -64,6 +64,38 @@ const ReportFormContent = () => {
     },
   });
 
+  // Helper function to get image from storage and create a File object
+  const getImageFromStorage = async (storagePath: string, caption: string): Promise<PhotoWithCaption | null> => {
+    try {
+      console.log("Loading image from storage:", storagePath);
+      
+      const { data, error } = await supabase.storage
+        .from('reports')
+        .download(storagePath);
+
+      if (error) {
+        console.error("Error downloading image from storage:", error);
+        return null;
+      }
+
+      // Create a File object from the blob
+      const file = new File([data], storagePath.split('/').pop() || 'image', {
+        type: data.type
+      });
+
+      console.log("Image loaded from storage successfully");
+      
+      return {
+        file,
+        caption,
+        storagePath
+      };
+    } catch (error) {
+      console.error("Error in getImageFromStorage:", error);
+      return null;
+    }
+  };
+
   const fetchTaskReports = async () => {
     try {
       console.log("Fetching task reports for taskId:", taskId);
@@ -86,14 +118,34 @@ const ReportFormContent = () => {
         const reportsWithRecreatedFiles: Record<string, TaskReport> = {};
         
         for (const [key, report] of Object.entries(reportData)) {
+          // Handle photos - try to load saved images
+          const photosWithFiles: PhotoWithCaption[] = [];
+          
           if (report.photos && Array.isArray(report.photos)) {
-            reportsWithRecreatedFiles[key] = {
-              ...report,
-              photos: [],
-            };
-          } else {
-            reportsWithRecreatedFiles[key] = report;
+            for (const photo of report.photos) {
+              if (photo.storagePath) {
+                // Try to load the image from storage
+                const photoWithFile = await getImageFromStorage(photo.storagePath, photo.caption);
+                if (photoWithFile) {
+                  photosWithFiles.push(photoWithFile);
+                } else {
+                  // If failed to load from storage, keep the reference
+                  photosWithFiles.push({
+                    caption: photo.caption,
+                    storagePath: photo.storagePath
+                  });
+                }
+              } else {
+                // Photo without storage path (new or unsaved)
+                photosWithFiles.push(photo);
+              }
+            }
           }
+          
+          reportsWithRecreatedFiles[key] = {
+            ...report,
+            photos: photosWithFiles,
+          };
         }
         
         setTaskReports(reportsWithRecreatedFiles);
@@ -187,11 +239,22 @@ const ReportFormContent = () => {
     try {
       console.log("Saving report data to Supabase:", { taskId, status });
       
+      // Prepare serializable report data - include storage paths for saved images
       const serializableReportData: Record<string, any> = {};
       
       for (const [key, report] of Object.entries(reportData)) {
-        const { photos, ...reportWithoutPhotos } = report;
-        serializableReportData[key] = reportWithoutPhotos;
+        const { photos, ...reportWithoutFiles } = report;
+        
+        // Process photos to save storage paths
+        const photosData = photos.map(photo => ({
+          caption: photo.caption,
+          storagePath: photo.storagePath // Keep storage path if it exists
+        }));
+        
+        serializableReportData[key] = {
+          ...reportWithoutFiles,
+          photos: photosData
+        };
       }
       
       const { data: existingReports, error: fetchError } = await supabase

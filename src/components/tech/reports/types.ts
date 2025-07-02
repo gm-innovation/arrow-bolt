@@ -1,18 +1,5 @@
-export type TimeEntry = {
-  id: string;
-  date: Date;
-  type: 'work_normal' | 'work_extra' | 'travel' | 'wait';
-  startTime: string;
-  endTime: string;
-};
 
-export type PhotoWithCaption = {
-  file: File;
-  caption: string;
-};
-
-export type TaskReport = {
-  id?: string; // Making it optional for backward compatibility
+export interface TaskReport {
   modelInfo: string;
   brandInfo: string;
   serialNumber: string;
@@ -23,4 +10,18 @@ export type TaskReport = {
   suppliedMaterial: string;
   photos: PhotoWithCaption[];
   timeEntries: TimeEntry[];
-};
+}
+
+export interface PhotoWithCaption {
+  file?: File;
+  caption: string;
+  storagePath?: string; // Added to track saved images
+}
+
+export interface TimeEntry {
+  id: string;
+  date: Date;
+  type: 'work_normal' | 'work_extra' | 'work_night' | 'standby';
+  startTime: string;
+  endTime: string;
+}

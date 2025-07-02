@@ -135,6 +135,71 @@ const fileToBase64 = (file: File): Promise<string> => {
   });
 };
 
+// Helper function to save images to Supabase Storage
+const saveImageToStorage = async (file: File, taskId: string, imageIndex: number): Promise<string | null> => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${taskId}_image_${imageIndex}.${fileExt}`;
+    const filePath = `${taskId}/${fileName}`;
+
+    console.log(`Uploading image ${imageIndex + 1} to storage:`, filePath);
+
+    const { data, error } = await supabase.storage
+      .from('reports')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (error) {
+      console.error(`Error uploading image ${imageIndex + 1}:`, error);
+      return null;
+    }
+
+    console.log(`Image ${imageIndex + 1} uploaded successfully:`, data.path);
+    return data.path;
+  } catch (error) {
+    console.error(`Error in saveImageToStorage for image ${imageIndex + 1}:`, error);
+    return null;
+  }
+};
+
+// Helper function to get image from storage as base64
+const getImageFromStorage = async (imagePath: string): Promise<string | null> => {
+  try {
+    console.log("Getting image from storage:", imagePath);
+    
+    const { data, error } = await supabase.storage
+      .from('reports')
+      .download(imagePath);
+
+    if (error) {
+      console.error("Error downloading image from storage:", error);
+      return null;
+    }
+
+    console.log("Image downloaded from storage, converting to base64...");
+    
+    // Convert blob to base64
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        console.log("Image converted to base64 from storage");
+        resolve(result);
+      };
+      reader.onerror = error => {
+        console.error("Error converting downloaded image to base64:", error);
+        reject(error);
+      };
+      reader.readAsDataURL(data);
+    });
+  } catch (error) {
+    console.error("Error in getImageFromStorage:", error);
+    return null;
+  }
+};
+
 export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data }: ReportPDFProps & { photoBase64Data?: string[] }) => (
   <Document>
     <Page size="A4" style={styles.page}>
@@ -271,24 +336,46 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
       
       for (let i = 0; i < report.photos.length; i++) {
         const photo = report.photos[i];
-        console.log(`Converting photo ${i + 1}:`, photo.file.name, photo.file.type, photo.file.size);
         
-        // Validate file type
-        if (!photo.file.type.startsWith('image/')) {
-          console.warn(`Skipping non-image file: ${photo.file.name}`);
-          continue;
+        // Check if photo has a storage path (saved image)
+        if (photo.storagePath) {
+          console.log(`Loading photo ${i + 1} from storage:`, photo.storagePath);
+          const base64FromStorage = await getImageFromStorage(photo.storagePath);
+          if (base64FromStorage) {
+            base64Photos.push(base64FromStorage);
+            console.log(`Successfully loaded photo ${i + 1} from storage`);
+            continue;
+          }
         }
         
-        try {
-          const base64String = await fileToBase64(photo.file);
-          if (base64String && base64String.length > 0) {
-            base64Photos.push(base64String);
-            console.log(`Successfully converted photo ${i + 1}`);
-          } else {
-            console.warn(`Empty base64 result for photo ${i + 1}`);
+        // If no storage path or failed to load from storage, convert file
+        if (photo.file) {
+          console.log(`Converting photo ${i + 1} from file:`, photo.file.name, photo.file.type, photo.file.size);
+          
+          // Validate file type
+          if (!photo.file.type.startsWith('image/')) {
+            console.warn(`Skipping non-image file: ${photo.file.name}`);
+            continue;
           }
-        } catch (error) {
-          console.error(`Error converting photo ${i + 1}:`, error);
+          
+          try {
+            const base64String = await fileToBase64(photo.file);
+            if (base64String && base64String.length > 0) {
+              base64Photos.push(base64String);
+              console.log(`Successfully converted photo ${i + 1} from file`);
+              
+              // Save to storage for future use
+              const storagePath = await saveImageToStorage(photo.file, taskId, i);
+              if (storagePath) {
+                // Update the photo object with storage path (this would need to be handled by parent component)
+                console.log(`Photo ${i + 1} saved to storage:`, storagePath);
+              }
+            } else {
+              console.warn(`Empty base64 result for photo ${i + 1}`);
+            }
+          } catch (error) {
+            console.error(`Error converting photo ${i + 1}:`, error);
+          }
         }
       }
       
