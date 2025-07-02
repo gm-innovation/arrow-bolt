@@ -1,12 +1,12 @@
-import { Document, Page, Text, View, StyleSheet, PDFViewer, Image, pdf, PDFDownloadLink } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Image, pdf } from '@react-pdf/renderer';
 import { TaskReport } from './types';
 import { CompanyHeader } from './pdf/CompanyHeader';
 import { ServiceOrderInfo } from './pdf/ServiceOrderInfo';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, Save } from 'lucide-react';
+import { Download, Save, Eye } from 'lucide-react';
 
 const styles = StyleSheet.create({
   page: {
@@ -227,6 +227,8 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const generatePdfBlob = async () => {
     try {
@@ -243,6 +245,35 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
       throw error;
     }
   };
+
+  const generatePdfPreview = async () => {
+    try {
+      setIsGenerating(true);
+      const blob = await generatePdfBlob();
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+    } catch (error) {
+      console.error("Erro ao gerar preview do PDF:", error);
+      toast({
+        title: "Erro na visualização",
+        description: "Não foi possível gerar o preview do PDF. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  useEffect(() => {
+    generatePdfPreview();
+    
+    // Cleanup function to revoke the URL when component unmounts
+    return () => {
+      if (pdfUrl) {
+        URL.revokeObjectURL(pdfUrl);
+      }
+    };
+  }, [report, taskId]);
 
   const handleDownloadPdf = async () => {
     try {
@@ -311,9 +342,23 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
     }
   };
 
+  const handleOpenInNewTab = () => {
+    if (pdfUrl) {
+      window.open(pdfUrl, '_blank');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex gap-2 justify-end">
+        <Button 
+          variant="outline" 
+          onClick={handleOpenInNewTab}
+          disabled={!pdfUrl || isGenerating}
+        >
+          <Eye className="h-4 w-4 mr-2" />
+          {isGenerating ? "Gerando..." : "Abrir em Nova Aba"}
+        </Button>
         <Button 
           variant="outline" 
           onClick={handleDownloadPdf} 
@@ -330,9 +375,27 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
           {isSaving ? "Salvando..." : "Salvar no Servidor"}
         </Button>
       </div>
-      <PDFViewer style={{ width: '100%', height: '600px' }}>
-        <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrder} />
-      </PDFViewer>
+      
+      {isGenerating ? (
+        <div className="flex items-center justify-center h-96 border border-gray-200 rounded">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Gerando PDF...</p>
+          </div>
+        </div>
+      ) : pdfUrl ? (
+        <div className="border border-gray-200 rounded overflow-hidden">
+          <iframe
+            src={pdfUrl}
+            style={{ width: '100%', height: '600px', border: 'none' }}
+            title="Visualização do PDF"
+          />
+        </div>
+      ) : (
+        <div className="flex items-center justify-center h-96 border border-gray-200 rounded">
+          <p className="text-muted-foreground">Erro ao carregar o PDF</p>
+        </div>
+      )}
     </div>
   );
 };
