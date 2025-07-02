@@ -1,3 +1,4 @@
+
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -106,77 +107,9 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
     }
   };
 
-  const renderMenu = () => (
-    <div className="mt-3">
-      <SidebarGroup>
-        {!collapsed && <SidebarGroupLabel>Menu</SidebarGroupLabel>}
-        <SidebarGroupContent>
-          <SidebarMenu>
-            {menuItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  className={cn(
-                    "transition-all",
-                    location.pathname === item.path 
-                      ? "bg-ocean-light/10 text-ocean-light border-l-4 border-ocean-light" 
-                      : "hover:bg-gray-100"
-                  )}
-                >
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start gap-3 text-gray-600",
-                      location.pathname === item.path && "text-ocean-light"
-                    )}
-                    onClick={() => {
-                      navigate(item.path);
-                      if (isMobile) {
-                        setMobileMenuOpen(false);
-                      }
-                    }}
-                  >
-                    <item.icon className={cn(
-                      "h-5 w-5",
-                      location.pathname === item.path ? "text-ocean-light" : "text-gray-500"
-                    )} />
-                    {!collapsed && <span>{item.title}</span>}
-                  </Button>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroupContent>
-      </SidebarGroup>
-    </div>
-  );
-
-  const renderSidebarHeader = () => (
-    <div className={cn(
-      "flex items-center gap-3 p-4 bg-gradient-to-r", 
-      userColors[userType]
-    )}>
-      <Ship className="h-8 w-8 text-white" />
-      {!collapsed && (
-        <div className="flex flex-col">
-          <span className="font-bold text-lg text-white">Naval OS</span>
-          <span className="text-xs text-white/80">{getUserTitle()}</span>
-        </div>
-      )}
-      <Button 
-        variant="ghost" 
-        size="icon" 
-        className="ml-auto text-white hover:bg-white/20"
-        onClick={toggleSidebar}
-      >
-        {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-      </Button>
-    </div>
-  );
-
   const renderMobileMenu = () => (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-      <SheetContent side="left" className="p-0 max-w-[85%] sm:max-w-[350px]">
+      <SheetContent side="left" className="p-0 w-80">
         <div className={cn(
           "flex items-center justify-between p-4 bg-gradient-to-r",
           userColors[userType]
@@ -250,46 +183,87 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
 
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full bg-gray-50">
+      <div className="flex h-screen w-full bg-gray-50 overflow-hidden">
         {!isMobile && (
           <Sidebar 
-            className="border-r border-gray-200 flex-shrink-0" 
-            variant="sidebar"
-            collapsible={collapsed ? "icon" : "offcanvas"}
+            className={cn(
+              "border-r border-gray-200 transition-all duration-300 ease-in-out flex-shrink-0",
+              collapsed ? "w-16" : "w-64"
+            )}
           >
-            <SidebarContent>
+            <SidebarContent className="flex flex-col h-full">
               <div className={cn(
-                "flex items-center gap-3 p-4 bg-gradient-to-r", 
+                "flex items-center gap-3 p-4 bg-gradient-to-r border-b", 
                 userColors[userType]
               )}>
-                <Ship className="h-8 w-8 text-white" />
+                <Ship className="h-8 w-8 text-white flex-shrink-0" />
                 {!collapsed && (
-                  <div className="flex flex-col">
-                    <span className="font-bold text-lg text-white">Naval OS</span>
-                    <span className="text-xs text-white/80">{getUserTitle()}</span>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-lg text-white truncate">Naval OS</span>
+                    <span className="text-xs text-white/80 truncate">{getUserTitle()}</span>
                   </div>
                 )}
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="ml-auto text-white hover:bg-white/20"
+                  className="ml-auto text-white hover:bg-white/20 flex-shrink-0"
                   onClick={toggleSidebar}
                 >
                   {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
                 </Button>
               </div>
-              {renderMenu()}
               
-              <div className="mt-auto p-4 border-t border-gray-200">
+              <div className="flex-1 overflow-y-auto">
+                <SidebarGroup className="mt-2">
+                  {!collapsed && <SidebarGroupLabel>Menu</SidebarGroupLabel>}
+                  <SidebarGroupContent>
+                    <SidebarMenu>
+                      {menuItems.map((item) => (
+                        <SidebarMenuItem key={item.title}>
+                          <SidebarMenuButton
+                            asChild
+                            className={cn(
+                              "transition-all",
+                              location.pathname === item.path 
+                                ? "bg-ocean-light/10 text-ocean-light border-l-4 border-ocean-light" 
+                                : "hover:bg-gray-100"
+                            )}
+                          >
+                            <Button
+                              variant="ghost"
+                              className={cn(
+                                "w-full justify-start gap-3 text-gray-600",
+                                location.pathname === item.path && "text-ocean-light",
+                                collapsed && "px-2"
+                              )}
+                              onClick={() => navigate(item.path)}
+                              title={collapsed ? item.title : undefined}
+                            >
+                              <item.icon className={cn(
+                                "h-5 w-5 flex-shrink-0",
+                                location.pathname === item.path ? "text-ocean-light" : "text-gray-500"
+                              )} />
+                              {!collapsed && <span className="truncate">{item.title}</span>}
+                            </Button>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </SidebarGroupContent>
+                </SidebarGroup>
+              </div>
+              
+              <div className="border-t border-gray-200 p-4">
                 <Button
                   variant="ghost"
                   className={cn(
                     "w-full justify-start gap-3 text-red-500 hover:text-red-700 hover:bg-red-50",
-                    collapsed && "p-2"
+                    collapsed && "px-2"
                   )}
                   onClick={handleLogout}
+                  title={collapsed ? "Sair" : undefined}
                 >
-                  <LogOut className="h-5 w-5" />
+                  <LogOut className="h-5 w-5 flex-shrink-0" />
                   {!collapsed && <span>Sair</span>}
                 </Button>
               </div>
@@ -299,14 +273,15 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
 
         {renderMobileMenu()}
 
-        <div className="flex-1 flex flex-col min-h-screen overflow-x-hidden">
-          <div className="sticky top-0 z-20 bg-white border-b border-gray-200 shadow-sm">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          <div className="flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
             <div className="px-4 md:px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 {isMobile && (
                   <Button 
                     variant="ghost" 
                     size="icon"
+                    className="flex-shrink-0"
                     onClick={() => setMobileMenuOpen(true)}
                   >
                     <Menu className="h-5 w-5" />
@@ -316,7 +291,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                   {location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Dashboard"}
                 </h1>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <Button 
                   variant="ghost" 
                   size="icon"
@@ -330,8 +305,11 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
               </div>
             </div>
           </div>
-          <div className="flex-1 p-4 md:p-6 overflow-y-auto">
-            {children}
+          
+          <div className="flex-1 overflow-y-auto">
+            <div className="p-4 md:p-6">
+              {children}
+            </div>
           </div>
         </div>
       </div>

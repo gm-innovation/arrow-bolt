@@ -95,8 +95,8 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
-  html, body {
-    @apply overflow-hidden h-screen;
+  html, body, #root {
+    @apply h-full overflow-hidden;
   }
 }
 
@@ -168,6 +168,15 @@
   
   .tech-status-inactive {
     @apply bg-gray-100 text-gray-800;
+  }
+
+  /* Scrollable content areas */
+  .scrollable-content {
+    @apply overflow-y-auto max-h-full;
+  }
+  
+  .sidebar-scrollable {
+    @apply overflow-y-auto flex-1;
   }
 }
 
