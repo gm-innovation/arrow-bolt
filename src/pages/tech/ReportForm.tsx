@@ -64,6 +64,35 @@ const ReportFormContent = () => {
     },
   });
 
+  // Helper function to upload image to storage
+  const uploadImageToStorage = async (file: File, taskId: string, imageIndex: number): Promise<string | null> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${taskId}_image_${imageIndex}_${Date.now()}.${fileExt}`;
+      const filePath = `${taskId}/images/${fileName}`;
+
+      console.log(`Uploading image ${imageIndex + 1} to storage:`, filePath);
+
+      const { data, error } = await supabase.storage
+        .from('reports')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+
+      if (error) {
+        console.error(`Error uploading image ${imageIndex + 1}:`, error);
+        return null;
+      }
+
+      console.log(`Image ${imageIndex + 1} uploaded successfully:`, data.path);
+      return data.path;
+    } catch (error) {
+      console.error(`Error in uploadImageToStorage for image ${imageIndex + 1}:`, error);
+      return null;
+    }
+  };
+
   // Helper function to get image from storage and create a File object
   const getImageFromStorage = async (storagePath: string, caption: string): Promise<PhotoWithCaption | null> => {
     try {
@@ -235,20 +264,67 @@ const ReportFormContent = () => {
     }));
   };
 
+  // Function to save images to storage and return updated photos with storage paths
+  const saveImagesToStorage = async (reportData: Record<string, TaskReport>): Promise<Record<string, TaskReport>> => {
+    const updatedReportData: Record<string, TaskReport> = {};
+    
+    for (const [taskId, report] of Object.entries(reportData)) {
+      const updatedPhotos: PhotoWithCaption[] = [];
+      
+      if (report.photos && Array.isArray(report.photos)) {
+        for (let i = 0; i < report.photos.length; i++) {
+          const photo = report.photos[i];
+          
+          // If photo has file but no storage path, upload it
+          if (photo.file && !photo.storagePath) {
+            console.log(`Uploading new photo ${i + 1} for task ${taskId}`);
+            const storagePath = await uploadImageToStorage(photo.file, taskId, i);
+            
+            if (storagePath) {
+              updatedPhotos.push({
+                caption: photo.caption,
+                storagePath: storagePath,
+                file: photo.file // Keep file for immediate use
+              });
+            } else {
+              // If upload failed, keep the original photo
+              updatedPhotos.push(photo);
+            }
+          } else {
+            // Photo already has storage path or no file
+            updatedPhotos.push(photo);
+          }
+        }
+      }
+      
+      updatedReportData[taskId] = {
+        ...report,
+        photos: updatedPhotos
+      };
+    }
+    
+    return updatedReportData;
+  };
+
   const saveReportData = async (reportData: Record<string, TaskReport>, status: "draft" | "submitted") => {
     try {
-      console.log("Saving report data to Supabase:", { taskId, status });
+      console.log("Starting report save process...");
       
-      // Prepare serializable report data - include storage paths for saved images
+      // First, save images to storage
+      const reportDataWithStoragePaths = await saveImagesToStorage(reportData);
+      
+      console.log("Images saved, now saving report data to Supabase:", { taskId, status });
+      
+      // Prepare serializable report data - only include storage paths for photos
       const serializableReportData: Record<string, any> = {};
       
-      for (const [key, report] of Object.entries(reportData)) {
+      for (const [key, report] of Object.entries(reportDataWithStoragePaths)) {
         const { photos, ...reportWithoutFiles } = report;
         
-        // Process photos to save storage paths
+        // Process photos to save only storage paths and captions
         const photosData = photos.map(photo => ({
           caption: photo.caption,
-          storagePath: photo.storagePath // Keep storage path if it exists
+          storagePath: photo.storagePath // Only save storage path
         }));
         
         serializableReportData[key] = {
@@ -292,6 +368,10 @@ const ReportFormContent = () => {
       }
 
       console.log("Report data saved successfully:", result.data);
+      
+      // Update local state with the storage paths
+      setTaskReports(reportDataWithStoragePaths);
+      
       return true;
     } catch (error) {
       console.error("Error saving report data:", error);
@@ -357,7 +437,7 @@ const ReportFormContent = () => {
       
       toast({
         title: "Rascunho salvo",
-        description: "O relatório foi salvo como rascunho no servidor.",
+        description: "O relatório e as imagens foram salvos como rascunho no servidor.",
       });
     } catch (error) {
       toast({
@@ -399,7 +479,7 @@ const ReportFormContent = () => {
       
       toast({
         title: "Relatório enviado",
-        description: "O relatório foi enviado para aprovação e salvo no servidor.",
+        description: "O relatório e as imagens foram enviados para aprovação e salvos no servidor.",
       });
       
       navigate("/tech/reports");

@@ -3,6 +3,7 @@ import { TaskReport } from "./types";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 
 type PhotoWithCaption = {
   file?: File;
@@ -32,9 +33,11 @@ export const PhotosSection = ({ taskId, photos, onUpdatePhotos }: PhotosSectionP
     if (photo.file) {
       return URL.createObjectURL(photo.file);
     } else if (photo.storagePath) {
-      // For saved photos, we would need to get the public URL from Supabase
-      // This is a placeholder - in a real implementation, you'd get the public URL
-      return `/placeholder-image.png`;
+      // Get public URL from Supabase Storage
+      const { data } = supabase.storage
+        .from('reports')
+        .getPublicUrl(photo.storagePath);
+      return data.publicUrl;
     }
     return `/placeholder-image.png`;
   };
