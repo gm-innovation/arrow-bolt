@@ -1,17 +1,5 @@
-
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider
-} from "@/components/ui/sidebar";
 import {
   Ship,
   LayoutDashboard,
@@ -20,7 +8,6 @@ import {
   Settings,
   LogOut,
   Bell,
-  Calendar,
   FileText,
   Building2,
   CreditCard,
@@ -132,39 +119,30 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
         </div>
         
         <div className="px-2 py-4">
-          <SidebarMenu>
+          <nav className="space-y-2">
             {menuItems.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  asChild
-                  className={cn(
-                    "transition-all",
-                    location.pathname === item.path 
-                      ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
-                      : "hover:bg-gray-100"
-                  )}
-                >
-                  <Button
-                    variant="ghost"
-                    className={cn(
-                      "w-full justify-start gap-3 text-gray-600",
-                      location.pathname === item.path && "text-blue-600"
-                    )}
-                    onClick={() => {
-                      navigate(item.path);
-                      setMobileMenuOpen(false);
-                    }}
-                  >
-                    <item.icon className={cn(
-                      "h-5 w-5",
-                      location.pathname === item.path ? "text-blue-600" : "text-gray-500"
-                    )} />
-                    <span>{item.title}</span>
-                  </Button>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <Button
+                key={item.title}
+                variant="ghost"
+                className={cn(
+                  "w-full justify-start gap-3 h-10",
+                  location.pathname === item.path 
+                    ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
+                    : "text-gray-600 hover:bg-gray-100"
+                )}
+                onClick={() => {
+                  navigate(item.path);
+                  setMobileMenuOpen(false);
+                }}
+              >
+                <item.icon className={cn(
+                  "h-5 w-5",
+                  location.pathname === item.path ? "text-blue-600" : "text-gray-500"
+                )} />
+                <span>{item.title}</span>
+              </Button>
             ))}
-          </SidebarMenu>
+          </nav>
         </div>
         
         <div className="mt-auto p-4 border-t border-gray-200">
@@ -182,140 +160,143 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   );
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen w-full bg-gray-50">
-        {!isMobile && (
+    <div className="flex h-screen w-full bg-gray-50">
+      {/* Desktop Sidebar */}
+      {!isMobile && (
+        <div className={cn(
+          "relative flex-shrink-0 transition-all duration-300 ease-in-out bg-white border-r border-gray-200",
+          collapsed ? "w-16" : "w-64"
+        )}>
+          {/* Header */}
           <div className={cn(
-            "relative flex-shrink-0 transition-all duration-300 ease-in-out bg-white border-r border-gray-200",
-            collapsed ? "w-16" : "w-64"
+            "flex items-center gap-3 p-4 bg-gradient-to-r border-b", 
+            userColors[userType]
           )}>
-            <Sidebar 
-              className="h-full bg-white"
+            <Ship className="h-8 w-8 text-white flex-shrink-0" />
+            {!collapsed && (
+              <div className="flex flex-col min-w-0">
+                <span className="font-bold text-lg text-white truncate">Naval OS</span>
+                <span className="text-xs text-white/80 truncate">{getUserTitle()}</span>
+              </div>
+            )}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="ml-auto text-white hover:bg-white/20 flex-shrink-0"
+              onClick={toggleSidebar}
             >
-              <SidebarContent className="flex flex-col h-full bg-white">
-                <div className={cn(
-                  "flex items-center gap-3 p-4 bg-gradient-to-r border-b", 
-                  userColors[userType]
-                )}>
-                  <Ship className="h-8 w-8 text-white flex-shrink-0" />
-                  {!collapsed && (
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-bold text-lg text-white truncate">Naval OS</span>
-                      <span className="text-xs text-white/80 truncate">{getUserTitle()}</span>
-                    </div>
-                  )}
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="ml-auto text-white hover:bg-white/20 flex-shrink-0"
-                    onClick={toggleSidebar}
-                  >
-                    {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-                  </Button>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto bg-white">
-                  <SidebarGroup className="mt-2">
-                    {!collapsed && <SidebarGroupLabel className="text-gray-600">Menu</SidebarGroupLabel>}
-                    <SidebarGroupContent>
-                      <SidebarMenu>
-                        {menuItems.map((item) => (
-                          <SidebarMenuItem key={item.title}>
-                            <SidebarMenuButton
-                              asChild
-                              className={cn(
-                                "transition-all bg-white hover:bg-gray-100",
-                                location.pathname === item.path 
-                                  ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
-                                  : "text-gray-600"
-                              )}
-                            >
-                              <Button
-                                variant="ghost"
-                                className={cn(
-                                  "w-full justify-start gap-3 bg-transparent",
-                                  location.pathname === item.path && "text-blue-600",
-                                  collapsed && "px-2 justify-center"
-                                )}
-                                onClick={() => navigate(item.path)}
-                                title={collapsed ? item.title : undefined}
-                              >
-                                <item.icon className={cn(
-                                  "h-5 w-5 flex-shrink-0",
-                                  location.pathname === item.path ? "text-blue-600" : "text-gray-500"
-                                )} />
-                                {!collapsed && <span className="truncate">{item.title}</span>}
-                              </Button>
-                            </SidebarMenuButton>
-                          </SidebarMenuItem>
-                        ))}
-                      </SidebarMenu>
-                    </SidebarGroupContent>
-                  </SidebarGroup>
-                </div>
-                
-                <div className="border-t border-gray-200 p-4 bg-white">
+              {collapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
+            </Button>
+          </div>
+          
+          {/* Menu Items */}
+          <div className="flex-1 overflow-y-auto bg-white">
+            <div className="p-2">
+              {!collapsed && <div className="px-2 py-2 text-xs font-medium text-gray-600 uppercase tracking-wider">Menu</div>}
+              <nav className="space-y-1">
+                {menuItems.map((item) => (
                   <Button
+                    key={item.title}
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start gap-3 text-red-500 hover:text-red-700 hover:bg-red-50 bg-transparent",
-                      collapsed && "px-2 justify-center"
+                      "w-full transition-all duration-200",
+                      collapsed ? "h-10 px-2 justify-center" : "h-10 justify-start gap-3",
+                      location.pathname === item.path 
+                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
+                        : "text-gray-600 hover:bg-gray-100"
                     )}
-                    onClick={handleLogout}
-                    title={collapsed ? "Sair" : undefined}
+                    onClick={() => navigate(item.path)}
+                    title={collapsed ? item.title : undefined}
                   >
-                    <LogOut className="h-5 w-5 flex-shrink-0" />
-                    {!collapsed && <span>Sair</span>}
+                    <item.icon className={cn(
+                      "h-5 w-5 flex-shrink-0",
+                      location.pathname === item.path ? "text-blue-600" : "text-gray-500"
+                    )} />
+                    {!collapsed && <span className="truncate">{item.title}</span>}
                   </Button>
-                </div>
-              </SidebarContent>
-            </Sidebar>
-          </div>
-        )}
-
-        {renderMobileMenu()}
-
-        <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
-            <div className="px-4 md:px-6 py-4 flex items-center justify-between">
-              <div className="flex items-center gap-3 min-w-0">
-                {isMobile && (
-                  <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="flex-shrink-0"
-                    onClick={() => setMobileMenuOpen(true)}
-                  >
-                    <Menu className="h-5 w-5" />
-                  </Button>
-                )}
-                <h1 className="text-lg md:text-xl font-semibold text-gray-800 truncate">
-                  {location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Dashboard"}
-                </h1>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <Bell className="h-5 w-5" />
-                </Button>
-                <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium">
-                  {userType === "super-admin" ? "SA" : userType === "admin" ? "A" : "T"}
-                </div>
-              </div>
+                ))}
+              </nav>
             </div>
           </div>
           
-          <div className="flex-1 overflow-auto">
-            <div className="p-4 md:p-6 h-full">
-              {children}
+          {/* Logout Button */}
+          <div className="border-t border-gray-200 p-2 bg-white">
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full transition-all duration-200 text-red-500 hover:text-red-700 hover:bg-red-50",
+                collapsed ? "h-10 px-2 justify-center" : "h-10 justify-start gap-3"
+              )}
+              onClick={handleLogout}
+              title={collapsed ? "Sair" : undefined}
+            >
+              <LogOut className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && <span>Sair</span>}
+            </Button>
+          </div>
+
+          {/* Expand Button for Collapsed Sidebar */}
+          {collapsed && (
+            <div className="absolute -right-3 top-1/2 transform -translate-y-1/2">
+              <Button
+                size="icon"
+                variant="outline"
+                className="h-6 w-6 rounded-full bg-white border-gray-300 shadow-sm hover:bg-gray-50"
+                onClick={toggleSidebar}
+              >
+                <ChevronRight className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Mobile Menu */}
+      {renderMobileMenu()}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 shadow-sm">
+          <div className="px-4 md:px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3 min-w-0">
+              {isMobile && (
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="flex-shrink-0"
+                  onClick={() => setMobileMenuOpen(true)}
+                >
+                  <Menu className="h-5 w-5" />
+                </Button>
+              )}
+              <h1 className="text-lg md:text-xl font-semibold text-gray-800 truncate">
+                {location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Dashboard"}
+              </h1>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <Bell className="h-5 w-5" />
+              </Button>
+              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium">
+                {userType === "super-admin" ? "SA" : userType === "admin" ? "A" : "T"}
+              </div>
             </div>
           </div>
         </div>
+        
+        {/* Content Area */}
+        <div className="flex-1 overflow-auto">
+          <div className="p-4 md:p-6 h-full">
+            {children}
+          </div>
+        </div>
       </div>
-    </SidebarProvider>
+    </div>
   );
 };
 
