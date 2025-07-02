@@ -44,6 +44,7 @@ const TechReports = () => {
   const [dateFilter, setDateFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedReport, setSelectedReport] = useState<TaskReport | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string>("");
   const [isPDFOpen, setIsPDFOpen] = useState(false);
   const [storedReports, setStoredReports] = useState<{
     id: string;
@@ -145,8 +146,9 @@ const TechReports = () => {
     navigate(`/tech/reports/edit?taskId=${report.task_id}`);
   };
 
-  const handleOpenPDF = (report: TaskReport) => {
+  const handleOpenPDF = (report: TaskReport, taskId: string) => {
     setSelectedReport(report);
+    setSelectedTaskId(taskId);
     setIsPDFOpen(true);
   };
 
@@ -156,6 +158,7 @@ const TechReports = () => {
       const firstTaskKey = Object.keys(reportData)[0];
       if (firstTaskKey) {
         setSelectedReport(reportData[firstTaskKey]);
+        setSelectedTaskId(taskId);
         setIsPDFOpen(true);
       } else {
         toast({
@@ -471,7 +474,7 @@ const TechReports = () => {
           open={isPDFOpen}
           onOpenChange={setIsPDFOpen}
           report={selectedReport}
-          taskId={selectedReport.id || "task1"}
+          taskId={selectedTaskId}
         />
       )}
     </div>
