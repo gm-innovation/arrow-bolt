@@ -109,7 +109,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
 
   const renderMobileMenu = () => (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-      <SheetContent side="left" className="p-0 w-80">
+      <SheetContent side="left" className="p-0 w-80 bg-white">
         <div className={cn(
           "flex items-center justify-between p-4 bg-gradient-to-r",
           userColors[userType]
@@ -140,7 +140,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                   className={cn(
                     "transition-all",
                     location.pathname === item.path 
-                      ? "bg-ocean-light/10 text-ocean-light border-l-4 border-ocean-light" 
+                      ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
                       : "hover:bg-gray-100"
                   )}
                 >
@@ -148,7 +148,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                     variant="ghost"
                     className={cn(
                       "w-full justify-start gap-3 text-gray-600",
-                      location.pathname === item.path && "text-ocean-light"
+                      location.pathname === item.path && "text-blue-600"
                     )}
                     onClick={() => {
                       navigate(item.path);
@@ -157,7 +157,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                   >
                     <item.icon className={cn(
                       "h-5 w-5",
-                      location.pathname === item.path ? "text-ocean-light" : "text-gray-500"
+                      location.pathname === item.path ? "text-blue-600" : "text-gray-500"
                     )} />
                     <span>{item.title}</span>
                   </Button>
@@ -186,13 +186,13 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
       <div className="flex h-screen w-full bg-gray-50">
         {!isMobile && (
           <div className={cn(
-            "relative flex-shrink-0 transition-all duration-300 ease-in-out",
+            "relative flex-shrink-0 transition-all duration-300 ease-in-out bg-white border-r border-gray-200",
             collapsed ? "w-16" : "w-64"
           )}>
             <Sidebar 
-              className="h-full border-r border-gray-200"
+              className="h-full bg-white"
             >
-              <SidebarContent className="flex flex-col h-full">
+              <SidebarContent className="flex flex-col h-full bg-white">
                 <div className={cn(
                   "flex items-center gap-3 p-4 bg-gradient-to-r border-b", 
                   userColors[userType]
@@ -214,9 +214,9 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                   </Button>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto bg-white">
                   <SidebarGroup className="mt-2">
-                    {!collapsed && <SidebarGroupLabel>Menu</SidebarGroupLabel>}
+                    {!collapsed && <SidebarGroupLabel className="text-gray-600">Menu</SidebarGroupLabel>}
                     <SidebarGroupContent>
                       <SidebarMenu>
                         {menuItems.map((item) => (
@@ -224,25 +224,25 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                             <SidebarMenuButton
                               asChild
                               className={cn(
-                                "transition-all",
+                                "transition-all bg-white hover:bg-gray-100",
                                 location.pathname === item.path 
-                                  ? "bg-ocean-light/10 text-ocean-light border-l-4 border-ocean-light" 
-                                  : "hover:bg-gray-100"
+                                  ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
+                                  : "text-gray-600"
                               )}
                             >
                               <Button
                                 variant="ghost"
                                 className={cn(
-                                  "w-full justify-start gap-3 text-gray-600",
-                                  location.pathname === item.path && "text-ocean-light",
-                                  collapsed && "px-2"
+                                  "w-full justify-start gap-3 bg-transparent",
+                                  location.pathname === item.path && "text-blue-600",
+                                  collapsed && "px-2 justify-center"
                                 )}
                                 onClick={() => navigate(item.path)}
                                 title={collapsed ? item.title : undefined}
                               >
                                 <item.icon className={cn(
                                   "h-5 w-5 flex-shrink-0",
-                                  location.pathname === item.path ? "text-ocean-light" : "text-gray-500"
+                                  location.pathname === item.path ? "text-blue-600" : "text-gray-500"
                                 )} />
                                 {!collapsed && <span className="truncate">{item.title}</span>}
                               </Button>
@@ -254,12 +254,12 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                   </SidebarGroup>
                 </div>
                 
-                <div className="border-t border-gray-200 p-4">
+                <div className="border-t border-gray-200 p-4 bg-white">
                   <Button
                     variant="ghost"
                     className={cn(
-                      "w-full justify-start gap-3 text-red-500 hover:text-red-700 hover:bg-red-50",
-                      collapsed && "px-2"
+                      "w-full justify-start gap-3 text-red-500 hover:text-red-700 hover:bg-red-50 bg-transparent",
+                      collapsed && "px-2 justify-center"
                     )}
                     onClick={handleLogout}
                     title={collapsed ? "Sair" : undefined}
@@ -270,18 +270,6 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                 </div>
               </SidebarContent>
             </Sidebar>
-
-            {/* Botão toggle flutuante quando colapsado */}
-            {collapsed && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute -right-4 top-16 z-10 bg-white border border-gray-200 shadow-md hover:bg-gray-50"
-                onClick={toggleSidebar}
-              >
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         )}
 
@@ -313,7 +301,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                 >
                   <Bell className="h-5 w-5" />
                 </Button>
-                <div className="h-8 w-8 rounded-full bg-ocean-light text-white flex items-center justify-center font-medium">
+                <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium">
                   {userType === "super-admin" ? "SA" : userType === "admin" ? "A" : "T"}
                 </div>
               </div>
