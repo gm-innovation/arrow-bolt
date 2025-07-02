@@ -123,8 +123,15 @@ const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
+    reader.onload = () => {
+      const result = reader.result as string;
+      console.log("Base64 conversion result:", result?.substring(0, 100) + "...");
+      resolve(result);
+    };
+    reader.onerror = error => {
+      console.error("Error converting file to base64:", error);
+      reject(error);
+    };
   });
 };
 
@@ -186,14 +193,21 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
           <View style={styles.photosGrid}>
-            {photoBase64Data.map((base64Data, index) => (
-              <View key={index} style={styles.photoContainer}>
-                <Image src={base64Data} style={styles.photo} />
-                <Text style={styles.photoCaption}>
-                  {report.photos[index]?.caption || `Foto ${index + 1}`}
-                </Text>
-              </View>
-            ))}
+            {photoBase64Data.map((base64Data, index) => {
+              console.log(`Rendering image ${index + 1}:`, base64Data?.substring(0, 50) + "...");
+              return (
+                <View key={index} style={styles.photoContainer}>
+                  <Image 
+                    src={base64Data} 
+                    style={styles.photo}
+                    cache={false}
+                  />
+                  <Text style={styles.photoCaption}>
+                    {report.photos[index]?.caption || `Foto ${index + 1}`}
+                  </Text>
+                </View>
+              );
+            })}
           </View>
         </View>
       )}
@@ -246,16 +260,42 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
 
   const convertPhotosToBase64 = async () => {
     if (!report.photos || report.photos.length === 0) {
+      console.log("No photos to convert");
       return [];
     }
 
+    console.log("Converting", report.photos.length, "photos to base64");
+    
     try {
-      const base64Photos = await Promise.all(
-        report.photos.map(photo => fileToBase64(photo.file))
-      );
+      const base64Photos: string[] = [];
+      
+      for (let i = 0; i < report.photos.length; i++) {
+        const photo = report.photos[i];
+        console.log(`Converting photo ${i + 1}:`, photo.file.name, photo.file.type, photo.file.size);
+        
+        // Validate file type
+        if (!photo.file.type.startsWith('image/')) {
+          console.warn(`Skipping non-image file: ${photo.file.name}`);
+          continue;
+        }
+        
+        try {
+          const base64String = await fileToBase64(photo.file);
+          if (base64String && base64String.length > 0) {
+            base64Photos.push(base64String);
+            console.log(`Successfully converted photo ${i + 1}`);
+          } else {
+            console.warn(`Empty base64 result for photo ${i + 1}`);
+          }
+        } catch (error) {
+          console.error(`Error converting photo ${i + 1}:`, error);
+        }
+      }
+      
+      console.log("Final base64Photos array length:", base64Photos.length);
       return base64Photos;
     } catch (error) {
-      console.error("Error converting photos to base64:", error);
+      console.error("Error in convertPhotosToBase64:", error);
       toast({
         title: "Erro ao processar imagens",
         description: "Não foi possível processar algumas imagens. O PDF será gerado sem elas.",
@@ -267,7 +307,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
 
   const generatePdfBlob = async (base64Photos: string[]) => {
     try {
-      console.log("Creating PDF document...");
+      console.log("Creating PDF document with", base64Photos.length, "photos...");
       const pdfDoc = <ReportPDFContent 
         report={report} 
         taskId={taskId} 
@@ -289,6 +329,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const generatePdfPreview = async () => {
     try {
       setIsGenerating(true);
+      console.log("Starting PDF generation process...");
       console.log("Converting photos to base64...");
       const base64Photos = await convertPhotosToBase64();
       setPhotoBase64Data(base64Photos);
@@ -297,6 +338,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
       const blob = await generatePdfBlob(base64Photos);
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
+      console.log("PDF preview generated successfully");
     } catch (error) {
       console.error("Erro ao gerar preview do PDF:", error);
       toast({
