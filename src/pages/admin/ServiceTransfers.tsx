@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
 import {
   Table,
   TableBody,
@@ -8,113 +9,160 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
 
 const ServiceTransfers = () => {
-  const [selectedTechnician, setSelectedTechnician] = useState("");
-  const [transferReason, setTransferReason] = useState("");
   const { toast } = useToast();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [transfers, setTransfers] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  const handleTransfer = () => {
-    toast({
-      title: "Transferência",
-      description: "Transferência realizada com sucesso",
-    });
+  useEffect(() => {
+    fetchTransfers();
+  }, []);
+
+  const fetchTransfers = async () => {
+    try {
+      setLoading(true);
+
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profileData?.company_id) return;
+
+      // Fetch service history with technician transfer actions
+      const { data, error } = await supabase
+        .from("service_history")
+        .select(`
+          *,
+          service_orders:service_order_id (
+            order_number,
+            vessels:vessel_id (name),
+            clients:client_id (name)
+          ),
+          profiles:performed_by (full_name)
+        `)
+        .eq("action", "technician_transfer")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      // Filter by company through service orders
+      const filteredData = data?.filter((transfer: any) => 
+        transfer.service_orders !== null
+      ) || [];
+
+      setTransfers(filteredData);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar transferências",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Mock data - replace with real data later
-  const transfers = [
-    {
-      id: "OS001",
-      vessel: "Navio Alfa",
-      currentTechnician: "João Silva",
-      status: "Em Andamento",
-      createdAt: "2024-03-15",
-    },
-  ];
+  const filteredTransfers = transfers.filter((transfer) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      transfer.service_orders?.order_number?.toLowerCase().includes(searchLower) ||
+      transfer.service_orders?.vessels?.name?.toLowerCase().includes(searchLower) ||
+      transfer.service_orders?.clients?.name?.toLowerCase().includes(searchLower) ||
+      transfer.description?.toLowerCase().includes(searchLower)
+    );
+  });
 
   return (
     <div className="space-y-6">
-      <h2 className="text-3xl font-bold tracking-tight">
-        Transferências de Serviço
-      </h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle>Ordens de Serviço Disponíveis</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Número OS</TableHead>
-                  <TableHead>Embarcação</TableHead>
-                  <TableHead>Técnico Atual</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Data de Criação</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {transfers.map((transfer) => (
-                  <TableRow key={transfer.id}>
-                    <TableCell>{transfer.id}</TableCell>
-                    <TableCell>{transfer.vessel}</TableCell>
-                    <TableCell>{transfer.currentTechnician}</TableCell>
-                    <TableCell>{transfer.status}</TableCell>
-                    <TableCell>{transfer.createdAt}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Realizar Transferência</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label>Novo Técnico Responsável</label>
-              <Select
-                value={selectedTechnician}
-                onValueChange={setSelectedTechnician}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tech1">Maria Santos</SelectItem>
-                  <SelectItem value="tech2">Pedro Lima</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label>Motivo da Transferência</label>
-              <Textarea
-                value={transferReason}
-                onChange={(e) => setTransferReason(e.target.value)}
-                placeholder="Descreva o motivo da transferência..."
-              />
-            </div>
-
-            <Button className="w-full" onClick={handleTransfer}>
-              Confirmar Transferência
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="flex justify-between items-center">
+        <h2 className="text-3xl font-bold tracking-tight">
+          Histórico de Transferências
+        </h2>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Transferências Realizadas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <Input
+              placeholder="Buscar por OS, embarcação, cliente ou descrição..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="max-w-md"
+            />
+
+            {loading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data/Hora</TableHead>
+                    <TableHead>Número OS</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Embarcação</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Realizado Por</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTransfers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        {searchTerm 
+                          ? "Nenhuma transferência encontrada com os critérios de busca"
+                          : "Nenhuma transferência registrada ainda"}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredTransfers.map((transfer) => (
+                      <TableRow key={transfer.id}>
+                        <TableCell className="whitespace-nowrap">
+                          {format(new Date(transfer.created_at), "dd/MM/yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {transfer.service_orders?.order_number || "N/A"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {transfer.service_orders?.clients?.name || "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          {transfer.service_orders?.vessels?.name || "N/A"}
+                        </TableCell>
+                        <TableCell className="max-w-md">
+                          <p className="text-sm truncate" title={transfer.description}>
+                            {transfer.description || "Sem descrição"}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          {transfer.profiles?.full_name || "Sistema"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
