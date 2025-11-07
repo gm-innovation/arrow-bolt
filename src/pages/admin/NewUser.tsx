@@ -22,24 +22,29 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { ArrowLeft } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const formSchema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  full_name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   email: z.string().email("Email inválido"),
+  password: z.string().min(6, "Senha deve ter pelo menos 6 caracteres"),
   role: z.enum(["admin", "tech"]),
-  phone: z.string().min(10, "Telefone inválido"),
+  phone: z.string().optional(),
 });
 
 const NewUser = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      full_name: "",
       email: "",
+      password: "",
       role: "tech",
       phone: "",
     },
@@ -48,21 +53,78 @@ const NewUser = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
-      // Aqui você implementaria a lógica real de criação do usuário
-      console.log("Criando usuário:", values);
-      
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulando delay
-      
+
+      // Get current user's company
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profileData?.company_id) {
+        throw new Error("Empresa não encontrada");
+      }
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            full_name: values.full_name,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Erro ao criar usuário");
+
+      // Update profile with company and phone
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          company_id: profileData.company_id,
+          phone: values.phone || null,
+        })
+        .eq("id", authData.user.id);
+
+      if (profileError) throw profileError;
+
+      // Create user role (tech in database = technician in app)
+      const dbRole = values.role === "tech" ? "technician" : values.role;
+      const { error: roleError } = await supabase
+        .from("user_roles")
+        .insert([{
+          user_id: authData.user.id,
+          role: dbRole as "admin" | "technician" | "super_admin",
+        }]);
+
+      if (roleError) throw roleError;
+
+      // If tech, create technician record
+      if (values.role === "tech") {
+        const { error: techError } = await supabase
+          .from("technicians")
+          .insert({
+            user_id: authData.user.id,
+            company_id: profileData.company_id,
+            active: true,
+          });
+
+        if (techError) throw techError;
+      }
+
       toast({
         title: "Usuário criado com sucesso",
-        description: "Um email foi enviado com as instruções de acesso",
+        description: "O usuário foi criado e pode fazer login no sistema",
       });
-      
+
       navigate("/admin/users");
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error creating user:", error);
       toast({
         title: "Erro ao criar usuário",
-        description: "Ocorreu um erro ao criar o usuário. Tente novamente.",
+        description: error.message || "Ocorreu um erro ao criar o usuário",
         variant: "destructive",
       });
     } finally {
@@ -93,7 +155,7 @@ const NewUser = () => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
-              name="name"
+              name="full_name"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Nome completo</FormLabel>
@@ -125,10 +187,28 @@ const NewUser = () => {
 
             <FormField
               control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Senha</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="Digite a senha inicial"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Telefone</FormLabel>
+                  <FormLabel>Telefone (opcional)</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Digite o telefone"

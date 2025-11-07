@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,32 +23,137 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download, MoreHorizontal, Plus, User } from "lucide-react";
+import { Download, MoreHorizontal, Plus, User, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Mock data - replace with real data when backend is integrated
-const users = [
-  {
-    id: 1,
-    name: "John Doe",
-    role: "Admin",
-    status: "Active",
-    createdAt: new Date("2024-01-15"),
-  },
-  {
-    id: 2,
-    name: "Jane Smith",
-    role: "Tech",
-    status: "Inactive",
-    createdAt: new Date("2024-02-01"),
-  },
-];
+interface UserData {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string | null;
+  created_at: string;
+  role: string | null;
+  active: boolean;
+}
 
 const Users = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      
+      // Get current user's company
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profileData?.company_id) {
+        toast({
+          title: "Erro",
+          description: "Empresa não encontrada para o usuário",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Fetch users from the same company with their roles
+      const { data: usersData, error } = await supabase
+        .from("profiles")
+        .select(`
+          id,
+          full_name,
+          email,
+          phone,
+          created_at,
+          user_roles (role),
+          technicians (active)
+        `)
+        .eq("company_id", profileData.company_id);
+
+      if (error) throw error;
+
+      const formattedUsers = usersData?.map((u: any) => ({
+        id: u.id,
+        full_name: u.full_name,
+        email: u.email,
+        phone: u.phone,
+        created_at: u.created_at,
+        role: u.user_roles?.[0]?.role || null,
+        active: u.technicians?.[0]?.active ?? true,
+      })) || [];
+
+      setUsers(formattedUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Erro ao carregar usuários",
+        description: "Não foi possível carregar a lista de usuários",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const filteredUsers = users.filter((user) => {
+    const matchesSearch = user.full_name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    const matchesRole = !roleFilter || user.role === roleFilter;
+    const matchesStatus = !statusFilter || 
+      (statusFilter === "active" ? user.active : !user.active);
+    return matchesSearch && matchesRole && matchesStatus;
+  });
+
+  const handleToggleStatus = async (userId: string, currentActive: boolean) => {
+    try {
+      const { error } = await supabase
+        .from("technicians")
+        .update({ active: !currentActive })
+        .eq("user_id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Status atualizado",
+        description: `Usuário ${!currentActive ? "ativado" : "desativado"} com sucesso`,
+      });
+
+      fetchUsers();
+    } catch (error) {
+      console.error("Error toggling status:", error);
+      toast({
+        title: "Erro ao atualizar status",
+        description: "Não foi possível atualizar o status do usuário",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -85,7 +190,8 @@ const Users = () => {
               <SelectValue placeholder="Filtrar por função" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="super-admin">Super Admin</SelectItem>
+              <SelectItem value="">Todas</SelectItem>
+              <SelectItem value="super_admin">Super Admin</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="tech">Técnico</SelectItem>
             </SelectContent>
@@ -97,6 +203,7 @@ const Users = () => {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="">Todos</SelectItem>
               <SelectItem value="active">Ativo</SelectItem>
               <SelectItem value="inactive">Inativo</SelectItem>
             </SelectContent>
@@ -109,6 +216,7 @@ const Users = () => {
           <TableHeader>
             <TableRow>
               <TableHead>Usuário</TableHead>
+              <TableHead>Email</TableHead>
               <TableHead>Função</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Data de Criação</TableHead>
@@ -116,49 +224,63 @@ const Users = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    {user.name}
-                  </div>
-                </TableCell>
-                <TableCell>{user.role}</TableCell>
-                <TableCell>
-                  <div
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      user.status === "Active"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}
-                  >
-                    {user.status}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {format(user.createdAt, "dd/MM/yyyy")}
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>Editar</DropdownMenuItem>
-                      <DropdownMenuItem>
-                        {user.status === "Active" ? "Suspender" : "Ativar"}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600">
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {filteredUsers.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  Nenhum usuário encontrado
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-muted-foreground" />
+                      {user.full_name}
+                    </div>
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    {user.role === "admin" ? "Administrador" : 
+                     user.role === "tech" ? "Técnico" : 
+                     user.role === "super_admin" ? "Super Admin" : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <div
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.active
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      {user.active ? "Ativo" : "Inativo"}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(user.created_at), "dd/MM/yyyy")}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/admin/users/${user.id}`)}>
+                          Editar
+                        </DropdownMenuItem>
+                        {user.role === "tech" && (
+                          <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.active)}>
+                            {user.active ? "Desativar" : "Ativar"}
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

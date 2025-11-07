@@ -1,5 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Ship,
   LayoutDashboard,
@@ -30,6 +31,7 @@ interface DashboardLayoutProps {
 const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { signOut } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
@@ -71,8 +73,9 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
     tech: techMenuItems,
   }[userType];
 
-  const handleLogout = () => {
-    navigate("/");
+  const handleLogout = async () => {
+    await signOut();
+    navigate("/login");
   };
 
   const toggleSidebar = () => {

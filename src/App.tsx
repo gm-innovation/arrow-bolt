@@ -14,10 +14,10 @@ import DashboardLayout from "./components/DashboardLayout";
 
 import SuperAdminDashboard from "./pages/super-admin/Dashboard";
 import Companies from "./pages/super-admin/Companies";
-import Users from "./pages/super-admin/Users";
+import SuperAdminUsers from "./pages/super-admin/Users";
 import Subscriptions from "./pages/super-admin/Subscriptions";
 import Settings from "./pages/super-admin/Settings";
-import Reports from "./pages/super-admin/Reports";
+import SuperAdminReports from "./pages/super-admin/Reports";
 
 import AdminDashboard from "./pages/admin/Dashboard";
 import ServiceOrders from "./pages/admin/ServiceOrders";
@@ -26,9 +26,11 @@ import ServiceTransfers from "./pages/admin/ServiceTransfers";
 import ServiceHistory from "./pages/admin/ServiceHistory";
 import VesselHistory from "./pages/admin/VesselHistory";
 import TaskTypes from "./pages/admin/TaskTypes";
+import AdminUsers from "./pages/admin/Users";
 import NewUser from "./pages/admin/NewUser";
 import Clients from "./pages/admin/Clients";
 import Technicians from "./pages/admin/Technicians";
+import AdminReports from "./pages/admin/Reports";
 
 import TechDashboard from "./pages/tech/Dashboard";
 import TechTasks from "./pages/tech/Tasks";
@@ -89,7 +91,7 @@ const App = () => {
                 element={
                   <ProtectedRoute allowedRoles={['super_admin']}>
                     <DashboardLayout userType="super-admin">
-                      <Users />
+                      <SuperAdminUsers />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
@@ -119,7 +121,7 @@ const App = () => {
                 element={
                   <ProtectedRoute allowedRoles={['super_admin']}>
                     <DashboardLayout userType="super-admin">
-                      <Reports />
+                      <SuperAdminReports />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
@@ -161,7 +163,7 @@ const App = () => {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <DashboardLayout userType="admin">
-                      <Reports />
+                      <AdminReports />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
@@ -211,7 +213,7 @@ const App = () => {
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
                     <DashboardLayout userType="admin">
-                      <Users />
+                      <AdminUsers />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }

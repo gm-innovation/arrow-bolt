@@ -1,70 +1,184 @@
-
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History } from "lucide-react";
+import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NewClientForm } from "@/components/admin/clients/NewClientForm";
 import { ClientHistoryDialog } from "@/components/admin/clients/ClientHistoryDialog";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-// Mock data for demonstration
-const mockClients = [
-  {
-    id: 1,
-    name: "Petrobras S.A.",
-    email: "contato@petrobras.com.br",
-    phone: "(21) 3224-4477",
-    contacts: [
-      { name: "João Silva", role: "Gerente de Operações" },
-      { name: "Maria Santos", role: "Coordenadora" },
-    ],
-    vessels: [
-      { name: "PB-001", type: "PLSV" },
-      { name: "PB-002", type: "PSV" },
-    ],
-  },
-  {
-    id: 2,
-    name: "Shell Brasil",
-    email: "contato@shell.com.br",
-    phone: "(21) 3224-1234",
-    contacts: [
-      { name: "Pedro Costa", role: "Supervisor" },
-    ],
-    vessels: [
-      { name: "SH-001", type: "AHTS" },
-    ],
-  },
-];
+interface Client {
+  id: string;
+  name: string;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  contact_person: string | null;
+  vessels: Array<{
+    id: string;
+    name: string;
+    vessel_type: string | null;
+  }>;
+}
 
 const Clients = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedClient, setSelectedClient] = useState(null);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedClientForHistory, setSelectedClientForHistory] = useState<{ id: string; name: string } | null>(null);
+  const [newClientDialogOpen, setNewClientDialogOpen] = useState(false);
+  const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  const filteredClients = mockClients.filter(client =>
+  const fetchClients = async () => {
+    try {
+      setLoading(true);
+
+      // Get current user's company
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profileData?.company_id) {
+        toast({
+          title: "Erro",
+          description: "Empresa não encontrada",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Fetch clients with their vessels
+      const { data, error } = await supabase
+        .from("clients")
+        .select(`
+          id,
+          name,
+          email,
+          phone,
+          address,
+          contact_person,
+          vessels (
+            id,
+            name,
+            vessel_type
+          )
+        `)
+        .eq("company_id", profileData.company_id)
+        .order("name");
+
+      if (error) throw error;
+      setClients(data || []);
+    } catch (error) {
+      console.error("Error fetching clients:", error);
+      toast({
+        title: "Erro ao carregar clientes",
+        description: "Não foi possível carregar a lista de clientes",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClients();
+  }, []);
+
+  const handleDeleteClient = async () => {
+    if (!clientToDelete) return;
+
+    try {
+      // Delete associated vessels first
+      const { error: vesselsError } = await supabase
+        .from("vessels")
+        .delete()
+        .eq("client_id", clientToDelete);
+
+      if (vesselsError) throw vesselsError;
+
+      // Delete client
+      const { error } = await supabase
+        .from("clients")
+        .delete()
+        .eq("id", clientToDelete);
+
+      if (error) throw error;
+
+      toast({
+        title: "Cliente excluído",
+        description: "O cliente foi excluído com sucesso",
+      });
+
+      fetchClients();
+    } catch (error) {
+      console.error("Error deleting client:", error);
+      toast({
+        title: "Erro ao excluir cliente",
+        description: "Não foi possível excluir o cliente",
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteDialogOpen(false);
+      setClientToDelete(null);
+    }
+  };
+
+  const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    client.email.toLowerCase().includes(searchTerm.toLowerCase())
+    client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ""
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Clientes</h1>
-        <Dialog>
+        <Dialog open={newClientDialogOpen} onOpenChange={setNewClientDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <UserPlus className="mr-2 h-4 w-4" />
               Novo Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-4xl">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Novo Cliente</DialogTitle>
             </DialogHeader>
-            <NewClientForm />
+            <NewClientForm 
+              onSuccess={() => {
+                setNewClientDialogOpen(false);
+                fetchClients();
+              }}
+            />
           </DialogContent>
         </Dialog>
       </div>
@@ -86,58 +200,101 @@ const Clients = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredClients.map((client) => (
-              <div
-                key={client.id}
-                className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="bg-navy-light p-2 rounded-full">
-                    <Users className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold">{client.name}</h4>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Mail className="h-3 w-3" />
-                        {client.email}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Phone className="h-3 w-3" />
-                        {client.phone}
-                      </span>
+            {filteredClients.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Nenhum cliente encontrado
+              </div>
+            ) : (
+              filteredClients.map((client) => (
+                <div
+                  key={client.id}
+                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
+                >
+                  <div className="flex items-center gap-4 flex-1">
+                    <div className="bg-primary p-2 rounded-full">
+                      <Users className="h-4 w-4 text-primary-foreground" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold">{client.name}</h4>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+                        {client.email && (
+                          <span className="flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {client.email}
+                          </span>
+                        )}
+                        {client.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {client.phone}
+                          </span>
+                        )}
+                        {client.vessels.length > 0 && (
+                          <span className="flex items-center gap-1">
+                            <Ship className="h-3 w-3" />
+                            {client.vessels.length} embarcaç{client.vessels.length === 1 ? "ão" : "ões"}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedClientForHistory({ id: client.id, name: client.name });
+                        setHistoryDialogOpen(true);
+                      }}
+                    >
+                      <History className="mr-2 h-4 w-4" />
+                      Histórico
+                    </Button>
+                    <Dialog open={editClientDialogOpen && selectedClient?.id === client.id} onOpenChange={(open) => {
+                      setEditClientDialogOpen(open);
+                      if (!open) setSelectedClient(null);
+                    }}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => {
+                            setSelectedClient(client);
+                            setEditClientDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="mr-2 h-4 w-4" />
+                          Editar
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Editar Cliente - {client.name}</DialogTitle>
+                        </DialogHeader>
+                        <NewClientForm 
+                          clientData={selectedClient}
+                          onSuccess={() => {
+                            setEditClientDialogOpen(false);
+                            setSelectedClient(null);
+                            fetchClients();
+                          }}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setClientToDelete(client.id);
+                        setDeleteDialogOpen(true);
+                      }}
+                    >
+                      <Trash className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setSelectedClientForHistory({ id: client.id.toString(), name: client.name });
-                      setHistoryDialogOpen(true);
-                    }}
-                  >
-                    <History className="mr-2 h-4 w-4" />
-                    Histórico
-                  </Button>
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={() => setSelectedClient(client)}>
-                        <Edit className="mr-2 h-4 w-4" />
-                        Editar
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-4xl">
-                      <DialogHeader>
-                        <DialogTitle>Editar Cliente - {client.name}</DialogTitle>
-                      </DialogHeader>
-                      <NewClientForm />
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
@@ -150,6 +307,23 @@ const Clients = () => {
           onOpenChange={setHistoryDialogOpen}
         />
       )}
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este cliente? Esta ação não pode ser desfeita e também excluirá todas as embarcações associadas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setClientToDelete(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
