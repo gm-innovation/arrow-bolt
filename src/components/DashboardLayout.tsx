@@ -21,6 +21,7 @@ import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -33,6 +34,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+  const { signOut, user } = useAuth();
 
   useEffect(() => {
     if (isMobile) {
@@ -71,8 +73,8 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
     tech: techMenuItems,
   }[userType];
 
-  const handleLogout = () => {
-    navigate("/");
+  const handleLogout = async () => {
+    await signOut();
   };
 
   const toggleSidebar = () => {
