@@ -5,7 +5,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import ForgotPassword from "./pages/ForgotPassword";
 import DashboardLayout from "./components/DashboardLayout";
 
 import SuperAdminDashboard from "./pages/super-admin/Dashboard";
@@ -51,57 +55,73 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <SidebarProvider>
-            <Routes>
-              <Route path="/" element={<Login />} />
+          <AuthProvider>
+            <SidebarProvider>
+              <Routes>
+                <Route path="/" element={<Login />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
               
               {/* Super Admin Routes */}
               <Route
                 path="/super-admin/dashboard"
                 element={
-                  <DashboardLayout userType="super-admin">
-                    <SuperAdminDashboard />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <DashboardLayout userType="super-admin">
+                      <SuperAdminDashboard />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/super-admin/companies"
                 element={
-                  <DashboardLayout userType="super-admin">
-                    <Companies />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <DashboardLayout userType="super-admin">
+                      <Companies />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/super-admin/users"
                 element={
-                  <DashboardLayout userType="super-admin">
-                    <Users />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <DashboardLayout userType="super-admin">
+                      <Users />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/super-admin/subscriptions"
                 element={
-                  <DashboardLayout userType="super-admin">
-                    <Subscriptions />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <DashboardLayout userType="super-admin">
+                      <Subscriptions />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/super-admin/settings"
                 element={
-                  <DashboardLayout userType="super-admin">
-                    <Settings />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <DashboardLayout userType="super-admin">
+                      <Settings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/super-admin/reports"
                 element={
-                  <DashboardLayout userType="super-admin">
-                    <Reports />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <DashboardLayout userType="super-admin">
+                      <Reports />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               
@@ -109,97 +129,121 @@ const App = () => {
               <Route
                 path="/admin/dashboard"
                 element={
-                  <DashboardLayout userType="admin">
-                    <AdminDashboard />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <AdminDashboard />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/orders"
                 element={
-                  <DashboardLayout userType="admin">
-                    <ServiceOrders />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <ServiceOrders />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/calendar"
                 element={
-                  <DashboardLayout userType="admin">
-                    <ServiceCalendar />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <ServiceCalendar />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/reports"
                 element={
-                  <DashboardLayout userType="admin">
-                    <Reports />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <Reports />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/transfers"
                 element={
-                  <DashboardLayout userType="admin">
-                    <ServiceTransfers />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <ServiceTransfers />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/history"
                 element={
-                  <DashboardLayout userType="admin">
-                    <ServiceHistory />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <ServiceHistory />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/vessels"
                 element={
-                  <DashboardLayout userType="admin">
-                    <VesselHistory />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <VesselHistory />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/task-types"
                 element={
-                  <DashboardLayout userType="admin">
-                    <TaskTypes />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <TaskTypes />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/users"
                 element={
-                  <DashboardLayout userType="admin">
-                    <Users />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <Users />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/users/new"
                 element={
-                  <DashboardLayout userType="admin">
-                    <NewUser />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <NewUser />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/clients"
                 element={
-                  <DashboardLayout userType="admin">
-                    <Clients />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <Clients />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/admin/technicians"
                 element={
-                  <DashboardLayout userType="admin">
-                    <Technicians />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <Technicians />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               
@@ -207,65 +251,81 @@ const App = () => {
               <Route
                 path="/tech/dashboard"
                 element={
-                  <DashboardLayout userType="tech">
-                    <TechDashboard />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <TechDashboard />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/tech/tasks"
                 element={
-                  <DashboardLayout userType="tech">
-                    <TechTasks />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <TechTasks />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/tech/tasks/:taskId"
                 element={
-                  <DashboardLayout userType="tech">
-                    <TaskDetails />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <TaskDetails />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/tech/reports"
                 element={
-                  <DashboardLayout userType="tech">
-                    <TechReports />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <TechReports />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/tech/reports/new"
                 element={
-                  <DashboardLayout userType="tech">
-                    <ReportForm />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <ReportForm />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/tech/reports/:reportId/edit"
                 element={
-                  <DashboardLayout userType="tech">
-                    <ReportForm />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <ReportForm />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/tech/notifications"
                 element={
-                  <DashboardLayout userType="tech">
-                    <TechNotifications />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <TechNotifications />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
               <Route
                 path="/tech/survey/:taskId"
                 element={
-                  <DashboardLayout userType="tech">
-                    <SatisfactionSurvey />
-                  </DashboardLayout>
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <SatisfactionSurvey />
+                    </DashboardLayout>
+                  </ProtectedRoute>
                 }
               />
 
@@ -273,10 +333,11 @@ const App = () => {
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </SidebarProvider>
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
+        </AuthProvider>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 };
 
 export default App;

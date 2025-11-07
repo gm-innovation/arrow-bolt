@@ -1,57 +1,60 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Ship, Lock, Mail } from "lucide-react";
+import { Ship, Lock, Mail, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
-const Login = () => {
+const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signIn, user, userRole } = useAuth();
+  const { signUp } = useAuth();
 
-  useEffect(() => {
-    if (user && userRole) {
-      if (userRole === 'super_admin') {
-        navigate("/super-admin/dashboard");
-      } else if (userRole === 'admin') {
-        navigate("/admin/dashboard");
-      } else if (userRole === 'technician') {
-        navigate("/tech/dashboard");
-      }
-    }
-  }, [user, userRole, navigate]);
-
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    if (!email || !password) {
+    if (!email || !password || !confirmPassword || !fullName) {
       setError("Por favor, preencha todos os campos");
       setLoading(false);
       return;
     }
 
-    const { error: signInError } = await signIn(email, password);
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem");
+      setLoading(false);
+      return;
+    }
 
-    if (signInError) {
-      setError("Email ou senha incorretos");
+    if (password.length < 6) {
+      setError("A senha deve ter no mínimo 6 caracteres");
+      setLoading(false);
+      return;
+    }
+
+    const { error: signUpError } = await signUp(email, password, fullName);
+
+    if (signUpError) {
+      setError(signUpError.message);
       setLoading(false);
       return;
     }
 
     toast({
-      title: "Login realizado com sucesso",
-      description: "Bem-vindo!",
+      title: "Cadastro realizado com sucesso",
+      description: "Verifique seu email para confirmar o cadastro.",
     });
+
+    navigate("/login");
     setLoading(false);
   };
 
@@ -66,13 +69,26 @@ const Login = () => {
                 <Ship className="h-10 w-10 text-ocean-light" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-center font-bold">Naval OS Manager</CardTitle>
+            <CardTitle className="text-2xl text-center font-bold">Criar Conta</CardTitle>
             <CardDescription className="text-center">
-              Digite suas credenciais para acessar o sistema
+              Preencha os dados para criar sua conta
             </CardDescription>
           </CardHeader>
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleSignup}>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                  <Input
+                    type="text"
+                    placeholder="Nome completo"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
               <div className="space-y-2">
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
@@ -91,9 +107,22 @@ const Login = () => {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
                   <Input
                     type="password"
-                    placeholder="Senha"
+                    placeholder="Senha (mínimo 6 caracteres)"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-500" />
+                  <Input
+                    type="password"
+                    placeholder="Confirmar senha"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="pl-10"
                     required
                   />
@@ -111,14 +140,12 @@ const Login = () => {
                 className="w-full bg-ocean-light hover:bg-ocean text-white font-medium py-5"
                 disabled={loading}
               >
-                {loading ? "Entrando..." : "Entrar"}
+                {loading ? "Criando conta..." : "Criar Conta"}
               </Button>
-              <div className="flex flex-col sm:flex-row justify-between text-sm text-gray-500 gap-2">
-                <Link to="/signup" className="text-ocean-light hover:underline">
-                  Criar conta
-                </Link>
-                <Link to="/forgot-password" className="text-ocean-light hover:underline">
-                  Esqueceu a senha?
+              <div className="text-sm text-center text-gray-500">
+                Já tem uma conta?{" "}
+                <Link to="/login" className="text-ocean-light hover:underline">
+                  Entrar
                 </Link>
               </div>
             </CardFooter>
@@ -129,4 +156,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;
