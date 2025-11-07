@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -35,35 +35,92 @@ const formSchema = z.object({
     .max(255, "Email deve ter no máximo 255 caracteres")
     .toLowerCase()
     .trim(),
-  password: z.string()
-    .min(6, "Senha deve ter pelo menos 6 caracteres")
-    .max(72, "Senha deve ter no máximo 72 caracteres"),
-  role: z.enum(["admin", "technician"], {
-    required_error: "Selecione uma função",
-  }),
   phone: z.string()
     .regex(/^[\d\s\-\+\(\)]*$/, "Telefone inválido")
     .max(20, "Telefone deve ter no máximo 20 caracteres")
     .optional()
     .or(z.literal("")),
+  role: z.enum(["admin", "technician"], {
+    required_error: "Selecione uma função",
+  }),
 });
 
-const NewUser = () => {
+const EditUser = () => {
+  const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       full_name: "",
       email: "",
-      password: "",
-      role: "technician",
       phone: "",
+      role: "technician",
     },
   });
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setIsFetching(true);
+
+        // Get current user's company
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("company_id")
+          .eq("id", user?.id)
+          .single();
+
+        if (!profileData?.company_id) {
+          throw new Error("Empresa não encontrada");
+        }
+
+        // Fetch user data
+        const { data: userData, error: userError } = await supabase
+          .from("profiles")
+          .select(`
+            id,
+            full_name,
+            email,
+            phone,
+            company_id,
+            user_roles (role)
+          `)
+          .eq("id", userId)
+          .eq("company_id", profileData.company_id)
+          .single();
+
+        if (userError) throw userError;
+        if (!userData) throw new Error("Usuário não encontrado");
+
+        // Set form values
+        form.reset({
+          full_name: userData.full_name || "",
+          email: userData.email || "",
+          phone: userData.phone || "",
+          role: (userData.user_roles as any)?.[0]?.role || "technician",
+        });
+      } catch (error: any) {
+        console.error("Error fetching user:", error);
+        toast({
+          title: "Erro ao carregar usuário",
+          description: error.message || "Não foi possível carregar os dados do usuário",
+          variant: "destructive",
+        });
+        navigate("/admin/users");
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    if (userId) {
+      fetchUserData();
+    }
+  }, [userId, user?.id, navigate, toast, form]);
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
@@ -87,82 +144,98 @@ const NewUser = () => {
         throw new Error("Empresa não encontrada");
       }
 
-      // Check if email already exists
-      const { data: existingUser } = await supabase
+      // Verify user belongs to same company
+      const { data: targetUser } = await supabase
         .from("profiles")
-        .select("email")
-        .eq("email", sanitizedData.email)
+        .select("company_id")
+        .eq("id", userId)
         .single();
 
-      if (existingUser) {
-        throw new Error("Este email já está cadastrado no sistema");
+      if (targetUser?.company_id !== profileData.company_id) {
+        throw new Error("Usuário não pertence à sua empresa");
       }
 
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: sanitizedData.email,
-        password: values.password,
-        options: {
-          data: {
-            full_name: sanitizedData.full_name,
-          },
-        },
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Erro ao criar usuário");
-
-      // Update profile with company and phone
+      // Update profile
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({
-          company_id: profileData.company_id,
-          phone: sanitizedData.phone,
-        })
-        .eq("id", authData.user.id);
+        .update(sanitizedData)
+        .eq("id", userId);
 
       if (profileError) throw profileError;
 
-      // Create user role
-      const { error: roleError } = await supabase
+      // Get current role
+      const { data: currentRole } = await supabase
         .from("user_roles")
-        .insert([{
-          user_id: authData.user.id,
-          role: values.role as "admin" | "technician" | "super_admin",
-        }]);
+        .select("role")
+        .eq("user_id", userId)
+        .single();
 
-      if (roleError) throw roleError;
+      // Update role if changed
+      if (currentRole?.role !== values.role) {
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .update({ role: values.role })
+          .eq("user_id", userId);
 
-      // If technician, create technician record
-      if (values.role === "technician") {
-        const { error: techError } = await supabase
-          .from("technicians")
-          .insert({
-            user_id: authData.user.id,
-            company_id: profileData.company_id,
-            active: true,
-          });
+        if (roleError) throw roleError;
 
-        if (techError) throw techError;
+        // If changing to technician, ensure technician record exists
+        if (values.role === "technician") {
+          const { data: techExists } = await supabase
+            .from("technicians")
+            .select("id")
+            .eq("user_id", userId)
+            .single();
+
+          if (!techExists) {
+            const { error: techError } = await supabase
+              .from("technicians")
+              .insert({
+                user_id: userId,
+                company_id: profileData.company_id,
+                active: true,
+              });
+
+            if (techError) throw techError;
+          }
+        }
+
+        // If changing from technician, deactivate technician record
+        if (currentRole?.role === "technician" && values.role !== "technician") {
+          const { error: deactivateError } = await supabase
+            .from("technicians")
+            .update({ active: false })
+            .eq("user_id", userId);
+
+          if (deactivateError) throw deactivateError;
+        }
       }
 
       toast({
-        title: "Usuário criado com sucesso",
-        description: "O usuário foi criado e pode fazer login no sistema",
+        title: "Usuário atualizado com sucesso",
+        description: "As informações do usuário foram atualizadas",
       });
 
       navigate("/admin/users");
     } catch (error: any) {
-      console.error("Error creating user:", error);
+      console.error("Error updating user:", error);
       toast({
-        title: "Erro ao criar usuário",
-        description: error.message || "Ocorreu um erro ao criar o usuário",
+        title: "Erro ao atualizar usuário",
+        description: error.message || "Ocorreu um erro ao atualizar o usuário",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (isFetching) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -175,9 +248,9 @@ const NewUser = () => {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Novo Usuário</h1>
+          <h1 className="text-3xl font-bold">Editar Usuário</h1>
           <p className="text-muted-foreground">
-            Cadastre um novo usuário no sistema
+            Atualize as informações do usuário
           </p>
         </div>
       </div>
@@ -219,24 +292,6 @@ const NewUser = () => {
 
             <FormField
               control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Senha</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Digite a senha inicial"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
               name="phone"
               render={({ field }) => (
                 <FormItem>
@@ -260,7 +315,7 @@ const NewUser = () => {
                   <FormLabel>Função</FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
@@ -286,7 +341,7 @@ const NewUser = () => {
                 Cancelar
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? "Criando..." : "Criar usuário"}
+                {isLoading ? "Salvando..." : "Salvar alterações"}
               </Button>
             </div>
           </form>
@@ -296,4 +351,4 @@ const NewUser = () => {
   );
 };
 
-export default NewUser;
+export default EditUser;

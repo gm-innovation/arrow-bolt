@@ -28,6 +28,7 @@ import VesselHistory from "./pages/admin/VesselHistory";
 import TaskTypes from "./pages/admin/TaskTypes";
 import AdminUsers from "./pages/admin/Users";
 import NewUser from "./pages/admin/NewUser";
+import EditUser from "./pages/admin/EditUser";
 import Clients from "./pages/admin/Clients";
 import Technicians from "./pages/admin/Technicians";
 import AdminReports from "./pages/admin/Reports";
@@ -224,6 +225,16 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['admin']}>
                     <DashboardLayout userType="admin">
                       <NewUser />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users/:userId"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <EditUser />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }

@@ -192,8 +192,8 @@ const Users = () => {
             <SelectContent>
               <SelectItem value="">Todas</SelectItem>
               <SelectItem value="super_admin">Super Admin</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="tech">Técnico</SelectItem>
+              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="technician">Técnico</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -242,7 +242,7 @@ const Users = () => {
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
                     {user.role === "admin" ? "Administrador" : 
-                     user.role === "tech" ? "Técnico" : 
+                     user.role === "technician" ? "Técnico" : 
                      user.role === "super_admin" ? "Super Admin" : "-"}
                   </TableCell>
                   <TableCell>
@@ -266,11 +266,11 @@ const Users = () => {
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
+                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => navigate(`/admin/users/${user.id}`)}>
                           Editar
                         </DropdownMenuItem>
-                        {user.role === "tech" && (
+                        {user.role === "technician" && (
                           <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.active)}>
                             {user.active ? "Desativar" : "Ativar"}
                           </DropdownMenuItem>
