@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
@@ -29,16 +29,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { MoreHorizontal, Plus } from "lucide-react";
+import { MoreHorizontal, Plus, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 import { Input } from "@/components/ui/input";
 import { EditOrderDialog } from "@/components/admin/orders/EditOrderDialog";
 import { TransferTechniciansDialog } from "@/components/admin/orders/TransferTechniciansDialog";
 import { ViewOrderDetailsDialog } from "@/components/admin/orders/ViewOrderDetailsDialog";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { useServiceOrders } from "@/hooks/useServiceOrders";
+import { useDebounce } from "@/hooks/useDebounce";
 
 type FormData = {
   orderNumber: string;
@@ -47,85 +47,28 @@ type FormData = {
 const ServiceOrders = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
-  const [serviceOrders, setServiceOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { orders, isLoading, invalidate } = useServiceOrders();
   const [vessel, setVessel] = useState("");
-  const [technician, setTechnician] = useState("");
   const [status, setStatus] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [activeDialog, setActiveDialog] = useState<"edit" | "transfer" | "view" | null>(null);
   const form = useForm<FormData>();
 
-  useEffect(() => {
-    fetchServiceOrders();
-  }, []);
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const matchesSearch = 
+        order.orderNumber.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        order.vessel.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        order.client.toLowerCase().includes(debouncedSearch.toLowerCase());
 
-  const fetchServiceOrders = async () => {
-    try {
-      setLoading(true);
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("company_id")
-        .eq("id", user?.id)
-        .single();
+      const matchesVessel = !vessel || order.vessel === vessel;
+      const matchesStatus = !status || order.status === status;
 
-      if (!profileData?.company_id) return;
-
-      const { data, error } = await supabase
-        .from("service_orders")
-        .select(`
-          id,
-          order_number,
-          status,
-          scheduled_date,
-          created_at,
-          vessels:vessel_id (
-            name
-          ),
-          clients:client_id (
-            name
-          )
-        `)
-        .eq("company_id", profileData.company_id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      const formattedData = data?.map((order: any) => ({
-        id: order.id,
-        orderNumber: order.order_number,
-        vessel: order.vessels?.name || "N/A",
-        client: order.clients?.name || "N/A",
-        status: order.status,
-        scheduledDate: order.scheduled_date,
-        createdAt: order.created_at,
-      })) || [];
-
-      setServiceOrders(formattedData);
-    } catch (error: any) {
-      toast({
-        title: "Erro ao carregar ordens de serviço",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredOrders = serviceOrders.filter((order) => {
-    const matchesSearch = 
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.vessel.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.client.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesVessel = !vessel || order.vessel === vessel;
-    const matchesStatus = !status || order.status === status;
-
-    return matchesSearch && matchesVessel && matchesStatus;
-  });
+      return matchesSearch && matchesVessel && matchesStatus;
+    });
+  }, [orders, debouncedSearch, vessel, status]);
 
   const handleAction = (action: "edit" | "transfer" | "view", orderId: string) => {
     setSelectedOrderId(orderId);
@@ -135,7 +78,7 @@ const ServiceOrders = () => {
   const handleCloseDialog = () => {
     setSelectedOrderId(null);
     setActiveDialog(null);
-    fetchServiceOrders();
+    invalidate();
   };
 
   const getStatusBadge = (status: string) => {
@@ -179,7 +122,7 @@ const ServiceOrders = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">Todas</SelectItem>
-                {Array.from(new Set(serviceOrders.map(o => o.vessel))).map(v => (
+                {Array.from(new Set(orders.map(o => o.vessel))).map(v => (
                   <SelectItem key={v} value={v}>{v}</SelectItem>
                 ))}
               </SelectContent>
@@ -197,9 +140,9 @@ const ServiceOrders = () => {
             </Select>
           </div>
 
-          {loading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Carregando ordens de serviço...
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : (
             <Table>

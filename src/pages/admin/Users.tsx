@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,100 +27,29 @@ import { Download, MoreHorizontal, Plus, User, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-
-interface UserData {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string | null;
-  created_at: string;
-  role: string | null;
-  active: boolean;
-}
+import { useUsers } from "@/hooks/useUsers";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const Users = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { users, isLoading, invalidate } = useUsers();
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
   const [roleFilter, setRoleFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      
-      // Get current user's company
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("company_id")
-        .eq("id", user?.id)
-        .single();
-
-      if (!profileData?.company_id) {
-        toast({
-          title: "Erro",
-          description: "Empresa não encontrada para o usuário",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Fetch users from the same company with their roles
-      const { data: usersData, error } = await supabase
-        .from("profiles")
-        .select(`
-          id,
-          full_name,
-          email,
-          phone,
-          created_at,
-          user_roles (role),
-          technicians (active)
-        `)
-        .eq("company_id", profileData.company_id);
-
-      if (error) throw error;
-
-      const formattedUsers = usersData?.map((u: any) => ({
-        id: u.id,
-        full_name: u.full_name,
-        email: u.email,
-        phone: u.phone,
-        created_at: u.created_at,
-        role: u.user_roles?.[0]?.role || null,
-        active: u.technicians?.[0]?.active ?? true,
-      })) || [];
-
-      setUsers(formattedUsers);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      toast({
-        title: "Erro ao carregar usuários",
-        description: "Não foi possível carregar a lista de usuários",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const filteredUsers = users.filter((user) => {
-    const matchesSearch = user.full_name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    const matchesRole = !roleFilter || user.role === roleFilter;
-    const matchesStatus = !statusFilter || 
-      (statusFilter === "active" ? user.active : !user.active);
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const matchesSearch = user.full_name
+        .toLowerCase()
+        .includes(debouncedSearch.toLowerCase());
+      const matchesRole = !roleFilter || user.role === roleFilter;
+      const matchesStatus = !statusFilter || 
+        (statusFilter === "active" ? user.active : !user.active);
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, debouncedSearch, roleFilter, statusFilter]);
 
   const handleToggleStatus = async (userId: string, currentActive: boolean) => {
     try {
@@ -136,7 +65,7 @@ const Users = () => {
         description: `Usuário ${!currentActive ? "ativado" : "desativado"} com sucesso`,
       });
 
-      fetchUsers();
+      invalidate();
     } catch (error) {
       console.error("Error toggling status:", error);
       toast({
@@ -147,7 +76,7 @@ const Users = () => {
     }
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
