@@ -11,7 +11,7 @@ interface Task {
   vesselName: string;
   description: string;
   scheduledDate: Date;
-  status: "waiting" | "in_progress" | "completed";
+  status: "waiting" | "pending" | "in_progress" | "completed";
 }
 
 interface TasksKanbanViewProps {
@@ -21,6 +21,7 @@ interface TasksKanbanViewProps {
 
 const columns = [
   { id: "waiting", title: "Aguardando" },
+  { id: "pending", title: "Pendente" },
   { id: "in_progress", title: "Em Andamento" },
   { id: "completed", title: "Finalizadas" },
 ];
