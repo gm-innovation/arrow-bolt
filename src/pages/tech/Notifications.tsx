@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Bell, CheckCircle2, Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
 
@@ -121,7 +122,13 @@ const TechNotifications = () => {
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : notifications.length === 0 ? (
-            <p className="text-center text-muted-foreground">Nenhuma notificação encontrada</p>
+            <div className="flex flex-col items-center justify-center p-12 text-center">
+              <Bell className="h-16 w-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium">Nenhuma notificação</h3>
+              <p className="text-sm text-muted-foreground mt-2 max-w-md">
+                Você está em dia! Não há notificações no momento.
+              </p>
+            </div>
           ) : (
             <div className="space-y-4">
               {notifications.map((notification) => (

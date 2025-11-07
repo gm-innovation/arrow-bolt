@@ -28,8 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent } from "@/components/ui/card";
-import { MoreHorizontal, Plus, Loader2, Download } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { MoreHorizontal, Plus, Loader2, Download, FileText } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
 import { format } from "date-fns";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
@@ -129,6 +130,32 @@ const ServiceOrders = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-9 w-48" />
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-40" />
+          </div>
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-10 w-full max-w-sm" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-24 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -203,8 +230,16 @@ const ServiceOrders = () => {
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      Nenhuma ordem de serviço encontrada
+                    <TableCell colSpan={7} className="h-32">
+                      <div className="flex flex-col items-center justify-center p-8">
+                        <FileText className="h-12 w-12 text-muted-foreground mb-3" />
+                        <h3 className="text-lg font-medium">Nenhuma ordem de serviço encontrada</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {(vessel || status || debouncedSearch) 
+                            ? "Tente ajustar os filtros de busca" 
+                            : "Crie sua primeira ordem de serviço para começar"}
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (

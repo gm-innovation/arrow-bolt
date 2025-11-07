@@ -14,6 +14,7 @@ import { Task, TaskStatus } from "@/types/task";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const Tasks = () => {
   const navigate = useNavigate();
@@ -349,8 +350,23 @@ const Tasks = () => {
       <Card>
         <CardContent className="pt-6">
           {loading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Carregando tarefas...
+            <div className="space-y-4">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="border rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="space-y-2 flex-1">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                    <Skeleton className="h-6 w-24" />
+                  </div>
+                  <Skeleton className="h-4 w-full mb-3" />
+                  <div className="flex gap-2">
+                    <Skeleton className="h-9 flex-1" />
+                    <Skeleton className="h-9 flex-1" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : view === "list" ? (
             <>
@@ -358,8 +374,12 @@ const Tasks = () => {
               <div className="md:hidden">
                 {tasks.map(renderMobileTaskCard)}
                 {tasks.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    Nenhuma tarefa encontrada
+                  <div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg border-dashed">
+                    <Clock className="h-16 w-16 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium">Nenhuma tarefa atribuída</h3>
+                    <p className="text-sm text-muted-foreground mt-2 max-w-md">
+                      Você não possui tarefas no momento. Novas tarefas aparecerão aqui quando forem atribuídas a você.
+                    </p>
                   </div>
                 )}
               </div>
@@ -380,8 +400,14 @@ const Tasks = () => {
                   <TableBody>
                     {tasks.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          Nenhuma tarefa encontrada
+                        <TableCell colSpan={6} className="h-32">
+                          <div className="flex flex-col items-center justify-center p-12 text-center">
+                            <Clock className="h-16 w-16 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-medium">Nenhuma tarefa atribuída</h3>
+                            <p className="text-sm text-muted-foreground mt-2 max-w-md">
+                              Você não possui tarefas no momento. Novas tarefas aparecerão aqui quando forem atribuídas a você.
+                            </p>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ) : (

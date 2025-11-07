@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { TechnicianCard } from "@/components/admin/technicians/TechnicianCard";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
 import { Plus, Search, Download } from "lucide-react";
@@ -323,8 +325,26 @@ const Technicians = () => {
       </div>
       
       {loading ? (
-        <div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg">
-          <p className="text-muted-foreground">Carregando técnicos...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6">
+                <div className="space-y-4">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </div>
+                  <div className="flex gap-2">
+                    <Skeleton className="h-9 flex-1" />
+                    <Skeleton className="h-9 flex-1" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : filteredTechnicians.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg border-dashed">
