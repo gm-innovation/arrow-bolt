@@ -10,11 +10,29 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 const formSchema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  email: z.string().email("Email inválido").optional().or(z.literal("")),
-  phone: z.string().optional(),
-  address: z.string().optional(),
-  contact_person: z.string().optional(),
+  name: z.string()
+    .trim()
+    .min(2, "Nome deve ter pelo menos 2 caracteres")
+    .max(200, "Nome deve ter no máximo 200 caracteres"),
+  email: z.string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres")
+    .optional()
+    .or(z.literal("")),
+  phone: z.string()
+    .trim()
+    .max(20, "Telefone deve ter no máximo 20 caracteres")
+    .regex(/^$|^[\d\s\(\)\-\+]+$/, "Telefone contém caracteres inválidos")
+    .optional(),
+  address: z.string()
+    .trim()
+    .max(500, "Endereço deve ter no máximo 500 caracteres")
+    .optional(),
+  contact_person: z.string()
+    .trim()
+    .max(200, "Nome do contato deve ter no máximo 200 caracteres")
+    .optional(),
 });
 
 type CompanyFormData = z.infer<typeof formSchema>;
@@ -62,17 +80,20 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
         throw new Error("Empresa não encontrada");
       }
 
+      // Sanitize data
+      const sanitizedData = {
+        name: data.name.trim(),
+        email: data.email?.trim().toLowerCase() || null,
+        phone: data.phone?.trim() || null,
+        address: data.address?.trim() || null,
+        contact_person: data.contact_person?.trim() || null,
+      };
+
       if (clientData?.id) {
         // Update existing client
         const { error } = await supabase
           .from("clients")
-          .update({
-            name: data.name,
-            email: data.email || null,
-            phone: data.phone || null,
-            address: data.address || null,
-            contact_person: data.contact_person || null,
-          })
+          .update(sanitizedData)
           .eq("id", clientData.id);
 
         if (error) throw error;
@@ -89,11 +110,7 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
           .from("clients")
           .insert({
             company_id: profileData.company_id,
-            name: data.name,
-            email: data.email || null,
-            phone: data.phone || null,
-            address: data.address || null,
-            contact_person: data.contact_person || null,
+            ...sanitizedData,
           })
           .select()
           .single();

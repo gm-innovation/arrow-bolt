@@ -19,10 +19,24 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const technicianFormSchema = z.object({
-  name: z.string().min(3, { message: "Nome deve ter pelo menos 3 caracteres" }),
-  email: z.string().email({ message: "Email inválido" }),
-  phone: z.string().min(10, { message: "Telefone deve ter pelo menos 10 caracteres" }).optional(),
-  role: z.string().min(1, { message: "Cargo é obrigatório" }),
+  name: z.string()
+    .trim()
+    .min(3, { message: "Nome deve ter pelo menos 3 caracteres" })
+    .max(200, { message: "Nome deve ter no máximo 200 caracteres" }),
+  email: z.string()
+    .trim()
+    .email({ message: "Email inválido" })
+    .max(255, { message: "Email deve ter no máximo 255 caracteres" }),
+  phone: z.string()
+    .trim()
+    .min(10, { message: "Telefone deve ter pelo menos 10 caracteres" })
+    .max(20, { message: "Telefone deve ter no máximo 20 caracteres" })
+    .regex(/^[\d\s\(\)\-\+]+$/, { message: "Telefone contém caracteres inválidos" })
+    .optional()
+    .or(z.literal("")),
+  role: z.string()
+    .trim()
+    .min(1, { message: "Cargo é obrigatório" }),
   isActive: z.boolean().default(true),
 });
 
@@ -58,7 +72,16 @@ export const NewTechnicianForm = ({
   const handleSubmit = async (data: TechnicianFormValues) => {
     setIsLoading(true);
     try {
-      await onSubmit(data);
+      // Sanitize data
+      const sanitizedData = {
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        phone: data.phone?.trim() || "",
+        role: data.role.trim(),
+        isActive: data.isActive,
+      };
+
+      await onSubmit(sanitizedData);
       toast({
         title: isEditing ? "Técnico atualizado" : "Técnico criado",
         description: isEditing 

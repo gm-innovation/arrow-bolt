@@ -12,8 +12,12 @@ import * as z from "zod";
 import { Card, CardContent } from "@/components/ui/card";
 
 const vesselFormSchema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  vessel_type: z.string().min(1, "Selecione um tipo"),
+  name: z.string()
+    .trim()
+    .min(2, "Nome deve ter pelo menos 2 caracteres")
+    .max(200, "Nome deve ter no máximo 200 caracteres"),
+  vessel_type: z.string()
+    .min(1, "Selecione um tipo"),
 });
 
 type VesselFormData = z.infer<typeof vesselFormSchema>;
@@ -78,13 +82,16 @@ export const VesselsForm = ({ clientId, vessels: initialVessels, onSuccess }: Ve
     try {
       setIsLoading(true);
 
+      // Sanitize data
+      const sanitizedData = {
+        client_id: clientId,
+        name: data.name.trim(),
+        vessel_type: data.vessel_type,
+      };
+
       const { error } = await supabase
         .from("vessels")
-        .insert({
-          client_id: clientId,
-          name: data.name,
-          vessel_type: data.vessel_type,
-        });
+        .insert(sanitizedData);
 
       if (error) throw error;
 

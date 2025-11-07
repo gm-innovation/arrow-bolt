@@ -4,25 +4,65 @@ import { Input } from "@/components/ui/input";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { PlusCircle } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
-type ContactFormData = {
-  name: string;
-  role: string;
-  email: string;
-  phone: string;
-  whatsapp: string;
-};
+const contactFormSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(3, "Nome deve ter pelo menos 3 caracteres")
+    .max(100, "Nome deve ter no máximo 100 caracteres"),
+  role: z.string()
+    .trim()
+    .min(2, "Cargo deve ter pelo menos 2 caracteres")
+    .max(100, "Cargo deve ter no máximo 100 caracteres"),
+  email: z.string()
+    .trim()
+    .email("Email inválido")
+    .max(255, "Email deve ter no máximo 255 caracteres"),
+  phone: z.string()
+    .trim()
+    .min(10, "Telefone deve ter pelo menos 10 caracteres")
+    .max(20, "Telefone deve ter no máximo 20 caracteres")
+    .regex(/^[\d\s\(\)\-\+]+$/, "Telefone contém caracteres inválidos"),
+  whatsapp: z.string()
+    .trim()
+    .min(10, "WhatsApp deve ter pelo menos 10 caracteres")
+    .max(20, "WhatsApp deve ter no máximo 20 caracteres")
+    .regex(/^[\d\s\(\)\-\+]+$/, "WhatsApp contém caracteres inválidos"),
+});
+
+type ContactFormData = z.infer<typeof contactFormSchema>;
 
 export const ContactsForm = () => {
   const { toast } = useToast();
-  const form = useForm<ContactFormData>();
+  const form = useForm<ContactFormData>({
+    resolver: zodResolver(contactFormSchema),
+    defaultValues: {
+      name: "",
+      role: "",
+      email: "",
+      phone: "",
+      whatsapp: "",
+    },
+  });
 
   const onSubmit = (data: ContactFormData) => {
-    console.log(data);
+    // Sanitize data before processing
+    const sanitizedData = {
+      name: data.name.trim(),
+      role: data.role.trim(),
+      email: data.email.trim().toLowerCase(),
+      phone: data.phone.trim(),
+      whatsapp: data.whatsapp.trim(),
+    };
+    
+    console.log(sanitizedData);
     toast({
       title: "Contato adicionado com sucesso!",
       description: "As informações foram salvas.",
     });
+    form.reset();
   };
 
   return (

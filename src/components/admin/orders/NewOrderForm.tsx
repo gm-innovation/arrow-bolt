@@ -15,8 +15,18 @@ import { Checkbox } from "@/components/ui/checkbox";
 const orderFormSchema = z.object({
   clientId: z.string().min(1, "Cliente é obrigatório"),
   vesselId: z.string().min(1, "Embarcação é obrigatória"),
-  scheduledDate: z.string().min(1, "Data agendada é obrigatória"),
-  description: z.string().optional(),
+  scheduledDate: z.string()
+    .min(1, "Data agendada é obrigatória")
+    .refine((date) => {
+      const selectedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return selectedDate >= today;
+    }, "Data não pode ser no passado"),
+  description: z.string()
+    .trim()
+    .max(500, "Descrição deve ter no máximo 500 caracteres")
+    .optional(),
   supervisorId: z.string().optional(),
 });
 
@@ -216,6 +226,15 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
       if (!profileData?.company_id) throw new Error("Company not found");
 
+      // Validações de negócio
+      if (selectedTaskTypes.length === 0) {
+        throw new Error("Selecione pelo menos um tipo de tarefa");
+      }
+
+      if (selectedTechnicians.length === 0) {
+        throw new Error("Selecione pelo menos um técnico");
+      }
+
       if (isEditing && orderId) {
         // UPDATE existing service order
         const { error: orderError } = await supabase
@@ -225,7 +244,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
             scheduled_date: data.scheduledDate,
-            description: data.description,
+            description: data.description?.trim() || null,
           })
           .eq("id", orderId);
 
@@ -273,7 +292,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
             scheduled_date: data.scheduledDate,
-            description: data.description,
+            description: data.description?.trim() || null,
             status: "pending",
           })
           .select()

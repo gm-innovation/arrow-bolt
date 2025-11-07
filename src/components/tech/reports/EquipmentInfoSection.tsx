@@ -13,6 +13,12 @@ export const EquipmentInfoSection = ({
   report,
   onUpdateReport,
 }: EquipmentInfoSectionProps) => {
+  const handleInputChange = (field: keyof TaskReport, value: string) => {
+    // Trim and limit length
+    const sanitizedValue = value.slice(0, 200);
+    onUpdateReport(taskId, field, sanitizedValue);
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div className="space-y-2">
@@ -20,7 +26,8 @@ export const EquipmentInfoSection = ({
         <Input
           id={`model-${taskId}`}
           value={report.modelInfo}
-          onChange={(e) => onUpdateReport(taskId, "modelInfo", e.target.value)}
+          onChange={(e) => handleInputChange("modelInfo", e.target.value)}
+          maxLength={200}
         />
       </div>
       <div className="space-y-2">
@@ -28,7 +35,8 @@ export const EquipmentInfoSection = ({
         <Input
           id={`brand-${taskId}`}
           value={report.brandInfo}
-          onChange={(e) => onUpdateReport(taskId, "brandInfo", e.target.value)}
+          onChange={(e) => handleInputChange("brandInfo", e.target.value)}
+          maxLength={200}
         />
       </div>
       <div className="space-y-2">
@@ -36,7 +44,8 @@ export const EquipmentInfoSection = ({
         <Input
           id={`serial-${taskId}`}
           value={report.serialNumber}
-          onChange={(e) => onUpdateReport(taskId, "serialNumber", e.target.value)}
+          onChange={(e) => handleInputChange("serialNumber", e.target.value)}
+          maxLength={200}
         />
       </div>
     </div>
