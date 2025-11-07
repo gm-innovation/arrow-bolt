@@ -53,9 +53,8 @@ const Index = () => {
             <Button 
               variant="outline" 
               className="text-lg py-6 px-8 border-white text-white hover:bg-white/10 transition-all"
-              onClick={() => navigate("/auth/signup")}
             >
-              Criar Conta
+              Saiba Mais
             </Button>
           </div>
         </div>
