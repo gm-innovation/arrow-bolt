@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,138 +21,245 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Eye, Download, CheckCircle, XOctagon } from "lucide-react";
+import { Eye, Download, CheckCircle, XOctagon, Loader2 } from "lucide-react";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { TaskReport } from "@/components/tech/reports/types";
+import { supabase } from "@/integrations/supabase/client";
 
-// Define the status type to ensure type safety
-type ReportStatus = "pending" | "approved" | "rejected";
+interface Report {
+  id: string;
+  task_id: string;
+  status: string;
+  created_at: string;
+  report_data: TaskReport;
+  pdf_path: string | null;
+  rejection_reason: string | null;
+  task?: {
+    assigned_to?: string;
+    service_order?: {
+      order_number: string;
+      vessel?: {
+        name: string;
+      };
+      client?: {
+        name: string;
+      };
+    };
+  };
+  technician?: {
+    user_id?: string;
+    profile?: {
+      full_name: string;
+    };
+  };
+}
 
-// Mock data for reports
-const mockReports = [
-  {
-    id: "REP-001",
-    taskId: "TSK-001",
-    technicianName: "João Silva",
-    clientName: "Petrobras S.A.",
-    vesselName: "PB-001",
-    createdAt: new Date(2023, 5, 15),
-    status: "pending" as ReportStatus,
-    approvedBy: null,
-    rejectionReason: null,
-  },
-  {
-    id: "REP-002",
-    taskId: "TSK-002",
-    technicianName: "Maria Santos",
-    clientName: "Shell Brasil",
-    vesselName: "SH-001",
-    createdAt: new Date(2023, 5, 20),
-    status: "approved" as ReportStatus,
-    approvedBy: "Carlos Oliveira",
-    rejectionReason: null,
-  },
-  {
-    id: "REP-003",
-    taskId: "TSK-003",
-    technicianName: "Pedro Costa",
-    clientName: "Petrobras S.A.",
-    vesselName: "PB-002",
-    createdAt: new Date(2023, 6, 5),
-    status: "rejected" as ReportStatus,
-    approvedBy: null,
-    rejectionReason: "Informações técnicas insuficientes. Por favor, detalhe melhor o problema encontrado.",
-  },
-];
+const StatusBadge = ({ status }: { status: string }) => {
+  const variants: Record<string, any> = {
+    draft: { variant: "outline", className: "bg-gray-50 text-gray-800 border-gray-300", label: "Rascunho" },
+    submitted: { variant: "outline", className: "bg-yellow-50 text-yellow-800 border-yellow-300", label: "Submetido" },
+    approved: { variant: "outline", className: "bg-green-50 text-green-800 border-green-300", label: "Aprovado" },
+    rejected: { variant: "outline", className: "bg-red-50 text-red-800 border-red-300", label: "Recusado" },
+  };
 
-// Mock report data (for PDF rendering)
-const mockReportData: TaskReport = {
-  modelInfo: "NavSys 2000",
-  brandInfo: "Navtec",
-  serialNumber: "NS2000-567890",
-  reportedIssue: "Sistema apresentando falhas intermitentes na exibição de dados.",
-  executedWork: "Substituição de componentes eletrônicos e recalibração do sistema.",
-  result: "Sistema operando normalmente após os reparos.",
-  nextVisitWork: "Verificação de calibração em 6 meses.",
-  suppliedMaterial: "2x Placas de circuito NS-2000-PCB, 1x Kit de cabos NS-2000-CBL",
-  photos: [],
-  timeEntries: [],
-};
-
-type StatusProps = {
-  status: ReportStatus;
-};
-
-const StatusBadge = ({ status }: StatusProps) => {
-  if (status === "pending") {
-    return <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-300">Pendente</Badge>;
-  } else if (status === "approved") {
-    return <Badge variant="outline" className="bg-green-50 text-green-800 border-green-300">Aprovado</Badge>;
-  } else {
-    return <Badge variant="outline" className="bg-red-50 text-red-800 border-red-300">Recusado</Badge>;
-  }
+  const config = variants[status] || variants.draft;
+  return <Badge variant={config.variant} className={config.className}>{config.label}</Badge>;
 };
 
 const Reports = () => {
-  const [reports, setReports] = useState(mockReports);
-  const [selectedReport, setSelectedReport] = useState<null | typeof mockReports[0]>(null);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [rejectionReason, setRejectionReason] = useState("");
   const [isPDFPreviewOpen, setIsPDFPreviewOpen] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const handleApproveReport = (reportId: string) => {
-    setReports(prevReports => 
-      prevReports.map(report => 
-        report.id === reportId 
-          ? { ...report, status: "approved" as ReportStatus, approvedBy: "Admin Atual", rejectionReason: null } 
-          : report
-      )
-    );
-    
-    toast({
-      title: "Relatório aprovado",
-      description: "O relatório foi aprovado com sucesso.",
-    });
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      const { data, error } = await supabase
+        .from('task_reports')
+        .select(`
+          *,
+          task:tasks!task_reports_task_id_fkey (
+            assigned_to,
+            service_order:service_orders (
+              order_number,
+              vessel:vessels (name),
+              client:clients (name)
+            )
+          )
+        `)
+        .in('status', ['submitted', 'approved', 'rejected'])
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      // Fetch technician info for each report
+      const reportsWithTechs = await Promise.all(
+        (data || []).map(async (report: any) => {
+          if (report.task?.assigned_to) {
+            const { data: techData } = await supabase
+              .from('technicians')
+              .select('user_id, profile:profiles(full_name)')
+              .eq('id', report.task.assigned_to)
+              .single();
+            
+            return { ...report, technician: techData };
+          }
+          return report;
+        })
+      );
+
+      setReports(reportsWithTechs);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar relatórios",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleRejectReport = () => {
+  const handleApproveReport = async (reportId: string) => {
+    try {
+      setProcessingId(reportId);
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('task_reports')
+        .update({
+          status: 'approved',
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+          rejection_reason: null,
+        })
+        .eq('id', reportId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Relatório aprovado",
+        description: "O relatório foi aprovado com sucesso.",
+      });
+
+      fetchReports();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao aprovar relatório",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRejectReport = async () => {
     if (!selectedReport) return;
     
-    setReports(prevReports => 
-      prevReports.map(report => 
-        report.id === selectedReport.id 
-          ? { ...report, status: "rejected" as ReportStatus, approvedBy: null, rejectionReason } 
-          : report
-      )
-    );
-    
-    setRejectionReason("");
-    setShowRejectModal(false);
-    
-    toast({
-      title: "Relatório recusado",
-      description: "O relatório foi recusado e o técnico será notificado.",
-    });
+    try {
+      setProcessingId(selectedReport.id);
+
+      const { error } = await supabase
+        .from('task_reports')
+        .update({
+          status: 'rejected',
+          rejection_reason: rejectionReason,
+          approved_by: null,
+          approved_at: null,
+        })
+        .eq('id', selectedReport.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Relatório recusado",
+        description: "O relatório foi recusado e o técnico será notificado.",
+      });
+
+      setRejectionReason("");
+      setShowRejectModal(false);
+      setSelectedReport(null);
+      fetchReports();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao recusar relatório",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingId(null);
+    }
   };
 
-  const handleDownloadReport = (reportId: string) => {
-    // In a real application, this would trigger a download
-    console.log(`Downloading report ${reportId}`);
-    
-    toast({
-      title: "Download iniciado",
-      description: "O relatório será baixado em alguns instantes.",
-    });
+  const handleDownloadReport = async (pdfPath: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('reports')
+        .download(pdfPath);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = pdfPath.split('/').pop() || 'report.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download iniciado",
+        description: "O relatório está sendo baixado.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao baixar relatório",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleViewReport = (report: typeof mockReports[0]) => {
+  const handleViewReport = (report: Report) => {
     setSelectedReport(report);
     setIsPDFPreviewOpen(true);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -186,39 +293,51 @@ const Reports = () => {
             <TableBody>
               {reports.map((report) => (
                 <TableRow key={report.id}>
-                  <TableCell className="font-medium">{report.id}</TableCell>
-                  <TableCell>{report.technicianName}</TableCell>
-                  <TableCell>{report.clientName}</TableCell>
-                  <TableCell>{report.vesselName}</TableCell>
-                  <TableCell>{format(report.createdAt, "dd/MM/yyyy", { locale: ptBR })}</TableCell>
+                  <TableCell className="font-medium">{report.task_id}</TableCell>
+                  <TableCell>{report.technician?.profile?.full_name || '-'}</TableCell>
+                  <TableCell>{report.task?.service_order?.client?.name || '-'}</TableCell>
+                  <TableCell>{report.task?.service_order?.vessel?.name || '-'}</TableCell>
+                  <TableCell>{format(new Date(report.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                   <TableCell>
                     <StatusBadge status={report.status} />
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleViewReport(report)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleDownloadReport(report.id)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      {report.status === "pending" && (
+                      {report.pdf_path && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleViewReport(report)}
+                            title="Visualizar"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleDownloadReport(report.pdf_path!)}
+                            title="Baixar"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
+                      {report.status === "submitted" && (
                         <>
                           <Button
                             variant="outline"
                             size="icon"
                             className="text-green-600 hover:text-green-700 hover:bg-green-50"
                             onClick={() => handleApproveReport(report.id)}
+                            disabled={processingId === report.id}
+                            title="Aprovar"
                           >
-                            <CheckCircle className="h-4 w-4" />
+                            {processingId === report.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <CheckCircle className="h-4 w-4" />
+                            )}
                           </Button>
                           <Button
                             variant="outline"
@@ -228,6 +347,8 @@ const Reports = () => {
                               setSelectedReport(report);
                               setShowRejectModal(true);
                             }}
+                            disabled={processingId === report.id}
+                            title="Recusar"
                           >
                             <XOctagon className="h-4 w-4" />
                           </Button>
@@ -243,12 +364,12 @@ const Reports = () => {
       </Card>
 
       {/* PDF Preview Dialog */}
-      {selectedReport && (
+      {selectedReport && selectedReport.report_data && (
         <PDFPreviewDialog
           open={isPDFPreviewOpen}
           onOpenChange={setIsPDFPreviewOpen}
-          report={mockReportData}
-          taskId={selectedReport.taskId}
+          report={selectedReport.report_data}
+          taskId={selectedReport.task_id}
         />
       )}
 
@@ -276,15 +397,23 @@ const Reports = () => {
           </div>
           
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRejectModal(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setShowRejectModal(false)}
+              disabled={!!processingId}
+            >
               Cancelar
             </Button>
             <Button 
               variant="destructive" 
               onClick={handleRejectReport}
-              disabled={!rejectionReason.trim()}
+              disabled={!rejectionReason.trim() || !!processingId}
             >
-              Recusar Relatório
+              {processingId ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Processando...</>
+              ) : (
+                "Recusar Relatório"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
