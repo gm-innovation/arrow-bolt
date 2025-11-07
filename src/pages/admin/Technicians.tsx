@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -24,60 +23,74 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-// Mock data for technicians
-const mockTechnicians = [
-  {
-    id: "1",
-    name: "João Silva",
-    role: "Técnico de Manutenção",
-    email: "joao.silva@naval.com",
-    phone: "(11) 98765-4321",
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Maria Oliveira",
-    role: "Técnico de Refrigeração",
-    email: "maria.oliveira@naval.com",
-    phone: "(21) 98765-4321",
-    isActive: true,
-  },
-  {
-    id: "3",
-    name: "Pedro Santos",
-    role: "Técnico de Eletrônica",
-    email: "pedro.santos@naval.com",
-    phone: "(31) 98765-4321",
-    isActive: false,
-  },
-  {
-    id: "4",
-    name: "Ana Costa",
-    role: "Técnico de Mecânica",
-    email: "ana.costa@naval.com",
-    phone: "(41) 98765-4321",
-    isActive: true,
-  },
-  {
-    id: "5",
-    name: "Carlos Ferreira",
-    role: "Auxiliar Técnico",
-    email: "carlos.ferreira@naval.com",
-    phone: "(51) 98765-4321",
-    isActive: true,
-  },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Technicians = () => {
   const { toast } = useToast();
-  const [technicians, setTechnicians] = useState(mockTechnicians);
+  const { user } = useAuth();
+  const [technicians, setTechnicians] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isNewTechnicianOpen, setIsNewTechnicianOpen] = useState(false);
   const [isEditTechnicianOpen, setIsEditTechnicianOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  useEffect(() => {
+    fetchTechnicians();
+  }, []);
+
+  const fetchTechnicians = async () => {
+    try {
+      setLoading(true);
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profileData?.company_id) return;
+
+      const { data, error } = await supabase
+        .from("technicians")
+        .select(`
+          id,
+          specialty,
+          active,
+          profiles:user_id (
+            id,
+            full_name,
+            email,
+            phone
+          )
+        `)
+        .eq("company_id", profileData.company_id);
+
+      if (error) throw error;
+
+      const formattedData = data?.map((tech: any) => ({
+        id: tech.id,
+        name: tech.profiles?.full_name || "",
+        email: tech.profiles?.email || "",
+        phone: tech.profiles?.phone || "",
+        role: tech.specialty || "",
+        isActive: tech.active,
+        userId: tech.profiles?.id,
+      })) || [];
+
+      setTechnicians(formattedData);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar técnicos",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter technicians based on search term and status filter
   const filteredTechnicians = technicians.filter((tech) => {
@@ -91,19 +104,65 @@ const Technicians = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleCreateTechnician = (data: any) => {
-    const newTechnician = {
-      id: (technicians.length + 1).toString(),
-      ...data,
-    };
-    
-    setTechnicians([...technicians, newTechnician]);
-    setIsNewTechnicianOpen(false);
-    
-    toast({
-      title: "Técnico adicionado",
-      description: `${data.name} foi adicionado com sucesso.`,
-    });
+  const handleCreateTechnician = async (data: any) => {
+    try {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profileData?.company_id) throw new Error("Company not found");
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: Math.random().toString(36).slice(-8) + "Aa1!",
+        options: {
+          data: {
+            full_name: data.name,
+          },
+        },
+      });
+
+      if (authError) throw authError;
+      if (!authData.user) throw new Error("Failed to create user");
+
+      // Update profile
+      await supabase.from("profiles").update({
+        full_name: data.name,
+        phone: data.phone,
+        company_id: profileData.company_id,
+      }).eq("id", authData.user.id);
+
+      // Create technician
+      await supabase.from("technicians").insert({
+        user_id: authData.user.id,
+        company_id: profileData.company_id,
+        specialty: data.role,
+        active: data.isActive,
+      });
+
+      // Create role
+      await supabase.from("user_roles").insert({
+        user_id: authData.user.id,
+        role: "technician",
+      });
+
+      setIsNewTechnicianOpen(false);
+      fetchTechnicians();
+      
+      toast({
+        title: "Técnico criado",
+        description: `${data.name} foi adicionado com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao criar técnico",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditClick = (id: string) => {
@@ -114,20 +173,37 @@ const Technicians = () => {
     }
   };
 
-  const handleUpdateTechnician = (data: any) => {
-    setTechnicians(
-      technicians.map((tech) =>
-        tech.id === selectedTechnician.id ? { ...tech, ...data } : tech
-      )
-    );
-    
-    setIsEditTechnicianOpen(false);
-    setSelectedTechnician(null);
-    
-    toast({
-      title: "Técnico atualizado",
-      description: `${data.name} foi atualizado com sucesso.`,
-    });
+  const handleUpdateTechnician = async (data: any) => {
+    try {
+      if (!selectedTechnician) return;
+
+      // Update profile
+      await supabase.from("profiles").update({
+        full_name: data.name,
+        phone: data.phone,
+      }).eq("id", selectedTechnician.userId);
+
+      // Update technician
+      await supabase.from("technicians").update({
+        specialty: data.role,
+        active: data.isActive,
+      }).eq("id", selectedTechnician.id);
+
+      setIsEditTechnicianOpen(false);
+      setSelectedTechnician(null);
+      fetchTechnicians();
+      
+      toast({
+        title: "Técnico atualizado",
+        description: `${data.name} foi atualizado com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao atualizar técnico",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDeleteClick = (id: string) => {
@@ -138,16 +214,28 @@ const Technicians = () => {
     }
   };
 
-  const handleConfirmDelete = () => {
-    setTechnicians(technicians.filter((tech) => tech.id !== selectedTechnician.id));
-    setIsDeleteDialogOpen(false);
-    
-    toast({
-      title: "Técnico removido",
-      description: `${selectedTechnician.name} foi removido com sucesso.`,
-    });
-    
-    setSelectedTechnician(null);
+  const handleConfirmDelete = async () => {
+    try {
+      if (!selectedTechnician) return;
+
+      // Delete technician record
+      await supabase.from("technicians").delete().eq("id", selectedTechnician.id);
+
+      setIsDeleteDialogOpen(false);
+      setSelectedTechnician(null);
+      fetchTechnicians();
+      
+      toast({
+        title: "Técnico removido",
+        description: `${selectedTechnician.name} foi removido com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao remover técnico",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -194,7 +282,11 @@ const Technicians = () => {
         </Select>
       </div>
       
-      {filteredTechnicians.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg">
+          <p className="text-muted-foreground">Carregando técnicos...</p>
+        </div>
+      ) : filteredTechnicians.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg border-dashed">
           <h3 className="text-lg font-medium">Nenhum técnico encontrado</h3>
           <p className="text-sm text-muted-foreground mt-1">
