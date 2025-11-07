@@ -273,7 +273,7 @@ const ServiceOrders = () => {
 
       {/* Action Dialogs */}
       <Dialog open={activeDialog === "edit"} onOpenChange={() => handleCloseDialog()}>
-        {selectedOrderId && <EditOrderDialog orderId={selectedOrderId} />}
+        {selectedOrderId && <EditOrderDialog orderId={selectedOrderId} onClose={handleCloseDialog} />}
       </Dialog>
 
       <Dialog open={activeDialog === "transfer"} onOpenChange={() => handleCloseDialog()}>

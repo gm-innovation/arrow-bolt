@@ -58,6 +58,12 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
   }, []);
 
   useEffect(() => {
+    if (isEditing && orderId) {
+      loadOrderData();
+    }
+  }, [isEditing, orderId]);
+
+  useEffect(() => {
     if (selectedClient) {
       fetchVessels(selectedClient);
     } else {
@@ -136,6 +142,57 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
     }
   };
 
+  const loadOrderData = async () => {
+    if (!orderId) return;
+
+    try {
+      setIsLoading(true);
+
+      // Fetch service order data
+      const { data: orderData, error: orderError } = await supabase
+        .from("service_orders")
+        .select(`
+          *,
+          vessels:vessel_id (client_id)
+        `)
+        .eq("id", orderId)
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Fetch associated tasks
+      const { data: tasksData } = await supabase
+        .from("tasks")
+        .select("task_type_id, assigned_to")
+        .eq("service_order_id", orderId);
+
+      // Populate form
+      form.reset({
+        clientId: orderData.vessels?.client_id || "",
+        vesselId: orderData.vessel_id || "",
+        scheduledDate: orderData.scheduled_date || "",
+        description: orderData.description || "",
+        supervisorId: orderData.supervisor_id || "",
+      });
+
+      // Set selected task types and technicians
+      if (tasksData) {
+        const taskTypeIds = [...new Set(tasksData.map(t => t.task_type_id).filter(Boolean))];
+        const techIds = [...new Set(tasksData.map(t => t.assigned_to).filter(Boolean))];
+        setSelectedTaskTypes(taskTypeIds);
+        setSelectedTechnicians(techIds);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar OS",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const generateOrderNumber = async (companyId: string): Promise<string> => {
     const year = new Date().getFullYear();
     const { count } = await supabase
@@ -159,47 +216,93 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
       if (!profileData?.company_id) throw new Error("Company not found");
 
-      const orderNumber = await generateOrderNumber(profileData.company_id);
+      if (isEditing && orderId) {
+        // UPDATE existing service order
+        const { error: orderError } = await supabase
+          .from("service_orders")
+          .update({
+            client_id: data.clientId,
+            vessel_id: data.vesselId,
+            supervisor_id: data.supervisorId || null,
+            scheduled_date: data.scheduledDate,
+            description: data.description,
+          })
+          .eq("id", orderId);
 
-      // Create service order
-      const { data: serviceOrder, error: orderError } = await supabase
-        .from("service_orders")
-        .insert({
-          order_number: orderNumber,
-          company_id: profileData.company_id,
-          client_id: data.clientId,
-          vessel_id: data.vesselId,
-          supervisor_id: data.supervisorId || null,
-          scheduled_date: data.scheduledDate,
-          description: data.description,
-          status: "pending",
-        })
-        .select()
-        .single();
+        if (orderError) throw orderError;
 
-      if (orderError) throw orderError;
-
-      // Create tasks for each selected task type
-      if (selectedTaskTypes.length > 0 && serviceOrder) {
-        const tasksToInsert = selectedTaskTypes.map(taskTypeId => ({
-          service_order_id: serviceOrder.id,
-          task_type_id: taskTypeId,
-          title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
-          status: "pending" as const,
-          assigned_to: selectedTechnicians[0] || null,
-        }));
-
-        const { error: tasksError } = await supabase
+        // Delete existing tasks
+        const { error: deleteError } = await supabase
           .from("tasks")
-          .insert(tasksToInsert);
+          .delete()
+          .eq("service_order_id", orderId);
 
-        if (tasksError) throw tasksError;
+        if (deleteError) throw deleteError;
+
+        // Create new tasks
+        if (selectedTaskTypes.length > 0) {
+          const tasksToInsert = selectedTaskTypes.map(taskTypeId => ({
+            service_order_id: orderId,
+            task_type_id: taskTypeId,
+            title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+            status: "pending" as const,
+            assigned_to: selectedTechnicians[0] || null,
+          }));
+
+          const { error: tasksError } = await supabase
+            .from("tasks")
+            .insert(tasksToInsert);
+
+          if (tasksError) throw tasksError;
+        }
+
+        toast({
+          title: "OS atualizada",
+          description: "Ordem de serviço atualizada com sucesso!",
+        });
+      } else {
+        // CREATE new service order
+        const orderNumber = await generateOrderNumber(profileData.company_id);
+
+        const { data: serviceOrder, error: orderError } = await supabase
+          .from("service_orders")
+          .insert({
+            order_number: orderNumber,
+            company_id: profileData.company_id,
+            client_id: data.clientId,
+            vessel_id: data.vesselId,
+            supervisor_id: data.supervisorId || null,
+            scheduled_date: data.scheduledDate,
+            description: data.description,
+            status: "pending",
+          })
+          .select()
+          .single();
+
+        if (orderError) throw orderError;
+
+        // Create tasks
+        if (selectedTaskTypes.length > 0 && serviceOrder) {
+          const tasksToInsert = selectedTaskTypes.map(taskTypeId => ({
+            service_order_id: serviceOrder.id,
+            task_type_id: taskTypeId,
+            title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+            status: "pending" as const,
+            assigned_to: selectedTechnicians[0] || null,
+          }));
+
+          const { error: tasksError } = await supabase
+            .from("tasks")
+            .insert(tasksToInsert);
+
+          if (tasksError) throw tasksError;
+        }
+
+        toast({
+          title: "OS criada",
+          description: `OS ${orderNumber} criada com sucesso!`,
+        });
       }
-
-      toast({
-        title: "Ordem de serviço criada",
-        description: `OS ${orderNumber} criada com sucesso!`,
-      });
 
       form.reset();
       setSelectedTechnicians([]);
@@ -207,7 +310,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
       onSuccess?.();
     } catch (error: any) {
       toast({
-        title: "Erro ao criar ordem de serviço",
+        title: isEditing ? "Erro ao atualizar OS" : "Erro ao criar OS",
         description: error.message,
         variant: "destructive",
       });
