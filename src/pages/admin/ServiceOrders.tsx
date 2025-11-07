@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { MoreHorizontal, Plus, Loader2 } from "lucide-react";
+import { MoreHorizontal, Plus, Loader2, Download } from "lucide-react";
+import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
 import { format } from "date-fns";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 import { Input } from "@/components/ui/input";
@@ -92,19 +93,61 @@ const ServiceOrders = () => {
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
+  const handleExport = () => {
+    try {
+      const exportData = filteredOrders.map(order => ({
+        numeroOS: order.orderNumber,
+        cliente: order.client,
+        embarcacao: order.vessel,
+        status: order.status === "pending" ? "Pendente" : 
+                order.status === "in_progress" ? "Em Andamento" : "Concluído",
+        dataAgendada: order.scheduledDate ? formatDateForExport(order.scheduledDate) : "-",
+        dataCriacao: formatDateForExport(order.createdAt),
+      }));
+
+      const headers = {
+        numeroOS: "Número da OS",
+        cliente: "Cliente",
+        embarcacao: "Embarcação",
+        status: "Status",
+        dataAgendada: "Data Agendada",
+        dataCriacao: "Data de Criação",
+      };
+
+      exportToCSV(exportData, `ordens-servico-${new Date().toISOString().split('T')[0]}`, headers);
+      
+      toast({
+        title: "Exportação concluída",
+        description: `${exportData.length} ordens de serviço exportadas com sucesso`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao exportar",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Ordens de Serviço</h2>
-        <Dialog>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova OS
-            </Button>
-          </DialogTrigger>
-          <NewOrderDialog form={form} />
-        </Dialog>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={filteredOrders.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Nova OS
+              </Button>
+            </DialogTrigger>
+            <NewOrderDialog form={form} />
+          </Dialog>
+        </div>
       </div>
 
       <Card>

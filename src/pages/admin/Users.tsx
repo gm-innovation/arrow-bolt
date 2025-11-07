@@ -29,6 +29,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useUsers } from "@/hooks/useUsers";
 import { useDebounce } from "@/hooks/useDebounce";
+import { exportToCSV, formatDateForExport, formatBooleanForExport } from "@/lib/exportUtils";
 
 const Users = () => {
   const navigate = useNavigate();
@@ -76,6 +77,41 @@ const Users = () => {
     }
   };
 
+  const handleExport = () => {
+    try {
+      const exportData = filteredUsers.map(user => ({
+        nome: user.full_name,
+        email: user.email,
+        funcao: user.role === "admin" ? "Administrador" : 
+                user.role === "technician" ? "Técnico" : 
+                user.role === "super_admin" ? "Super Admin" : "-",
+        status: formatBooleanForExport(user.active),
+        dataCriacao: formatDateForExport(user.created_at),
+      }));
+
+      const headers = {
+        nome: "Nome",
+        email: "Email",
+        funcao: "Função",
+        status: "Ativo",
+        dataCriacao: "Data de Criação",
+      };
+
+      exportToCSV(exportData, `usuarios-${new Date().toISOString().split('T')[0]}`, headers);
+      
+      toast({
+        title: "Exportação concluída",
+        description: `${exportData.length} usuários exportados com sucesso`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao exportar",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -98,7 +134,7 @@ const Users = () => {
             <Plus className="mr-2 h-4 w-4" />
             Novo Usuário
           </Button>
-          <Button variant="outline">
+          <Button variant="outline" onClick={handleExport} disabled={filteredUsers.length === 0}>
             <Download className="mr-2 h-4 w-4" />
             Exportar Lista
           </Button>

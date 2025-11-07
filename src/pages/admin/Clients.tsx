@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash } from "lucide-react";
+import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash, Download } from "lucide-react";
+import { exportToCSV } from "@/lib/exportUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NewClientForm } from "@/components/admin/clients/NewClientForm";
 import { ClientHistoryDialog } from "@/components/admin/clients/ClientHistoryDialog";
@@ -144,6 +145,41 @@ const Clients = () => {
     }
   };
 
+  const handleExport = () => {
+    try {
+      const exportData = filteredClients.map(client => ({
+        nome: client.name,
+        email: client.email || "-",
+        telefone: client.phone || "-",
+        endereco: client.address || "-",
+        contato: client.contact_person || "-",
+        embarcacoes: client.vessels.length,
+      }));
+
+      const headers = {
+        nome: "Nome",
+        email: "Email",
+        telefone: "Telefone",
+        endereco: "Endereço",
+        contato: "Pessoa de Contato",
+        embarcacoes: "Nº Embarcações",
+      };
+
+      exportToCSV(exportData, `clientes-${new Date().toISOString().split('T')[0]}`, headers);
+      
+      toast({
+        title: "Exportação concluída",
+        description: `${exportData.length} clientes exportados com sucesso`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao exportar",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredClients = clients.filter(client =>
     client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     client.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,25 +198,31 @@ const Clients = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Clientes</h1>
-        <Dialog open={newClientDialogOpen} onOpenChange={setNewClientDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Novo Cliente
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Novo Cliente</DialogTitle>
-            </DialogHeader>
-            <NewClientForm 
-              onSuccess={() => {
-                setNewClientDialogOpen(false);
-                fetchClients();
-              }}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={filteredClients.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
+          <Dialog open={newClientDialogOpen} onOpenChange={setNewClientDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Novo Cliente
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Novo Cliente</DialogTitle>
+              </DialogHeader>
+              <NewClientForm 
+                onSuccess={() => {
+                  setNewClientDialogOpen(false);
+                  fetchClients();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <Card>

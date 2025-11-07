@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { TechnicianCard } from "@/components/admin/technicians/TechnicianCard";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Download } from "lucide-react";
+import { exportToCSV, formatBooleanForExport } from "@/lib/exportUtils";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -238,25 +239,64 @@ const Technicians = () => {
     }
   };
 
+  const handleExport = () => {
+    try {
+      const exportData = filteredTechnicians.map(tech => ({
+        nome: tech.name,
+        email: tech.email,
+        telefone: tech.phone || "-",
+        especialidade: tech.role || "-",
+        status: formatBooleanForExport(tech.isActive),
+      }));
+
+      const headers = {
+        nome: "Nome",
+        email: "Email",
+        telefone: "Telefone",
+        especialidade: "Especialidade",
+        status: "Ativo",
+      };
+
+      exportToCSV(exportData, `tecnicos-${new Date().toISOString().split('T')[0]}`, headers);
+      
+      toast({
+        title: "Exportação concluída",
+        description: `${exportData.length} técnicos exportados com sucesso`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao exportar",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold">Técnicos</h1>
         
-        <Dialog open={isNewTechnicianOpen} onOpenChange={setIsNewTechnicianOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Técnico
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <NewTechnicianForm 
-              onSubmit={handleCreateTechnician}
-              onCancel={() => setIsNewTechnicianOpen(false)}
-            />
-          </DialogContent>
-        </Dialog>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport} disabled={filteredTechnicians.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Exportar
+          </Button>
+          <Dialog open={isNewTechnicianOpen} onOpenChange={setIsNewTechnicianOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Técnico
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <NewTechnicianForm 
+                onSubmit={handleCreateTechnician}
+                onCancel={() => setIsNewTechnicianOpen(false)}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
       
       <div className="flex flex-col sm:flex-row justify-between gap-4">

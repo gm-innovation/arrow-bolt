@@ -21,7 +21,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Eye, Download, CheckCircle, XOctagon, Loader2 } from "lucide-react";
+import { Eye, Download, CheckCircle, XOctagon, Loader2, FileDown } from "lucide-react";
+import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -253,6 +254,43 @@ const Reports = () => {
     setIsPDFPreviewOpen(true);
   };
 
+  const handleExportReports = () => {
+    try {
+      const exportData = reports.map(report => ({
+        id: report.task_id,
+        tecnico: report.technician?.profile?.full_name || '-',
+        cliente: report.task?.service_order?.client?.name || '-',
+        embarcacao: report.task?.service_order?.vessel?.name || '-',
+        dataCriacao: formatDateForExport(report.created_at),
+        status: report.status === "draft" ? "Rascunho" :
+                report.status === "submitted" ? "Submetido" :
+                report.status === "approved" ? "Aprovado" : "Recusado",
+      }));
+
+      const headers = {
+        id: "ID",
+        tecnico: "Técnico",
+        cliente: "Cliente",
+        embarcacao: "Embarcação",
+        dataCriacao: "Data de Criação",
+        status: "Status",
+      };
+
+      exportToCSV(exportData, `relatorios-${new Date().toISOString().split('T')[0]}`, headers);
+      
+      toast({
+        title: "Exportação concluída",
+        description: `${exportData.length} relatórios exportados com sucesso`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao exportar",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -263,11 +301,17 @@ const Reports = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Relatórios</h1>
-        <p className="text-muted-foreground">
-          Gerencie os relatórios de serviços
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold">Relatórios</h1>
+          <p className="text-muted-foreground">
+            Gerencie os relatórios de serviços
+          </p>
+        </div>
+        <Button variant="outline" onClick={handleExportReports} disabled={reports.length === 0}>
+          <FileDown className="mr-2 h-4 w-4" />
+          Exportar Relatórios
+        </Button>
       </div>
 
       <Card>
