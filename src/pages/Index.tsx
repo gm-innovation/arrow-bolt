@@ -1,33 +1,10 @@
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+
 import { Button } from "@/components/ui/button";
 import { Ship } from "lucide-react";
-import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user, userRole, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && user && userRole) {
-      // Redirect authenticated users to their dashboard
-      if (userRole === 'super_admin') {
-        navigate('/super-admin/dashboard');
-      } else if (userRole === 'admin') {
-        navigate('/admin/dashboard');
-      } else if (userRole === 'technician') {
-        navigate('/tech/dashboard');
-      }
-    }
-  }, [user, userRole, loading, navigate]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-ocean-light to-ocean-dark text-white">
@@ -46,7 +23,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
             <Button 
               className="text-lg py-6 px-8 bg-white text-ocean-dark hover:bg-white/90 transition-all"
-              onClick={() => navigate("/auth/login")}
+              onClick={() => navigate("/login")}
             >
               Entrar no Sistema
             </Button>
