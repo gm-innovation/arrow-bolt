@@ -1,12 +1,5 @@
-import { useState } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { useState, useEffect } from "react";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -15,42 +8,123 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Download, Eye } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Eye, Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const ServiceHistory = () => {
-  const [date, setDate] = useState<Date>();
+  const [date, setDate] = useState<Date | undefined>(new Date());
   const [vessel, setVessel] = useState("");
   const [technician, setTechnician] = useState("");
   const [status, setStatus] = useState("");
+  const [services, setServices] = useState<any[]>([]);
+  const [vessels, setVessels] = useState<any[]>([]);
+  const [technicians, setTechnicians] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    fetchData();
+  }, [date, vessel, technician, status]);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!profile?.company_id) return;
+
+      // Fetch service orders with history
+      let query = supabase
+        .from("service_orders")
+        .select(`
+          *,
+          vessel:vessels(name),
+          client:clients(name),
+          service_history(*)
+        `)
+        .eq("company_id", profile.company_id)
+        .order("created_at", { ascending: false });
+
+      if (vessel) {
+        query = query.eq("vessel_id", vessel);
+      }
+
+      if (status) {
+        query = query.eq("status", status as any);
+      }
+
+      if (date) {
+        const startOfDay = new Date(date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(date);
+        endOfDay.setHours(23, 59, 59, 999);
+        query = query.gte("created_at", startOfDay.toISOString()).lte("created_at", endOfDay.toISOString());
+      }
+
+      const { data: ordersData } = await query;
+      setServices(ordersData || []);
+
+      // Fetch vessels
+      const { data: vesselsData } = await supabase
+        .from("vessels")
+        .select("id, name, client:clients!inner(company_id)")
+        .eq("client.company_id", profile.company_id);
+      setVessels(vesselsData || []);
+
+      // Fetch technicians
+      const { data: techsData } = await supabase
+        .from("technicians")
+        .select("id, user:profiles!technicians_user_id_fkey(full_name)")
+        .eq("company_id", profile.company_id);
+      setTechnicians(techsData || []);
+
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleViewDetails = (serviceId: string) => {
-    toast({
-      title: "Visualizar Detalhes",
-      description: `Visualizando detalhes do serviço ${serviceId}`,
-    });
+    navigate(`/admin/service-orders`);
   };
 
-  const handleExportReport = (serviceId: string) => {
+  const handleExportReport = async (serviceId: string) => {
     toast({
       title: "Exportar Relatório",
-      description: `Exportando relatório do serviço ${serviceId}`,
+      description: "Funcionalidade em desenvolvimento",
     });
   };
 
-  // Mock data - replace with real data later
-  const services = [
-    {
-      id: "OS001",
-      vessel: "Navio Alfa",
-      technicians: ["João Silva"],
-      status: "Concluído",
-      createdAt: "2024-03-15",
-    },
-  ];
+  const getStatusColor = (status: string) => {
+    const colors = {
+      pending: "bg-yellow-500",
+      in_progress: "bg-blue-500",
+      completed: "bg-green-500",
+      cancelled: "bg-red-500",
+    };
+    return colors[status as keyof typeof colors] || "bg-gray-500";
+  };
 
   return (
     <div className="space-y-6">
@@ -78,8 +152,12 @@ const ServiceHistory = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="navio1">Navio Alfa</SelectItem>
-                  <SelectItem value="navio2">Navio Beta</SelectItem>
+                  <SelectItem value="">Todas</SelectItem>
+                  {vessels.map((v) => (
+                    <SelectItem key={v.id} value={v.id}>
+                      {v.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -90,8 +168,12 @@ const ServiceHistory = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="tech1">João Silva</SelectItem>
-                  <SelectItem value="tech2">Maria Santos</SelectItem>
+                  <SelectItem value="">Todos</SelectItem>
+                  {technicians.map((t) => (
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.user?.full_name || "Sem nome"}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -102,9 +184,11 @@ const ServiceHistory = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="completed">Concluído</SelectItem>
-                  <SelectItem value="in_progress">Em Andamento</SelectItem>
+                  <SelectItem value="">Todos</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
+                  <SelectItem value="in_progress">Em andamento</SelectItem>
+                  <SelectItem value="completed">Concluído</SelectItem>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -117,40 +201,60 @@ const ServiceHistory = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Número OS</TableHead>
+                <TableHead>OS</TableHead>
                 <TableHead>Embarcação</TableHead>
-                <TableHead>Técnicos</TableHead>
+                <TableHead>Cliente</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Data de Criação</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {services.map((service) => (
-                <TableRow key={service.id}>
-                  <TableCell>{service.id}</TableCell>
-                  <TableCell>{service.vessel}</TableCell>
-                  <TableCell>{service.technicians.join(", ")}</TableCell>
-                  <TableCell>{service.status}</TableCell>
-                  <TableCell>{service.createdAt}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleViewDetails(service.id)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleExportReport(service.id)}
-                    >
-                      <Download className="h-4 w-4" />
-                    </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    Carregando...
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : services.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center">
+                    Nenhum serviço encontrado
+                  </TableCell>
+                </TableRow>
+              ) : (
+                services.map((service) => (
+                  <TableRow key={service.id}>
+                    <TableCell className="font-medium">{service.order_number}</TableCell>
+                    <TableCell>{service.vessel?.name || "N/A"}</TableCell>
+                    <TableCell>{service.client?.name || "N/A"}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(service.status)}>
+                        {service.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{new Date(service.created_at).toLocaleDateString("pt-BR")}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleViewDetails(service.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleExportReport(service.id)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
