@@ -18,24 +18,24 @@ import { ReportPDFContent } from "@/components/tech/reports/ReportPDF";
 
 const queryClient = new QueryClient();
 
-const mockServiceOrder = {
-  id: "OS-001",
-  date: new Date(),
-  location: "Porto de Santos",
-  access: "Acesso Principal",
+interface ServiceOrderData {
+  id: string;
+  date: Date;
+  location: string;
+  access: string;
   requester: {
-    name: "João Silva",
-    role: "Supervisor de Operações",
-  },
+    name: string;
+    role: string;
+  };
   supervisor: {
-    name: "Maria Santos",
-  },
+    name: string;
+  };
   team: {
-    leadTechnician: "Pedro Oliveira",
-    assistants: ["Carlos Souza", "Ana Lima"],
-  },
-  service: "Manutenção Preventiva",
-};
+    leadTechnician: string;
+    assistants: string[];
+  };
+  service: string;
+}
 
 const ReportFormContent = () => {
   const navigate = useNavigate();
@@ -49,6 +49,7 @@ const ReportFormContent = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [serviceOrderData, setServiceOrderData] = useState<ServiceOrderData | null>(null);
   const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({
     task1: {
       modelInfo: "",
@@ -195,8 +196,60 @@ const ReportFormContent = () => {
     }
   };
 
+  const fetchServiceOrderData = async () => {
+    try {
+      const { data: taskData, error: taskError } = await supabase
+        .from('tasks')
+        .select(`
+          id,
+          description,
+          service_order:service_orders (
+            id,
+            order_number,
+            scheduled_date,
+            vessel:vessels (name),
+            client:clients (name, contact_person),
+            supervisor:technicians!service_orders_supervisor_id_fkey (
+              user_id,
+              profile:profiles (full_name)
+            )
+          ),
+          task_type:task_types (name)
+        `)
+        .eq('id', taskId)
+        .single();
+
+      if (taskError) throw taskError;
+
+      if (taskData && taskData.service_order) {
+        const so = taskData.service_order as any;
+        setServiceOrderData({
+          id: so.order_number || '',
+          date: so.scheduled_date ? new Date(so.scheduled_date) : new Date(),
+          location: so.vessel?.name || 'Local não especificado',
+          access: 'Acesso padrão',
+          requester: {
+            name: so.client?.contact_person || so.client?.name || 'N/A',
+            role: 'Solicitante',
+          },
+          supervisor: {
+            name: so.supervisor?.profile?.full_name || 'N/A',
+          },
+          team: {
+            leadTechnician: 'Técnico responsável',
+            assistants: [],
+          },
+          service: taskData.task_type?.name || taskData.description || 'Serviço',
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching service order data:", error);
+    }
+  };
+
   useEffect(() => {
     fetchTaskReports();
+    fetchServiceOrderData();
   }, [taskId]);
 
   const handleAddTimeEntry = (taskId: string) => {
@@ -382,7 +435,10 @@ const ReportFormContent = () => {
   const generateAndSavePDF = async (taskId: string, report: TaskReport, status: "draft" | "submitted") => {
     try {
       console.log("Starting PDF generation...");
-      const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={mockServiceOrder} />;
+      if (!serviceOrderData) {
+        throw new Error("Service order data not loaded");
+      }
+      const pdfDoc = <ReportPDFContent report={report} taskId={taskId} serviceOrder={serviceOrderData} />;
       const asPdf = pdf();
       asPdf.updateContainer(pdfDoc);
       console.log("PDF document created, generating blob...");
@@ -606,12 +662,15 @@ const ReportFormContent = () => {
         </div>
       </form>
 
-      <PDFPreviewDialog
-        open={isPDFOpen}
-        onOpenChange={setIsPDFOpen}
-        report={taskReports[selectedTask]}
-        taskId={selectedTask}
-      />
+      {serviceOrderData && (
+        <PDFPreviewDialog
+          open={isPDFOpen}
+          onOpenChange={setIsPDFOpen}
+          report={taskReports[selectedTask]}
+          taskId={selectedTask}
+          serviceOrder={serviceOrderData}
+        />
+      )}
     </div>
   );
 };

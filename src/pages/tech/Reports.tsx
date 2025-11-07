@@ -34,7 +34,25 @@ interface SavedReport {
   created_at: string;
   updated_at: string;
   report_data: Record<string, TaskReport>;
-  pdf_path?: string;
+  pdf_path?: string | null;
+  task_uuid?: string | null;
+  approved_at?: string | null;
+  approved_by?: string | null;
+  rejection_reason?: string | null;
+  task?: {
+    id: string;
+    title: string;
+    assigned_to?: string;
+    service_order?: {
+      order_number: string;
+      vessel?: {
+        name: string;
+      };
+      client?: {
+        name: string;
+      };
+    };
+  };
 }
 
 const TechReports = () => {
@@ -64,6 +82,18 @@ const TechReports = () => {
 
   const fetchSavedReports = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get technician ID for current user
+      const { data: techData } = await supabase
+        .from('technicians')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!techData) return;
+
       const { data, error } = await supabase
         .from('task_reports')
         .select('*')
@@ -76,12 +106,46 @@ const TechReports = () => {
       
       if (data) {
         console.log("Saved reports:", data);
-        // Precisamos converter o tipo Json para Record<string, TaskReport>
-        const typedReports = data.map(report => ({
-          ...report,
-          report_data: report.report_data as unknown as Record<string, TaskReport>
-        }));
-        setSavedReports(typedReports);
+        
+        // Fetch task details separately for each report
+        const reportsWithTasks = await Promise.all(
+          data.map(async (report) => {
+            if (!report.task_uuid) {
+              return {
+                ...report,
+                report_data: report.report_data as unknown as Record<string, TaskReport>,
+              };
+            }
+
+            const { data: taskData } = await supabase
+              .from('tasks')
+              .select(`
+                id,
+                title,
+                assigned_to,
+                service_order:service_orders (
+                  order_number,
+                  vessel:vessels (name),
+                  client:clients (name)
+                )
+              `)
+              .eq('id', report.task_uuid)
+              .single();
+
+            return {
+              ...report,
+              report_data: report.report_data as unknown as Record<string, TaskReport>,
+              task: taskData || undefined,
+            };
+          })
+        );
+        
+        // Filter for current technician's tasks
+        const technicianReports = reportsWithTasks.filter(
+          (report) => 'task' in report && report.task?.assigned_to === techData.id
+        );
+        
+        setSavedReports(technicianReports);
       }
     } catch (error) {
       console.error("Error in fetchSavedReports:", error);
@@ -344,7 +408,9 @@ const TechReports = () => {
             <Table>
               <TableHeader className="bg-gray-50">
                 <TableRow>
-                  <TableHead className="font-semibold">ID da Tarefa</TableHead>
+                  <TableHead className="font-semibold">OS</TableHead>
+                  <TableHead className="font-semibold">Cliente</TableHead>
+                  <TableHead className="font-semibold">Embarcação</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
                   <TableHead className="font-semibold">Última Atualização</TableHead>
                   <TableHead className="text-right font-semibold">Ações</TableHead>
@@ -357,16 +423,21 @@ const TechReports = () => {
                   )
                   .map((report) => {
                     const statusInfo = formatStatus(report.status);
+                    const task = report.task as any;
                     return (
                       <TableRow key={report.id} className="hover:bg-blue-50 transition-colors">
-                        <TableCell className="font-medium text-blue-800">{report.task_id}</TableCell>
+                        <TableCell className="font-medium text-blue-800">
+                          {task?.service_order?.order_number || report.task_id}
+                        </TableCell>
+                        <TableCell>{task?.service_order?.client?.name || '-'}</TableCell>
+                        <TableCell>{task?.service_order?.vessel?.name || '-'}</TableCell>
                         <TableCell>
                           <Badge className={`font-medium border ${statusInfo.className}`}>
                             {statusInfo.text}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          {new Date(report.updated_at).toLocaleString()}
+                          {new Date(report.updated_at).toLocaleString('pt-BR')}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
                           <Button
