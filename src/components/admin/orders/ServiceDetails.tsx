@@ -1,13 +1,11 @@
-import { useState } from "react";
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { LocationAutocomplete } from "./LocationAutocomplete";
-import { MapPreview } from "./MapPreview";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ServiceDetailsProps {
   form: any;
@@ -15,10 +13,7 @@ interface ServiceDetailsProps {
 }
 
 export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
-  const [locationCoords, setLocationCoords] = useState<[number, number] | null>(null);
-  const [accessCoords, setAccessCoords] = useState<[number, number] | null>(null);
   const selectedTaskTypes = form.watch("taskTypes") || [];
-  const singleReport = form.watch("singleReport");
 
   const handleAddTaskType = (value: string) => {
     const currentTypes = form.getValues("taskTypes") || [];
@@ -56,22 +51,12 @@ export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
             <FormItem className="md:col-span-2">
               <FormLabel>Local</FormLabel>
               <FormControl>
-                <LocationAutocomplete 
-                  value={field.value || ""} 
-                  onChange={field.onChange}
-                  onLocationSelect={(location) => setLocationCoords(location.coordinates)}
-                  placeholder="Buscar localização da embarcação" 
+                <Textarea 
+                  {...field}
+                  placeholder="Digite o local da embarcação" 
+                  rows={2}
                 />
               </FormControl>
-              {locationCoords && (
-                <div className="mt-2">
-                  <MapPreview 
-                    longitude={locationCoords[0]} 
-                    latitude={locationCoords[1]}
-                    locationName={field.value}
-                  />
-                </div>
-              )}
               <FormMessage />
             </FormItem>
           )}
@@ -84,22 +69,12 @@ export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
             <FormItem className="md:col-span-2">
               <FormLabel>Acesso</FormLabel>
               <FormControl>
-                <LocationAutocomplete 
-                  value={field.value || ""} 
-                  onChange={field.onChange}
-                  onLocationSelect={(location) => setAccessCoords(location.coordinates)}
-                  placeholder="Buscar endereço de acesso" 
+                <Textarea 
+                  {...field}
+                  placeholder="Digite o endereço de acesso" 
+                  rows={2}
                 />
               </FormControl>
-              {accessCoords && (
-                <div className="mt-2">
-                  <MapPreview 
-                    longitude={accessCoords[0]} 
-                    latitude={accessCoords[1]}
-                    locationName={field.value}
-                  />
-                </div>
-              )}
               <FormMessage />
             </FormItem>
           )}
