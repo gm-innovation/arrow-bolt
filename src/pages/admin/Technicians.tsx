@@ -268,41 +268,25 @@ const Technicians = () => {
           
           const photoExt = photoFile.name.split('.').pop();
           const timestamp = Date.now();
-          const photoPath = `avatars/${createUserResult.user_id}-${timestamp}.${photoExt}`;
+          const photoPath = `${profileData.company_id}/${createUserResult.user_id}/avatar.${photoExt}`;
           
-          console.log('- Caminho de upload:', photoPath);
+          console.log('📍 Caminho de upload:', photoPath);
           
-          // Fazer upload com retry
-          let uploadSuccess = false;
-          let uploadData = null;
-          let lastError = null;
+          // Fazer upload (upsert:true vai sobrescrever se já existir)
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('technician-documents')
+            .upload(photoPath, photoFile, { 
+              upsert: true,
+              contentType: photoFile.type,
+              cacheControl: '3600'
+            });
           
-          for (let attempt = 1; attempt <= 3; attempt++) {
-            console.log(`Tentativa ${attempt} de upload...`);
-            
-            const { data, error } = await supabase.storage
-              .from('technician-documents')
-              .upload(photoPath, photoFile, { 
-                upsert: true,
-                contentType: photoFile.type,
-                cacheControl: '3600'
-              });
-            
-            if (error) {
-              console.error(`Erro na tentativa ${attempt}:`, error);
-              lastError = error;
-              if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000));
-            } else {
-              uploadData = data;
-              uploadSuccess = true;
-              console.log('✅ Upload bem-sucedido!', data);
-              break;
-            }
+          if (uploadError) {
+            console.error('❌ Erro no upload:', uploadError);
+            throw uploadError;
           }
           
-          if (!uploadSuccess) {
-            throw lastError || new Error('Falha no upload da foto');
-          }
+          console.log('✅ Upload bem-sucedido!', uploadData);
           
           // Obter URL pública
           const { data: { publicUrl } } = supabase.storage
@@ -463,6 +447,15 @@ const Technicians = () => {
     try {
       if (!selectedTechnician) return;
 
+      // Obter company_id
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profileData?.company_id) throw new Error("Company not found");
+
       // Update profile
       await supabase.from("profiles").update({
         full_name: data.name,
@@ -488,42 +481,25 @@ const Technicians = () => {
           }
           
           const photoExt = photoFile.name.split('.').pop();
-          const timestamp = Date.now();
-          const photoPath = `avatars/${selectedTechnician.user_id}-${timestamp}.${photoExt}`;
+          const photoPath = `${profileData.company_id}/${selectedTechnician.user_id}/avatar.${photoExt}`;
           
-          console.log('- Caminho de upload:', photoPath);
+          console.log('📍 Caminho de upload:', photoPath);
           
-          // Fazer upload com retry
-          let uploadSuccess = false;
-          let uploadData = null;
-          let lastError = null;
+          // Fazer upload (upsert:true vai sobrescrever se já existir)
+          const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('technician-documents')
+            .upload(photoPath, photoFile, { 
+              upsert: true,
+              contentType: photoFile.type,
+              cacheControl: '3600'
+            });
           
-          for (let attempt = 1; attempt <= 3; attempt++) {
-            console.log(`Tentativa ${attempt} de upload...`);
-            
-            const { data, error } = await supabase.storage
-              .from('technician-documents')
-              .upload(photoPath, photoFile, { 
-                upsert: true,
-                contentType: photoFile.type,
-                cacheControl: '3600'
-              });
-            
-            if (error) {
-              console.error(`Erro na tentativa ${attempt}:`, error);
-              lastError = error;
-              if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000));
-            } else {
-              uploadData = data;
-              uploadSuccess = true;
-              console.log('✅ Upload bem-sucedido!', data);
-              break;
-            }
+          if (uploadError) {
+            console.error('❌ Erro no upload:', uploadError);
+            throw uploadError;
           }
           
-          if (!uploadSuccess) {
-            throw lastError || new Error('Falha no upload da foto');
-          }
+          console.log('✅ Upload bem-sucedido!', uploadData);
           
           // Obter URL pública
           const { data: { publicUrl } } = supabase.storage
