@@ -62,7 +62,7 @@ const Technicians = () => {
           id,
           specialty,
           active,
-          profiles:user_id (
+          profiles!technicians_user_id_fkey (
             id,
             full_name,
             email,
