@@ -252,20 +252,28 @@ const Technicians = () => {
       if (photoFile) {
         console.log('Uploading photo for user:', createUserResult.user_id);
         const photoExt = photoFile.name.split('.').pop();
-        const photoPath = `${createUserResult.user_id}/avatar.${photoExt}`;
+        const timestamp = Date.now();
+        const photoPath = `avatars/${createUserResult.user_id}-${timestamp}.${photoExt}`;
         
-        const { error: photoError } = await supabase.storage
+        console.log('Photo path:', photoPath);
+        
+        const { data: uploadData, error: photoError } = await supabase.storage
           .from('technician-documents')
-          .upload(photoPath, photoFile, { upsert: true });
+          .upload(photoPath, photoFile, { 
+            upsert: true,
+            contentType: photoFile.type 
+          });
         
         if (photoError) {
           console.error('Photo upload error:', photoError);
         } else {
+          console.log('Photo uploaded successfully:', uploadData);
+          
           const { data: { publicUrl } } = supabase.storage
             .from('technician-documents')
             .getPublicUrl(photoPath);
           
-          console.log('Photo uploaded, public URL:', publicUrl);
+          console.log('Generated public URL:', publicUrl);
           
           // Atualizar avatar no perfil
           const { error: updateAvatarError } = await supabase.from('profiles')
@@ -275,7 +283,7 @@ const Technicians = () => {
           if (updateAvatarError) {
             console.error('Avatar update error:', updateAvatarError);
           } else {
-            console.log('Avatar URL saved to profile');
+            console.log('Avatar URL saved to profile successfully');
           }
         }
       }
@@ -397,21 +405,40 @@ const Technicians = () => {
 
       // Upload nova foto se fornecida
       if (photoFile) {
+        console.log('Uploading new photo for user:', selectedTechnician.user_id);
         const photoExt = photoFile.name.split('.').pop();
-        const photoPath = `${selectedTechnician.user_id}/avatar.${photoExt}`;
+        const timestamp = Date.now();
+        const photoPath = `avatars/${selectedTechnician.user_id}-${timestamp}.${photoExt}`;
         
-        const { error: photoError } = await supabase.storage
+        console.log('Photo path:', photoPath);
+        
+        const { data: uploadData, error: photoError } = await supabase.storage
           .from('technician-documents')
-          .upload(photoPath, photoFile, { upsert: true });
+          .upload(photoPath, photoFile, { 
+            upsert: true,
+            contentType: photoFile.type 
+          });
         
-        if (!photoError) {
+        if (photoError) {
+          console.error('Photo upload error:', photoError);
+        } else {
+          console.log('Photo uploaded successfully:', uploadData);
+          
           const { data: { publicUrl } } = supabase.storage
             .from('technician-documents')
             .getPublicUrl(photoPath);
           
-          await supabase.from('profiles')
+          console.log('Generated public URL:', publicUrl);
+          
+          const { error: updateAvatarError } = await supabase.from('profiles')
             .update({ avatar_url: publicUrl })
             .eq('id', selectedTechnician.user_id);
+          
+          if (updateAvatarError) {
+            console.error('Avatar update error:', updateAvatarError);
+          } else {
+            console.log('Avatar URL updated successfully');
+          }
         }
       }
 
