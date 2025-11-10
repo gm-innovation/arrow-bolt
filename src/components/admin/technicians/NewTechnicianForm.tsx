@@ -67,10 +67,12 @@ export const NewTechnicianForm = ({
 }: NewTechnicianFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<{
+    aso?: File;
+    photo?: File;
+    certifications: File[];
+  }>({ certifications: [] });
   const [photoPreview, setPhotoPreview] = useState<string>("");
-  const [certificationFiles, setCertificationFiles] = useState<File[]>([]);
   const { extractFromPDF, isExtracting } = useDocumentExtraction();
   const { toast } = useToast();
 
@@ -97,57 +99,72 @@ export const NewTechnicianForm = ({
     },
   });
 
-  const handleFileSelect = async (file: File) => {
-    setUploadedFile(file);
-    const extractedData = await extractFromPDF(file);
-    
-    if (extractedData) {
-      // Auto-fill form with extracted data
-      if (extractedData.full_name) form.setValue('name', extractedData.full_name);
-      if (extractedData.cpf) form.setValue('cpf', extractedData.cpf);
-      if (extractedData.rg) form.setValue('rg', extractedData.rg);
-      if (extractedData.birth_date) form.setValue('birth_date', extractedData.birth_date);
-      if (extractedData.gender) form.setValue('gender', extractedData.gender);
-      if (extractedData.nationality) form.setValue('nationality', extractedData.nationality);
-      if (extractedData.height) form.setValue('height', extractedData.height.toString());
-      if (extractedData.blood_type) form.setValue('blood_type', extractedData.blood_type);
-      if (extractedData.blood_rh_factor) form.setValue('blood_rh_factor', extractedData.blood_rh_factor);
-      if (extractedData.aso_valid_until) form.setValue('aso_valid_until', extractedData.aso_valid_until);
-      if (extractedData.medical_status) form.setValue('medical_status', extractedData.medical_status);
-      if (extractedData.function) form.setValue('role', extractedData.function);
+  const handleFilesSelect = async (files: FileList | null) => {
+    if (!files) return;
+
+    const fileArray = Array.from(files);
+    const newFiles = { ...uploadedFiles };
+
+    for (const file of fileArray) {
+      const fileType = file.type;
+      const fileName = file.name.toLowerCase();
+
+      // Identificar tipo do arquivo
+      if (fileType === 'application/pdf' && fileName.includes('aso')) {
+        newFiles.aso = file;
+        // Extrair dados do ASO
+        const extractedData = await extractFromPDF(file);
+        if (extractedData) {
+          if (extractedData.full_name) form.setValue('name', extractedData.full_name);
+          if (extractedData.cpf) form.setValue('cpf', extractedData.cpf);
+          if (extractedData.rg) form.setValue('rg', extractedData.rg);
+          if (extractedData.birth_date) form.setValue('birth_date', extractedData.birth_date);
+          if (extractedData.gender) form.setValue('gender', extractedData.gender);
+          if (extractedData.nationality) form.setValue('nationality', extractedData.nationality);
+          if (extractedData.height) form.setValue('height', extractedData.height.toString());
+          if (extractedData.blood_type) form.setValue('blood_type', extractedData.blood_type);
+          if (extractedData.blood_rh_factor) form.setValue('blood_rh_factor', extractedData.blood_rh_factor);
+          if (extractedData.aso_valid_until) form.setValue('aso_valid_until', extractedData.aso_valid_until);
+          if (extractedData.medical_status) form.setValue('medical_status', extractedData.medical_status);
+          if (extractedData.function) form.setValue('role', extractedData.function);
+        }
+      } else if (fileType.startsWith('image/')) {
+        newFiles.photo = file;
+        // Criar preview da foto
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setPhotoPreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+      } else if (fileType === 'application/pdf' || fileType.startsWith('image/')) {
+        // Certificações
+        newFiles.certifications.push(file);
+      }
     }
+
+    setUploadedFiles(newFiles);
   };
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setPhotoFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const removeFile = (type: 'aso' | 'photo' | 'certification', index?: number) => {
+    const newFiles = { ...uploadedFiles };
+    if (type === 'aso') {
+      delete newFiles.aso;
+    } else if (type === 'photo') {
+      delete newFiles.photo;
+      setPhotoPreview("");
+    } else if (type === 'certification' && index !== undefined) {
+      newFiles.certifications = newFiles.certifications.filter((_, i) => i !== index);
     }
-  };
-
-  const handleCertificationSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setCertificationFiles(prev => [...prev, ...files]);
-  };
-
-  const removeCertification = (index: number) => {
-    setCertificationFiles(prev => prev.filter((_, i) => i !== index));
+    setUploadedFiles(newFiles);
   };
 
   const handleSubmit = async (data: TechnicianFormValues) => {
     setIsLoading(true);
     try {
-      await onSubmit(data, uploadedFile, photoFile, certificationFiles);
+      await onSubmit(data, uploadedFiles.aso || null, uploadedFiles.photo || null, uploadedFiles.certifications);
       form.reset();
-      setUploadedFile(null);
-      setPhotoFile(null);
+      setUploadedFiles({ certifications: [] });
       setPhotoPreview("");
-      setCertificationFiles([]);
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -171,62 +188,85 @@ export const NewTechnicianForm = ({
         {!isEditing && (
           <div className="space-y-4">
             <div>
-              <h3 className="text-lg font-semibold mb-2">📄 Upload do ASO</h3>
-              <DocumentUploadZone
-                onFileSelect={handleFileSelect}
-                isProcessing={isExtracting}
-              />
-            </div>
-            {uploadedFile && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Sparkles className="h-4 w-4 text-primary" />
-                <span>Campos preenchidos automaticamente do ASO</span>
+              <h3 className="text-lg font-semibold mb-2">📁 Upload de Documentos</h3>
+              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+                <Input
+                  type="file"
+                  accept=".pdf,image/*"
+                  multiple
+                  onChange={(e) => handleFilesSelect(e.target.files)}
+                  className="cursor-pointer"
+                />
+                <p className="text-sm text-muted-foreground mt-2">
+                  Arraste ou selecione: ASO (PDF), Foto (JPG/PNG), Certificações (PDF/Imagens)
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  💡 Nomeie o ASO com "aso" no nome para identificação automática
+                </p>
               </div>
-            )}
+            </div>
 
-            <div>
-              <h3 className="text-lg font-semibold mb-2">📷 Foto do Técnico</h3>
-              <div className="flex items-center gap-4">
-                {photoPreview && (
-                  <img 
-                    src={photoPreview} 
-                    alt="Preview" 
-                    className="w-24 h-24 rounded-full object-cover border-2 border-border"
-                  />
-                )}
-                <div className="flex-1">
-                  <Input
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoSelect}
-                    className="cursor-pointer"
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    JPG, PNG ou WEBP até 5MB
-                  </p>
+            {/* Mostrar arquivos carregados */}
+            <div className="space-y-3">
+              {uploadedFiles.aso && (
+                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-green-600" />
+                    <div>
+                      <p className="text-sm font-medium">ASO: {uploadedFiles.aso.name}</p>
+                      <p className="text-xs text-muted-foreground">Dados extraídos automaticamente</p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile('aso')}
+                  >
+                    Remover
+                  </Button>
                 </div>
-              </div>
-            </div>
+              )}
 
-            <div>
-              <h3 className="text-lg font-semibold mb-2">📜 Certificações</h3>
-              <Input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                multiple
-                onChange={handleCertificationSelect}
-                className="cursor-pointer"
-              />
-              {certificationFiles.length > 0 && (
-                <div className="space-y-2 mt-2">
-                  {certificationFiles.map((file, index) => (
+              {uploadedFiles.photo && (
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-3">
+                    {photoPreview && (
+                      <img 
+                        src={photoPreview} 
+                        alt="Preview" 
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium">Foto: {uploadedFiles.photo.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(uploadedFiles.photo.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeFile('photo')}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              )}
+
+              {uploadedFiles.certifications.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold">Certificações ({uploadedFiles.certifications.length})</p>
+                  {uploadedFiles.certifications.map((file, index) => (
                     <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
                       <span className="text-sm truncate">{file.name}</span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={() => removeCertification(index)}
+                        onClick={() => removeFile('certification', index)}
                       >
                         Remover
                       </Button>
@@ -234,9 +274,6 @@ export const NewTechnicianForm = ({
                   ))}
                 </div>
               )}
-              <p className="text-sm text-muted-foreground mt-1">
-                PDF ou imagens até 10MB cada
-              </p>
             </div>
           </div>
         )}
