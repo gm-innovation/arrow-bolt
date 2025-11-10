@@ -15,8 +15,9 @@ import {
 } from "@/components/ui/table";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
 import { Plus, Search, Download, Eye, Pencil, Trash2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, differenceInDays, parseISO } from "date-fns";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { exportToCSV, formatBooleanForExport } from "@/lib/exportUtils";
 import { Input } from "@/components/ui/input";
 import {
@@ -56,6 +57,22 @@ const Technicians = () => {
     fetchTechnicians();
   }, []);
 
+  const getValidityStatus = (expiryDate: string | null) => {
+    if (!expiryDate) return { status: 'unknown', color: 'bg-muted text-muted-foreground', label: 'Sem data' };
+    
+    const today = new Date();
+    const expiry = parseISO(expiryDate);
+    const daysUntilExpiry = differenceInDays(expiry, today);
+    
+    if (daysUntilExpiry < 0) {
+      return { status: 'expired', color: 'bg-destructive text-destructive-foreground', label: 'Vencido' };
+    } else if (daysUntilExpiry <= 30) {
+      return { status: 'expiring', color: 'bg-yellow-500 text-white', label: 'Próximo do vencimento' };
+    } else {
+      return { status: 'valid', color: 'bg-green-500 text-white', label: 'Válido' };
+    }
+  };
+
   const fetchTechnicians = async () => {
     try {
       setLoading(true);
@@ -75,7 +92,8 @@ const Technicians = () => {
             id,
             full_name,
             email,
-            phone
+            phone,
+            avatar_url
           ),
           technician_documents (
             id,
@@ -97,6 +115,7 @@ const Technicians = () => {
         name: tech.profiles?.full_name || "",
         email: tech.profiles?.email || "",
         phone: tech.profiles?.phone || "",
+        avatar_url: tech.profiles?.avatar_url || null,
         role: tech.specialty || "",
         isActive: tech.active,
         userId: tech.profiles?.id,
@@ -587,14 +606,26 @@ const Technicians = () => {
           </DialogHeader>
           {selectedTechnician && (
             <div className="space-y-6">
+              {/* Avatar e Nome */}
+              <div className="flex items-center gap-4">
+                <Avatar className="h-20 w-20">
+                  <AvatarImage src={selectedTechnician.avatar_url || undefined} alt={selectedTechnician.name} />
+                  <AvatarFallback className="text-2xl">
+                    {selectedTechnician.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-2xl font-bold">{selectedTechnician.name}</h3>
+                  <p className="text-muted-foreground">{selectedTechnician.role}</p>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* Dados Pessoais */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Dados Pessoais</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Nome</p>
-                    <p className="text-base">{selectedTechnician.name}</p>
-                  </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Email</p>
                     <p className="text-base">{selectedTechnician.email}</p>
@@ -665,15 +696,22 @@ const Technicians = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Status Médico</p>
-                    <Badge variant={
-                      selectedTechnician.medical_status === 'fit' ? 'default' : 
-                      selectedTechnician.medical_status === 'unfit' ? 'destructive' : 
-                      'secondary'
-                    }>
-                      {selectedTechnician.medical_status === 'fit' ? 'Apto' : 
-                       selectedTechnician.medical_status === 'unfit' ? 'Inapto' : 
-                       'Pendente'}
-                    </Badge>
+                    <div className="flex gap-2">
+                      <Badge variant={
+                        selectedTechnician.medical_status === 'fit' ? 'default' : 
+                        selectedTechnician.medical_status === 'unfit' ? 'destructive' : 
+                        'secondary'
+                      }>
+                        {selectedTechnician.medical_status === 'fit' ? 'Apto' : 
+                         selectedTechnician.medical_status === 'unfit' ? 'Inapto' : 
+                         'Pendente'}
+                      </Badge>
+                      {selectedTechnician.aso_valid_until && (
+                        <Badge className={getValidityStatus(selectedTechnician.aso_valid_until).color}>
+                          {getValidityStatus(selectedTechnician.aso_valid_until).label}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -685,28 +723,36 @@ const Technicians = () => {
                 <h3 className="text-lg font-semibold mb-3">Certificações</h3>
                 {selectedTechnician.documents && selectedTechnician.documents.length > 0 ? (
                   <div className="space-y-3">
-                    {selectedTechnician.documents.map((doc: any) => (
-                      <div key={doc.id} className="border rounded-lg p-4">
-                        <div className="grid grid-cols-3 gap-4">
-                          <div className="col-span-3">
-                            <p className="text-sm font-medium text-muted-foreground">Nome do Certificado</p>
-                            <p className="text-base font-medium">{doc.certificate_name || doc.file_name}</p>
+                    {selectedTechnician.documents.map((doc: any) => {
+                      const validityStatus = getValidityStatus(doc.expiry_date);
+                      return (
+                        <div key={doc.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-muted-foreground">Nome do Certificado</p>
+                              <p className="text-base font-medium">{doc.certificate_name || doc.file_name}</p>
+                            </div>
+                            <Badge className={validityStatus.color}>
+                              {validityStatus.label}
+                            </Badge>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Data de Emissão</p>
-                            <p className="text-base">{doc.issue_date ? format(new Date(doc.issue_date), 'dd/MM/yyyy') : '-'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Data de Validade</p>
-                            <p className="text-base">{doc.expiry_date ? format(new Date(doc.expiry_date), 'dd/MM/yyyy') : '-'}</p>
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-muted-foreground">Tipo</p>
-                            <p className="text-base">{doc.document_type}</p>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Data de Emissão</p>
+                              <p className="text-base">{doc.issue_date ? format(new Date(doc.issue_date), 'dd/MM/yyyy') : '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Data de Validade</p>
+                              <p className="text-base">{doc.expiry_date ? format(new Date(doc.expiry_date), 'dd/MM/yyyy') : '-'}</p>
+                            </div>
+                            <div>
+                              <p className="text-sm font-medium text-muted-foreground">Tipo</p>
+                              <p className="text-base">{doc.document_type}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-muted-foreground">Nenhuma certificação cadastrada</p>
