@@ -107,7 +107,37 @@ const Technicians = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const handleCreateTechnician = async (data: any) => {
+  const generateSecurePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  };
+
+  const uploadTechnicianDocuments = async (
+    file: File, 
+    technicianId: string, 
+    companyId: string
+  ) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${file.name}`;
+    const filePath = `${companyId}/${technicianId}/aso/${fileName}`;
+
+    // Upload to storage
+    const { error: uploadError } = await supabase.storage
+      .from('technician-documents')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    // Save metadata to database
+    await supabase.from('technician_documents').insert({
+      technician_id: technicianId,
+      document_type: 'aso',
+      file_name: file.name,
+      file_path: filePath,
+    });
+  };
+
+  const handleCreateTechnician = async (data: any, uploadedFile: File | null) => {
     try {
       const { data: profileData } = await supabase
         .from("profiles")
@@ -117,49 +147,89 @@ const Technicians = () => {
 
       if (!profileData?.company_id) throw new Error("Company not found");
 
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: Math.random().toString(36).slice(-8) + "Aa1!",
-        options: {
-          data: {
-            full_name: data.name,
-          },
-        },
+      // Gerar senha baseado na opção escolhida
+      let password = '';
+      if (data.password_option === 'auto_email') {
+        password = generateSecurePassword();
+      } else if (data.password_option === 'manual') {
+        password = data.password;
+      } else {
+        // reset_link: gera senha temporária
+        password = generateSecurePassword();
+      }
+
+      // Criar usuário via edge function
+      const { data: createUserResult, error: createUserError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: data.email,
+          password: password,
+          full_name: data.name,
+          phone: data.phone || null,
+          company_id: profileData.company_id,
+          role: 'tech' // será convertido para 'technician' na edge function
+        }
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error("Failed to create user");
+      if (createUserError) throw createUserError;
+      if (!createUserResult?.user_id) throw new Error('Falha ao criar usuário');
 
-      // Update profile
-      await supabase.from("profiles").update({
-        full_name: data.name,
-        phone: data.phone,
-        company_id: profileData.company_id,
-      }).eq("id", authData.user.id);
+      // Buscar o technician_id criado
+      const { data: technicianData, error: techError } = await supabase
+        .from('technicians')
+        .select('id')
+        .eq('user_id', createUserResult.user_id)
+        .single();
 
-      // Create technician
-      await supabase.from("technicians").insert({
-        user_id: authData.user.id,
-        company_id: profileData.company_id,
+      if (techError) throw techError;
+
+      // Atualizar registro do técnico com dados do ASO
+      const { error: updateError } = await supabase.from("technicians").update({
         specialty: data.role,
-        active: data.isActive,
-      });
+        cpf: data.cpf || null,
+        rg: data.rg || null,
+        birth_date: data.birth_date || null,
+        gender: data.gender || null,
+        nationality: data.nationality || null,
+        height: data.height ? parseInt(data.height) : null,
+        blood_type: data.blood_type || null,
+        blood_rh_factor: data.blood_rh_factor || null,
+        aso_valid_until: data.aso_valid_until || null,
+        medical_status: data.medical_status || 'pending',
+      }).eq('user_id', createUserResult.user_id);
 
-      // Create role
-      await supabase.from("user_roles").insert({
-        user_id: authData.user.id,
-        role: "technician",
-      });
+      if (updateError) throw updateError;
+
+      // Upload de documentos se houver
+      if (uploadedFile && technicianData) {
+        await uploadTechnicianDocuments(
+          uploadedFile, 
+          technicianData.id, 
+          profileData.company_id
+        );
+      }
+
+      // Enviar email com senha ou link de reset
+      if (data.password_option === 'reset_link') {
+        await supabase.auth.resetPasswordForEmail(data.email, {
+          redirectTo: `${window.location.origin}/login`,
+        });
+      }
 
       setIsNewTechnicianOpen(false);
       fetchTechnicians();
       
+      const passwordMessage = data.password_option === 'auto_email' 
+        ? `Senha gerada: ${password}. Informe ao técnico.`
+        : data.password_option === 'reset_link'
+        ? 'Link de redefinição de senha enviado para o email.'
+        : 'Senha definida com sucesso.';
+
       toast({
-        title: "Técnico criado",
-        description: `${data.name} foi adicionado com sucesso.`,
+        title: "Técnico criado com sucesso",
+        description: `${data.name} foi adicionado. ${passwordMessage}`,
       });
     } catch (error: any) {
+      console.error('Error creating technician:', error);
       toast({
         title: "Erro ao criar técnico",
         description: error.message,
