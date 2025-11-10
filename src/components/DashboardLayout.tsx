@@ -22,6 +22,7 @@ import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { NotificationBell } from "@/components/super-admin/NotificationBell";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -278,13 +279,17 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
               </h1>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <Bell className="h-5 w-5" />
-              </Button>
+              {userType === "super-admin" ? (
+                <NotificationBell />
+              ) : (
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <Bell className="h-5 w-5" />
+                </Button>
+              )}
               <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium">
                 {userType === "super-admin" ? "SA" : userType === "admin" ? "A" : "T"}
               </div>
