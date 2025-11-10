@@ -18,13 +18,17 @@ const Login = () => {
   const { signIn, user, userRole } = useAuth();
 
   useEffect(() => {
-    if (user && userRole) {
+    if (user) {
       if (userRole === 'super_admin') {
         navigate("/super-admin/dashboard");
       } else if (userRole === 'admin') {
         navigate("/admin/dashboard");
       } else if (userRole === 'technician') {
         navigate("/tech/dashboard");
+      } else if (userRole === null) {
+        // Usuário sem role atribuído - exibir erro
+        setError("Usuário sem permissões. Contate o administrador.");
+        setLoading(false);
       }
     }
   }, [user, userRole, navigate]);
