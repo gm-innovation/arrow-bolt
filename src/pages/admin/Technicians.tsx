@@ -137,7 +137,7 @@ const Technicians = () => {
     });
   };
 
-  const handleCreateTechnician = async (data: any, uploadedFile: File | null, photoFile: File | null, certificationFiles: File[]) => {
+  const handleCreateTechnician = async (data: any, uploadedFile: File | null, photoFile: File | null, certificationFiles: Array<{ file: File; name?: string; issueDate?: string; expiryDate?: string; }>) => {
     try {
       const { data: profileData } = await supabase
         .from("profiles")
@@ -231,20 +231,23 @@ const Technicians = () => {
 
       // Upload das certificações
       if (certificationFiles.length > 0 && technicianData) {
-        for (const certFile of certificationFiles) {
-          const certExt = certFile.name.split('.').pop();
-          const certPath = `${createUserResult.user_id}/certifications/${Date.now()}-${certFile.name}`;
+        for (const cert of certificationFiles) {
+          const certExt = cert.file.name.split('.').pop();
+          const certPath = `${createUserResult.user_id}/certifications/${Date.now()}-${cert.file.name}`;
           
           const { error: certError } = await supabase.storage
             .from('technician-documents')
-            .upload(certPath, certFile);
+            .upload(certPath, cert.file);
           
           if (!certError) {
             await supabase.from('technician_documents').insert({
               technician_id: technicianData.id,
               document_type: 'certification',
-              file_name: certFile.name,
+              file_name: cert.file.name,
               file_path: certPath,
+              certificate_name: cert.name,
+              issue_date: cert.issueDate,
+              expiry_date: cert.expiryDate,
             });
           }
         }

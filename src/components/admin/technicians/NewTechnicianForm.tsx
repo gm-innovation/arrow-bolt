@@ -12,8 +12,9 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DocumentUploadZone } from "./DocumentUploadZone";
 import { useDocumentExtraction } from "@/hooks/useDocumentExtraction";
-import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { Eye, EyeOff, Sparkles, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const technicianFormSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200),
@@ -53,7 +54,12 @@ const technicianFormSchema = z.object({
 type TechnicianFormValues = z.infer<typeof technicianFormSchema>;
 
 interface NewTechnicianFormProps {
-  onSubmit: (data: TechnicianFormValues, uploadedFile: File | null, photoFile: File | null, certificationFiles: File[]) => Promise<void>;
+  onSubmit: (data: TechnicianFormValues, uploadedFile: File | null, photoFile: File | null, certificationFiles: Array<{
+    file: File;
+    name?: string;
+    issueDate?: string;
+    expiryDate?: string;
+  }>) => Promise<void>;
   onCancel: () => void;
   initialData?: Partial<TechnicianFormValues>;
   isEditing?: boolean;
@@ -70,9 +76,16 @@ export const NewTechnicianForm = ({
   const [uploadedFiles, setUploadedFiles] = useState<{
     aso?: File;
     photo?: File;
-    certifications: File[];
+    certifications: Array<{
+      file: File;
+      name?: string;
+      issueDate?: string;
+      expiryDate?: string;
+      isValid?: boolean;
+    }>;
   }>({ certifications: [] });
   const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [isProcessing, setIsProcessing] = useState(false);
   const { extractFromPDF, isExtracting } = useDocumentExtraction();
   const { toast } = useToast();
 
@@ -99,13 +112,68 @@ export const NewTechnicianForm = ({
     },
   });
 
+  const processCertificate = async (file: File) => {
+    try {
+      // Convert file to image if PDF
+      let imageBase64: string;
+      
+      if (file.type === 'application/pdf') {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfjsLib = await import('pdfjs-dist');
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const page = await pdf.getPage(1);
+        
+        const viewport = page.getViewport({ scale: 2.0 });
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        if (!context) throw new Error('Could not get canvas context');
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({ canvasContext: context, viewport, canvas }).promise;
+        imageBase64 = canvas.toDataURL('image/png').split(',')[1];
+      } else {
+        // Already an image
+        const reader = new FileReader();
+        const base64 = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+          reader.readAsDataURL(file);
+        });
+        imageBase64 = base64;
+      }
+
+      const { data, error } = await supabase.functions.invoke('extract-certificate-data', {
+        body: { 
+          fileBase64: imageBase64,
+          fileName: file.name 
+        }
+      });
+
+      if (error) throw error;
+      
+      return data?.data || {};
+    } catch (error) {
+      console.error('Certificate extraction error:', error);
+      return {};
+    }
+  };
+
   const handleFilesSelect = async (files: FileList | null) => {
     if (!files) return;
 
+    setIsProcessing(true);
     const fileArray = Array.from(files);
     const newFiles = { ...uploadedFiles };
     let asoPdf: File | null = null;
-    const certifications: File[] = [];
+    const certifications: Array<{
+      file: File;
+      name?: string;
+      issueDate?: string;
+      expiryDate?: string;
+      isValid?: boolean;
+    }> = [];
 
     // Primeiro, separar arquivos por tipo
     for (const file of fileArray) {
@@ -122,14 +190,30 @@ export const NewTechnicianForm = ({
           };
           reader.readAsDataURL(file);
         } else {
-          certifications.push(file);
+          // Processar como certificação
+          const certData = await processCertificate(file);
+          certifications.push({
+            file,
+            name: certData.certificate_name,
+            issueDate: certData.issue_date,
+            expiryDate: certData.expiry_date,
+            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
+          });
         }
       } else if (fileType === 'application/pdf') {
         // PDF com "aso" no nome OU primeiro PDF = ASO
         if (fileName.includes('aso') || (!asoPdf && !newFiles.aso)) {
           asoPdf = file;
         } else {
-          certifications.push(file);
+          // Processar como certificação
+          const certData = await processCertificate(file);
+          certifications.push({
+            file,
+            name: certData.certificate_name,
+            issueDate: certData.issue_date,
+            expiryDate: certData.expiry_date,
+            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
+          });
         }
       }
     }
@@ -158,6 +242,7 @@ export const NewTechnicianForm = ({
     newFiles.certifications = [...newFiles.certifications, ...certifications];
 
     setUploadedFiles(newFiles);
+    setIsProcessing(false);
   };
 
   const removeFile = (type: 'aso' | 'photo' | 'certification', index?: number) => {
@@ -274,9 +359,38 @@ export const NewTechnicianForm = ({
               {uploadedFiles.certifications.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-semibold">Certificações ({uploadedFiles.certifications.length})</p>
-                  {uploadedFiles.certifications.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
-                      <span className="text-sm truncate">{file.name}</span>
+                  {uploadedFiles.certifications.map((cert, index) => (
+                    <div 
+                      key={index} 
+                      className={`flex items-center justify-between p-3 rounded border ${
+                        cert.isValid === true 
+                          ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
+                          : cert.isValid === false 
+                          ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                          : 'bg-muted'
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          {cert.isValid === true && <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
+                          {cert.isValid === false && <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">
+                              {cert.name || cert.file.name}
+                            </p>
+                            {(cert.issueDate || cert.expiryDate) && (
+                              <div className="text-xs text-muted-foreground space-y-0.5">
+                                {cert.issueDate && (
+                                  <p>Emissão: {new Date(cert.issueDate).toLocaleDateString('pt-BR')}</p>
+                                )}
+                                {cert.expiryDate && (
+                                  <p>Validade: {new Date(cert.expiryDate).toLocaleDateString('pt-BR')}</p>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
@@ -287,6 +401,13 @@ export const NewTechnicianForm = ({
                       </Button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {isProcessing && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Processando documentos...</span>
                 </div>
               )}
             </div>
