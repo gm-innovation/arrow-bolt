@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CompanyInfoForm } from "./CompanyInfoForm";
+import { ContactsForm } from "./ContactsForm";
 import { VesselsForm } from "./VesselsForm";
 import { Button } from "@/components/ui/button";
 
@@ -37,8 +38,11 @@ export const NewClientForm = ({ clientData, onSuccess }: NewClientFormProps) => 
   return (
     <div className="space-y-4">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="company">Informações da Empresa</TabsTrigger>
+          <TabsTrigger value="contacts" disabled={!clientId && !clientData}>
+            Contatos
+          </TabsTrigger>
           <TabsTrigger value="vessels" disabled={!clientId && !clientData}>
             Embarcações
           </TabsTrigger>
@@ -48,6 +52,9 @@ export const NewClientForm = ({ clientData, onSuccess }: NewClientFormProps) => 
             clientData={clientData} 
             onSuccess={handleCompanySuccess}
           />
+        </TabsContent>
+        <TabsContent value="contacts">
+          <ContactsForm />
         </TabsContent>
         <TabsContent value="vessels">
           {(clientId || clientData?.id) && (
