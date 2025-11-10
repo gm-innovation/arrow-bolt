@@ -102,7 +102,8 @@ const Technicians = () => {
             issue_date,
             expiry_date,
             document_type,
-            file_path
+            file_path,
+            metadata
           )
         `)
         .eq("company_id", profileData.company_id)
@@ -915,31 +916,114 @@ const Technicians = () => {
               {/* Dados do ASO */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Atestado de Saúde Ocupacional (ASO)</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Validade do ASO</p>
-                    <p className="text-base">{selectedTechnician.aso_valid_until ? format(new Date(selectedTechnician.aso_valid_until), 'dd/MM/yyyy') : '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Status Médico</p>
-                    <div className="flex gap-2">
-                      <Badge variant={
-                        selectedTechnician.medical_status === 'fit' ? 'default' : 
-                        selectedTechnician.medical_status === 'unfit' ? 'destructive' : 
-                        'secondary'
-                      }>
-                        {selectedTechnician.medical_status === 'fit' ? 'Apto' : 
-                         selectedTechnician.medical_status === 'unfit' ? 'Inapto' : 
-                         'Pendente'}
-                      </Badge>
-                      {selectedTechnician.aso_valid_until && (
-                        <Badge className={getValidityStatus(selectedTechnician.aso_valid_until).color}>
-                          {getValidityStatus(selectedTechnician.aso_valid_until).label}
-                        </Badge>
+                {(() => {
+                  const asoDoc = selectedTechnician.documents?.find((doc: any) => doc.document_type === 'aso');
+                  const asoMetadata = asoDoc?.metadata;
+                  
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Validade do ASO</p>
+                          <p className="text-base">{selectedTechnician.aso_valid_until ? format(new Date(selectedTechnician.aso_valid_until), 'dd/MM/yyyy') : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Status Médico</p>
+                          <div className="flex gap-2">
+                            <Badge variant={
+                              selectedTechnician.medical_status === 'fit' ? 'default' : 
+                              selectedTechnician.medical_status === 'unfit' ? 'destructive' : 
+                              'secondary'
+                            }>
+                              {selectedTechnician.medical_status === 'fit' ? 'Apto' : 
+                               selectedTechnician.medical_status === 'unfit' ? 'Inapto' : 
+                               'Pendente'}
+                            </Badge>
+                            {selectedTechnician.aso_valid_until && (
+                              <Badge className={getValidityStatus(selectedTechnician.aso_valid_until).color}>
+                                {getValidityStatus(selectedTechnician.aso_valid_until).label}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {asoMetadata && (
+                        <div className="border rounded-lg p-4 bg-muted/30">
+                          <p className="text-sm font-semibold mb-3">Dados Extraídos do ASO</p>
+                          <div className="grid grid-cols-2 gap-4">
+                            {asoMetadata.nome && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">Nome</p>
+                                <p className="text-sm">{asoMetadata.nome}</p>
+                              </div>
+                            )}
+                            {asoMetadata.cpf && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">CPF</p>
+                                <p className="text-sm">{asoMetadata.cpf}</p>
+                              </div>
+                            )}
+                            {asoMetadata.rg && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">RG</p>
+                                <p className="text-sm">{asoMetadata.rg}</p>
+                              </div>
+                            )}
+                            {asoMetadata.data_nascimento && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">Data de Nascimento (ASO)</p>
+                                <p className="text-sm">{format(new Date(asoMetadata.data_nascimento), 'dd/MM/yyyy')}</p>
+                              </div>
+                            )}
+                            {asoMetadata.exame_clinico && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">Exame Clínico</p>
+                                <p className="text-sm">{format(new Date(asoMetadata.exame_clinico), 'dd/MM/yyyy')}</p>
+                              </div>
+                            )}
+                            {asoMetadata.validade && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">Validade (ASO)</p>
+                                <p className="text-sm">{format(new Date(asoMetadata.validade), 'dd/MM/yyyy')}</p>
+                              </div>
+                            )}
+                            {asoMetadata.funcao && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">Função</p>
+                                <p className="text-sm">{asoMetadata.funcao}</p>
+                              </div>
+                            )}
+                            {asoMetadata.tipo_exame && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">Tipo de Exame</p>
+                                <p className="text-sm">{asoMetadata.tipo_exame}</p>
+                              </div>
+                            )}
+                            {asoMetadata.empresa && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">Empresa (ASO)</p>
+                                <p className="text-sm">{asoMetadata.empresa}</p>
+                              </div>
+                            )}
+                            {asoMetadata.medico && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">Médico Responsável</p>
+                                <p className="text-sm">{asoMetadata.medico}</p>
+                              </div>
+                            )}
+                            {asoMetadata.crm && (
+                              <div>
+                                <p className="text-xs font-medium text-muted-foreground">CRM</p>
+                                <p className="text-sm">{asoMetadata.crm}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
-                  </div>
-                </div>
+                  );
+                })()}
               </div>
 
               <Separator />
