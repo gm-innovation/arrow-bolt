@@ -10,9 +10,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Bell, Smartphone, Palette, Shield } from "lucide-react";
+import { Bell, Smartphone, Palette, Shield, Loader2 } from "lucide-react";
+import { useSystemSettings } from "@/hooks/useSystemSettings";
 
 const Settings = () => {
+  const { settings, isLoading, updateSetting, exportAuditLogs } = useSystemSettings();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
   return (
     <div className="space-y-6">
       <div>
@@ -33,11 +43,23 @@ const Settings = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="notifications">Notificações do Sistema</Label>
-              <Switch id="notifications" />
+              <Switch 
+                id="notifications" 
+                checked={settings.notifications_enabled?.enabled || false}
+                onCheckedChange={(checked) => 
+                  updateSetting({ key: 'notifications_enabled', value: { enabled: checked } })
+                }
+              />
             </div>
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="email-notifications">Notificações por Email</Label>
-              <Switch id="email-notifications" />
+              <Switch 
+                id="email-notifications" 
+                checked={settings.email_notifications_enabled?.enabled || false}
+                onCheckedChange={(checked) => 
+                  updateSetting({ key: 'email_notifications_enabled', value: { enabled: checked } })
+                }
+              />
             </div>
           </CardContent>
         </Card>
@@ -52,11 +74,23 @@ const Settings = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>API Key WhatsApp</Label>
-              <Input type="password" placeholder="Digite a API key" />
+              <Input 
+                type="password" 
+                placeholder="Digite a API key"
+                value={settings.whatsapp_api_key?.key || ''}
+                onChange={(e) => 
+                  updateSetting({ key: 'whatsapp_api_key', value: { key: e.target.value } })
+                }
+              />
             </div>
             <div className="space-y-2">
               <Label>Horário de Envio</Label>
-              <Select>
+              <Select 
+                value={settings.whatsapp_schedule?.schedule || 'anytime'}
+                onValueChange={(value) => 
+                  updateSetting({ key: 'whatsapp_schedule', value: { schedule: value } })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o horário" />
                 </SelectTrigger>
@@ -80,7 +114,12 @@ const Settings = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label>Tema do Sistema</Label>
-              <Select>
+              <Select 
+                value={settings.theme?.theme || 'system'}
+                onValueChange={(value) => 
+                  updateSetting({ key: 'theme', value: { theme: value } })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o tema" />
                 </SelectTrigger>
@@ -93,7 +132,12 @@ const Settings = () => {
             </div>
             <div className="space-y-2">
               <Label>Cor Principal</Label>
-              <Select>
+              <Select 
+                value={settings.primary_color?.color || 'blue'}
+                onValueChange={(value) => 
+                  updateSetting({ key: 'primary_color', value: { color: value } })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a cor" />
                 </SelectTrigger>
@@ -117,11 +161,22 @@ const Settings = () => {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="audit-logs">Registrar Logs de Auditoria</Label>
-              <Switch id="audit-logs" />
+              <Switch 
+                id="audit-logs" 
+                checked={settings.audit_logs_enabled?.enabled || false}
+                onCheckedChange={(checked) => 
+                  updateSetting({ key: 'audit_logs_enabled', value: { enabled: checked } })
+                }
+              />
             </div>
             <div className="space-y-2">
               <Label>Período de Retenção</Label>
-              <Select>
+              <Select 
+                value={settings.audit_retention_period?.days?.toString() || '90'}
+                onValueChange={(value) => 
+                  updateSetting({ key: 'audit_retention_period', value: { days: parseInt(value) } })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o período" />
                 </SelectTrigger>
@@ -132,7 +187,7 @@ const Settings = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="w-full" onClick={exportAuditLogs}>
               Exportar Logs
             </Button>
           </CardContent>

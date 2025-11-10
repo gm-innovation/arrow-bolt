@@ -18,9 +18,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Eye, Download, CheckSquare, XOctagon, Filter } from "lucide-react";
+import { Eye, Download, CheckSquare, XOctagon, Filter, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useSuperAdminReports } from "@/hooks/useSuperAdminReports";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   DropdownMenu,
@@ -37,24 +49,6 @@ import {
   SheetClose,
 } from "@/components/ui/sheet";
 
-// Mock data - replace with real data when backend is integrated
-const mockReports = [
-  {
-    id: "OS001",
-    vesselName: "Navio Alpha",
-    date: new Date("2024-03-15"),
-    technician: "João Silva",
-    status: "pending",
-  },
-  {
-    id: "OS002",
-    vesselName: "Navio Beta",
-    date: new Date("2024-03-16"),
-    technician: "Maria Santos",
-    status: "approved",
-  },
-];
-
 const Reports = () => {
   const { toast } = useToast();
   const [vesselFilter, setVesselFilter] = useState("");
@@ -62,7 +56,17 @@ const Reports = () => {
   const [statusFilter, setStatusFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState("");
   const isMobile = useIsMobile();
+
+  const { reports, isLoading, approveReport, rejectReport, downloadReport } = useSuperAdminReports({
+    searchTerm,
+    vesselFilter,
+    dateFilter,
+    statusFilter,
+  });
 
   const handleViewReport = (reportId: string) => {
     toast({
@@ -73,28 +77,40 @@ const Reports = () => {
   };
 
   const handleRejectReport = (reportId: string) => {
-    toast({
-      title: "Recusar Relatório",
-      description: `Relatório ${reportId} recusado`,
-      duration: 3000,
-    });
+    setSelectedReportId(reportId);
+    setRejectDialogOpen(true);
   };
 
-  const handleDownloadReport = (reportId: string) => {
-    toast({
-      title: "Baixar Relatório",
-      description: `Baixando relatório ${reportId}`,
-      duration: 3000,
-    });
+  const confirmRejectReport = () => {
+    if (selectedReportId && rejectionReason.trim()) {
+      rejectReport({ reportId: selectedReportId, reason: rejectionReason });
+      setRejectDialogOpen(false);
+      setRejectionReason("");
+      setSelectedReportId(null);
+    } else {
+      toast({
+        title: "Erro",
+        description: "Por favor, insira um motivo para a recusa",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadReport = (pdfPath: string, reportId: string) => {
+    downloadReport(pdfPath, reportId);
   };
 
   const handleApproveReport = (reportId: string) => {
-    toast({
-      title: "Aprovar Relatório",
-      description: `Relatório ${reportId} aprovado`,
-      duration: 3000,
-    });
+    approveReport(reportId);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const renderStatusBadge = (status: string) => {
     if (status === "pending") {
@@ -106,22 +122,23 @@ const Reports = () => {
     }
   };
 
-  const renderMobileCard = (report: typeof mockReports[0]) => (
+  const renderMobileCard = (report: any) => (
     <Card key={report.id} className="mb-4">
       <CardContent className="pt-6">
         <div className="flex justify-between items-start">
           <div>
-            <div className="font-semibold">{report.id}</div>
-            <div className="text-sm text-gray-500">{report.vesselName}</div>
+            <div className="font-semibold">{report.orderNumber}</div>
+            <div className="text-sm text-muted-foreground">{report.vesselName}</div>
+            <div className="text-xs text-muted-foreground">{report.companyName}</div>
           </div>
           {renderStatusBadge(report.status)}
         </div>
         
         <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-          <div className="text-gray-500">Técnico:</div>
+          <div className="text-muted-foreground">Técnico:</div>
           <div>{report.technician}</div>
           
-          <div className="text-gray-500">Data:</div>
+          <div className="text-muted-foreground">Data:</div>
           <div>{report.date.toLocaleDateString()}</div>
         </div>
         
@@ -138,7 +155,7 @@ const Reports = () => {
             variant="outline"
             size="sm"
             className="h-8 px-2"
-            onClick={() => handleDownloadReport(report.id)}
+            onClick={() => handleDownloadReport(report.pdfPath, report.id)}
           >
             <Download className="h-4 w-4" />
           </Button>
@@ -293,7 +310,7 @@ const Reports = () => {
     </Card>
   );
 
-  const renderMobileActionMenu = (report: typeof mockReports[0]) => (
+  const renderMobileActionMenu = (report: any) => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm">
@@ -305,7 +322,7 @@ const Reports = () => {
           <Eye className="mr-2 h-4 w-4" />
           <span>Visualizar</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleDownloadReport(report.id)}>
+        <DropdownMenuItem onClick={() => handleDownloadReport(report.pdfPath, report.id)}>
           <Download className="mr-2 h-4 w-4" />
           <span>Baixar</span>
         </DropdownMenuItem>
@@ -342,7 +359,7 @@ const Reports = () => {
       {/* Mobile view - cards */}
       {isMobile && (
         <div className="mt-4">
-          {mockReports.map(report => renderMobileCard(report))}
+          {reports.map(report => renderMobileCard(report))}
         </div>
       )}
 
@@ -354,6 +371,7 @@ const Reports = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>OS</TableHead>
+                  <TableHead>Empresa</TableHead>
                   <TableHead>Embarcação</TableHead>
                   <TableHead>Data</TableHead>
                   <TableHead>Técnico</TableHead>
@@ -362,9 +380,10 @@ const Reports = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockReports.map((report) => (
+                {reports.map((report) => (
                   <TableRow key={report.id}>
-                    <TableCell className="font-medium">{report.id}</TableCell>
+                    <TableCell className="font-medium">{report.orderNumber}</TableCell>
+                    <TableCell>{report.companyName}</TableCell>
                     <TableCell>{report.vesselName}</TableCell>
                     <TableCell>
                       {report.date.toLocaleDateString()}
@@ -384,7 +403,7 @@ const Reports = () => {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => handleDownloadReport(report.id)}
+                        onClick={() => handleDownloadReport(report.pdfPath, report.id)}
                       >
                         <Download className="h-4 w-4" />
                       </Button>
@@ -416,6 +435,35 @@ const Reports = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Reject Dialog */}
+      <AlertDialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Recusar Relatório</AlertDialogTitle>
+            <AlertDialogDescription>
+              Por favor, informe o motivo da recusa do relatório.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="Digite o motivo da recusa..."
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            className="min-h-[100px]"
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setRejectionReason("");
+              setSelectedReportId(null);
+            }}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRejectReport}>
+              Confirmar Recusa
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
