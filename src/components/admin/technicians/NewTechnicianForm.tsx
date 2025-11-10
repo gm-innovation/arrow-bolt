@@ -114,12 +114,17 @@ export const NewTechnicianForm = ({
 
   const processCertificate = async (file: File) => {
     try {
+      console.log('Processing certificate:', file.name);
+      
       // Convert file to image if PDF
       let imageBase64: string;
       
       if (file.type === 'application/pdf') {
-        const arrayBuffer = await file.arrayBuffer();
         const pdfjsLib = await import('pdfjs-dist');
+        const pdfjsWorker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker.default;
+        
+        const arrayBuffer = await file.arrayBuffer();
         const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
         const page = await pdf.getPage(1);
         
@@ -136,14 +141,16 @@ export const NewTechnicianForm = ({
         imageBase64 = canvas.toDataURL('image/png').split(',')[1];
       } else {
         // Already an image
-        const reader = new FileReader();
-        const base64 = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve((reader.result as string).split(',')[1]);
+        const base64String = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
           reader.readAsDataURL(file);
         });
-        imageBase64 = base64;
+        imageBase64 = base64String.split(',')[1];
       }
 
+      console.log('Calling extract-certificate-data function');
       const { data, error } = await supabase.functions.invoke('extract-certificate-data', {
         body: { 
           fileBase64: imageBase64,
@@ -151,8 +158,12 @@ export const NewTechnicianForm = ({
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Certificate extraction error:', error);
+        return {};
+      }
       
+      console.log('Certificate data extracted:', data);
       return data?.data || {};
     } catch (error) {
       console.error('Certificate extraction error:', error);
@@ -329,30 +340,35 @@ export const NewTechnicianForm = ({
               )}
 
               {uploadedFiles.photo && (
-                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-3">
-                    {photoPreview && (
-                      <img 
-                        src={photoPreview} 
-                        alt="Preview" 
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    )}
-                    <div>
-                      <p className="text-sm font-medium">Foto: {uploadedFiles.photo.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {(uploadedFiles.photo.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
+                <div>
+                  <p className="text-sm font-semibold mb-2">📷 Foto do Técnico</p>
+                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
+                    <div className="flex items-center gap-4">
+                      {photoPreview && (
+                        <div className="relative">
+                          <img 
+                            src={photoPreview} 
+                            alt="Preview" 
+                            className="w-20 h-20 rounded-full object-cover border-4 border-blue-400"
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">{uploadedFiles.photo.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(uploadedFiles.photo.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
                     </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeFile('photo')}
+                    >
+                      Remover
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile('photo')}
-                  >
-                    Remover
-                  </Button>
                 </div>
               )}
 
