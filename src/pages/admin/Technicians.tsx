@@ -250,41 +250,107 @@ const Technicians = () => {
 
       // Upload da foto se fornecida
       if (photoFile) {
-        console.log('Uploading photo for user:', createUserResult.user_id);
-        const photoExt = photoFile.name.split('.').pop();
-        const timestamp = Date.now();
-        const photoPath = `avatars/${createUserResult.user_id}-${timestamp}.${photoExt}`;
+        console.log('📸 Iniciando upload da foto...');
+        console.log('- User ID:', createUserResult.user_id);
+        console.log('- Arquivo:', photoFile.name);
+        console.log('- Tamanho:', (photoFile.size / 1024).toFixed(2), 'KB');
+        console.log('- Tipo:', photoFile.type);
         
-        console.log('Photo path:', photoPath);
-        
-        const { data: uploadData, error: photoError } = await supabase.storage
-          .from('technician-documents')
-          .upload(photoPath, photoFile, { 
-            upsert: true,
-            contentType: photoFile.type 
-          });
-        
-        if (photoError) {
-          console.error('Photo upload error:', photoError);
-        } else {
-          console.log('Photo uploaded successfully:', uploadData);
+        try {
+          // Validar arquivo
+          if (!photoFile.type.startsWith('image/')) {
+            throw new Error('Arquivo deve ser uma imagem');
+          }
           
+          if (photoFile.size > 5 * 1024 * 1024) {
+            throw new Error('Imagem muito grande (máx 5MB)');
+          }
+          
+          const photoExt = photoFile.name.split('.').pop();
+          const timestamp = Date.now();
+          const photoPath = `avatars/${createUserResult.user_id}-${timestamp}.${photoExt}`;
+          
+          console.log('- Caminho de upload:', photoPath);
+          
+          // Fazer upload com retry
+          let uploadSuccess = false;
+          let uploadData = null;
+          let lastError = null;
+          
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            console.log(`Tentativa ${attempt} de upload...`);
+            
+            const { data, error } = await supabase.storage
+              .from('technician-documents')
+              .upload(photoPath, photoFile, { 
+                upsert: true,
+                contentType: photoFile.type,
+                cacheControl: '3600'
+              });
+            
+            if (error) {
+              console.error(`Erro na tentativa ${attempt}:`, error);
+              lastError = error;
+              if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              uploadData = data;
+              uploadSuccess = true;
+              console.log('✅ Upload bem-sucedido!', data);
+              break;
+            }
+          }
+          
+          if (!uploadSuccess) {
+            throw lastError || new Error('Falha no upload da foto');
+          }
+          
+          // Obter URL pública
           const { data: { publicUrl } } = supabase.storage
             .from('technician-documents')
             .getPublicUrl(photoPath);
           
-          console.log('Generated public URL:', publicUrl);
+          console.log('📎 URL pública gerada:', publicUrl);
           
-          // Atualizar avatar no perfil
-          const { error: updateAvatarError } = await supabase.from('profiles')
+          // Atualizar avatar no perfil com verificação
+          console.log('💾 Salvando URL no perfil...');
+          const { data: updateData, error: updateAvatarError } = await supabase
+            .from('profiles')
             .update({ avatar_url: publicUrl })
-            .eq('id', createUserResult.user_id);
+            .eq('id', createUserResult.user_id)
+            .select();
           
           if (updateAvatarError) {
-            console.error('Avatar update error:', updateAvatarError);
-          } else {
-            console.log('Avatar URL saved to profile successfully');
+            console.error('❌ Erro ao atualizar avatar:', updateAvatarError);
+            throw updateAvatarError;
           }
+          
+          console.log('✅ Avatar salvo com sucesso!', updateData);
+          
+          // Verificar se realmente foi salvo
+          const { data: verifyData, error: verifyError } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', createUserResult.user_id)
+            .single();
+          
+          if (verifyError) {
+            console.error('❌ Erro ao verificar avatar:', verifyError);
+          } else {
+            console.log('🔍 Verificação - Avatar no banco:', verifyData.avatar_url);
+            if (verifyData.avatar_url === publicUrl) {
+              console.log('✅ CONFIRMADO: Avatar salvo corretamente!');
+            } else {
+              console.error('⚠️ AVISO: Avatar URL não corresponde!');
+            }
+          }
+          
+        } catch (photoError) {
+          console.error('❌ Erro crítico no processo de foto:', photoError);
+          toast({
+            title: "Aviso",
+            description: "Técnico criado, mas houve erro ao salvar a foto. Tente fazer upload novamente na edição.",
+            variant: "destructive",
+          });
         }
       }
 
@@ -405,40 +471,107 @@ const Technicians = () => {
 
       // Upload nova foto se fornecida
       if (photoFile) {
-        console.log('Uploading new photo for user:', selectedTechnician.user_id);
-        const photoExt = photoFile.name.split('.').pop();
-        const timestamp = Date.now();
-        const photoPath = `avatars/${selectedTechnician.user_id}-${timestamp}.${photoExt}`;
+        console.log('📸 Atualizando foto do técnico...');
+        console.log('- User ID:', selectedTechnician.user_id);
+        console.log('- Arquivo:', photoFile.name);
+        console.log('- Tamanho:', (photoFile.size / 1024).toFixed(2), 'KB');
+        console.log('- Tipo:', photoFile.type);
         
-        console.log('Photo path:', photoPath);
-        
-        const { data: uploadData, error: photoError } = await supabase.storage
-          .from('technician-documents')
-          .upload(photoPath, photoFile, { 
-            upsert: true,
-            contentType: photoFile.type 
-          });
-        
-        if (photoError) {
-          console.error('Photo upload error:', photoError);
-        } else {
-          console.log('Photo uploaded successfully:', uploadData);
+        try {
+          // Validar arquivo
+          if (!photoFile.type.startsWith('image/')) {
+            throw new Error('Arquivo deve ser uma imagem');
+          }
           
+          if (photoFile.size > 5 * 1024 * 1024) {
+            throw new Error('Imagem muito grande (máx 5MB)');
+          }
+          
+          const photoExt = photoFile.name.split('.').pop();
+          const timestamp = Date.now();
+          const photoPath = `avatars/${selectedTechnician.user_id}-${timestamp}.${photoExt}`;
+          
+          console.log('- Caminho de upload:', photoPath);
+          
+          // Fazer upload com retry
+          let uploadSuccess = false;
+          let uploadData = null;
+          let lastError = null;
+          
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            console.log(`Tentativa ${attempt} de upload...`);
+            
+            const { data, error } = await supabase.storage
+              .from('technician-documents')
+              .upload(photoPath, photoFile, { 
+                upsert: true,
+                contentType: photoFile.type,
+                cacheControl: '3600'
+              });
+            
+            if (error) {
+              console.error(`Erro na tentativa ${attempt}:`, error);
+              lastError = error;
+              if (attempt < 3) await new Promise(resolve => setTimeout(resolve, 1000));
+            } else {
+              uploadData = data;
+              uploadSuccess = true;
+              console.log('✅ Upload bem-sucedido!', data);
+              break;
+            }
+          }
+          
+          if (!uploadSuccess) {
+            throw lastError || new Error('Falha no upload da foto');
+          }
+          
+          // Obter URL pública
           const { data: { publicUrl } } = supabase.storage
             .from('technician-documents')
             .getPublicUrl(photoPath);
           
-          console.log('Generated public URL:', publicUrl);
+          console.log('📎 URL pública gerada:', publicUrl);
           
-          const { error: updateAvatarError } = await supabase.from('profiles')
+          // Atualizar avatar no perfil com verificação
+          console.log('💾 Atualizando URL no perfil...');
+          const { data: updateData, error: updateAvatarError } = await supabase
+            .from('profiles')
             .update({ avatar_url: publicUrl })
-            .eq('id', selectedTechnician.user_id);
+            .eq('id', selectedTechnician.user_id)
+            .select();
           
           if (updateAvatarError) {
-            console.error('Avatar update error:', updateAvatarError);
-          } else {
-            console.log('Avatar URL updated successfully');
+            console.error('❌ Erro ao atualizar avatar:', updateAvatarError);
+            throw updateAvatarError;
           }
+          
+          console.log('✅ Avatar atualizado com sucesso!', updateData);
+          
+          // Verificar se realmente foi salvo
+          const { data: verifyData, error: verifyError } = await supabase
+            .from('profiles')
+            .select('avatar_url')
+            .eq('id', selectedTechnician.user_id)
+            .single();
+          
+          if (verifyError) {
+            console.error('❌ Erro ao verificar avatar:', verifyError);
+          } else {
+            console.log('🔍 Verificação - Avatar no banco:', verifyData.avatar_url);
+            if (verifyData.avatar_url === publicUrl) {
+              console.log('✅ CONFIRMADO: Avatar atualizado corretamente!');
+            } else {
+              console.error('⚠️ AVISO: Avatar URL não corresponde!');
+            }
+          }
+          
+        } catch (photoError) {
+          console.error('❌ Erro crítico no processo de foto:', photoError);
+          toast({
+            title: "Aviso",
+            description: "Técnico atualizado, mas houve erro ao salvar a foto. Tente novamente.",
+            variant: "destructive",
+          });
         }
       }
 
