@@ -10,16 +10,9 @@ import * as z from "zod";
 import { useState } from "react";
 
 const formSchema = z.object({
-  name: z.string()
-    .trim()
-    .min(3, "Nome deve ter no mínimo 3 caracteres")
-    .max(200, "Nome deve ter no máximo 200 caracteres"),
-  category: z.string()
-    .min(1, "Categoria é obrigatória"),
-  description: z.string()
-    .trim()
-    .max(500, "Descrição deve ter no máximo 500 caracteres")
-    .optional(),
+  name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
+  category: z.string().min(1, "Categoria é obrigatória"),
+  description: z.string().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -44,15 +37,7 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
   const handleSubmit = async (data: FormData) => {
     try {
       setIsLoading(true);
-      
-      // Sanitize data
-      const sanitizedData = {
-        name: data.name.trim(),
-        category: data.category,
-        description: data.description?.trim() || "",
-      };
-      
-      await onSubmit(sanitizedData);
+      await onSubmit(data);
       form.reset();
     } catch (error) {
       console.error("Error submitting form:", error);
