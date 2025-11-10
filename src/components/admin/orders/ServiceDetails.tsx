@@ -2,10 +2,9 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 
 interface ServiceDetailsProps {
   form: any;
@@ -14,6 +13,7 @@ interface ServiceDetailsProps {
 
 export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
   const selectedTaskTypes = form.watch("taskTypes") || [];
+  const singleReport = form.watch("singleReport");
 
   const handleAddTaskType = (value: string) => {
     const currentTypes = form.getValues("taskTypes") || [];
@@ -48,14 +48,10 @@ export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
           control={form.control}
           name="location"
           render={({ field }) => (
-            <FormItem className="md:col-span-2">
+            <FormItem>
               <FormLabel>Local</FormLabel>
               <FormControl>
-                <Textarea 
-                  {...field}
-                  placeholder="Digite o local da embarcação" 
-                  rows={2}
-                />
+                <Input {...field} placeholder="Localização da embarcação" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -66,14 +62,10 @@ export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
           control={form.control}
           name="access"
           render={({ field }) => (
-            <FormItem className="md:col-span-2">
+            <FormItem>
               <FormLabel>Acesso</FormLabel>
               <FormControl>
-                <Textarea 
-                  {...field}
-                  placeholder="Digite o endereço de acesso" 
-                  rows={2}
-                />
+                <Input {...field} placeholder="Informações de acesso" />
               </FormControl>
               <FormMessage />
             </FormItem>
