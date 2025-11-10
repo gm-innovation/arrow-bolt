@@ -1,1 +1,4 @@
 project_id = "iyuypkfksxfsutubcpay"
+
+[functions.mapbox-geocoding]
+verify_jwt = false
