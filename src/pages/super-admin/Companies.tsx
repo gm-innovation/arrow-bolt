@@ -173,10 +173,9 @@ const Companies = () => {
         <div className="w-[200px]">
           <Select value={planFilter} onValueChange={setPlanFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Filtrar por plano" />
+              <SelectValue placeholder="Todos os planos" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os planos</SelectItem>
               <SelectItem value="basic">Basic</SelectItem>
               <SelectItem value="professional">Professional</SelectItem>
               <SelectItem value="enterprise">Enterprise</SelectItem>
@@ -186,16 +185,27 @@ const Companies = () => {
         <div className="w-[200px]">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger>
-              <SelectValue placeholder="Status de pagamento" />
+              <SelectValue placeholder="Todos os status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos os status</SelectItem>
               <SelectItem value="paid">Pago</SelectItem>
               <SelectItem value="pending">Pendente</SelectItem>
               <SelectItem value="overdue">Atrasado</SelectItem>
             </SelectContent>
           </Select>
         </div>
+        {(planFilter || statusFilter || searchTerm) && (
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setPlanFilter("");
+              setStatusFilter("");
+              setSearchTerm("");
+            }}
+          >
+            Limpar Filtros
+          </Button>
+        )}
       </div>
 
       <div className="border rounded-lg">
