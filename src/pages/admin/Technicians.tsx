@@ -101,7 +101,8 @@ const Technicians = () => {
             certificate_name,
             issue_date,
             expiry_date,
-            document_type
+            document_type,
+            file_path
           )
         `)
         .eq("company_id", profileData.company_id)
@@ -367,7 +368,7 @@ const Technicians = () => {
     }
   };
 
-  const handleUpdateTechnician = async (data: any) => {
+  const handleUpdateTechnician = async (data: any, asoFile: File | null, photoFile: File | null, certificationFiles: Array<{file: File; name?: string; issueDate?: string; expiryDate?: string;}>) => {
     try {
       if (!selectedTechnician) return;
 
@@ -377,11 +378,84 @@ const Technicians = () => {
         phone: data.phone,
       }).eq("id", selectedTechnician.userId);
 
+      // Upload nova foto se fornecida
+      if (photoFile) {
+        const photoExt = photoFile.name.split('.').pop();
+        const photoPath = `${selectedTechnician.user_id}/avatar.${photoExt}`;
+        
+        const { error: photoError } = await supabase.storage
+          .from('technician-documents')
+          .upload(photoPath, photoFile, { upsert: true });
+        
+        if (!photoError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('technician-documents')
+            .getPublicUrl(photoPath);
+          
+          await supabase.from('profiles')
+            .update({ avatar_url: publicUrl })
+            .eq('id', selectedTechnician.user_id);
+        }
+      }
+
       // Update technician
       await supabase.from("technicians").update({
         specialty: data.role,
         active: data.isActive,
+        cpf: data.cpf && data.cpf.trim() !== '' ? data.cpf : null,
+        rg: data.rg && data.rg.trim() !== '' ? data.rg : null,
+        birth_date: data.birth_date && data.birth_date.trim() !== '' ? data.birth_date : null,
+        gender: data.gender || null,
+        nationality: data.nationality && data.nationality.trim() !== '' ? data.nationality : null,
+        height: data.height && data.height.trim() !== '' ? parseInt(data.height) : null,
+        blood_type: data.blood_type || null,
+        blood_rh_factor: data.blood_rh_factor || null,
+        aso_valid_until: data.aso_valid_until && data.aso_valid_until.trim() !== '' ? data.aso_valid_until : null,
+        medical_status: data.medical_status || null,
       }).eq("id", selectedTechnician.id);
+
+      // Upload novo ASO se fornecido
+      if (asoFile) {
+        const fileExt = asoFile.name.split('.').pop();
+        const fileName = `${Date.now()}-${asoFile.name}`;
+        const filePath = `${selectedTechnician.user_id}/aso/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('technician-documents')
+          .upload(filePath, asoFile);
+
+        if (!uploadError) {
+          await supabase.from('technician_documents').insert({
+            technician_id: selectedTechnician.id,
+            document_type: 'aso',
+            file_name: asoFile.name,
+            file_path: filePath,
+          });
+        }
+      }
+
+      // Upload novas certificações
+      if (certificationFiles.length > 0) {
+        for (const cert of certificationFiles) {
+          const certPath = `${selectedTechnician.user_id}/certifications/${Date.now()}-${cert.file.name}`;
+          
+          const { error: certError } = await supabase.storage
+            .from('technician-documents')
+            .upload(certPath, cert.file);
+          
+          if (!certError) {
+            await supabase.from('technician_documents').insert({
+              technician_id: selectedTechnician.id,
+              document_type: 'certification',
+              file_name: cert.file.name,
+              file_path: certPath,
+              certificate_name: cert.name,
+              issue_date: cert.issueDate,
+              expiry_date: cert.expiryDate,
+            });
+          }
+        }
+      }
 
       setIsEditTechnicianOpen(false);
       setSelectedTechnician(null);
@@ -771,7 +845,11 @@ const Technicians = () => {
           </DialogHeader>
           {selectedTechnician && (
             <NewTechnicianForm
-              initialData={selectedTechnician}
+              initialData={{
+                ...selectedTechnician,
+                avatar_url: selectedTechnician.avatar_url,
+                documents: selectedTechnician.documents
+              }}
               onSubmit={handleUpdateTechnician}
               onCancel={() => setIsEditTechnicianOpen(false)}
               isEditing

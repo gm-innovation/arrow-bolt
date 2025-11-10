@@ -61,7 +61,18 @@ interface NewTechnicianFormProps {
     expiryDate?: string;
   }>) => Promise<void>;
   onCancel: () => void;
-  initialData?: Partial<TechnicianFormValues>;
+  initialData?: Partial<TechnicianFormValues> & {
+    avatar_url?: string;
+    documents?: Array<{
+      id: string;
+      file_name: string;
+      certificate_name?: string;
+      issue_date?: string;
+      expiry_date?: string;
+      document_type: string;
+      file_path: string;
+    }>;
+  };
   isEditing?: boolean;
 }
 
@@ -84,7 +95,16 @@ export const NewTechnicianForm = ({
       isValid?: boolean;
     }>;
   }>({ certifications: [] });
-  const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [photoPreview, setPhotoPreview] = useState<string>(initialData?.avatar_url || "");
+  const [existingDocuments, setExistingDocuments] = useState<Array<{
+    id: string;
+    file_name: string;
+    certificate_name?: string;
+    issue_date?: string;
+    expiry_date?: string;
+    document_type: string;
+    file_path: string;
+  }>>(initialData?.documents || []);
   const [isProcessing, setIsProcessing] = useState(false);
   const { extractFromPDF, isExtracting } = useDocumentExtraction();
   const { toast } = useToast();
@@ -262,11 +282,40 @@ export const NewTechnicianForm = ({
       delete newFiles.aso;
     } else if (type === 'photo') {
       delete newFiles.photo;
-      setPhotoPreview("");
+      if (isEditing) {
+        setPhotoPreview("");
+      } else {
+        setPhotoPreview("");
+      }
     } else if (type === 'certification' && index !== undefined) {
       newFiles.certifications = newFiles.certifications.filter((_, i) => i !== index);
     }
     setUploadedFiles(newFiles);
+  };
+
+  const removeExistingDocument = async (docId: string, docType: string) => {
+    try {
+      // Delete from database
+      const { error } = await supabase
+        .from('technician_documents')
+        .delete()
+        .eq('id', docId);
+      
+      if (error) throw error;
+      
+      setExistingDocuments(prev => prev.filter(doc => doc.id !== docId));
+      
+      toast({
+        title: "Documento removido",
+        description: "O documento foi removido com sucesso.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao remover documento",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   };
 
   const handleSubmit = async (data: TechnicianFormValues) => {
@@ -296,139 +345,197 @@ export const NewTechnicianForm = ({
           <DialogTitle>{isEditing ? "Editar Técnico" : "Novo Técnico"}</DialogTitle>
         </DialogHeader>
 
-        {!isEditing && (
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">📁 Upload de Documentos</h3>
-              <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-                <Input
-                  type="file"
-                  accept=".pdf,image/*"
-                  multiple
-                  onChange={(e) => handleFilesSelect(e.target.files)}
-                  className="cursor-pointer"
-                />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Arraste ou selecione: ASO (PDF), Foto (JPG/PNG), Certificações (PDF/Imagens)
-                </p>
+        {/* Upload section - sempre visível agora */}
+        <div className="space-y-4">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">
+              📁 {isEditing ? "Atualizar Documentos" : "Upload de Documentos"}
+            </h3>
+            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+              <Input
+                type="file"
+                accept=".pdf,image/*"
+                multiple
+                onChange={(e) => handleFilesSelect(e.target.files)}
+                className="cursor-pointer"
+              />
+              <p className="text-sm text-muted-foreground mt-2">
+                Arraste ou selecione: ASO (PDF), Foto (JPG/PNG), Certificações (PDF/Imagens)
+              </p>
+              {!isEditing && (
                 <p className="text-xs text-muted-foreground mt-1">
                   💡 Nomeie o ASO com "aso" no nome para identificação automática
                 </p>
+              )}
+            </div>
+          </div>
+
+          {/* Mostrar foto atual (modo edição) */}
+          {isEditing && photoPreview && !uploadedFiles.photo && (
+            <div>
+              <p className="text-sm font-semibold mb-2">📷 Foto Atual</p>
+              <div className="flex items-center gap-4 p-3 bg-muted rounded border">
+                <img 
+                  src={photoPreview} 
+                  alt="Foto atual" 
+                  className="w-20 h-20 rounded-full object-cover border-4 border-primary"
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Foto do técnico</p>
+                  <p className="text-xs text-muted-foreground">
+                    Faça upload de uma nova imagem para substituir
+                  </p>
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Mostrar arquivos carregados */}
-            <div className="space-y-3">
-              {uploadedFiles.aso && (
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-green-600" />
+          {/* Mostrar documentos existentes (modo edição) */}
+          {isEditing && existingDocuments.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold">Documentos Existentes</p>
+              {existingDocuments.map((doc) => (
+                <div key={doc.id} className="flex items-center justify-between p-3 bg-muted rounded border">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">
+                      {doc.certificate_name || doc.file_name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Tipo: {doc.document_type === 'aso' ? 'ASO' : 'Certificação'}
+                      {doc.expiry_date && ` • Validade: ${new Date(doc.expiry_date).toLocaleDateString('pt-BR')}`}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeExistingDocument(doc.id, doc.document_type)}
+                  >
+                    Remover
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Mostrar arquivos carregados */}
+          <div className="space-y-3">
+            {uploadedFiles.aso && (
+              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium">ASO: {uploadedFiles.aso.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isEditing ? 'Novo arquivo - substituirá o anterior' : 'Dados extraídos automaticamente'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFile('aso')}
+                >
+                  Remover
+                </Button>
+              </div>
+            )}
+
+            {uploadedFiles.photo && (
+              <div>
+                <p className="text-sm font-semibold mb-2">
+                  📷 {isEditing ? 'Nova Foto' : 'Foto do Técnico'}
+                </p>
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-4">
+                    {photoPreview && (
+                      <div className="relative">
+                        <img 
+                          src={photoPreview} 
+                          alt="Preview" 
+                          className="w-20 h-20 rounded-full object-cover border-4 border-blue-400"
+                        />
+                      </div>
+                    )}
                     <div>
-                      <p className="text-sm font-medium">ASO: {uploadedFiles.aso.name}</p>
-                      <p className="text-xs text-muted-foreground">Dados extraídos automaticamente</p>
+                      <p className="text-sm font-medium">{uploadedFiles.photo.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(uploadedFiles.photo.size / 1024 / 1024).toFixed(2)} MB
+                        {isEditing && ' - Substituirá a foto anterior'}
+                      </p>
                     </div>
                   </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => removeFile('aso')}
+                    onClick={() => removeFile('photo')}
                   >
                     Remover
                   </Button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {uploadedFiles.photo && (
-                <div>
-                  <p className="text-sm font-semibold mb-2">📷 Foto do Técnico</p>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-4">
-                      {photoPreview && (
-                        <div className="relative">
-                          <img 
-                            src={photoPreview} 
-                            alt="Preview" 
-                            className="w-20 h-20 rounded-full object-cover border-4 border-blue-400"
-                          />
+            {uploadedFiles.certifications.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">
+                  {isEditing ? 'Novas Certificações' : 'Certificações'} ({uploadedFiles.certifications.length})
+                </p>
+                {uploadedFiles.certifications.map((cert, index) => (
+                  <div 
+                    key={index} 
+                    className={`flex items-center justify-between p-3 rounded border ${
+                      cert.isValid === true 
+                        ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
+                        : cert.isValid === false 
+                        ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                        : 'bg-muted'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {cert.isValid === true && <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
+                        {cert.isValid === false && <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {cert.name || cert.file.name}
+                          </p>
+                          {(cert.issueDate || cert.expiryDate) && (
+                            <div className="text-xs text-muted-foreground space-y-0.5">
+                              {cert.issueDate && (
+                                <p>Emissão: {new Date(cert.issueDate).toLocaleDateString('pt-BR')}</p>
+                              )}
+                              {cert.expiryDate && (
+                                <p>Validade: {new Date(cert.expiryDate).toLocaleDateString('pt-BR')}</p>
+                              )}
+                            </div>
+                          )}
                         </div>
-                      )}
-                      <div>
-                        <p className="text-sm font-medium">{uploadedFiles.photo.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(uploadedFiles.photo.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
                       </div>
                     </div>
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeFile('photo')}
+                      onClick={() => removeFile('certification', index)}
                     >
                       Remover
                     </Button>
                   </div>
-                </div>
-              )}
+                ))}
+              </div>
+            )}
 
-              {uploadedFiles.certifications.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold">Certificações ({uploadedFiles.certifications.length})</p>
-                  {uploadedFiles.certifications.map((cert, index) => (
-                    <div 
-                      key={index} 
-                      className={`flex items-center justify-between p-3 rounded border ${
-                        cert.isValid === true 
-                          ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800' 
-                          : cert.isValid === false 
-                          ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
-                          : 'bg-muted'
-                      }`}
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {cert.isValid === true && <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
-                          {cert.isValid === false && <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />}
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {cert.name || cert.file.name}
-                            </p>
-                            {(cert.issueDate || cert.expiryDate) && (
-                              <div className="text-xs text-muted-foreground space-y-0.5">
-                                {cert.issueDate && (
-                                  <p>Emissão: {new Date(cert.issueDate).toLocaleDateString('pt-BR')}</p>
-                                )}
-                                {cert.expiryDate && (
-                                  <p>Validade: {new Date(cert.expiryDate).toLocaleDateString('pt-BR')}</p>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile('certification', index)}
-                      >
-                        Remover
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {isProcessing && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Processando documentos...</span>
-                </div>
-              )}
-            </div>
+            {isProcessing && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Processando documentos...</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">📝 Dados Pessoais</h3>
