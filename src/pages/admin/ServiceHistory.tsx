@@ -25,9 +25,9 @@ import { useNavigate } from "react-router-dom";
 
 const ServiceHistory = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [vessel, setVessel] = useState("");
-  const [technician, setTechnician] = useState("");
-  const [status, setStatus] = useState("");
+  const [vessel, setVessel] = useState("all-vessels");
+  const [technician, setTechnician] = useState("all-technicians");
+  const [status, setStatus] = useState("all-status");
   const [services, setServices] = useState<any[]>([]);
   const [vessels, setVessels] = useState<any[]>([]);
   const [technicians, setTechnicians] = useState<any[]>([]);
@@ -65,11 +65,11 @@ const ServiceHistory = () => {
         .eq("company_id", profile.company_id)
         .order("created_at", { ascending: false });
 
-      if (vessel) {
+      if (vessel && vessel !== "all-vessels") {
         query = query.eq("vessel_id", vessel);
       }
 
-      if (status) {
+      if (status && status !== "all-status") {
         query = query.eq("status", status as any);
       }
 
@@ -152,7 +152,7 @@ const ServiceHistory = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all-vessels">Todas</SelectItem>
                   {vessels.map((v) => (
                     <SelectItem key={v.id} value={v.id}>
                       {v.name}
@@ -184,7 +184,7 @@ const ServiceHistory = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all-status">Todos</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="in_progress">Em andamento</SelectItem>
                   <SelectItem value="completed">Concluído</SelectItem>

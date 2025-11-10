@@ -50,8 +50,8 @@ const ServiceOrders = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { orders, isLoading, invalidate } = useServiceOrders();
-  const [vessel, setVessel] = useState("");
-  const [status, setStatus] = useState("");
+  const [vessel, setVessel] = useState("all-vessels");
+  const [status, setStatus] = useState("all-status");
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -65,8 +65,8 @@ const ServiceOrders = () => {
         order.vessel.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         order.client.toLowerCase().includes(debouncedSearch.toLowerCase());
 
-      const matchesVessel = !vessel || order.vessel === vessel;
-      const matchesStatus = !status || order.status === status;
+      const matchesVessel = !vessel || vessel === "all-vessels" || order.vessel === vessel;
+      const matchesStatus = !status || status === "all-status" || order.status === status;
 
       return matchesSearch && matchesVessel && matchesStatus;
     });
@@ -191,7 +191,7 @@ const ServiceOrders = () => {
                 <SelectValue placeholder="Embarcação" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todas</SelectItem>
+                <SelectItem value="all-vessels">Todas</SelectItem>
                 {Array.from(new Set(orders.map(o => o.vessel))).map(v => (
                   <SelectItem key={v} value={v}>{v}</SelectItem>
                 ))}

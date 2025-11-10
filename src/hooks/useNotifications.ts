@@ -28,11 +28,11 @@ export const useNotifications = (typeFilter?: string, statusFilter?: string) => 
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (typeFilter) {
+      if (typeFilter && typeFilter !== "all-types") {
         query = query.eq('notification_type', typeFilter as any);
       }
 
-      if (statusFilter) {
+      if (statusFilter && statusFilter !== "all-status") {
         query = query.eq('read', statusFilter === 'read');
       }
 

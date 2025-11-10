@@ -26,8 +26,8 @@ type ServiceOrder = {
 
 const ServiceCalendar = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [vessel, setVessel] = useState("");
-  const [technician, setTechnician] = useState("");
+  const [vessel, setVessel] = useState("all-vessels");
+  const [technician, setTechnician] = useState("all-technicians");
   const [serviceType, setServiceType] = useState("");
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
   const [vessels, setVessels] = useState<any[]>([]);
@@ -62,7 +62,7 @@ const ServiceCalendar = () => {
         .not("scheduled_date", "is", null)
         .order("scheduled_date", { ascending: true });
 
-      if (vessel) {
+      if (vessel && vessel !== "all-vessels") {
         ordersQuery = ordersQuery.eq("vessel_id", vessel);
       }
 
@@ -192,7 +192,7 @@ const ServiceCalendar = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all-vessels">Todas</SelectItem>
                   {vessels.map((v) => (
                     <SelectItem key={v.id} value={v.id}>
                       {v.name}
@@ -209,7 +209,7 @@ const ServiceCalendar = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all-technicians">Todos</SelectItem>
                   {technicians.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.user?.full_name || "Sem nome"}

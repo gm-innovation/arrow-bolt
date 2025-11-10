@@ -17,8 +17,8 @@ import { useNotifications } from "@/hooks/useNotifications";
 const TechNotifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [typeFilter, setTypeFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("all-types");
+  const [statusFilter, setStatusFilter] = useState("all-status");
   
   const { 
     notifications, 
@@ -91,7 +91,7 @@ const TechNotifications = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all-types">Todos</SelectItem>
                   <SelectItem value="task_assigned">Tarefas</SelectItem>
                   <SelectItem value="report_approved">Relatórios Aprovados</SelectItem>
                   <SelectItem value="report_rejected">Relatórios Rejeitados</SelectItem>
@@ -105,7 +105,7 @@ const TechNotifications = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all-status">Todas</SelectItem>
                   <SelectItem value="read">Lidas</SelectItem>
                   <SelectItem value="unread">Não Lidas</SelectItem>
                 </SelectContent>

@@ -30,7 +30,7 @@ const TaskTypes = () => {
   const [taskTypes, setTaskTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [taskName, setTaskName] = useState("");
-  const [category, setCategory] = useState("");
+  const [category, setCategory] = useState("all-categories");
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -118,7 +118,7 @@ const TaskTypes = () => {
 
   const filteredTaskTypes = taskTypes.filter((taskType) => {
     const matchesName = !taskName || taskType.name.toLowerCase().includes(taskName.toLowerCase());
-    const matchesCategory = !category || taskType.category === category;
+    const matchesCategory = !category || category === "all-categories" || taskType.category === category;
     return matchesName && matchesCategory;
   });
 

@@ -322,7 +322,7 @@ const Tasks = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all-vessels">Todas</SelectItem>
                   {Array.from(new Set(tasks.map(t => t.vesselName))).map(v => (
                     <SelectItem key={v} value={v}>{v}</SelectItem>
                   ))}

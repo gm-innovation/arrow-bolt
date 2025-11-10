@@ -24,8 +24,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const VesselHistory = () => {
   const [vesselName, setVesselName] = useState("");
-  const [company, setCompany] = useState("");
-  const [vesselType, setVesselType] = useState("");
+  const [company, setCompany] = useState("all-clients");
+  const [vesselType, setVesselType] = useState("all-types");
   const [vessels, setVessels] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -64,11 +64,11 @@ const VesselHistory = () => {
         query = query.ilike("name", `%${vesselName}%`);
       }
 
-      if (company) {
+      if (company && company !== "all-clients") {
         query = query.eq("client_id", company);
       }
 
-      if (vesselType) {
+      if (vesselType && vesselType !== "all-types") {
         query = query.eq("vessel_type", vesselType);
       }
 
@@ -134,7 +134,7 @@ const VesselHistory = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all-clients">Todos</SelectItem>
                   {clients.map((c) => (
                     <SelectItem key={c.id} value={c.id}>
                       {c.name}

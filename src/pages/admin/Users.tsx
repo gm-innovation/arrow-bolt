@@ -175,7 +175,7 @@ const Users = () => {
               <SelectValue placeholder="Filtrar por função" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas</SelectItem>
+              <SelectItem value="all-roles">Todas</SelectItem>
               <SelectItem value="super_admin">Super Admin</SelectItem>
               <SelectItem value="admin">Administrador</SelectItem>
               <SelectItem value="technician">Técnico</SelectItem>
@@ -188,7 +188,7 @@ const Users = () => {
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos</SelectItem>
+              <SelectItem value="all-status">Todos</SelectItem>
               <SelectItem value="active">Ativo</SelectItem>
               <SelectItem value="inactive">Inativo</SelectItem>
             </SelectContent>
