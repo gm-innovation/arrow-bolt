@@ -8,13 +8,19 @@ import { PlusCircle, FileText } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { NewOrderForm } from "@/components/admin/orders/NewOrderForm";
+import { Dialog } from "@/components/ui/dialog";
+import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
+import { useForm } from "react-hook-form";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
+  const form = useForm<{ orderNumber: string }>({
+    defaultValues: {
+      orderNumber: "",
+    },
+  });
 
   const handleCreateOS = () => {
     setIsNewOrderOpen(true);
@@ -68,9 +74,7 @@ const AdminDashboard = () => {
       <DashboardCharts />
 
       <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <NewOrderForm />
-        </DialogContent>
+        <NewOrderDialog form={form} />
       </Dialog>
     </div>
   );
