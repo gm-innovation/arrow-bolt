@@ -236,15 +236,15 @@ const Technicians = () => {
       // Atualizar registro do técnico com dados do ASO
       const { error: updateError } = await supabase.from("technicians").update({
         specialty: data.role,
-        cpf: data.cpf || null,
-        rg: data.rg || null,
-        birth_date: data.birth_date || null,
-        gender: data.gender || null,
-        nationality: data.nationality || null,
-        height: data.height ? parseInt(data.height) : null,
+        cpf: data.cpf && data.cpf.trim() !== '' ? data.cpf : null,
+        rg: data.rg && data.rg.trim() !== '' ? data.rg : null,
+        birth_date: data.birth_date && data.birth_date.trim() !== '' ? data.birth_date : null,
+        gender: data.gender && data.gender.trim() !== '' ? data.gender : null,
+        nationality: data.nationality && data.nationality.trim() !== '' ? data.nationality : null,
+        height: data.height && data.height.trim() !== '' ? parseInt(data.height) : null,
         blood_type: data.blood_type || null,
         blood_rh_factor: data.blood_rh_factor || null,
-        aso_valid_until: data.aso_valid_until || null,
+        aso_valid_until: data.aso_valid_until && data.aso_valid_until.trim() !== '' ? data.aso_valid_until : null,
         medical_status: data.medical_status || 'pending',
       }).eq('user_id', createUserResult.user_id);
 

@@ -25,13 +25,13 @@ const technicianFormSchema = z.object({
   cpf: z.string().trim().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, "CPF inválido (formato: 000.000.000-00)").optional().or(z.literal("")),
   rg: z.string().trim().optional().or(z.literal("")),
   birth_date: z.string().optional().or(z.literal("")),
-  gender: z.enum(['Masculino', 'Feminino']).optional(),
+  gender: z.enum(['Masculino', 'Feminino']).optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   nationality: z.string().trim().optional().or(z.literal("")),
   height: z.string().optional().or(z.literal("")),
-  blood_type: z.enum(['A', 'B', 'AB', 'O']).optional(),
-  blood_rh_factor: z.enum(['Positivo', 'Negativo']).optional(),
+  blood_type: z.enum(['A', 'B', 'AB', 'O']).optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
+  blood_rh_factor: z.enum(['Positivo', 'Negativo']).optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   aso_valid_until: z.string().optional().or(z.literal("")),
-  medical_status: z.enum(['fit', 'unfit', 'pending']).optional(),
+  medical_status: z.enum(['fit', 'unfit', 'pending']).optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   
   // Dados profissionais
   role: z.string().trim().min(1, "Cargo é obrigatório"),
