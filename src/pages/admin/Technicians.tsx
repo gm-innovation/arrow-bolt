@@ -62,14 +62,16 @@ const Technicians = () => {
           id,
           specialty,
           active,
-          profiles!technicians_user_id_fkey (
+          user_id,
+          profiles (
             id,
             full_name,
             email,
             phone
           )
         `)
-        .eq("company_id", profileData.company_id);
+        .eq("company_id", profileData.company_id)
+        .eq("active", true);
 
       if (error) throw error;
 
@@ -158,6 +160,22 @@ const Technicians = () => {
         password = generateSecurePassword();
       }
 
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("email", data.email)
+        .maybeSingle();
+
+      if (existingUser) {
+        toast({
+          title: "Erro",
+          description: "Já existe um usuário com este email",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Criar usuário via edge function
       const { data: createUserResult, error: createUserError } = await supabase.functions.invoke('create-user', {
         body: {
@@ -170,7 +188,10 @@ const Technicians = () => {
         }
       });
 
-      if (createUserError) throw createUserError;
+      if (createUserError) {
+        console.error("Create user error:", createUserError);
+        throw createUserError;
+      }
       if (!createUserResult?.user_id) throw new Error('Falha ao criar usuário');
 
       // Upload da foto se fornecida
