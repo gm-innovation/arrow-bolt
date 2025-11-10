@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/table";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
 import { Plus, Search, Download, Eye, Pencil, Trash2 } from "lucide-react";
+import { format } from "date-fns";
+import { Separator } from "@/components/ui/separator";
 import { exportToCSV, formatBooleanForExport } from "@/lib/exportUtils";
 import { Input } from "@/components/ui/input";
 import {
@@ -68,15 +70,20 @@ const Technicians = () => {
       const { data, error } = await supabase
         .from("technicians")
         .select(`
-          id,
-          specialty,
-          active,
-          user_id,
+          *,
           profiles (
             id,
             full_name,
             email,
             phone
+          ),
+          technician_documents (
+            id,
+            file_name,
+            certificate_name,
+            issue_date,
+            expiry_date,
+            document_type
           )
         `)
         .eq("company_id", profileData.company_id)
@@ -86,12 +93,24 @@ const Technicians = () => {
 
       const formattedData = data?.map((tech: any) => ({
         id: tech.id,
+        user_id: tech.user_id,
         name: tech.profiles?.full_name || "",
         email: tech.profiles?.email || "",
         phone: tech.profiles?.phone || "",
         role: tech.specialty || "",
         isActive: tech.active,
         userId: tech.profiles?.id,
+        cpf: tech.cpf,
+        rg: tech.rg,
+        birth_date: tech.birth_date,
+        gender: tech.gender,
+        nationality: tech.nationality,
+        height: tech.height,
+        blood_type: tech.blood_type,
+        blood_rh_factor: tech.blood_rh_factor,
+        aso_valid_until: tech.aso_valid_until,
+        medical_status: tech.medical_status,
+        documents: tech.technician_documents || [],
       })) || [];
 
       setTechnicians(formattedData);
@@ -568,29 +587,130 @@ const Technicians = () => {
           </DialogHeader>
           {selectedTechnician && (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Nome</p>
-                  <p className="text-base">{selectedTechnician.name}</p>
+              {/* Dados Pessoais */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Dados Pessoais</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Nome</p>
+                    <p className="text-base">{selectedTechnician.name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Email</p>
+                    <p className="text-base">{selectedTechnician.email}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Telefone</p>
+                    <p className="text-base">{selectedTechnician.phone || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">CPF</p>
+                    <p className="text-base">{selectedTechnician.cpf || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">RG</p>
+                    <p className="text-base">{selectedTechnician.rg || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Data de Nascimento</p>
+                    <p className="text-base">{selectedTechnician.birth_date ? format(new Date(selectedTechnician.birth_date), 'dd/MM/yyyy') : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Gênero</p>
+                    <p className="text-base">{selectedTechnician.gender || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Nacionalidade</p>
+                    <p className="text-base">{selectedTechnician.nationality || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Altura</p>
+                    <p className="text-base">{selectedTechnician.height ? `${selectedTechnician.height} cm` : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Tipo Sanguíneo</p>
+                    <p className="text-base">{selectedTechnician.blood_type && selectedTechnician.blood_rh_factor ? `${selectedTechnician.blood_type} ${selectedTechnician.blood_rh_factor}` : '-'}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Email</p>
-                  <p className="text-base">{selectedTechnician.email}</p>
+              </div>
+
+              <Separator />
+
+              {/* Dados Profissionais */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Dados Profissionais</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Cargo</p>
+                    <p className="text-base">{selectedTechnician.role || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Status</p>
+                    <Badge variant={selectedTechnician.isActive ? "default" : "secondary"}>
+                      {selectedTechnician.isActive ? 'Ativo' : 'Inativo'}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Telefone</p>
-                  <p className="text-base">{selectedTechnician.phone || '-'}</p>
+              </div>
+
+              <Separator />
+
+              {/* Dados do ASO */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Atestado de Saúde Ocupacional (ASO)</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Validade do ASO</p>
+                    <p className="text-base">{selectedTechnician.aso_valid_until ? format(new Date(selectedTechnician.aso_valid_until), 'dd/MM/yyyy') : '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Status Médico</p>
+                    <Badge variant={
+                      selectedTechnician.medical_status === 'fit' ? 'default' : 
+                      selectedTechnician.medical_status === 'unfit' ? 'destructive' : 
+                      'secondary'
+                    }>
+                      {selectedTechnician.medical_status === 'fit' ? 'Apto' : 
+                       selectedTechnician.medical_status === 'unfit' ? 'Inapto' : 
+                       'Pendente'}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Cargo</p>
-                  <p className="text-base">{selectedTechnician.role || '-'}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Status</p>
-                  <Badge variant={selectedTechnician.isActive ? "default" : "secondary"}>
-                    {selectedTechnician.isActive ? "Ativo" : "Inativo"}
-                  </Badge>
-                </div>
+              </div>
+
+              <Separator />
+
+              {/* Certificações */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Certificações</h3>
+                {selectedTechnician.documents && selectedTechnician.documents.length > 0 ? (
+                  <div className="space-y-3">
+                    {selectedTechnician.documents.map((doc: any) => (
+                      <div key={doc.id} className="border rounded-lg p-4">
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="col-span-3">
+                            <p className="text-sm font-medium text-muted-foreground">Nome do Certificado</p>
+                            <p className="text-base font-medium">{doc.certificate_name || doc.file_name}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Data de Emissão</p>
+                            <p className="text-base">{doc.issue_date ? format(new Date(doc.issue_date), 'dd/MM/yyyy') : '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Data de Validade</p>
+                            <p className="text-base">{doc.expiry_date ? format(new Date(doc.expiry_date), 'dd/MM/yyyy') : '-'}</p>
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-muted-foreground">Tipo</p>
+                            <p className="text-base">{doc.document_type}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">Nenhuma certificação cadastrada</p>
+                )}
               </div>
             </div>
           )}
