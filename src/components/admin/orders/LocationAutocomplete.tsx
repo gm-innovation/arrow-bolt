@@ -32,9 +32,16 @@ export const LocationAutocomplete = ({ value, onChange, placeholder }: LocationA
 
     setIsLoading(true);
     try {
-      const token = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const response = await fetch(
-        `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(searchQuery)}.json?access_token=${token}&language=pt&country=BR&limit=5`
+        `${supabaseUrl}/functions/v1/mapbox-geocoding`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: searchQuery }),
+        }
       );
       const data = await response.json();
       setSuggestions(data.features || []);
