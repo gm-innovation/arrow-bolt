@@ -25,9 +25,9 @@ import { useNavigate } from "react-router-dom";
 
 const ServiceHistory = () => {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [vessel, setVessel] = useState("all-vessels");
-  const [technician, setTechnician] = useState("all-technicians");
-  const [status, setStatus] = useState("all-status");
+  const [vessel, setVessel] = useState("all");
+  const [technician, setTechnician] = useState("all");
+  const [status, setStatus] = useState("all");
   const [services, setServices] = useState<any[]>([]);
   const [vessels, setVessels] = useState<any[]>([]);
   const [technicians, setTechnicians] = useState<any[]>([]);
@@ -65,11 +65,11 @@ const ServiceHistory = () => {
         .eq("company_id", profile.company_id)
         .order("created_at", { ascending: false });
 
-      if (vessel && vessel !== "all-vessels") {
+      if (vessel && vessel !== "all-vessels" && vessel !== "all") {
         query = query.eq("vessel_id", vessel);
       }
 
-      if (status && status !== "all-status") {
+      if (status && status !== "all-status" && status !== "all") {
         query = query.eq("status", status as any);
       }
 
@@ -152,7 +152,7 @@ const ServiceHistory = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all-vessels">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   {vessels.map((v) => (
                     <SelectItem key={v.id} value={v.id}>
                       {v.name}
@@ -168,7 +168,7 @@ const ServiceHistory = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   {technicians.map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.user?.full_name || "Sem nome"}
@@ -184,7 +184,7 @@ const ServiceHistory = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all-status">Todos</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="pending">Pendente</SelectItem>
                   <SelectItem value="in_progress">Em andamento</SelectItem>
                   <SelectItem value="completed">Concluído</SelectItem>

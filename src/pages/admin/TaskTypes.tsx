@@ -30,7 +30,7 @@ const TaskTypes = () => {
   const [taskTypes, setTaskTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [taskName, setTaskName] = useState("");
-  const [category, setCategory] = useState("all-categories");
+  const [category, setCategory] = useState("all");
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -117,8 +117,8 @@ const TaskTypes = () => {
   };
 
   const filteredTaskTypes = taskTypes.filter((taskType) => {
-    const matchesName = !taskName || taskType.name.toLowerCase().includes(taskName.toLowerCase());
-    const matchesCategory = !category || category === "all-categories" || taskType.category === category;
+    const matchesName = !taskName || taskName === "" || taskType.name.toLowerCase().includes(taskName.toLowerCase());
+    const matchesCategory = category === "all" || taskType.category === category;
     return matchesName && matchesCategory;
   });
 
@@ -161,7 +161,7 @@ const TaskTypes = () => {
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Todas</SelectItem>
+                  <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="Refrigeração">Refrigeração</SelectItem>
                   <SelectItem value="Eletrônica">Eletrônica</SelectItem>
                   <SelectItem value="Mecânica">Mecânica</SelectItem>
