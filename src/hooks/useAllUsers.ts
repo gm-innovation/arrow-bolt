@@ -22,7 +22,8 @@ export const useAllUsers = () => {
   const { data: users = [], isLoading, error } = useQuery({
     queryKey: ['all-users', user?.id],
     queryFn: async () => {
-      const { data: usersData, error } = await supabase
+      // Fetch profiles with companies
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select(`
           id,
@@ -31,22 +32,38 @@ export const useAllUsers = () => {
           phone,
           created_at,
           company_id,
-          companies (name),
-          user_roles (role),
-          technicians (active)
+          companies (name)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (profilesError) throw profilesError;
 
-      const formattedUsers: UserData[] = usersData?.map((u: any) => ({
+      // Fetch user roles separately
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      if (rolesError) throw rolesError;
+
+      // Fetch technicians separately
+      const { data: techniciansData, error: techniciansError } = await supabase
+        .from('technicians')
+        .select('user_id, active');
+
+      if (techniciansError) throw techniciansError;
+
+      // Create lookup maps
+      const rolesMap = new Map(rolesData?.map(r => [r.user_id, r.role]) || []);
+      const techniciansMap = new Map(techniciansData?.map(t => [t.user_id, t.active]) || []);
+
+      const formattedUsers: UserData[] = profilesData?.map((u: any) => ({
         id: u.id,
         full_name: u.full_name,
         email: u.email,
         phone: u.phone,
         created_at: u.created_at,
-        role: u.user_roles?.[0]?.role || null,
-        active: u.technicians?.[0]?.active ?? true,
+        role: rolesMap.get(u.id) || null,
+        active: techniciansMap.get(u.id) ?? true,
         company_id: u.company_id,
         company_name: u.companies?.name || null,
       })) || [];
@@ -67,53 +84,12 @@ export const useAllUsers = () => {
     role: string;
   }) => {
     try {
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: userData.email,
-        password: userData.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: userData.full_name,
-        },
+      const { data, error } = await supabase.functions.invoke('create-user', {
+        body: userData,
       });
 
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Usuário não foi criado');
-
-      // Update profile with company_id and phone
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          company_id: userData.company_id,
-          phone: userData.phone || null,
-        })
-        .eq('id', authData.user.id);
-
-      if (profileError) throw profileError;
-
-      // Create user role
-      const roleValue = userData.role === 'tech' ? 'technician' : userData.role;
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: roleValue as 'admin' | 'super_admin' | 'technician',
-        });
-
-      if (roleError) throw roleError;
-
-      // If role is tech, create technician entry
-      if (userData.role === 'tech') {
-        const { error: techError } = await supabase
-          .from('technicians')
-          .insert({
-            user_id: authData.user.id,
-            company_id: userData.company_id,
-            active: true,
-          });
-
-        if (techError) throw techError;
-      }
+      if (error) throw error;
+      if (!data?.success) throw new Error('Erro ao criar usuário');
 
       toast.success('Usuário criado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
@@ -131,63 +107,15 @@ export const useAllUsers = () => {
     role?: string;
   }) => {
     try {
-      // Update profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: userData.full_name,
-          phone: userData.phone,
-          company_id: userData.company_id,
-        })
-        .eq('id', userId);
+      const { data, error } = await supabase.functions.invoke('update-user', {
+        body: {
+          user_id: userId,
+          ...userData,
+        },
+      });
 
-      if (profileError) throw profileError;
-
-      // Update role if provided
-      if (userData.role) {
-        // Delete existing roles
-        await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', userId);
-
-        // Insert new role
-        const roleValue = userData.role === 'tech' ? 'technician' : userData.role;
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: userId,
-            role: roleValue as 'admin' | 'super_admin' | 'technician',
-          });
-
-        if (roleError) throw roleError;
-
-        // Handle technician entry
-        if (userData.role === 'tech') {
-          // Check if technician entry exists
-          const { data: existingTech } = await supabase
-            .from('technicians')
-            .select('id')
-            .eq('user_id', userId)
-            .maybeSingle();
-
-          if (!existingTech && userData.company_id) {
-            await supabase
-              .from('technicians')
-              .insert({
-                user_id: userId,
-                company_id: userData.company_id,
-                active: true,
-              });
-          }
-        } else {
-          // Remove technician entry if role is not tech
-          await supabase
-            .from('technicians')
-            .delete()
-            .eq('user_id', userId);
-        }
-      }
+      if (error) throw error;
+      if (!data?.success) throw new Error('Erro ao atualizar usuário');
 
       toast.success('Usuário atualizado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
@@ -218,9 +146,12 @@ export const useAllUsers = () => {
 
   const deleteUser = async (userId: string) => {
     try {
-      const { error } = await supabase.auth.admin.deleteUser(userId);
+      const { data, error } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: userId },
+      });
 
       if (error) throw error;
+      if (!data?.success) throw new Error('Erro ao excluir usuário');
 
       toast.success('Usuário excluído com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
