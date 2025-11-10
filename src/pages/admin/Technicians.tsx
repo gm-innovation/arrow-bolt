@@ -137,7 +137,7 @@ const Technicians = () => {
     });
   };
 
-  const handleCreateTechnician = async (data: any, uploadedFile: File | null) => {
+  const handleCreateTechnician = async (data: any, uploadedFile: File | null, photoFile: File | null, certificationFiles: File[]) => {
     try {
       const { data: profileData } = await supabase
         .from("profiles")
@@ -173,6 +173,27 @@ const Technicians = () => {
       if (createUserError) throw createUserError;
       if (!createUserResult?.user_id) throw new Error('Falha ao criar usuário');
 
+      // Upload da foto se fornecida
+      if (photoFile) {
+        const photoExt = photoFile.name.split('.').pop();
+        const photoPath = `${createUserResult.user_id}/avatar.${photoExt}`;
+        
+        const { error: photoError } = await supabase.storage
+          .from('technician-documents')
+          .upload(photoPath, photoFile, { upsert: true });
+        
+        if (!photoError) {
+          const { data: { publicUrl } } = supabase.storage
+            .from('technician-documents')
+            .getPublicUrl(photoPath);
+          
+          // Atualizar avatar no perfil
+          await supabase.from('profiles')
+            .update({ avatar_url: publicUrl })
+            .eq('id', createUserResult.user_id);
+        }
+      }
+
       // Buscar o technician_id criado
       const { data: technicianData, error: techError } = await supabase
         .from('technicians')
@@ -199,13 +220,34 @@ const Technicians = () => {
 
       if (updateError) throw updateError;
 
-      // Upload de documentos se houver
+      // Upload do ASO se fornecido
       if (uploadedFile && technicianData) {
         await uploadTechnicianDocuments(
           uploadedFile, 
           technicianData.id, 
           profileData.company_id
         );
+      }
+
+      // Upload das certificações
+      if (certificationFiles.length > 0 && technicianData) {
+        for (const certFile of certificationFiles) {
+          const certExt = certFile.name.split('.').pop();
+          const certPath = `${createUserResult.user_id}/certifications/${Date.now()}-${certFile.name}`;
+          
+          const { error: certError } = await supabase.storage
+            .from('technician-documents')
+            .upload(certPath, certFile);
+          
+          if (!certError) {
+            await supabase.from('technician_documents').insert({
+              technician_id: technicianData.id,
+              document_type: 'certification',
+              file_name: certFile.name,
+              file_path: certPath,
+            });
+          }
+        }
       }
 
       // Enviar email com senha ou link de reset

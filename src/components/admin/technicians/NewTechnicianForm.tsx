@@ -53,7 +53,7 @@ const technicianFormSchema = z.object({
 type TechnicianFormValues = z.infer<typeof technicianFormSchema>;
 
 interface NewTechnicianFormProps {
-  onSubmit: (data: TechnicianFormValues, uploadedFile: File | null) => Promise<void>;
+  onSubmit: (data: TechnicianFormValues, uploadedFile: File | null, photoFile: File | null, certificationFiles: File[]) => Promise<void>;
   onCancel: () => void;
   initialData?: Partial<TechnicianFormValues>;
   isEditing?: boolean;
@@ -68,6 +68,9 @@ export const NewTechnicianForm = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string>("");
+  const [certificationFiles, setCertificationFiles] = useState<File[]>([]);
   const { extractFromPDF, isExtracting } = useDocumentExtraction();
   const { toast } = useToast();
 
@@ -115,12 +118,36 @@ export const NewTechnicianForm = ({
     }
   };
 
+  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPhotoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPhotoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCertificationSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setCertificationFiles(prev => [...prev, ...files]);
+  };
+
+  const removeCertification = (index: number) => {
+    setCertificationFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (data: TechnicianFormValues) => {
     setIsLoading(true);
     try {
-      await onSubmit(data, uploadedFile);
+      await onSubmit(data, uploadedFile, photoFile, certificationFiles);
       form.reset();
       setUploadedFile(null);
+      setPhotoFile(null);
+      setPhotoPreview("");
+      setCertificationFiles([]);
     } catch (error: any) {
       toast({
         title: "Erro",
@@ -156,6 +183,61 @@ export const NewTechnicianForm = ({
                 <span>Campos preenchidos automaticamente do ASO</span>
               </div>
             )}
+
+            <div>
+              <h3 className="text-lg font-semibold mb-2">📷 Foto do Técnico</h3>
+              <div className="flex items-center gap-4">
+                {photoPreview && (
+                  <img 
+                    src={photoPreview} 
+                    alt="Preview" 
+                    className="w-24 h-24 rounded-full object-cover border-2 border-border"
+                  />
+                )}
+                <div className="flex-1">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoSelect}
+                    className="cursor-pointer"
+                  />
+                  <p className="text-sm text-muted-foreground mt-1">
+                    JPG, PNG ou WEBP até 5MB
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-lg font-semibold mb-2">📜 Certificações</h3>
+              <Input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                multiple
+                onChange={handleCertificationSelect}
+                className="cursor-pointer"
+              />
+              {certificationFiles.length > 0 && (
+                <div className="space-y-2 mt-2">
+                  {certificationFiles.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-muted rounded">
+                      <span className="text-sm truncate">{file.name}</span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeCertification(index)}
+                      >
+                        Remover
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-sm text-muted-foreground mt-1">
+                PDF ou imagens até 10MB cada
+              </p>
+            </div>
           </div>
         )}
 
