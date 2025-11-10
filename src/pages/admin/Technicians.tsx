@@ -110,28 +110,34 @@ const Technicians = () => {
 
       if (error) throw error;
 
-      const formattedData = data?.map((tech: any) => ({
-        id: tech.id,
-        user_id: tech.user_id,
-        name: tech.profiles?.full_name || "",
-        email: tech.profiles?.email || "",
-        phone: tech.profiles?.phone || "",
-        avatar_url: tech.profiles?.avatar_url || null,
-        role: tech.specialty || "",
-        isActive: tech.active,
-        userId: tech.profiles?.id,
-        cpf: tech.cpf,
-        rg: tech.rg,
-        birth_date: tech.birth_date,
-        gender: tech.gender,
-        nationality: tech.nationality,
-        height: tech.height,
-        blood_type: tech.blood_type,
-        blood_rh_factor: tech.blood_rh_factor,
-        aso_valid_until: tech.aso_valid_until,
-        medical_status: tech.medical_status,
-        documents: tech.technician_documents || [],
-      })) || [];
+      const formattedData = data?.map((tech: any) => {
+        console.log('Tech profile data:', tech.profiles);
+        console.log('Avatar URL:', tech.profiles?.avatar_url);
+        return {
+          id: tech.id,
+          user_id: tech.user_id,
+          userId: tech.profiles?.id,
+          name: tech.profiles?.full_name || "",
+          email: tech.profiles?.email || "",
+          phone: tech.profiles?.phone || "",
+          avatar_url: tech.profiles?.avatar_url || null,
+          role: tech.specialty || "",
+          isActive: tech.active,
+          cpf: tech.cpf,
+          rg: tech.rg,
+          birth_date: tech.birth_date,
+          gender: tech.gender,
+          nationality: tech.nationality,
+          height: tech.height,
+          blood_type: tech.blood_type,
+          blood_rh_factor: tech.blood_rh_factor,
+          aso_valid_until: tech.aso_valid_until,
+          medical_status: tech.medical_status,
+          documents: tech.technician_documents || [],
+        };
+      }) || [];
+
+      console.log('Formatted technicians:', formattedData);
 
       setTechnicians(formattedData);
     } catch (error: any) {
@@ -244,6 +250,7 @@ const Technicians = () => {
 
       // Upload da foto se fornecida
       if (photoFile) {
+        console.log('Uploading photo for user:', createUserResult.user_id);
         const photoExt = photoFile.name.split('.').pop();
         const photoPath = `${createUserResult.user_id}/avatar.${photoExt}`;
         
@@ -251,15 +258,25 @@ const Technicians = () => {
           .from('technician-documents')
           .upload(photoPath, photoFile, { upsert: true });
         
-        if (!photoError) {
+        if (photoError) {
+          console.error('Photo upload error:', photoError);
+        } else {
           const { data: { publicUrl } } = supabase.storage
             .from('technician-documents')
             .getPublicUrl(photoPath);
           
+          console.log('Photo uploaded, public URL:', publicUrl);
+          
           // Atualizar avatar no perfil
-          await supabase.from('profiles')
+          const { error: updateAvatarError } = await supabase.from('profiles')
             .update({ avatar_url: publicUrl })
             .eq('id', createUserResult.user_id);
+          
+          if (updateAvatarError) {
+            console.error('Avatar update error:', updateAvatarError);
+          } else {
+            console.log('Avatar URL saved to profile');
+          }
         }
       }
 
