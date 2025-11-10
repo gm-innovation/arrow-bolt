@@ -480,20 +480,9 @@ export const NewTechnicianForm = ({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Cargo *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione um cargo" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Técnico de Manutenção">Técnico de Manutenção</SelectItem>
-                    <SelectItem value="Técnico de Refrigeração">Técnico de Refrigeração</SelectItem>
-                    <SelectItem value="Técnico de Eletrônica">Técnico de Eletrônica</SelectItem>
-                    <SelectItem value="Técnico de Mecânica">Técnico de Mecânica</SelectItem>
-                    <SelectItem value="Auxiliar Técnico">Auxiliar Técnico</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <Input {...field} placeholder="Ex: Técnico de Eletrônica" />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
