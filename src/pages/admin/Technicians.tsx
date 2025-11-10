@@ -361,7 +361,8 @@ const Technicians = () => {
                 Novo Técnico
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+
               <NewTechnicianForm 
                 onSubmit={handleCreateTechnician}
                 onCancel={() => setIsNewTechnicianOpen(false)}
