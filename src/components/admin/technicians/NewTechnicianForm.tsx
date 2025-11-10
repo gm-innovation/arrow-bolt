@@ -227,7 +227,7 @@ export const NewTechnicianForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Gênero</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione" />
@@ -390,7 +390,7 @@ export const NewTechnicianForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Tipo Sanguíneo</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione" />
@@ -414,7 +414,7 @@ export const NewTechnicianForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Fator RH</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione" />
@@ -452,7 +452,7 @@ export const NewTechnicianForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Status Médico</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value || undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione" />
