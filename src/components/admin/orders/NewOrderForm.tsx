@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetails } from "./ServiceDetails";
+import { TechniciansSelection } from "./TechniciansSelection";
 
 const orderFormSchema = z.object({
   clientId: z.string().min(1, "Cliente é obrigatório"),
@@ -57,6 +58,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
   const [supervisors, setSupervisors] = useState<any[]>([]);
   const [technicians, setTechnicians] = useState<any[]>([]);
   const [selectedTechnicians, setSelectedTechnicians] = useState<string[]>([]);
+  const [leadTechId, setLeadTechId] = useState<string>("");
   const [taskTypes, setTaskTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -209,6 +211,10 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
       if (tasksData) {
         const techIds = [...new Set(tasksData.map(t => t.assigned_to).filter(Boolean))];
         setSelectedTechnicians(techIds);
+        // Set lead tech as the first one (you might want to store this in the DB)
+        if (techIds.length > 0) {
+          setLeadTechId(techIds[0]);
+        }
       }
     } catch (error: any) {
       toast({
@@ -290,7 +296,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
             task_type_id: taskTypeId,
             title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
             status: "pending" as const,
-            assigned_to: selectedTechnicians[0] || null,
+            assigned_to: leadTechId || selectedTechnicians[0] || null,
           }));
 
           const { error: tasksError } = await supabase
@@ -336,7 +342,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
             task_type_id: taskTypeId,
             title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
             status: "pending" as const,
-            assigned_to: selectedTechnicians[0] || null,
+            assigned_to: leadTechId || selectedTechnicians[0] || null,
           }));
 
           const { error: tasksError } = await supabase
@@ -365,6 +371,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         supervisorId: "",
       });
       setSelectedTechnicians([]);
+      setLeadTechId("");
       onSuccess?.();
     } catch (error: any) {
       toast({
@@ -495,32 +502,18 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
         <ServiceDetails form={form} taskTypes={taskTypes} />
 
-        <div className="space-y-3">
-          <FormLabel>Técnicos</FormLabel>
-          <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2">
-            {technicians.map((tech) => (
-              <div key={tech.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={tech.id}
-                  checked={selectedTechnicians.includes(tech.id)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedTechnicians([...selectedTechnicians, tech.id]);
-                    } else {
-                      setSelectedTechnicians(selectedTechnicians.filter(id => id !== tech.id));
-                    }
-                  }}
-                />
-                <label
-                  htmlFor={tech.id}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  {tech.profiles?.full_name}
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
+        <TechniciansSelection
+          technicians={technicians}
+          selectedTechnicians={selectedTechnicians}
+          onTechnicianToggle={(techId) => {
+            setSelectedTechnicians([...selectedTechnicians, techId]);
+          }}
+          leadTechId={leadTechId}
+          onLeadTechChange={setLeadTechId}
+          onRemoveTechnician={(techId) => {
+            setSelectedTechnicians(selectedTechnicians.filter(id => id !== techId));
+          }}
+        />
 
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Criando..." : isEditing ? "Atualizar" : "Criar"} Ordem de Serviço
