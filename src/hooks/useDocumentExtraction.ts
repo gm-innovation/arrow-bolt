@@ -1,22 +1,45 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import * as pdfjsLib from 'pdfjs-dist';
+
+// Configure worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 export const useDocumentExtraction = () => {
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractedData, setExtractedData] = useState<any>(null);
   const { toast } = useToast();
 
+  const pdfToImage = async (file: File): Promise<string> => {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    const page = await pdf.getPage(1);
+    
+    const viewport = page.getViewport({ scale: 2.0 });
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    
+    if (!context) throw new Error('Could not get canvas context');
+    
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+    
+    await page.render({ canvasContext: context, viewport, canvas }).promise;
+    
+    return canvas.toDataURL('image/png').split(',')[1];
+  };
+
   const extractFromPDF = async (file: File) => {
     setIsExtracting(true);
     try {
-      // Convert file to base64
-      const base64 = await fileToBase64(file);
+      // Convert PDF first page to image
+      const imageBase64 = await pdfToImage(file);
       
-      // Call edge function
+      // Call edge function with image instead of PDF
       const { data, error } = await supabase.functions.invoke('extract-technician-data', {
         body: { 
-          fileBase64: base64.split(',')[1], // Remove data:application/pdf;base64,
+          fileBase64: imageBase64,
           fileName: file.name 
         }
       });
@@ -46,15 +69,6 @@ export const useDocumentExtraction = () => {
     } finally {
       setIsExtracting(false);
     }
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = error => reject(error);
-    });
   };
 
   return { extractFromPDF, isExtracting, extractedData };
