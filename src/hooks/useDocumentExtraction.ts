@@ -2,12 +2,10 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Configure worker using local file instead of CDN
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString();
+// Configure worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 export const useDocumentExtraction = () => {
   const [isExtracting, setIsExtracting] = useState(false);
