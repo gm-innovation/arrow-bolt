@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TechnicianCard } from "@/components/admin/technicians/TechnicianCard";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
-import { Plus, Search, Download } from "lucide-react";
+import { Plus, Search, Download, Eye, Pencil, Trash2 } from "lucide-react";
 import { exportToCSV, formatBooleanForExport } from "@/lib/exportUtils";
 import { Input } from "@/components/ui/input";
 import {
@@ -36,6 +44,7 @@ const Technicians = () => {
   const [loading, setLoading] = useState(true);
   const [isNewTechnicianOpen, setIsNewTechnicianOpen] = useState(false);
   const [isEditTechnicianOpen, setIsEditTechnicianOpen] = useState(false);
+  const [isViewTechnicianOpen, setIsViewTechnicianOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -304,6 +313,14 @@ const Technicians = () => {
     }
   };
 
+  const handleViewClick = (id: string) => {
+    const technician = technicians.find((t) => t.id === id);
+    if (technician) {
+      setSelectedTechnician(technician);
+      setIsViewTechnicianOpen(true);
+    }
+  };
+
   const handleEditClick = (id: string) => {
     const technician = technicians.find((t) => t.id === id);
     if (technician) {
@@ -427,8 +444,10 @@ const Technicians = () => {
                 Novo Técnico
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Novo Técnico</DialogTitle>
+              </DialogHeader>
               <NewTechnicianForm 
                 onSubmit={handleCreateTechnician}
                 onCancel={() => setIsNewTechnicianOpen(false)}
@@ -462,27 +481,21 @@ const Technicians = () => {
       </div>
       
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="space-y-4">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <Skeleton className="h-6 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-2/3" />
-                  </div>
-                  <div className="flex gap-2">
-                    <Skeleton className="h-9 flex-1" />
-                    <Skeleton className="h-9 flex-1" />
-                  </div>
+        <Card>
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <Skeleton className="h-4 flex-1" />
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-8 w-24" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       ) : filteredTechnicians.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 text-center border rounded-lg border-dashed">
           <h3 className="text-lg font-medium">Nenhum técnico encontrado</h3>
@@ -491,26 +504,105 @@ const Technicians = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredTechnicians.map((technician) => (
-            <TechnicianCard
-              key={technician.id}
-              id={technician.id}
-              name={technician.name}
-              role={technician.role}
-              email={technician.email}
-              phone={technician.phone}
-              isActive={technician.isActive}
-              onEdit={handleEditClick}
-              onDelete={handleDeleteClick}
-            />
-          ))}
-        </div>
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Cargo</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTechnicians.map((technician) => (
+                <TableRow key={technician.id}>
+                  <TableCell className="font-medium">{technician.name}</TableCell>
+                  <TableCell>{technician.email}</TableCell>
+                  <TableCell>{technician.phone || '-'}</TableCell>
+                  <TableCell>{technician.role || '-'}</TableCell>
+                  <TableCell>
+                    <Badge variant={technician.isActive ? "default" : "secondary"}>
+                      {technician.isActive ? "Ativo" : "Inativo"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewClick(technician.id)}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEditClick(technician.id)}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(technician.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
       )}
       
+      {/* View Dialog */}
+      <Dialog open={isViewTechnicianOpen} onOpenChange={setIsViewTechnicianOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Técnico</DialogTitle>
+          </DialogHeader>
+          {selectedTechnician && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Nome</p>
+                  <p className="text-base">{selectedTechnician.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Email</p>
+                  <p className="text-base">{selectedTechnician.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Telefone</p>
+                  <p className="text-base">{selectedTechnician.phone || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Cargo</p>
+                  <p className="text-base">{selectedTechnician.role || '-'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Status</p>
+                  <Badge variant={selectedTechnician.isActive ? "default" : "secondary"}>
+                    {selectedTechnician.isActive ? "Ativo" : "Inativo"}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Dialog */}
       <Dialog open={isEditTechnicianOpen} onOpenChange={setIsEditTechnicianOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Técnico</DialogTitle>
+          </DialogHeader>
           {selectedTechnician && (
             <NewTechnicianForm
               initialData={selectedTechnician}
