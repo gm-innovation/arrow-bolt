@@ -267,14 +267,13 @@ const Technicians = () => {
           }
           
           const photoExt = photoFile.name.split('.').pop();
-          const timestamp = Date.now();
-          const photoPath = `${profileData.company_id}/${createUserResult.user_id}/avatar.${photoExt}`;
+          const photoPath = `${createUserResult.user_id}/avatar.${photoExt}`;
           
           console.log('📍 Caminho de upload:', photoPath);
           
-          // Fazer upload (upsert:true vai sobrescrever se já existir)
+          // Fazer upload no novo bucket technician-avatars
           const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('technician-documents')
+            .from('technician-avatars')
             .upload(photoPath, photoFile, { 
               upsert: true,
               contentType: photoFile.type,
@@ -288,9 +287,9 @@ const Technicians = () => {
           
           console.log('✅ Upload bem-sucedido!', uploadData);
           
-          // Obter URL pública
+          // Obter URL pública do novo bucket
           const { data: { publicUrl } } = supabase.storage
-            .from('technician-documents')
+            .from('technician-avatars')
             .getPublicUrl(photoPath);
           
           console.log('📎 URL pública gerada:', publicUrl);
@@ -481,13 +480,13 @@ const Technicians = () => {
           }
           
           const photoExt = photoFile.name.split('.').pop();
-          const photoPath = `${profileData.company_id}/${selectedTechnician.user_id}/avatar.${photoExt}`;
+          const photoPath = `${selectedTechnician.user_id}/avatar.${photoExt}`;
           
           console.log('📍 Caminho de upload:', photoPath);
           
-          // Fazer upload (upsert:true vai sobrescrever se já existir)
+          // Fazer upload no novo bucket technician-avatars
           const { data: uploadData, error: uploadError } = await supabase.storage
-            .from('technician-documents')
+            .from('technician-avatars')
             .upload(photoPath, photoFile, { 
               upsert: true,
               contentType: photoFile.type,
@@ -501,9 +500,9 @@ const Technicians = () => {
           
           console.log('✅ Upload bem-sucedido!', uploadData);
           
-          // Obter URL pública
+          // Obter URL pública do novo bucket
           const { data: { publicUrl } } = supabase.storage
-            .from('technician-documents')
+            .from('technician-avatars')
             .getPublicUrl(photoPath);
           
           console.log('📎 URL pública gerada:', publicUrl);
