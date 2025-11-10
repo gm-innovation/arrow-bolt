@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { LocationAutocomplete } from "./LocationAutocomplete";
 
 interface ServiceDetailsProps {
   form: any;
@@ -51,7 +52,11 @@ export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
             <FormItem>
               <FormLabel>Local</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Localização da embarcação" />
+                <LocationAutocomplete 
+                  value={field.value || ""} 
+                  onChange={field.onChange}
+                  placeholder="Buscar localização da embarcação" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -65,7 +70,11 @@ export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
             <FormItem>
               <FormLabel>Acesso</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Informações de acesso" />
+                <LocationAutocomplete 
+                  value={field.value || ""} 
+                  onChange={field.onChange}
+                  placeholder="Buscar endereço de acesso" 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
