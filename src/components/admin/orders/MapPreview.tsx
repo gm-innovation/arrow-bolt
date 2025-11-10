@@ -16,7 +16,13 @@ export const MapPreview = ({ longitude, latitude, locationName }: MapPreviewProp
   useEffect(() => {
     if (!mapContainer.current) return;
 
-    const MAPBOX_TOKEN = 'pk.eyJ1IjoibG92YWJsZSIsImEiOiJjbTdzaGU3MWEwMGltMnFzOTVvdGR6MnN6In0.qaCNJG1LG-3QgJY_xT6kVg';
+    const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_ACCESS_TOKEN;
+    
+    if (!MAPBOX_TOKEN) {
+      console.error('Mapbox token not configured');
+      return;
+    }
+    
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
     if (!map.current) {
