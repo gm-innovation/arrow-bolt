@@ -104,43 +104,58 @@ export const NewTechnicianForm = ({
 
     const fileArray = Array.from(files);
     const newFiles = { ...uploadedFiles };
+    let asoPdf: File | null = null;
+    const certifications: File[] = [];
 
+    // Primeiro, separar arquivos por tipo
     for (const file of fileArray) {
       const fileType = file.type;
       const fileName = file.name.toLowerCase();
 
-      // Identificar tipo do arquivo
-      if (fileType === 'application/pdf' && fileName.includes('aso')) {
-        newFiles.aso = file;
-        // Extrair dados do ASO
-        const extractedData = await extractFromPDF(file);
-        if (extractedData) {
-          if (extractedData.full_name) form.setValue('name', extractedData.full_name);
-          if (extractedData.cpf) form.setValue('cpf', extractedData.cpf);
-          if (extractedData.rg) form.setValue('rg', extractedData.rg);
-          if (extractedData.birth_date) form.setValue('birth_date', extractedData.birth_date);
-          if (extractedData.gender) form.setValue('gender', extractedData.gender);
-          if (extractedData.nationality) form.setValue('nationality', extractedData.nationality);
-          if (extractedData.height) form.setValue('height', extractedData.height.toString());
-          if (extractedData.blood_type) form.setValue('blood_type', extractedData.blood_type);
-          if (extractedData.blood_rh_factor) form.setValue('blood_rh_factor', extractedData.blood_rh_factor);
-          if (extractedData.aso_valid_until) form.setValue('aso_valid_until', extractedData.aso_valid_until);
-          if (extractedData.medical_status) form.setValue('medical_status', extractedData.medical_status);
-          if (extractedData.function) form.setValue('role', extractedData.function);
+      if (fileType.startsWith('image/')) {
+        // Primeira imagem é a foto
+        if (!newFiles.photo) {
+          newFiles.photo = file;
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setPhotoPreview(reader.result as string);
+          };
+          reader.readAsDataURL(file);
+        } else {
+          certifications.push(file);
         }
-      } else if (fileType.startsWith('image/')) {
-        newFiles.photo = file;
-        // Criar preview da foto
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPhotoPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-      } else if (fileType === 'application/pdf' || fileType.startsWith('image/')) {
-        // Certificações
-        newFiles.certifications.push(file);
+      } else if (fileType === 'application/pdf') {
+        // PDF com "aso" no nome OU primeiro PDF = ASO
+        if (fileName.includes('aso') || (!asoPdf && !newFiles.aso)) {
+          asoPdf = file;
+        } else {
+          certifications.push(file);
+        }
       }
     }
+
+    // Processar ASO se encontrado
+    if (asoPdf && !newFiles.aso) {
+      newFiles.aso = asoPdf;
+      const extractedData = await extractFromPDF(asoPdf);
+      if (extractedData) {
+        if (extractedData.full_name) form.setValue('name', extractedData.full_name);
+        if (extractedData.cpf) form.setValue('cpf', extractedData.cpf);
+        if (extractedData.rg) form.setValue('rg', extractedData.rg);
+        if (extractedData.birth_date) form.setValue('birth_date', extractedData.birth_date);
+        if (extractedData.gender) form.setValue('gender', extractedData.gender);
+        if (extractedData.nationality) form.setValue('nationality', extractedData.nationality);
+        if (extractedData.height) form.setValue('height', extractedData.height.toString());
+        if (extractedData.blood_type) form.setValue('blood_type', extractedData.blood_type);
+        if (extractedData.blood_rh_factor) form.setValue('blood_rh_factor', extractedData.blood_rh_factor);
+        if (extractedData.aso_valid_until) form.setValue('aso_valid_until', extractedData.aso_valid_until);
+        if (extractedData.medical_status) form.setValue('medical_status', extractedData.medical_status);
+        if (extractedData.function) form.setValue('role', extractedData.function);
+      }
+    }
+
+    // Adicionar certificações
+    newFiles.certifications = [...newFiles.certifications, ...certifications];
 
     setUploadedFiles(newFiles);
   };
