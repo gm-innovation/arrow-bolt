@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ServiceDetails } from "./ServiceDetails";
 
 const orderFormSchema = z.object({
   clientId: z.string().min(1, "Cliente é obrigatório"),
@@ -23,6 +24,16 @@ const orderFormSchema = z.object({
       today.setHours(0, 0, 0, 0);
       return selectedDate >= today;
     }, "Data não pode ser no passado"),
+  serviceDateTime: z.string().optional(),
+  location: z.string()
+    .max(200, "Local deve ter no máximo 200 caracteres")
+    .optional(),
+  access: z.string()
+    .max(200, "Acesso deve ter no máximo 200 caracteres")
+    .optional(),
+  taskTypes: z.array(z.string())
+    .min(1, "Selecione pelo menos um tipo de tarefa"),
+  singleReport: z.boolean().optional(),
   description: z.string()
     .trim()
     .max(500, "Descrição deve ter no máximo 500 caracteres")
@@ -47,7 +58,6 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
   const [technicians, setTechnicians] = useState<any[]>([]);
   const [selectedTechnicians, setSelectedTechnicians] = useState<string[]>([]);
   const [taskTypes, setTaskTypes] = useState<any[]>([]);
-  const [selectedTaskTypes, setSelectedTaskTypes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<OrderFormData>({
@@ -56,6 +66,11 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
       clientId: "",
       vesselId: "",
       scheduledDate: "",
+      serviceDateTime: "",
+      location: "",
+      access: "",
+      taskTypes: [],
+      singleReport: false,
       description: "",
       supervisorId: "",
     }
@@ -176,20 +191,23 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         .select("task_type_id, assigned_to")
         .eq("service_order_id", orderId);
 
-      // Populate form
+      // Populate form with ALL fields
       form.reset({
         clientId: orderData.vessels?.client_id || "",
         vesselId: orderData.vessel_id || "",
         scheduledDate: orderData.scheduled_date || "",
+        serviceDateTime: orderData.service_date_time || "",
+        location: orderData.location || "",
+        access: orderData.access || "",
+        singleReport: orderData.single_report || false,
         description: orderData.description || "",
         supervisorId: orderData.supervisor_id || "",
+        taskTypes: tasksData ? [...new Set(tasksData.map(t => t.task_type_id).filter(Boolean))] : [],
       });
 
-      // Set selected task types and technicians
+      // Set selected technicians
       if (tasksData) {
-        const taskTypeIds = [...new Set(tasksData.map(t => t.task_type_id).filter(Boolean))];
         const techIds = [...new Set(tasksData.map(t => t.assigned_to).filter(Boolean))];
-        setSelectedTaskTypes(taskTypeIds);
         setSelectedTechnicians(techIds);
       }
     } catch (error: any) {
@@ -226,8 +244,11 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
       if (!profileData?.company_id) throw new Error("Company not found");
 
+      // Get taskTypes from form
+      const formTaskTypes = data.taskTypes || [];
+
       // Validações de negócio
-      if (selectedTaskTypes.length === 0) {
+      if (formTaskTypes.length === 0) {
         throw new Error("Selecione pelo menos um tipo de tarefa");
       }
 
@@ -244,6 +265,10 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
             scheduled_date: data.scheduledDate,
+            service_date_time: data.serviceDateTime || null,
+            location: data.location?.trim() || null,
+            access: data.access?.trim() || null,
+            single_report: data.singleReport || false,
             description: data.description?.trim() || null,
           })
           .eq("id", orderId);
@@ -259,8 +284,8 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         if (deleteError) throw deleteError;
 
         // Create new tasks
-        if (selectedTaskTypes.length > 0) {
-          const tasksToInsert = selectedTaskTypes.map(taskTypeId => ({
+        if (formTaskTypes.length > 0) {
+          const tasksToInsert = formTaskTypes.map(taskTypeId => ({
             service_order_id: orderId,
             task_type_id: taskTypeId,
             title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
@@ -292,6 +317,10 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
             scheduled_date: data.scheduledDate,
+            service_date_time: data.serviceDateTime || null,
+            location: data.location?.trim() || null,
+            access: data.access?.trim() || null,
+            single_report: data.singleReport || false,
             description: data.description?.trim() || null,
             status: "pending",
           })
@@ -301,8 +330,8 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         if (orderError) throw orderError;
 
         // Create tasks
-        if (selectedTaskTypes.length > 0 && serviceOrder) {
-          const tasksToInsert = selectedTaskTypes.map(taskTypeId => ({
+        if (formTaskTypes.length > 0 && serviceOrder) {
+          const tasksToInsert = formTaskTypes.map(taskTypeId => ({
             service_order_id: serviceOrder.id,
             task_type_id: taskTypeId,
             title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
@@ -323,9 +352,19 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         });
       }
 
-      form.reset();
+      form.reset({
+        clientId: "",
+        vesselId: "",
+        scheduledDate: "",
+        serviceDateTime: "",
+        location: "",
+        access: "",
+        taskTypes: [],
+        singleReport: false,
+        description: "",
+        supervisorId: "",
+      });
       setSelectedTechnicians([]);
-      setSelectedTaskTypes([]);
       onSuccess?.();
     } catch (error: any) {
       toast({
@@ -454,32 +493,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
           )}
         />
 
-        <div className="space-y-3">
-          <FormLabel>Tipos de Tarefas</FormLabel>
-          <div className="border rounded-md p-4 max-h-48 overflow-y-auto space-y-2">
-            {taskTypes.map((taskType) => (
-              <div key={taskType.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={taskType.id}
-                  checked={selectedTaskTypes.includes(taskType.id)}
-                  onCheckedChange={(checked) => {
-                    if (checked) {
-                      setSelectedTaskTypes([...selectedTaskTypes, taskType.id]);
-                    } else {
-                      setSelectedTaskTypes(selectedTaskTypes.filter(id => id !== taskType.id));
-                    }
-                  }}
-                />
-                <label
-                  htmlFor={taskType.id}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  {taskType.name} <span className="text-muted-foreground">({taskType.category})</span>
-                </label>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ServiceDetails form={form} taskTypes={taskTypes} />
 
         <div className="space-y-3">
           <FormLabel>Técnicos</FormLabel>

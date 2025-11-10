@@ -6,7 +6,12 @@ import { Plus, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 
-export const ServiceDetails = ({ form }: any) => {
+interface ServiceDetailsProps {
+  form: any;
+  taskTypes: { id: string; name: string; category?: string }[];
+}
+
+export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
   const selectedTaskTypes = form.watch("taskTypes") || [];
   const singleReport = form.watch("singleReport");
 
@@ -76,7 +81,7 @@ export const ServiceDetails = ({ form }: any) => {
               </SelectTrigger>
             </FormControl>
             <SelectContent>
-              {mockTaskTypes.map((type) => (
+              {taskTypes.map((type) => (
                 <SelectItem 
                   key={type.id} 
                   value={type.id}
@@ -89,7 +94,7 @@ export const ServiceDetails = ({ form }: any) => {
           </Select>
           <div className="flex flex-wrap gap-2 mt-2">
             {selectedTaskTypes.map((typeId) => {
-              const taskType = mockTaskTypes.find(t => t.id === typeId);
+              const taskType = taskTypes.find(t => t.id === typeId);
               return (
                 <Badge key={typeId} variant="secondary" className="flex items-center gap-1">
                   {taskType?.name}
@@ -134,9 +139,3 @@ export const ServiceDetails = ({ form }: any) => {
     </div>
   );
 };
-
-const mockTaskTypes = [
-  { id: "tt1", name: "Manutenção Preventiva" },
-  { id: "tt2", name: "Reparo" },
-  { id: "tt3", name: "Inspeção" },
-];
