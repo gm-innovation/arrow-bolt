@@ -5,15 +5,17 @@ import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from "@
 interface LocationAutocompleteProps {
   value: string;
   onChange: (value: string) => void;
+  onLocationSelect?: (location: { name: string; coordinates: [number, number] }) => void;
   placeholder?: string;
 }
 
 interface MapboxFeature {
   id: string;
   place_name: string;
+  mapbox_id: string;
 }
 
-export const LocationAutocomplete = ({ value, onChange, placeholder }: LocationAutocompleteProps) => {
+export const LocationAutocomplete = ({ value, onChange, onLocationSelect, placeholder }: LocationAutocompleteProps) => {
   const [query, setQuery] = useState(value);
   const [suggestions, setSuggestions] = useState<MapboxFeature[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -67,11 +69,39 @@ export const LocationAutocomplete = ({ value, onChange, placeholder }: LocationA
     }, 300);
   };
 
-  const handleSelectSuggestion = (placeName: string) => {
+  const handleSelectSuggestion = async (placeName: string, mapboxId: string) => {
     setQuery(placeName);
     onChange(placeName);
     setSuggestions([]);
     setIsOpen(false);
+
+    // Retrieve full details including coordinates
+    if (onLocationSelect && mapboxId) {
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const response = await fetch(
+          `${supabaseUrl}/functions/v1/mapbox-geocoding`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ mapbox_id: mapboxId }),
+          }
+        );
+        const data = await response.json();
+        
+        if (data.features?.[0]?.geometry?.coordinates) {
+          const [longitude, latitude] = data.features[0].geometry.coordinates;
+          onLocationSelect({
+            name: placeName,
+            coordinates: [longitude, latitude]
+          });
+        }
+      } catch (error) {
+        console.error("Erro ao buscar coordenadas:", error);
+      }
+    }
   };
 
   return (
@@ -99,7 +129,7 @@ export const LocationAutocomplete = ({ value, onChange, placeholder }: LocationA
                     <CommandItem
                       key={feature.id}
                       value={feature.place_name}
-                      onSelect={() => handleSelectSuggestion(feature.place_name)}
+                      onSelect={() => handleSelectSuggestion(feature.place_name, feature.mapbox_id)}
                     >
                       {feature.place_name}
                     </CommandItem>
