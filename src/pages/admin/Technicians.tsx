@@ -170,11 +170,13 @@ const Technicians = () => {
   };
 
   const uploadTechnicianDocuments = async (
-    file: File, 
-    technicianId: string, 
+    file: File,
+    technicianId: string,
     companyId: string,
     asoIssueDate?: string
   ) => {
+    console.log('🚀 uploadTechnicianDocuments chamado:', { technicianId, asoIssueDate });
+    
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${file.name}`;
     const filePath = `${companyId}/${technicianId}/aso/${fileName}`;
@@ -186,29 +188,30 @@ const Technicians = () => {
 
     if (uploadError) throw uploadError;
 
-    // Save metadata to database including aso_issue_date
-    const metadata: any = {};
-    if (asoIssueDate && asoIssueDate.trim() !== '') {
-      metadata.aso_issue_date = asoIssueDate;
-      console.log('💾 Salvando data de emissão do ASO nos metadados:', asoIssueDate);
-    } else {
-      console.warn('⚠️ ASO issue date não fornecida ou vazia');
-    }
-
-    const { error: insertError } = await supabase.from('technician_documents').insert({
+    // Prepare document data
+    const documentData: any = {
       technician_id: technicianId,
       document_type: 'aso',
       file_name: file.name,
       file_path: filePath,
-      metadata: Object.keys(metadata).length > 0 ? metadata : null,
-    });
+    };
+
+    // Add metadata with aso_issue_date if provided
+    if (asoIssueDate && asoIssueDate.trim() !== '') {
+      documentData.metadata = { aso_issue_date: asoIssueDate };
+      console.log('💾 Salvando metadata:', documentData.metadata);
+    } else {
+      console.warn('⚠️ aso_issue_date não fornecida');
+    }
+
+    const { error: insertError } = await supabase.from('technician_documents').insert(documentData);
 
     if (insertError) {
       console.error('❌ Erro ao inserir documento:', insertError);
       throw insertError;
     }
 
-    console.log('✅ Documento ASO salvo com sucesso com metadata:', metadata);
+    console.log('✅ ASO salvo com sucesso');
   };
 
   const handleCreateTechnician = async (data: any, uploadedFile: File | null, photoFile: File | null, certificationFiles: Array<{ file: File; name?: string; issueDate?: string; expiryDate?: string; }>) => {
@@ -893,7 +896,11 @@ const Technicians = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Data de Nascimento</p>
-                    <p className="text-base">{selectedTechnician.birth_date ? format(new Date(selectedTechnician.birth_date), 'dd/MM/yyyy') : '-'}</p>
+                    <p className="text-base">
+                      {selectedTechnician.birth_date 
+                        ? new Date(selectedTechnician.birth_date + 'T00:00:00').toLocaleDateString('pt-BR')
+                        : '-'}
+                    </p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Gênero</p>
@@ -950,15 +957,12 @@ const Technicians = () => {
                           <p className="text-sm font-medium text-muted-foreground">Data de Emissão/Exame</p>
                           <p className="text-base">
                             {(() => {
-                              console.log('🔍 Debug ASO Issue Date:', {
-                                asoDoc,
-                                metadata: asoMetadata,
-                                issue_date: asoIssueDate,
-                                birth_date: selectedTechnician.birth_date
-                              });
-                              return asoIssueDate 
-                                ? new Date(asoIssueDate + 'T00:00:00').toLocaleDateString('pt-BR')
-                                : '-';
+                              const issueDate = asoMetadata?.aso_issue_date;
+                              console.log('🔍 ASO Metadata completo:', asoDoc?.metadata);
+                              console.log('🔍 Data extraída:', issueDate);
+                              
+                              if (!issueDate) return '-';
+                              return new Date(issueDate + 'T00:00:00').toLocaleDateString('pt-BR');
                             })()}
                           </p>
                         </div>
