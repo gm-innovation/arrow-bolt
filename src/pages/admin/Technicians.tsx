@@ -175,12 +175,7 @@ const Technicians = () => {
     companyId: string,
     asoIssueDate?: string
   ) => {
-    console.log('🚀 uploadTechnicianDocuments - Parâmetros:', { 
-      technicianId, 
-      asoIssueDate,
-      tipo: typeof asoIssueDate,
-      valor: asoIssueDate
-    });
+    console.log('🚀 uploadTechnicianDocuments chamado com asoIssueDate:', asoIssueDate);
     
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${file.name}`;
@@ -193,23 +188,16 @@ const Technicians = () => {
 
     if (uploadError) throw uploadError;
 
-    // Prepare document data
+    // Prepare document data with metadata
     const documentData: any = {
       technician_id: technicianId,
       document_type: 'aso',
       file_name: file.name,
       file_path: filePath,
+      metadata: asoIssueDate ? { aso_issue_date: asoIssueDate } : null
     };
 
-    // Add metadata with aso_issue_date if provided
-    if (asoIssueDate && asoIssueDate.trim() !== '') {
-      documentData.metadata = { aso_issue_date: asoIssueDate };
-      console.log('💾 Salvando metadata:', JSON.stringify(documentData.metadata));
-    } else {
-      console.warn('⚠️ aso_issue_date NÃO fornecida. Valor:', asoIssueDate);
-    }
-
-    console.log('📝 Documento completo:', JSON.stringify(documentData, null, 2));
+    console.log('💾 Salvando documento com metadata:', JSON.stringify(documentData, null, 2));
 
     const { data: inserted, error: insertError } = await supabase
       .from('technician_documents')
@@ -402,21 +390,13 @@ const Technicians = () => {
       if (uploadedFile && technicianData) {
         console.log('📄 Preparando upload do ASO');
         console.log('- Technician ID:', technicianData.id);
-        console.log('- ASO Issue Date from data:', data.aso_issue_date);
-        console.log('- ASO Issue Date type:', typeof data.aso_issue_date);
-        console.log('- ASO Issue Date value:', JSON.stringify(data.aso_issue_date));
-        
-        console.log('📤 Enviando para uploadTechnicianDocuments:', {
-          asoIssueDate: data.aso_issue_date,
-          tipo: typeof data.aso_issue_date,
-          valor: data.aso_issue_date
-        });
+        console.log('- ASO Issue Date:', data.aso_issue_date);
         
         await uploadTechnicianDocuments(
           uploadedFile, 
           technicianData.id, 
           profileData.company_id,
-          data.aso_issue_date
+          data.aso_issue_date // Passando a data de emissão do ASO
         );
       }
 
@@ -979,11 +959,7 @@ const Technicians = () => {
                           <p className="text-sm font-medium text-muted-foreground">Data de Emissão/Exame</p>
                           <p className="text-base">
                             {(() => {
-                              console.log('🔍 ASO Doc completo:', JSON.stringify(asoDoc, null, 2));
-                              console.log('🔍 ASO Metadata:', JSON.stringify(asoDoc?.metadata, null, 2));
                               const issueDate = asoMetadata?.aso_issue_date;
-                              console.log('🔍 Issue Date extraída:', issueDate, 'Tipo:', typeof issueDate);
-                              
                               if (!issueDate) return '-';
                               return new Date(issueDate + 'T00:00:00').toLocaleDateString('pt-BR');
                             })()}
