@@ -176,6 +176,7 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
                       <Button
                         variant="outline"
                         role="combobox"
+                        type="button"
                         className={cn(
                           "justify-between",
                           !field.value && "text-muted-foreground"
@@ -186,7 +187,17 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
                       </Button>
                     </FormControl>
                   </PopoverTrigger>
-                  <PopoverContent className="w-full p-0" align="start">
+                  <PopoverContent 
+                    className="w-[400px] p-0" 
+                    align="start"
+                    onInteractOutside={(e) => {
+                      // Prevent closing when clicking inside
+                      const target = e.target as HTMLElement;
+                      if (target.closest('[cmdk-root]')) {
+                        e.preventDefault();
+                      }
+                    }}
+                  >
                     <Command shouldFilter={false}>
                       <CommandInput 
                         placeholder="Buscar ou criar categoria..." 
@@ -194,31 +205,39 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
                         onValueChange={setSearchValue}
                       />
                       <CommandList>
-                        <CommandEmpty>
-                          <div className="py-2 px-4 text-sm">
-                            {searchValue ? (
-                              <>
-                                <p className="mb-2 text-muted-foreground">Categoria não encontrada.</p>
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  className="w-full"
-                                  onClick={() => {
-                                    field.onChange(searchValue);
-                                    setCategories([...categories, searchValue]);
-                                    setSearchValue("");
-                                    setOpenCombobox(false);
-                                  }}
-                                >
-                                  <Plus className="mr-2 h-4 w-4" />
-                                  Criar "{searchValue}"
-                                </Button>
-                              </>
-                            ) : (
-                              <p className="text-muted-foreground">Digite para buscar ou criar uma categoria</p>
-                            )}
-                          </div>
-                        </CommandEmpty>
+                        {categories.filter(cat => 
+                          cat.toLowerCase().includes(searchValue.toLowerCase())
+                        ).length === 0 && (
+                          <CommandEmpty>
+                            <div className="py-2 px-4 text-sm">
+                              {searchValue ? (
+                                <>
+                                  <p className="mb-2 text-muted-foreground">Categoria não encontrada.</p>
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (searchValue.trim()) {
+                                        field.onChange(searchValue.trim());
+                                        setCategories([...categories, searchValue.trim()]);
+                                        setSearchValue("");
+                                        setOpenCombobox(false);
+                                      }
+                                    }}
+                                  >
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Criar "{searchValue}"
+                                  </Button>
+                                </>
+                              ) : (
+                                <p className="text-muted-foreground">Digite para buscar ou criar uma categoria</p>
+                              )}
+                            </div>
+                          </CommandEmpty>
+                        )}
                         <CommandGroup>
                           {categories
                             .filter(category => 
