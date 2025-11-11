@@ -221,30 +221,34 @@ export const NewTechnicianForm = ({
           };
           reader.readAsDataURL(file);
         } else {
-          // Processar como certificação
-          const certData = await processCertificate(file);
-          certifications.push({
-            file,
-            name: certData.certificate_name,
-            issueDate: certData.issue_date,
-            expiryDate: certData.expiry_date,
-            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
-          });
+          // Processar como certificação (apenas se NÃO for ASO)
+          if (!fileName.includes('aso')) {
+            const certData = await processCertificate(file);
+            certifications.push({
+              file,
+              name: certData.certificate_name,
+              issueDate: certData.issue_date,
+              expiryDate: certData.expiry_date,
+              isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
+            });
+          }
         }
       } else if (fileType === 'application/pdf') {
         // PDF com "aso" no nome OU primeiro PDF = ASO
         if (fileName.includes('aso') || (!asoPdf && !newFiles.aso)) {
           asoPdf = file;
         } else {
-          // Processar como certificação
-          const certData = await processCertificate(file);
-          certifications.push({
-            file,
-            name: certData.certificate_name,
-            issueDate: certData.issue_date,
-            expiryDate: certData.expiry_date,
-            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
-          });
+          // Processar como certificação (apenas se NÃO for ASO)
+          if (!fileName.includes('aso')) {
+            const certData = await processCertificate(file);
+            certifications.push({
+              file,
+              name: certData.certificate_name,
+              issueDate: certData.issue_date,
+              expiryDate: certData.expiry_date,
+              isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
+            });
+          }
         }
       }
     }

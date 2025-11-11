@@ -925,7 +925,11 @@ const Technicians = () => {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Validade do ASO</p>
-                          <p className="text-base">{selectedTechnician.aso_valid_until ? format(new Date(selectedTechnician.aso_valid_until), 'dd/MM/yyyy') : '-'}</p>
+                          <p className="text-base">
+                            {selectedTechnician.aso_valid_until 
+                              ? new Date(selectedTechnician.aso_valid_until + 'T00:00:00').toLocaleDateString('pt-BR')
+                              : '-'}
+                          </p>
                         </div>
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Status Médico</p>
