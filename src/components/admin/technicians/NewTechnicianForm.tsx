@@ -30,6 +30,7 @@ const technicianFormSchema = z.object({
   height: z.string().optional().or(z.literal("")),
   blood_type: z.enum(['A', 'B', 'AB', 'O']).optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   blood_rh_factor: z.enum(['Positivo', 'Negativo']).optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
+  aso_issue_date: z.string().optional().or(z.literal("")),
   aso_valid_until: z.string().optional().or(z.literal("")),
   medical_status: z.enum(['fit', 'unfit', 'pending']).optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   
@@ -123,6 +124,7 @@ export const NewTechnicianForm = ({
       height: initialData?.height || "",
       blood_type: initialData?.blood_type || undefined,
       blood_rh_factor: initialData?.blood_rh_factor || undefined,
+      aso_issue_date: initialData?.aso_issue_date || "",
       aso_valid_until: initialData?.aso_valid_until || "",
       medical_status: initialData?.medical_status || undefined,
       role: initialData?.role || "",
@@ -267,6 +269,7 @@ export const NewTechnicianForm = ({
         if (extractedData.height) form.setValue('height', extractedData.height.toString());
         if (extractedData.blood_type) form.setValue('blood_type', extractedData.blood_type);
         if (extractedData.blood_rh_factor) form.setValue('blood_rh_factor', extractedData.blood_rh_factor);
+        if (extractedData.aso_issue_date) form.setValue('aso_issue_date', extractedData.aso_issue_date);
         if (extractedData.aso_valid_until) form.setValue('aso_valid_until', extractedData.aso_valid_until);
         if (extractedData.medical_status) form.setValue('medical_status', extractedData.medical_status);
         if (extractedData.function) form.setValue('role', extractedData.function);

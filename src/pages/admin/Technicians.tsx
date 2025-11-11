@@ -172,7 +172,8 @@ const Technicians = () => {
   const uploadTechnicianDocuments = async (
     file: File, 
     technicianId: string, 
-    companyId: string
+    companyId: string,
+    asoIssueDate?: string
   ) => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${file.name}`;
@@ -185,12 +186,13 @@ const Technicians = () => {
 
     if (uploadError) throw uploadError;
 
-    // Save metadata to database
+    // Save metadata to database including aso_issue_date
     await supabase.from('technician_documents').insert({
       technician_id: technicianId,
       document_type: 'aso',
       file_name: file.name,
       file_path: filePath,
+      metadata: asoIssueDate ? { aso_issue_date: asoIssueDate } : null,
     });
   };
 
@@ -369,7 +371,8 @@ const Technicians = () => {
         await uploadTechnicianDocuments(
           uploadedFile, 
           technicianData.id, 
-          profileData.company_id
+          profileData.company_id,
+          data.aso_issue_date
         );
       }
 
@@ -919,7 +922,7 @@ const Technicians = () => {
                 {(() => {
                   const asoDoc = selectedTechnician.documents?.find((doc: any) => doc.document_type === 'aso');
                   const asoMetadata = asoDoc?.metadata;
-                  const asoIssueDate = asoMetadata?.aso_issue_date || selectedTechnician.birth_date;
+                  const asoIssueDate = asoMetadata?.aso_issue_date;
                   
                   return (
                     <div className="space-y-4">
