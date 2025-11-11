@@ -175,7 +175,12 @@ const Technicians = () => {
     companyId: string,
     asoIssueDate?: string
   ) => {
-    console.log('🚀 uploadTechnicianDocuments chamado:', { technicianId, asoIssueDate });
+    console.log('🚀 uploadTechnicianDocuments - Parâmetros:', { 
+      technicianId, 
+      asoIssueDate,
+      tipo: typeof asoIssueDate,
+      valor: asoIssueDate
+    });
     
     const fileExt = file.name.split('.').pop();
     const fileName = `${Date.now()}-${file.name}`;
@@ -199,22 +204,30 @@ const Technicians = () => {
     // Add metadata with aso_issue_date if provided
     if (asoIssueDate && asoIssueDate.trim() !== '') {
       documentData.metadata = { aso_issue_date: asoIssueDate };
-      console.log('💾 Salvando metadata:', documentData.metadata);
+      console.log('💾 Salvando metadata:', JSON.stringify(documentData.metadata));
     } else {
-      console.warn('⚠️ aso_issue_date não fornecida');
+      console.warn('⚠️ aso_issue_date NÃO fornecida. Valor:', asoIssueDate);
     }
 
-    const { error: insertError } = await supabase.from('technician_documents').insert(documentData);
+    console.log('📝 Documento completo:', JSON.stringify(documentData, null, 2));
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('technician_documents')
+      .insert(documentData)
+      .select()
+      .single();
 
     if (insertError) {
-      console.error('❌ Erro ao inserir documento:', insertError);
+      console.error('❌ Erro ao inserir:', insertError);
       throw insertError;
     }
 
-    console.log('✅ ASO salvo com sucesso');
+    console.log('✅ ASO salvo! Documento:', JSON.stringify(inserted, null, 2));
   };
 
   const handleCreateTechnician = async (data: any, uploadedFile: File | null, photoFile: File | null, certificationFiles: Array<{ file: File; name?: string; issueDate?: string; expiryDate?: string; }>) => {
+    console.log('🚀 handleCreateTechnician - Data completa recebida:', JSON.stringify(data, null, 2));
+    console.log('🚀 handleCreateTechnician - aso_issue_date:', data.aso_issue_date);
     try {
       const { data: profileData } = await supabase
         .from("profiles")
