@@ -331,6 +331,9 @@ export const NewTechnicianForm = ({
   const handleSubmit = async (data: TechnicianFormValues) => {
     setIsLoading(true);
     try {
+      console.log('🚀 Form submit - Data completa:', JSON.stringify(data, null, 2));
+      console.log('🚀 Form submit - aso_issue_date:', data.aso_issue_date);
+      
       await onSubmit(data, uploadedFiles.aso || null, uploadedFiles.photo || null, uploadedFiles.certifications);
       form.reset();
       setUploadedFiles({ certifications: [] });

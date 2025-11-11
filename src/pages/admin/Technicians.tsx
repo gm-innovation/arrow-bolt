@@ -227,7 +227,8 @@ const Technicians = () => {
 
   const handleCreateTechnician = async (data: any, uploadedFile: File | null, photoFile: File | null, certificationFiles: Array<{ file: File; name?: string; issueDate?: string; expiryDate?: string; }>) => {
     console.log('🚀 handleCreateTechnician - Data completa recebida:', JSON.stringify(data, null, 2));
-    console.log('🚀 handleCreateTechnician - aso_issue_date:', data.aso_issue_date);
+    console.log('🚀 handleCreateTechnician - aso_issue_date específica:', data.aso_issue_date);
+    console.log('🚀 handleCreateTechnician - Tipo:', typeof data.aso_issue_date);
     try {
       const { data: profileData } = await supabase
         .from("profiles")
@@ -401,7 +402,15 @@ const Technicians = () => {
       if (uploadedFile && technicianData) {
         console.log('📄 Preparando upload do ASO');
         console.log('- Technician ID:', technicianData.id);
-        console.log('- ASO Issue Date:', data.aso_issue_date);
+        console.log('- ASO Issue Date from data:', data.aso_issue_date);
+        console.log('- ASO Issue Date type:', typeof data.aso_issue_date);
+        console.log('- ASO Issue Date value:', JSON.stringify(data.aso_issue_date));
+        
+        console.log('📤 Enviando para uploadTechnicianDocuments:', {
+          asoIssueDate: data.aso_issue_date,
+          tipo: typeof data.aso_issue_date,
+          valor: data.aso_issue_date
+        });
         
         await uploadTechnicianDocuments(
           uploadedFile, 
@@ -970,9 +979,10 @@ const Technicians = () => {
                           <p className="text-sm font-medium text-muted-foreground">Data de Emissão/Exame</p>
                           <p className="text-base">
                             {(() => {
+                              console.log('🔍 ASO Doc completo:', JSON.stringify(asoDoc, null, 2));
+                              console.log('🔍 ASO Metadata:', JSON.stringify(asoDoc?.metadata, null, 2));
                               const issueDate = asoMetadata?.aso_issue_date;
-                              console.log('🔍 ASO Metadata completo:', asoDoc?.metadata);
-                              console.log('🔍 Data extraída:', issueDate);
+                              console.log('🔍 Issue Date extraída:', issueDate, 'Tipo:', typeof issueDate);
                               
                               if (!issueDate) return '-';
                               return new Date(issueDate + 'T00:00:00').toLocaleDateString('pt-BR');
