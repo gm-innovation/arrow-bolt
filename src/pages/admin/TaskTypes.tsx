@@ -81,6 +81,9 @@ const TaskTypes = () => {
         name: data.name,
         category: data.category,
         description: data.description,
+        tools: data.tools || [],
+        steps: data.steps || [],
+        photo_labels: data.photoLabels || [],
         company_id: profileData.company_id,
       });
 
@@ -187,14 +190,16 @@ const TaskTypes = () => {
                   <TableHead>Nome</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Descrição</TableHead>
-                  <TableHead>Total de Tarefas</TableHead>
+                  <TableHead className="text-center">Ferramentas</TableHead>
+                  <TableHead className="text-center">Passos</TableHead>
+                  <TableHead className="text-center">Legendas</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTaskTypes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       Nenhum tipo de tarefa encontrado
                     </TableCell>
                   </TableRow>
@@ -204,7 +209,15 @@ const TaskTypes = () => {
                       <TableCell>{taskType.name}</TableCell>
                       <TableCell>{taskType.category}</TableCell>
                       <TableCell>{taskType.description || "-"}</TableCell>
-                      <TableCell>-</TableCell>
+                      <TableCell className="text-center">
+                        {taskType.tools?.length || 0}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {taskType.steps?.length || 0}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {taskType.photo_labels?.length || 0}
+                      </TableCell>
                       <TableCell className="text-right space-x-2">
                         <Button
                           variant="ghost"
