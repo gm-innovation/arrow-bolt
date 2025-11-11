@@ -28,6 +28,7 @@ const TaskTypes = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [taskTypes, setTaskTypes] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [taskName, setTaskName] = useState("");
   const [category, setCategory] = useState("all");
@@ -35,6 +36,7 @@ const TaskTypes = () => {
 
   useEffect(() => {
     fetchTaskTypes();
+    fetchCategories();
   }, []);
 
   const fetchTaskTypes = async () => {
@@ -67,6 +69,29 @@ const TaskTypes = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profileData?.company_id) return;
+
+      const { data, error } = await supabase
+        .from("task_categories")
+        .select("name")
+        .eq("company_id", profileData.company_id)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setCategories(data?.map(c => c.name) || []);
+    } catch (error: any) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
   const handleCreateTaskType = async (data: any) => {
     try {
       const { data: profileData } = await supabase
@@ -77,9 +102,29 @@ const TaskTypes = () => {
 
       if (!profileData?.company_id) throw new Error("Company not found");
 
+      // Create category if it doesn't exist
+      if (data.category?.trim()) {
+        const { error: categoryError } = await supabase
+          .from("task_categories")
+          .upsert(
+            { 
+              name: data.category.trim(), 
+              company_id: profileData.company_id 
+            },
+            { 
+              onConflict: 'name,company_id',
+              ignoreDuplicates: true 
+            }
+          );
+
+        if (categoryError && categoryError.code !== '23505') {
+          console.error("Error creating category:", categoryError);
+        }
+      }
+
       const { error } = await supabase.from("task_types").insert({
         name: data.name,
-        category: data.category,
+        category: data.category?.trim() || null,
         description: data.description,
         tools: data.tools || [],
         steps: data.steps || [],
@@ -91,6 +136,7 @@ const TaskTypes = () => {
 
       setOpen(false);
       fetchTaskTypes();
+      fetchCategories();
       
       toast({
         title: "Tipo de tarefa criado",
@@ -165,11 +211,11 @@ const TaskTypes = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todas</SelectItem>
-                  <SelectItem value="Refrigeração">Refrigeração</SelectItem>
-                  <SelectItem value="Eletrônica">Eletrônica</SelectItem>
-                  <SelectItem value="Mecânica">Mecânica</SelectItem>
-                  <SelectItem value="Hidráulica">Hidráulica</SelectItem>
-                  <SelectItem value="Elétrica">Elétrica</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

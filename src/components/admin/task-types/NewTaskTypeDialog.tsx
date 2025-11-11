@@ -3,7 +3,6 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -134,20 +133,12 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Categoria</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione uma categoria" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="Refrigeração">Refrigeração</SelectItem>
-                    <SelectItem value="Eletrônica">Eletrônica</SelectItem>
-                    <SelectItem value="Mecânica">Mecânica</SelectItem>
-                    <SelectItem value="Hidráulica">Hidráulica</SelectItem>
-                    <SelectItem value="Elétrica">Elétrica</SelectItem>
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <Input 
+                    {...field} 
+                    placeholder="Digite a categoria (ex: Refrigeração, Elétrica...)" 
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
