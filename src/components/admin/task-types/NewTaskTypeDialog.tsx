@@ -200,21 +200,42 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
                 <FormLabel>Categoria</FormLabel>
                 <div className="relative" ref={dropdownRef}>
                   <FormControl>
-                    <Input
-                      value={categoryInput}
-                      onChange={(e) => {
-                        setCategoryInput(e.target.value);
-                        field.onChange(e.target.value);
-                        setShowDropdown(true);
-                      }}
-                      onFocus={() => setShowDropdown(true)}
-                      placeholder="Digite ou selecione uma categoria"
-                    />
+                    <div className="relative">
+                      <Input
+                        value={categoryInput}
+                        onChange={(e) => {
+                          setCategoryInput(e.target.value);
+                          field.onChange(e.target.value);
+                          setShowDropdown(true);
+                        }}
+                        onFocus={() => setShowDropdown(true)}
+                        placeholder="Digite ou selecione uma categoria"
+                        className="pr-8"
+                      />
+                      {categoryInput && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full"
+                          onClick={() => {
+                            setCategoryInput("");
+                            field.onChange("");
+                            setShowDropdown(true);
+                          }}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </FormControl>
                   {showDropdown && (
                     <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-auto">
                       {filteredCategories.length > 0 ? (
                         <div className="py-1">
+                          <div className="px-3 py-2 text-xs font-semibold text-muted-foreground">
+                            Categorias existentes
+                          </div>
                           {filteredCategories.map((category) => (
                             <div
                               key={category}
@@ -234,6 +255,9 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
                       ) : null}
                       {categoryInput.trim() && !categories.includes(categoryInput.trim()) && (
                         <div className="p-2 border-t">
+                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mb-1">
+                            Criar nova categoria
+                          </div>
                           <Button
                             type="button"
                             size="sm"
@@ -253,6 +277,9 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
                     </div>
                   )}
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Digite um nome novo para criar uma categoria ou selecione uma existente
+                </p>
                 <FormMessage />
               </FormItem>
             )}
