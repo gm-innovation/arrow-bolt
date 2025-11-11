@@ -3,14 +3,12 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, X, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, X, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -36,8 +34,9 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
-  const [openCombobox, setOpenCombobox] = useState(false);
-  const [searchValue, setSearchValue] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [categoryInput, setCategoryInput] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [tools, setTools] = useState<string[]>([]);
   const [newTool, setNewTool] = useState("");
   const [steps, setSteps] = useState<string[]>([]);
@@ -47,6 +46,16 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
 
   useEffect(() => {
     fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   const fetchCategories = async () => {
@@ -134,11 +143,30 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
       setTools([]);
       setSteps([]);
       setPhotoLabels([]);
-      setSearchValue("");
+      setCategoryInput("");
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const filteredCategories = categories.filter(cat =>
+    cat.toLowerCase().includes(categoryInput.toLowerCase())
+  );
+
+  const handleSelectCategory = (category: string, onChange: (value: string) => void) => {
+    onChange(category);
+    setCategoryInput(category);
+    setShowDropdown(false);
+  };
+
+  const handleCreateCategory = (onChange: (value: string) => void) => {
+    if (categoryInput.trim() && !categories.includes(categoryInput.trim())) {
+      const newCategory = categoryInput.trim();
+      setCategories([...categories, newCategory]);
+      onChange(newCategory);
+      setShowDropdown(false);
     }
   };
 
@@ -168,107 +196,63 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
             control={form.control}
             name="category"
             render={({ field }) => (
-              <FormItem className="flex flex-col">
+              <FormItem>
                 <FormLabel>Categoria</FormLabel>
-                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        type="button"
-                        className={cn(
-                          "justify-between",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value || "Selecione ou crie uma categoria"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent 
-                    className="w-[400px] p-0" 
-                    align="start"
-                    onInteractOutside={(e) => {
-                      // Prevent closing when clicking inside
-                      const target = e.target as HTMLElement;
-                      if (target.closest('[cmdk-root]')) {
-                        e.preventDefault();
-                      }
-                    }}
-                  >
-                    <Command shouldFilter={false}>
-                      <CommandInput 
-                        placeholder="Buscar ou criar categoria..." 
-                        value={searchValue}
-                        onValueChange={setSearchValue}
-                      />
-                      <CommandList>
-                        {categories.filter(cat => 
-                          cat.toLowerCase().includes(searchValue.toLowerCase())
-                        ).length === 0 && (
-                          <CommandEmpty>
-                            <div className="py-2 px-4 text-sm">
-                              {searchValue ? (
-                                <>
-                                  <p className="mb-2 text-muted-foreground">Categoria não encontrada.</p>
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      if (searchValue.trim()) {
-                                        field.onChange(searchValue.trim());
-                                        setCategories([...categories, searchValue.trim()]);
-                                        setSearchValue("");
-                                        setOpenCombobox(false);
-                                      }
-                                    }}
-                                  >
-                                    <Plus className="mr-2 h-4 w-4" />
-                                    Criar "{searchValue}"
-                                  </Button>
-                                </>
-                              ) : (
-                                <p className="text-muted-foreground">Digite para buscar ou criar uma categoria</p>
-                              )}
+                <div className="relative" ref={dropdownRef}>
+                  <FormControl>
+                    <Input
+                      value={categoryInput}
+                      onChange={(e) => {
+                        setCategoryInput(e.target.value);
+                        field.onChange(e.target.value);
+                        setShowDropdown(true);
+                      }}
+                      onFocus={() => setShowDropdown(true)}
+                      placeholder="Digite ou selecione uma categoria"
+                    />
+                  </FormControl>
+                  {showDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-auto">
+                      {filteredCategories.length > 0 ? (
+                        <div className="py-1">
+                          {filteredCategories.map((category) => (
+                            <div
+                              key={category}
+                              className="px-3 py-2 cursor-pointer hover:bg-accent hover:text-accent-foreground flex items-center gap-2"
+                              onClick={() => handleSelectCategory(category, field.onChange)}
+                            >
+                              <Check
+                                className={cn(
+                                  "h-4 w-4",
+                                  field.value === category ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {category}
                             </div>
-                          </CommandEmpty>
-                        )}
-                        <CommandGroup>
-                          {categories
-                            .filter(category => 
-                              category.toLowerCase().includes(searchValue.toLowerCase())
-                            )
-                            .map((category) => (
-                              <CommandItem
-                                key={category}
-                                value={category}
-                                onSelect={() => {
-                                  field.onChange(category);
-                                  setSearchValue("");
-                                  setOpenCombobox(false);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    category === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {category}
-                              </CommandItem>
-                            ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                          ))}
+                        </div>
+                      ) : null}
+                      {categoryInput.trim() && !categories.includes(categoryInput.trim()) && (
+                        <div className="p-2 border-t">
+                          <Button
+                            type="button"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => handleCreateCategory(field.onChange)}
+                          >
+                            <Plus className="mr-2 h-4 w-4" />
+                            Criar "{categoryInput}"
+                          </Button>
+                        </div>
+                      )}
+                      {!categoryInput.trim() && filteredCategories.length === 0 && (
+                        <div className="p-4 text-sm text-muted-foreground text-center">
+                          Digite para buscar ou criar uma categoria
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <FormMessage />
               </FormItem>
             )}
