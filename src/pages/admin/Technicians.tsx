@@ -187,13 +187,28 @@ const Technicians = () => {
     if (uploadError) throw uploadError;
 
     // Save metadata to database including aso_issue_date
-    await supabase.from('technician_documents').insert({
+    const metadata: any = {};
+    if (asoIssueDate && asoIssueDate.trim() !== '') {
+      metadata.aso_issue_date = asoIssueDate;
+      console.log('💾 Salvando data de emissão do ASO nos metadados:', asoIssueDate);
+    } else {
+      console.warn('⚠️ ASO issue date não fornecida ou vazia');
+    }
+
+    const { error: insertError } = await supabase.from('technician_documents').insert({
       technician_id: technicianId,
       document_type: 'aso',
       file_name: file.name,
       file_path: filePath,
-      metadata: asoIssueDate ? { aso_issue_date: asoIssueDate } : null,
+      metadata: Object.keys(metadata).length > 0 ? metadata : null,
     });
+
+    if (insertError) {
+      console.error('❌ Erro ao inserir documento:', insertError);
+      throw insertError;
+    }
+
+    console.log('✅ Documento ASO salvo com sucesso com metadata:', metadata);
   };
 
   const handleCreateTechnician = async (data: any, uploadedFile: File | null, photoFile: File | null, certificationFiles: Array<{ file: File; name?: string; issueDate?: string; expiryDate?: string; }>) => {
@@ -368,6 +383,10 @@ const Technicians = () => {
 
       // Upload do ASO se fornecido
       if (uploadedFile && technicianData) {
+        console.log('📄 Preparando upload do ASO');
+        console.log('- Technician ID:', technicianData.id);
+        console.log('- ASO Issue Date:', data.aso_issue_date);
+        
         await uploadTechnicianDocuments(
           uploadedFile, 
           technicianData.id, 
@@ -930,9 +949,17 @@ const Technicians = () => {
                         <div>
                           <p className="text-sm font-medium text-muted-foreground">Data de Emissão/Exame</p>
                           <p className="text-base">
-                            {asoIssueDate 
-                              ? new Date(asoIssueDate + 'T00:00:00').toLocaleDateString('pt-BR')
-                              : '-'}
+                            {(() => {
+                              console.log('🔍 Debug ASO Issue Date:', {
+                                asoDoc,
+                                metadata: asoMetadata,
+                                issue_date: asoIssueDate,
+                                birth_date: selectedTechnician.birth_date
+                              });
+                              return asoIssueDate 
+                                ? new Date(asoIssueDate + 'T00:00:00').toLocaleDateString('pt-BR')
+                                : '-';
+                            })()}
                           </p>
                         </div>
                         <div>

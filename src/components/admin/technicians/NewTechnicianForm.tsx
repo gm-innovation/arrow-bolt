@@ -269,7 +269,10 @@ export const NewTechnicianForm = ({
         if (extractedData.height) form.setValue('height', extractedData.height.toString());
         if (extractedData.blood_type) form.setValue('blood_type', extractedData.blood_type);
         if (extractedData.blood_rh_factor) form.setValue('blood_rh_factor', extractedData.blood_rh_factor);
-        if (extractedData.aso_issue_date) form.setValue('aso_issue_date', extractedData.aso_issue_date);
+        if (extractedData.aso_issue_date) {
+          console.log('📅 Setting aso_issue_date from extracted data:', extractedData.aso_issue_date);
+          form.setValue('aso_issue_date', extractedData.aso_issue_date);
+        }
         if (extractedData.aso_valid_until) form.setValue('aso_valid_until', extractedData.aso_valid_until);
         if (extractedData.medical_status) form.setValue('medical_status', extractedData.medical_status);
         if (extractedData.function) form.setValue('role', extractedData.function);
