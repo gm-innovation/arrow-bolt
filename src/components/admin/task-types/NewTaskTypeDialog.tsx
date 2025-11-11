@@ -3,12 +3,17 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Check, ChevronsUpDown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
@@ -28,13 +33,43 @@ interface NewTaskTypeDialogProps {
 
 export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps) => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [openCombobox, setOpenCombobox] = useState(false);
   const [tools, setTools] = useState<string[]>([]);
   const [newTool, setNewTool] = useState("");
   const [steps, setSteps] = useState<string[]>([]);
   const [newStep, setNewStep] = useState("");
   const [photoLabels, setPhotoLabels] = useState<string[]>([]);
   const [newPhotoLabel, setNewPhotoLabel] = useState("");
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user?.id)
+        .single();
+
+      if (!profileData?.company_id) return;
+
+      const { data, error } = await supabase
+        .from("task_categories")
+        .select("name")
+        .eq("company_id", profileData.company_id)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+      setCategories(data?.map(c => c.name) || []);
+    } catch (error: any) {
+      console.error("Error fetching categories:", error);
+    }
+  };
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -131,14 +166,81 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
             control={form.control}
             name="category"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="flex flex-col">
                 <FormLabel>Categoria</FormLabel>
-                <FormControl>
-                  <Input 
-                    {...field} 
-                    placeholder="Digite a categoria (ex: Refrigeração, Elétrica...)" 
-                  />
-                </FormControl>
+                <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className={cn(
+                          "justify-between",
+                          !field.value && "text-muted-foreground"
+                        )}
+                      >
+                        {field.value || "Selecione ou crie uma categoria"}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput 
+                        placeholder="Buscar ou criar categoria..." 
+                        onValueChange={(value) => {
+                          // Allow creating new category
+                          if (value && !categories.includes(value)) {
+                            field.onChange(value);
+                          }
+                        }}
+                      />
+                      <CommandList>
+                        <CommandEmpty>
+                          <div className="py-2 px-4 text-sm">
+                            <p className="mb-2">Categoria não encontrada.</p>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => {
+                                const input = document.querySelector('[cmdk-input]') as HTMLInputElement;
+                                if (input?.value) {
+                                  field.onChange(input.value);
+                                  setOpenCombobox(false);
+                                }
+                              }}
+                            >
+                              <Plus className="mr-2 h-4 w-4" />
+                              Criar "{(document.querySelector('[cmdk-input]') as HTMLInputElement)?.value}"
+                            </Button>
+                          </div>
+                        </CommandEmpty>
+                        <CommandGroup>
+                          {categories.map((category) => (
+                            <CommandItem
+                              key={category}
+                              value={category}
+                              onSelect={() => {
+                                field.onChange(category);
+                                setOpenCombobox(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  category === field.value
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                )}
+                              />
+                              {category}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
