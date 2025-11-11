@@ -919,12 +919,21 @@ const Technicians = () => {
                 {(() => {
                   const asoDoc = selectedTechnician.documents?.find((doc: any) => doc.document_type === 'aso');
                   const asoMetadata = asoDoc?.metadata;
+                  const asoIssueDate = asoMetadata?.aso_issue_date || selectedTechnician.birth_date;
                   
                   return (
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-3 gap-4">
                         <div>
-                          <p className="text-sm font-medium text-muted-foreground">Validade do ASO</p>
+                          <p className="text-sm font-medium text-muted-foreground">Data de Emissão/Exame</p>
+                          <p className="text-base">
+                            {asoIssueDate 
+                              ? new Date(asoIssueDate + 'T00:00:00').toLocaleDateString('pt-BR')
+                              : '-'}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-muted-foreground">Data de Validade</p>
                           <p className="text-base">
                             {selectedTechnician.aso_valid_until 
                               ? new Date(selectedTechnician.aso_valid_until + 'T00:00:00').toLocaleDateString('pt-BR')
@@ -977,19 +986,19 @@ const Technicians = () => {
                             {asoMetadata.data_nascimento && (
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground">Data de Nascimento (ASO)</p>
-                                <p className="text-sm">{format(new Date(asoMetadata.data_nascimento), 'dd/MM/yyyy')}</p>
+                                <p className="text-sm">{new Date(asoMetadata.data_nascimento + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                               </div>
                             )}
                             {asoMetadata.exame_clinico && (
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground">Exame Clínico</p>
-                                <p className="text-sm">{format(new Date(asoMetadata.exame_clinico), 'dd/MM/yyyy')}</p>
+                                <p className="text-sm">{new Date(asoMetadata.exame_clinico + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                               </div>
                             )}
                             {asoMetadata.validade && (
                               <div>
                                 <p className="text-xs font-medium text-muted-foreground">Validade (ASO)</p>
-                                <p className="text-sm">{format(new Date(asoMetadata.validade), 'dd/MM/yyyy')}</p>
+                                <p className="text-sm">{new Date(asoMetadata.validade + 'T00:00:00').toLocaleDateString('pt-BR')}</p>
                               </div>
                             )}
                             {asoMetadata.funcao && (
@@ -1035,38 +1044,40 @@ const Technicians = () => {
               {/* Certificações */}
               <div>
                 <h3 className="text-lg font-semibold mb-3">Certificações</h3>
-                {selectedTechnician.documents && selectedTechnician.documents.length > 0 ? (
+                {selectedTechnician.documents && selectedTechnician.documents.filter((doc: any) => doc.document_type !== 'aso').length > 0 ? (
                   <div className="space-y-3">
-                    {selectedTechnician.documents.map((doc: any) => {
-                      const validityStatus = getValidityStatus(doc.expiry_date);
-                      return (
-                        <div key={doc.id} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-3">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium text-muted-foreground">Nome do Certificado</p>
-                              <p className="text-base font-medium">{doc.certificate_name || doc.file_name}</p>
+                    {selectedTechnician.documents
+                      .filter((doc: any) => doc.document_type !== 'aso')
+                      .map((doc: any) => {
+                        const validityStatus = getValidityStatus(doc.expiry_date);
+                        return (
+                          <div key={doc.id} className="border rounded-lg p-4">
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium text-muted-foreground">Nome do Certificado</p>
+                                <p className="text-base font-medium">{doc.certificate_name || doc.file_name}</p>
+                              </div>
+                              <Badge className={validityStatus.color}>
+                                {validityStatus.label}
+                              </Badge>
                             </div>
-                            <Badge className={validityStatus.color}>
-                              {validityStatus.label}
-                            </Badge>
+                            <div className="grid grid-cols-3 gap-4">
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Data de Emissão</p>
+                                <p className="text-base">{doc.issue_date ? new Date(doc.issue_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Data de Validade</p>
+                                <p className="text-base">{doc.expiry_date ? new Date(doc.expiry_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-'}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Tipo</p>
+                                <p className="text-base">{doc.document_type}</p>
+                              </div>
+                            </div>
                           </div>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Data de Emissão</p>
-                              <p className="text-base">{doc.issue_date ? format(new Date(doc.issue_date), 'dd/MM/yyyy') : '-'}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Data de Validade</p>
-                              <p className="text-base">{doc.expiry_date ? format(new Date(doc.expiry_date), 'dd/MM/yyyy') : '-'}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium text-muted-foreground">Tipo</p>
-                              <p className="text-base">{doc.document_type}</p>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
                   </div>
                 ) : (
                   <p className="text-muted-foreground">Nenhuma certificação cadastrada</p>
