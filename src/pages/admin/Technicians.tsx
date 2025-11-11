@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -739,6 +739,7 @@ const Technicians = () => {
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Novo Técnico</DialogTitle>
+                <DialogDescription>Preencha os dados do novo técnico</DialogDescription>
               </DialogHeader>
               <NewTechnicianForm 
                 onSubmit={handleCreateTechnician}
@@ -857,6 +858,7 @@ const Technicians = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Detalhes do Técnico</DialogTitle>
+            <DialogDescription>Visualize as informações completas do técnico</DialogDescription>
           </DialogHeader>
           {selectedTechnician && (
             <div className="space-y-6">
@@ -1126,6 +1128,7 @@ const Technicians = () => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Técnico</DialogTitle>
+            <DialogDescription>Atualize as informações do técnico</DialogDescription>
           </DialogHeader>
           {selectedTechnician && (
             <NewTechnicianForm
