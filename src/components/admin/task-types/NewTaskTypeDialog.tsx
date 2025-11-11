@@ -161,12 +161,42 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
     setShowDropdown(false);
   };
 
-  const handleCreateCategory = (onChange: (value: string) => void) => {
+  const handleCreateCategory = async (onChange: (value: string) => void) => {
     if (categoryInput.trim() && !categories.includes(categoryInput.trim())) {
       const newCategory = categoryInput.trim();
-      setCategories([...categories, newCategory]);
-      onChange(newCategory);
-      setShowDropdown(false);
+      
+      try {
+        const { data: profileData } = await supabase
+          .from("profiles")
+          .select("company_id")
+          .eq("id", user?.id)
+          .single();
+
+        if (!profileData?.company_id) return;
+
+        const { error } = await supabase
+          .from("task_categories")
+          .insert({
+            name: newCategory,
+            company_id: profileData.company_id
+          });
+
+        if (error) throw error;
+
+        setCategories([...categories, newCategory]);
+        onChange(newCategory);
+        setCategoryInput(newCategory);
+        setShowDropdown(false);
+        toast({
+          title: "Categoria criada com sucesso",
+        });
+      } catch (error) {
+        console.error("Error creating category:", error);
+        toast({
+          title: "Erro ao criar categoria",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -230,12 +260,12 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
                     </div>
                   </FormControl>
                   {showDropdown && (
-                    <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-auto">
-                      {filteredCategories.length > 0 ? (
+                    <div 
+                      className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-md max-h-[300px] overflow-auto"
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      {filteredCategories.length > 0 && (
                         <div className="py-1">
-                          <div className="px-3 py-2 text-xs font-semibold text-muted-foreground">
-                            Categorias existentes
-                          </div>
                           {filteredCategories.map((category) => (
                             <div
                               key={category}
@@ -252,16 +282,14 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
                             </div>
                           ))}
                         </div>
-                      ) : null}
+                      )}
                       {categoryInput.trim() && !categories.includes(categoryInput.trim()) && (
-                        <div className="p-2 border-t">
-                          <div className="px-2 py-1 text-xs font-semibold text-muted-foreground mb-1">
-                            Criar nova categoria
-                          </div>
+                        <div className={cn("p-2", filteredCategories.length > 0 && "border-t")}>
                           <Button
                             type="button"
                             size="sm"
-                            className="w-full"
+                            variant="ghost"
+                            className="w-full justify-start text-primary"
                             onClick={() => handleCreateCategory(field.onChange)}
                           >
                             <Plus className="mr-2 h-4 w-4" />
