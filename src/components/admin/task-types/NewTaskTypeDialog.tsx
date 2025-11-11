@@ -37,6 +37,7 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<string[]>([]);
   const [openCombobox, setOpenCombobox] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const [tools, setTools] = useState<string[]>([]);
   const [newTool, setNewTool] = useState("");
   const [steps, setSteps] = useState<string[]>([]);
@@ -133,6 +134,7 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
       setTools([]);
       setSteps([]);
       setPhotoLabels([]);
+      setSearchValue("");
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
@@ -185,57 +187,64 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
                     </FormControl>
                   </PopoverTrigger>
                   <PopoverContent className="w-full p-0" align="start">
-                    <Command>
+                    <Command shouldFilter={false}>
                       <CommandInput 
                         placeholder="Buscar ou criar categoria..." 
-                        onValueChange={(value) => {
-                          // Allow creating new category
-                          if (value && !categories.includes(value)) {
-                            field.onChange(value);
-                          }
-                        }}
+                        value={searchValue}
+                        onValueChange={setSearchValue}
                       />
                       <CommandList>
                         <CommandEmpty>
                           <div className="py-2 px-4 text-sm">
-                            <p className="mb-2">Categoria não encontrada.</p>
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => {
-                                const input = document.querySelector('[cmdk-input]') as HTMLInputElement;
-                                if (input?.value) {
-                                  field.onChange(input.value);
-                                  setOpenCombobox(false);
-                                }
-                              }}
-                            >
-                              <Plus className="mr-2 h-4 w-4" />
-                              Criar "{(document.querySelector('[cmdk-input]') as HTMLInputElement)?.value}"
-                            </Button>
+                            {searchValue ? (
+                              <>
+                                <p className="mb-2 text-muted-foreground">Categoria não encontrada.</p>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  className="w-full"
+                                  onClick={() => {
+                                    field.onChange(searchValue);
+                                    setCategories([...categories, searchValue]);
+                                    setSearchValue("");
+                                    setOpenCombobox(false);
+                                  }}
+                                >
+                                  <Plus className="mr-2 h-4 w-4" />
+                                  Criar "{searchValue}"
+                                </Button>
+                              </>
+                            ) : (
+                              <p className="text-muted-foreground">Digite para buscar ou criar uma categoria</p>
+                            )}
                           </div>
                         </CommandEmpty>
                         <CommandGroup>
-                          {categories.map((category) => (
-                            <CommandItem
-                              key={category}
-                              value={category}
-                              onSelect={() => {
-                                field.onChange(category);
-                                setOpenCombobox(false);
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  category === field.value
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                                )}
-                              />
-                              {category}
-                            </CommandItem>
-                          ))}
+                          {categories
+                            .filter(category => 
+                              category.toLowerCase().includes(searchValue.toLowerCase())
+                            )
+                            .map((category) => (
+                              <CommandItem
+                                key={category}
+                                value={category}
+                                onSelect={() => {
+                                  field.onChange(category);
+                                  setSearchValue("");
+                                  setOpenCombobox(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    category === field.value
+                                      ? "opacity-100"
+                                      : "opacity-0"
+                                  )}
+                                />
+                                {category}
+                              </CommandItem>
+                            ))}
                         </CommandGroup>
                       </CommandList>
                     </Command>
