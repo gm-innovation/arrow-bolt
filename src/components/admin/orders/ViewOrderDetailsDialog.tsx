@@ -3,12 +3,17 @@ import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/c
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { VisitHistoryList } from "./VisitHistoryList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuditTrailViewer } from "./AuditTrailViewer";
+import { FileText, Plus } from "lucide-react";
+import { useMeasurements } from "@/hooks/useMeasurements";
+import { Dialog } from "@/components/ui/dialog";
+import { MeasurementDialog } from "../measurements/MeasurementDialog";
 
 interface ViewOrderDetailsDialogProps {
   orderId: string;
@@ -18,6 +23,8 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
   const { toast } = useToast();
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showMeasurementDialog, setShowMeasurementDialog] = useState(false);
+  const { measurement, createMeasurement } = useMeasurements(orderId);
 
   useEffect(() => {
     fetchOrderDetails();
@@ -72,6 +79,14 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
     }
   };
 
+  const handleCreateMeasurement = async () => {
+    await createMeasurement.mutateAsync({
+      service_order_id: orderId,
+      category: 'CATIVO',
+    });
+    setShowMeasurementDialog(true);
+  };
+
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: any }> = {
       pending: { label: "Pendente", variant: "secondary" },
@@ -114,14 +129,44 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
 
   const uniqueTechnicians = [...new Set(technicians)];
 
+  const isCompleted = orderDetails.status === 'completed';
+  const hasMeasurement = !!measurement;
+
   return (
-    <DialogContent className="max-w-2xl">
-      <DialogHeader>
-        <DialogTitle>Detalhes da Ordem de Serviço</DialogTitle>
-        <DialogDescription>
-          {orderDetails.order_number}
-        </DialogDescription>
-      </DialogHeader>
+    <>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <div className="flex justify-between items-start">
+            <div>
+              <DialogTitle>Detalhes da Ordem de Serviço</DialogTitle>
+              <DialogDescription>
+                {orderDetails.order_number}
+              </DialogDescription>
+            </div>
+            <div className="flex gap-2">
+              {isCompleted && !hasMeasurement && (
+                <Button
+                  size="sm"
+                  onClick={handleCreateMeasurement}
+                  disabled={createMeasurement.isPending}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Criar Medição Final
+                </Button>
+              )}
+              {hasMeasurement && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setShowMeasurementDialog(true)}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Ver Medição
+                </Button>
+              )}
+            </div>
+          </div>
+        </DialogHeader>
       
       <Tabs defaultValue="details" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
@@ -261,6 +306,14 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
           <AuditTrailViewer serviceOrderId={orderId} />
         </TabsContent>
       </Tabs>
-    </DialogContent>
+      </DialogContent>
+
+      <Dialog open={showMeasurementDialog} onOpenChange={setShowMeasurementDialog}>
+        <MeasurementDialog 
+          serviceOrderId={orderId}
+          onClose={() => setShowMeasurementDialog(false)}
+        />
+      </Dialog>
+    </>
   );
 };
