@@ -329,6 +329,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
           .insert({
             order_number: orderNumber,
             company_id: profileData.company_id,
+            created_by: user?.id,
             client_id: data.clientId,
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,

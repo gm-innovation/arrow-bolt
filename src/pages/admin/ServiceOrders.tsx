@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { MoreHorizontal, Plus, Loader2, Download, FileText } from "lucide-react";
+import { MoreHorizontal, Plus, Loader2, Download, FileText, Eye, Pencil, Users, Calendar } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
 import { format } from "date-fns";
@@ -42,6 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { useServiceOrders } from "@/hooks/useServiceOrders";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ScheduleReturnDialog } from "@/components/admin/orders/ScheduleReturnDialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 type FormData = {
   orderNumber: string;
@@ -50,6 +51,7 @@ type FormData = {
 const ServiceOrders = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, userRole } = useAuth();
   const { orders, isLoading, invalidate } = useServiceOrders();
   const [vessel, setVessel] = useState("all");
   const [status, setStatus] = useState("all");
@@ -225,6 +227,7 @@ const ServiceOrders = () => {
                   <TableHead>Número da OS</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Embarcação</TableHead>
+                  <TableHead>Coordenador</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Data Agendada</TableHead>
                   <TableHead>Data de Criação</TableHead>
@@ -234,7 +237,7 @@ const ServiceOrders = () => {
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-32">
+                    <TableCell colSpan={8} className="h-32">
                       <div className="flex flex-col items-center justify-center p-8">
                         <FileText className="h-12 w-12 text-muted-foreground mb-3" />
                         <h3 className="text-lg font-medium">Nenhuma ordem de serviço encontrada</h3>
@@ -247,51 +250,79 @@ const ServiceOrders = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredOrders.map((order) => (
-                    <TableRow key={order.id}>
-                      <TableCell className="font-medium">
-                        <Button 
-                          variant="link" 
-                          className="p-0" 
-                          onClick={() => handleAction("view", order.id)}
-                        >
-                          {order.orderNumber}
-                        </Button>
-                      </TableCell>
-                      <TableCell>{order.client}</TableCell>
-                      <TableCell>{order.vessel}</TableCell>
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
-                      <TableCell>
-                        {order.scheduledDate ? format(new Date(order.scheduledDate), "dd/MM/yyyy") : "-"}
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(order.createdAt), "dd/MM/yyyy")}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleAction("view", order.id)}>
-                              Visualizar Detalhes
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleAction("edit", order.id)}>
-                              Editar
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleAction("transfer", order.id)}>
-                              Transferir Técnicos
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleAction("return", order.id, order.orderNumber)}>
-                              Agendar Retorno
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  filteredOrders.map((order: any) => {
+                    const canEdit = order.createdBy === user?.id || userRole === 'super_admin';
+                    
+                    return (
+                      <TableRow key={order.id}>
+                        <TableCell className="font-medium">
+                          <Button 
+                            variant="link" 
+                            className="p-0" 
+                            onClick={() => handleAction("view", order.id)}
+                          >
+                            {order.orderNumber}
+                          </Button>
+                        </TableCell>
+                        <TableCell>{order.client}</TableCell>
+                        <TableCell>{order.vessel}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {order.createdByName}
+                            {order.createdBy === user?.id && (
+                              <Badge variant="default" className="text-xs">Você</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(order.status)}</TableCell>
+                        <TableCell>
+                          {order.scheduledDate ? format(new Date(order.scheduledDate), "dd/MM/yyyy") : "-"}
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(order.createdAt), "dd/MM/yyyy")}
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleAction("view", order.id)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                Visualizar Detalhes
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleAction("edit", order.id)}
+                                disabled={!canEdit}
+                              >
+                                <Pencil className="mr-2 h-4 w-4" />
+                                Editar
+                                {!canEdit && <Badge variant="outline" className="ml-2 text-xs">Somente Leitura</Badge>}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleAction("transfer", order.id)}
+                                disabled={!canEdit}
+                              >
+                                <Users className="mr-2 h-4 w-4" />
+                                Transferir Técnicos
+                                {!canEdit && <Badge variant="outline" className="ml-2 text-xs">Somente Leitura</Badge>}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleAction("return", order.id, order.orderNumber)}
+                                disabled={!canEdit}
+                              >
+                                <Calendar className="mr-2 h-4 w-4" />
+                                Agendar Retorno
+                                {!canEdit && <Badge variant="outline" className="ml-2 text-xs">Somente Leitura</Badge>}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
