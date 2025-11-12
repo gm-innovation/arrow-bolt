@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, User } from "lucide-react";
 import { useForm } from "react-hook-form";
+import ChangePasswordDialog from "@/components/admin/ChangePasswordDialog";
 
 interface ProfileFormData {
   full_name: string;
@@ -19,6 +20,7 @@ const AdminProfile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
 
   const { register, handleSubmit, formState: { errors } } = useForm<ProfileFormData>({
     defaultValues: {
@@ -171,18 +173,18 @@ const AdminProfile = () => {
                   Altere sua senha para manter sua conta segura
                 </p>
               </div>
-              <Button variant="outline" onClick={() => {
-                toast({
-                  title: "Em desenvolvimento",
-                  description: "Funcionalidade de alteração de senha em breve.",
-                });
-              }}>
+              <Button variant="outline" onClick={() => setPasswordDialogOpen(true)}>
                 Alterar Senha
               </Button>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <ChangePasswordDialog 
+        open={passwordDialogOpen} 
+        onOpenChange={setPasswordDialogOpen} 
+      />
     </div>
   );
 };
