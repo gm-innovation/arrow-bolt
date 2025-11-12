@@ -32,6 +32,8 @@ import EditUser from "./pages/admin/EditUser";
 import Clients from "./pages/admin/Clients";
 import Technicians from "./pages/admin/Technicians";
 import AdminReports from "./pages/admin/Reports";
+import AdminProfile from "./pages/admin/Profile";
+import AdminSettings from "./pages/admin/Settings";
 
 import TechDashboard from "./pages/tech/Dashboard";
 import TechTasks from "./pages/tech/Tasks";
@@ -255,6 +257,26 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['admin']}>
                     <DashboardLayout userType="admin">
                       <Technicians />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <AdminProfile />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/settings"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <AdminSettings />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }

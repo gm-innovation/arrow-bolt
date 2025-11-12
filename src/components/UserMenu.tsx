@@ -47,6 +47,15 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
   const getProfilePath = () => {
     switch (userType) {
       case "super-admin": return "/super-admin/settings";
+      case "admin": return "/admin/profile";
+      case "tech": return "/tech/profile";
+      default: return "/";
+    }
+  };
+
+  const getSettingsPath = () => {
+    switch (userType) {
+      case "super-admin": return "/super-admin/settings";
       case "admin": return "/admin/settings";
       case "tech": return "/tech/settings";
       default: return "/";
@@ -84,7 +93,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
           <span>Perfil</span>
         </DropdownMenuItem>
         {userType !== "tech" && (
-          <DropdownMenuItem onClick={() => navigate(getProfilePath())}>
+          <DropdownMenuItem onClick={() => navigate(getSettingsPath())}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Configurações</span>
           </DropdownMenuItem>
