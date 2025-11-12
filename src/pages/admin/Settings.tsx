@@ -2,8 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import ChangePasswordDialog from "@/components/admin/ChangePasswordDialog";
 
 const AdminSettings = () => {
   const { toast } = useToast();
@@ -11,6 +13,7 @@ const AdminSettings = () => {
   const [pushNotifications, setPushNotifications] = useState(false);
   const [reportApprovalNotif, setReportApprovalNotif] = useState(true);
   const [newOrderNotif, setNewOrderNotif] = useState(true);
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
 
   const handleToggle = (setter: (value: boolean) => void, currentValue: boolean, name: string) => {
     setter(!currentValue);
@@ -111,6 +114,28 @@ const AdminSettings = () => {
 
       <Card>
         <CardHeader>
+          <CardTitle>Segurança</CardTitle>
+          <CardDescription>
+            Gerencie a segurança da sua conta
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="font-medium">Senha</h4>
+              <p className="text-sm text-muted-foreground">
+                Altere sua senha para manter sua conta segura
+              </p>
+            </div>
+            <Button variant="outline" onClick={() => setPasswordDialogOpen(true)}>
+              Alterar Senha
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Preferências de Visualização</CardTitle>
           <CardDescription>
             Personalize a aparência do sistema
@@ -127,6 +152,11 @@ const AdminSettings = () => {
           </div>
         </CardContent>
       </Card>
+
+      <ChangePasswordDialog 
+        open={passwordDialogOpen} 
+        onOpenChange={setPasswordDialogOpen} 
+      />
     </div>
   );
 };
