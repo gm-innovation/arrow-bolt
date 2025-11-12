@@ -10,10 +10,14 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit2, UserPlus } from "lucide-react";
+import { Plus, Edit2, UserPlus, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 type ServiceOrder = {
   id: string;
@@ -130,7 +134,32 @@ const ServiceCalendar = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="md:col-span-3">
           <CardHeader>
-            <CardTitle>Calendário de Serviços</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>Calendário de Serviços</CardTitle>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-[240px] justify-start text-left font-normal",
+                      !date && "text-muted-foreground"
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "PPP", { locale: ptBR }) : <span>Selecionar data</span>}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    className="pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
           </CardHeader>
           <CardContent>
             <Calendar
