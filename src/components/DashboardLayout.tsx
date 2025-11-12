@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/super-admin/NotificationBell";
+import { NotificationBell as AdminNotificationBell } from "@/components/admin/NotificationBell";
+import { UserMenu } from "@/components/UserMenu";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -281,18 +283,19 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
             <div className="flex items-center gap-2 flex-shrink-0">
               {userType === "super-admin" ? (
                 <NotificationBell />
+              ) : userType === "admin" ? (
+                <AdminNotificationBell />
               ) : (
                 <Button 
                   variant="ghost" 
                   size="icon"
                   className="text-gray-500 hover:text-gray-700"
+                  onClick={() => navigate("/tech/notifications")}
                 >
                   <Bell className="h-5 w-5" />
                 </Button>
               )}
-              <div className="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-medium">
-                {userType === "super-admin" ? "SA" : userType === "admin" ? "A" : "T"}
-              </div>
+              <UserMenu userType={userType} />
             </div>
           </div>
         </div>
