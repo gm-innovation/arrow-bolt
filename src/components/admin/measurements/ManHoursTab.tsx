@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Download, Loader2 } from "lucide-react";
 import { useMeasurementManHours } from "@/hooks/useMeasurementManHours";
 import { useServiceRates } from "@/hooks/useServiceRates";
+import { useImportTimeEntries } from "@/hooks/useImportTimeEntries";
 import { format } from "date-fns";
 
 const manHourSchema = z.object({
@@ -25,14 +26,23 @@ const manHourSchema = z.object({
 
 interface ManHoursTabProps {
   measurementId: string;
+  serviceOrderId: string;
   manHours: any[];
   disabled?: boolean;
 }
 
-export const ManHoursTab = ({ measurementId, manHours, disabled }: ManHoursTabProps) => {
+export const ManHoursTab = ({ measurementId, serviceOrderId, manHours, disabled }: ManHoursTabProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const { addManHour, removeManHour } = useMeasurementManHours();
   const { getRate } = useServiceRates();
+  const { importTimeEntries } = useImportTimeEntries();
+
+  const handleImport = () => {
+    importTimeEntries.mutate({
+      measurementId,
+      serviceOrderId,
+    });
+  };
 
   const form = useForm({
     resolver: zodResolver(manHourSchema),
@@ -102,10 +112,30 @@ export const ManHoursTab = ({ measurementId, manHours, disabled }: ManHoursTabPr
   return (
     <div className="space-y-4">
       {!disabled && !isAdding && (
-        <Button onClick={() => setIsAdding(true)} size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          Adicionar Mão de Obra
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsAdding(true)} size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            Adicionar Mão de Obra
+          </Button>
+          <Button
+            onClick={handleImport}
+            size="sm"
+            variant="outline"
+            disabled={importTimeEntries.isPending}
+          >
+            {importTimeEntries.isPending ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Importando...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Importar Horas dos Técnicos
+              </>
+            )}
+          </Button>
+        </div>
       )}
 
       {isAdding && (

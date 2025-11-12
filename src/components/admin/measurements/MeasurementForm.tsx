@@ -89,6 +89,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
             <TabsContent value="manhours" className="mt-0">
               <ManHoursTab 
                 measurementId={measurement.id}
+                serviceOrderId={serviceOrderId}
                 manHours={measurement.measurement_man_hours || []}
                 disabled={!isDraft}
               />
