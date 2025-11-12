@@ -25,6 +25,7 @@ import {
 interface Client {
   id: string;
   name: string;
+  cnpj: string | null;
   email: string | null;
   phone: string | null;
   address: string | null;
@@ -76,6 +77,7 @@ const Clients = () => {
         .select(`
           id,
           name,
+          cnpj,
           email,
           phone,
           address,

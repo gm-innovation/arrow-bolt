@@ -14,6 +14,11 @@ const formSchema = z.object({
     .trim()
     .min(2, "Nome deve ter pelo menos 2 caracteres")
     .max(200, "Nome deve ter no máximo 200 caracteres"),
+  cnpj: z.string()
+    .trim()
+    .max(18, "CNPJ deve ter no máximo 18 caracteres")
+    .regex(/^$|^[\d.\-\/]+$/, "CNPJ contém caracteres inválidos")
+    .optional(),
   email: z.string()
     .trim()
     .email("Email inválido")
@@ -41,6 +46,7 @@ interface CompanyInfoFormProps {
   clientData?: {
     id: string;
     name: string;
+    cnpj: string | null;
     email: string | null;
     phone: string | null;
     address: string | null;
@@ -58,6 +64,7 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: clientData?.name || "",
+      cnpj: clientData?.cnpj || "",
       email: clientData?.email || "",
       phone: clientData?.phone || "",
       address: clientData?.address || "",
@@ -83,6 +90,7 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
       // Sanitize data
       const sanitizedData = {
         name: data.name.trim(),
+        cnpj: data.cnpj?.trim() || null,
         email: data.email?.trim().toLowerCase() || null,
         phone: data.phone?.trim() || null,
         address: data.address?.trim() || null,
@@ -147,6 +155,19 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
               <FormLabel>Nome da Empresa</FormLabel>
               <FormControl>
                 <Input placeholder="Digite o nome da empresa" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="cnpj"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>CNPJ</FormLabel>
+              <FormControl>
+                <Input placeholder="00.000.000/0000-00" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
