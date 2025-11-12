@@ -1,8 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Search, Settings, HelpCircle, Menu } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Settings, HelpCircle, Menu, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 interface CalendarHeaderProps {
   currentDate: Date;
@@ -73,11 +76,30 @@ export const CalendarHeader = ({
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        <h2 className="text-xl font-semibold">
-          {view === "day"
-            ? format(currentDate, "d 'de' MMMM, yyyy", { locale: ptBR })
-            : format(currentDate, "MMMM yyyy", { locale: ptBR })}
-        </h2>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={cn(
+                "justify-start text-left font-normal min-w-[200px]"
+              )}
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {view === "day"
+                ? format(currentDate, "d 'de' MMMM, yyyy", { locale: ptBR })
+                : format(currentDate, "MMMM yyyy", { locale: ptBR })}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="single"
+              selected={currentDate}
+              onSelect={(date) => date && onDateChange(date)}
+              initialFocus
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
 
       <div className="flex items-center gap-4">
