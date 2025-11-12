@@ -1,22 +1,29 @@
-import { format, addHours, startOfDay } from "date-fns";
+import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { ServiceOrderListItem } from "./ServiceOrderListItem";
+import type { CalendarServiceOrder } from "./ServiceCalendar";
 
 interface DayViewProps {
   date: Date;
-  events: Array<{
-    id: string;
-    title: string;
-    start: Date;
-    end: Date;
-  }>;
+  orders: CalendarServiceOrder[];
+  onEventClick?: (orderId: string) => void;
 }
 
-export const DayView = ({ date, events }: DayViewProps) => {
-  const hours = Array.from({ length: 14 }, (_, i) => addHours(startOfDay(date), i + 7));
+export const DayView = ({ date, orders, onEventClick }: DayViewProps) => {
+  const dayOrders = orders.filter(order => isSameDay(order.scheduled_date, date));
+  
+  const ordersByHour = dayOrders.reduce((acc, order) => {
+    const hour = order.scheduled_time.split(":")[0];
+    if (!acc[hour]) acc[hour] = [];
+    acc[hour].push(order);
+    return acc;
+  }, {} as Record<string, CalendarServiceOrder[]>);
+
+  const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"));
 
   return (
     <div className="flex flex-col h-[calc(100vh-200px)] overflow-y-auto">
-      <div className="sticky top-0 bg-white z-10 flex border-b">
+      <div className="sticky top-0 bg-background z-10 flex border-b">
         <div className="w-20 flex-shrink-0" />
         <div className="flex-1 px-4 py-2">
           <div className="text-sm font-medium">
@@ -31,45 +38,30 @@ export const DayView = ({ date, events }: DayViewProps) => {
       <div className="flex flex-1">
         <div className="w-20 flex-shrink-0 border-r">
           {hours.map((hour) => (
-            <div key={hour.toISOString()} className="h-20 border-b text-sm px-2 py-1">
-              {format(hour, "HH:mm")}
+            <div key={hour} className="h-20 border-b text-sm px-2 py-1 text-muted-foreground">
+              {hour}:00
             </div>
           ))}
         </div>
         
-        <div className="flex-1 relative">
+        <div className="flex-1">
           {hours.map((hour) => (
-            <div key={hour.toISOString()} className="h-20 border-b border-gray-100" />
-          ))}
-          
-          {events.map((event) => (
-            <div
-              key={event.id}
-              className="absolute left-0 right-0 mx-2 px-2 py-1 bg-blue-100 border border-blue-200 rounded"
-              style={{
-                top: `${getEventTopPosition(event.start)}px`,
-                height: `${getEventHeight(event.start, event.end)}px`,
-              }}
-            >
-              <div className="font-medium text-sm">{event.title}</div>
-              <div className="text-xs text-gray-600">
-                {format(event.start, "HH:mm")} - {format(event.end, "HH:mm")}
-              </div>
+            <div key={hour} className="min-h-20 border-b px-2 py-1">
+              {ordersByHour[hour] && (
+                <div className="space-y-1">
+                  {ordersByHour[hour].map((order) => (
+                    <ServiceOrderListItem
+                      key={order.id}
+                      order={order}
+                      onClick={() => onEventClick?.(order.id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
       </div>
     </div>
   );
-};
-
-const getEventTopPosition = (start: Date) => {
-  const hour = start.getHours();
-  const minutes = start.getMinutes();
-  return (hour - 7) * 80 + (minutes / 60) * 80;
-};
-
-const getEventHeight = (start: Date, end: Date) => {
-  const durationInHours = (end.getTime() - start.getTime()) / (1000 * 60 * 60);
-  return durationInHours * 80;
 };
