@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { VisitHistoryList } from "./VisitHistoryList";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ViewOrderDetailsDialogProps {
   orderId: string;
@@ -120,8 +122,15 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         </DialogDescription>
       </DialogHeader>
       
-      <ScrollArea className="h-[60vh] pr-4">
-        <div className="space-y-6">
+      <Tabs defaultValue="details" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="details">Detalhes</TabsTrigger>
+          <TabsTrigger value="visits">Visitas</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="details">
+          <ScrollArea className="h-[50vh] pr-4">
+            <div className="space-y-6">
           <div>
             <h4 className="text-sm font-medium">Informações Básicas</h4>
             <Separator className="my-2" />
@@ -238,6 +247,14 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
           </div>
         </div>
       </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="visits">
+          <ScrollArea className="h-[50vh] pr-4">
+            <VisitHistoryList serviceOrderId={orderId} />
+          </ScrollArea>
+        </TabsContent>
+      </Tabs>
     </DialogContent>
   );
 };

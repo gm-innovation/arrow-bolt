@@ -41,6 +41,7 @@ import { ViewOrderDetailsDialog } from "@/components/admin/orders/ViewOrderDetai
 import { Badge } from "@/components/ui/badge";
 import { useServiceOrders } from "@/hooks/useServiceOrders";
 import { useDebounce } from "@/hooks/useDebounce";
+import { ScheduleReturnDialog } from "@/components/admin/orders/ScheduleReturnDialog";
 
 type FormData = {
   orderNumber: string;
@@ -55,7 +56,8 @@ const ServiceOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
-  const [activeDialog, setActiveDialog] = useState<"edit" | "transfer" | "view" | null>(null);
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>("");
+  const [activeDialog, setActiveDialog] = useState<"edit" | "transfer" | "view" | "return" | null>(null);
   const form = useForm<FormData>();
 
   const filteredOrders = useMemo(() => {
@@ -72,13 +74,15 @@ const ServiceOrders = () => {
     });
   }, [orders, debouncedSearch, vessel, status]);
 
-  const handleAction = (action: "edit" | "transfer" | "view", orderId: string) => {
+  const handleAction = (action: "edit" | "transfer" | "view" | "return", orderId: string, orderNumber?: string) => {
     setSelectedOrderId(orderId);
+    if (orderNumber) setSelectedOrderNumber(orderNumber);
     setActiveDialog(action);
   };
 
   const handleCloseDialog = () => {
     setSelectedOrderId(null);
+    setSelectedOrderNumber("");
     setActiveDialog(null);
     invalidate();
   };
@@ -280,6 +284,9 @@ const ServiceOrders = () => {
                             <DropdownMenuItem onClick={() => handleAction("transfer", order.id)}>
                               Transferir Técnicos
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleAction("return", order.id, order.orderNumber)}>
+                              Agendar Retorno
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -309,6 +316,15 @@ const ServiceOrders = () => {
       <Dialog open={activeDialog === "view"} onOpenChange={() => handleCloseDialog()}>
         {selectedOrderId && <ViewOrderDetailsDialog orderId={selectedOrderId} />}
       </Dialog>
+
+      {selectedOrderId && (
+        <ScheduleReturnDialog
+          orderId={selectedOrderId}
+          orderNumber={selectedOrderNumber}
+          open={activeDialog === "return"}
+          onClose={handleCloseDialog}
+        />
+      )}
     </div>
   );
 };

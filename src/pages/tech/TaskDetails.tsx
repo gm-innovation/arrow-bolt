@@ -6,7 +6,10 @@ import { AdminInfo } from "@/components/tech/tasks/AdminInfo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Clock, History } from "lucide-react";
+import { NewContinuationVisitButton } from "@/components/tech/NewContinuationVisitButton";
+import { VisitHistoryTimeline } from "@/components/tech/VisitHistoryTimeline";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 const mockServiceOrder = {
   id: "OS001",
@@ -90,7 +93,26 @@ const TaskDetails = () => {
             </div>
           </div>
         </div>
-        <Button onClick={() => navigate("/tech/tasks")}>Voltar</Button>
+        <div className="flex gap-2">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button variant="outline">
+                <History className="mr-2 h-4 w-4" />
+                Histórico
+              </Button>
+            </SheetTrigger>
+            <SheetContent>
+              <SheetHeader>
+                <SheetTitle>Histórico de Visitas</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">
+                <VisitHistoryTimeline serviceOrderId={mockServiceOrder.id} />
+              </div>
+            </SheetContent>
+          </Sheet>
+          <NewContinuationVisitButton serviceOrderId={mockServiceOrder.id} />
+          <Button onClick={() => navigate("/tech/tasks")}>Voltar</Button>
+        </div>
       </div>
 
       <ServiceOrderInfo
