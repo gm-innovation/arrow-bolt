@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, FileText } from "lucide-react";
 import { useMeasurements } from "@/hooks/useMeasurements";
+import { supabase } from "@/integrations/supabase/client";
 import { BasicInfoTab } from "./BasicInfoTab";
 import { ManHoursTab } from "./ManHoursTab";
 import { MaterialsTab } from "./MaterialsTab";
@@ -11,6 +13,7 @@ import { ServicesTab } from "./ServicesTab";
 import { TravelsTab } from "./TravelsTab";
 import { ExpensesTab } from "./ExpensesTab";
 import { MeasurementSummary } from "./MeasurementSummary";
+import { MeasurementPDFPreview } from "./MeasurementPDFPreview";
 
 interface MeasurementFormProps {
   serviceOrderId: string;
@@ -20,6 +23,23 @@ interface MeasurementFormProps {
 export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProps) => {
   const { measurement, isLoading, finalizeMeasurement } = useMeasurements(serviceOrderId);
   const [activeTab, setActiveTab] = useState("basic");
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
+
+  // Fetch service order details for PDF
+  const { data: serviceOrder } = useQuery({
+    queryKey: ['service-order', serviceOrderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('service_orders')
+        .select('*')
+        .eq('id', serviceOrderId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!serviceOrderId,
+  });
 
   if (isLoading) {
     return (
@@ -115,6 +135,14 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
         <Button variant="outline" onClick={onClose}>
           {isDraft ? 'Fechar' : 'Voltar'}
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => setShowPDFPreview(true)}
+          disabled={!serviceOrder}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Gerar PDF
+        </Button>
         {isDraft && (
           <Button 
             onClick={handleFinalize}
@@ -127,6 +155,16 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
           </Button>
         )}
       </div>
+
+      {/* PDF Preview Dialog */}
+      {serviceOrder && (
+        <MeasurementPDFPreview
+          measurement={measurement}
+          serviceOrder={serviceOrder}
+          open={showPDFPreview}
+          onOpenChange={setShowPDFPreview}
+        />
+      )}
     </div>
   );
 };
