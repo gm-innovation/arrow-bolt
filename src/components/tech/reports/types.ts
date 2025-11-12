@@ -15,7 +15,8 @@ export interface TaskReport {
 export interface PhotoWithCaption {
   file?: File;
   caption: string;
-  storagePath?: string; // Added to track saved images
+  storagePath?: string;
+  description?: string;
 }
 
 export interface TimeEntry {
