@@ -25,11 +25,15 @@ export const useServiceOrders = () => {
           status,
           scheduled_date,
           created_at,
+          created_by,
           vessels:vessel_id (
             name
           ),
           clients:client_id (
             name
+          ),
+          created_by_profile:created_by (
+            full_name
           )
         `)
         .eq('company_id', profileData.company_id)
@@ -45,6 +49,8 @@ export const useServiceOrders = () => {
         status: order.status,
         scheduledDate: order.scheduled_date,
         createdAt: order.created_at,
+        createdBy: order.created_by,
+        createdByName: order.created_by_profile?.full_name || 'N/A',
       })) || [];
     },
     enabled: !!user?.id,

@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { VisitHistoryList } from "./VisitHistoryList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AuditTrailViewer } from "./AuditTrailViewer";
 
 interface ViewOrderDetailsDialogProps {
   orderId: string;
@@ -123,9 +124,10 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
       </DialogHeader>
       
       <Tabs defaultValue="details" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="details">Detalhes</TabsTrigger>
           <TabsTrigger value="visits">Visitas</TabsTrigger>
+          <TabsTrigger value="audit">Histórico</TabsTrigger>
         </TabsList>
 
         <TabsContent value="details">
@@ -253,6 +255,10 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
           <ScrollArea className="h-[50vh] pr-4">
             <VisitHistoryList serviceOrderId={orderId} />
           </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="audit">
+          <AuditTrailViewer serviceOrderId={orderId} />
         </TabsContent>
       </Tabs>
     </DialogContent>
