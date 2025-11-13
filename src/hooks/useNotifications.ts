@@ -1,7 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { usePushNotifications } from './usePushNotifications';
 
 type Notification = {
   id: string;
@@ -16,6 +17,8 @@ type Notification = {
 export const useNotifications = (typeFilter?: string, statusFilter?: string) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { sendNotification, permission } = usePushNotifications();
+  const previousCountRef = useRef<number>(0);
 
   const { data: notifications = [], isLoading } = useQuery({
     queryKey: ['notifications', user?.id, typeFilter, statusFilter],
@@ -45,6 +48,26 @@ export const useNotifications = (typeFilter?: string, statusFilter?: string) => 
     staleTime: 1000 * 30, // 30 seconds
     gcTime: 1000 * 60 * 5, // 5 minutes
   });
+
+  // Send push notification when new notifications arrive
+  useEffect(() => {
+    if (!notifications.length) return;
+
+    const unreadCount = notifications.filter(n => !n.read).length;
+    
+    // Only send push if count increased (new notification)
+    if (unreadCount > previousCountRef.current && previousCountRef.current > 0) {
+      const latestUnread = notifications.find(n => !n.read);
+      if (latestUnread && permission === 'granted') {
+        sendNotification(latestUnread.title, {
+          body: latestUnread.message || undefined,
+          data: { notificationId: latestUnread.id, referenceId: latestUnread.reference_id },
+        });
+      }
+    }
+    
+    previousCountRef.current = unreadCount;
+  }, [notifications, permission, sendNotification]);
 
   // Real-time subscription
   useEffect(() => {
