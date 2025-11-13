@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Search, Settings, HelpCircle, Menu, CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search, Settings, HelpCircle, Menu, CalendarIcon, Maximize2, Minimize2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -16,6 +16,8 @@ interface CalendarHeaderProps {
   onHelpClick: () => void;
   onSettingsClick: () => void;
   onMenuClick: () => void;
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
 }
 
 export const CalendarHeader = ({
@@ -27,6 +29,8 @@ export const CalendarHeader = ({
   onHelpClick,
   onSettingsClick,
   onMenuClick,
+  isExpanded = false,
+  onToggleExpanded,
 }: CalendarHeaderProps) => {
   const goToToday = () => onDateChange(new Date());
   
@@ -103,6 +107,16 @@ export const CalendarHeader = ({
       </div>
 
       <div className="flex items-center gap-4">
+        {onToggleExpanded && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onToggleExpanded}
+            title={isExpanded ? "Mostrar cards" : "Expandir calendário"}
+          >
+            {isExpanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+        )}
         <Button variant="ghost" size="icon" onClick={onSearchClick}>
           <Search className="h-4 w-4" />
         </Button>

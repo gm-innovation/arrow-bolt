@@ -16,6 +16,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
+  const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const form = useForm<{ orderNumber: string }>({
     defaultValues: {
       orderNumber: "",
@@ -60,18 +61,21 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      <DashboardStats />
+      {!isCalendarExpanded && <DashboardStats />}
       
       <Card className="card-responsive overflow-hidden">
         <CardHeader>
           <CardTitle>Agenda de Serviços</CardTitle>
         </CardHeader>
         <CardContent className="overflow-auto p-0 sm:p-6">
-          <ServiceCalendar />
+          <ServiceCalendar 
+            isExpanded={isCalendarExpanded}
+            onToggleExpanded={() => setIsCalendarExpanded(!isCalendarExpanded)}
+          />
         </CardContent>
       </Card>
 
-      <DashboardCharts />
+      {!isCalendarExpanded && <DashboardCharts />}
 
       <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
         <NewOrderDialog form={form} />
