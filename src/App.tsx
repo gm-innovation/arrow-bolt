@@ -42,6 +42,7 @@ import TaskDetails from "./pages/tech/TaskDetails";
 import TechReports from "./pages/tech/Reports";
 import ReportForm from "./pages/tech/ReportForm";
 import TechNotifications from "./pages/tech/Notifications";
+import InstallApp from "./pages/tech/InstallApp";
 import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
 
 // Create a new QueryClient instance with proper configuration
@@ -360,6 +361,16 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['technician']}>
                     <DashboardLayout userType="tech">
                       <TechNotifications />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tech/install"
+                element={
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <InstallApp />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
