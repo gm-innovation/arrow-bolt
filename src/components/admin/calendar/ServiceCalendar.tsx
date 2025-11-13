@@ -24,7 +24,12 @@ export type CalendarServiceOrder = {
   technician_names?: string[];
 };
 
-export const ServiceCalendar = () => {
+interface ServiceCalendarProps {
+  isExpanded?: boolean;
+  onToggleExpanded?: () => void;
+}
+
+export const ServiceCalendar = ({ isExpanded = false, onToggleExpanded }: ServiceCalendarProps) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"day" | "week" | "month">("week");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
