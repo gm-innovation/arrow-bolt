@@ -118,7 +118,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
       setClients(clientsData || []);
 
-      // Fetch supervisors (users with admin role only)
+      // Fetch supervisors (technicians whose users have admin role)
       // First get all user IDs with admin role
       const { data: adminRoles } = await supabase
         .from("user_roles")
@@ -127,15 +127,27 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
       const adminUserIds = adminRoles?.map(r => r.user_id) || [];
 
-      // Then fetch profiles for those users in the company
+      // Then fetch technicians for those users in the company
       const { data: supervisorsData } = await supabase
-        .from("profiles")
-        .select("id, full_name")
+        .from("technicians")
+        .select(`
+          id,
+          profiles:user_id (
+            full_name
+          )
+        `)
         .eq("company_id", profileData.company_id)
-        .in("id", adminUserIds)
-        .order("full_name");
+        .in("user_id", adminUserIds)
+        .eq("active", true)
+        .order("profiles(full_name)");
 
-      setSupervisors(supervisorsData || []);
+      // Transform the data to have the expected format
+      const formattedSupervisors = supervisorsData?.map(tech => ({
+        id: tech.id,
+        full_name: tech.profiles?.full_name || "Unknown"
+      })) || [];
+
+      setSupervisors(formattedSupervisors);
 
       // Fetch technicians
       const { data: techniciansData } = await supabase
