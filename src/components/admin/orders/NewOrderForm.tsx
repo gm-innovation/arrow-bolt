@@ -118,16 +118,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
       setClients(clientsData || []);
 
-      // Fetch supervisors (technicians whose users have admin role)
-      // First get all user IDs with admin role
-      const { data: adminRoles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "admin");
-
-      const adminUserIds = adminRoles?.map(r => r.user_id) || [];
-
-      // Then fetch technicians for those users in the company
+      // Fetch all active technicians as potential supervisors
       const { data: supervisorsData } = await supabase
         .from("technicians")
         .select(`
@@ -137,15 +128,13 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
           )
         `)
         .eq("company_id", profileData.company_id)
-        .in("user_id", adminUserIds)
-        .eq("active", true)
-        .order("profiles(full_name)");
+        .eq("active", true);
 
-      // Transform the data to have the expected format
+      // Transform and sort the data
       const formattedSupervisors = supervisorsData?.map(tech => ({
         id: tech.id,
-        full_name: tech.profiles?.full_name || "Unknown"
-      })) || [];
+        full_name: (tech.profiles as any)?.full_name || "Unknown"
+      })).sort((a, b) => a.full_name.localeCompare(b.full_name)) || [];
 
       setSupervisors(formattedSupervisors);
 
@@ -492,6 +481,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
+                    <SelectItem value="">Nenhum</SelectItem>
                     {supervisors.map((supervisor) => (
                       <SelectItem key={supervisor.id} value={supervisor.id}>
                         {supervisor.full_name}
