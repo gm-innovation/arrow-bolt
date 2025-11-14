@@ -482,7 +482,6 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Nenhum</SelectItem>
                     {supervisors.map((supervisor) => (
                       <SelectItem key={supervisor.id} value={supervisor.id}>
                         {supervisor.full_name}
