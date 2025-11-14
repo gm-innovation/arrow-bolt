@@ -123,7 +123,8 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         .from("technicians")
         .select(`
           id,
-          profiles:user_id (
+          user_id,
+          profiles!inner (
             full_name
           )
         `)
@@ -131,9 +132,9 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         .eq("active", true);
 
       // Transform and sort the data
-      const formattedSupervisors = supervisorsData?.map(tech => ({
+      const formattedSupervisors = supervisorsData?.map((tech: any) => ({
         id: tech.id,
-        full_name: (tech.profiles as any)?.full_name || "Unknown"
+        full_name: tech.profiles?.full_name || "Unknown"
       })).sort((a, b) => a.full_name.localeCompare(b.full_name)) || [];
 
       setSupervisors(formattedSupervisors);
