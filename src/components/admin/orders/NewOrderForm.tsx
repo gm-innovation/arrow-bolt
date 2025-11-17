@@ -123,7 +123,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         .from("user_roles")
         .select(`
           role,
-          profiles!inner (
+          profiles!user_id (
             id,
             full_name,
             company_id
