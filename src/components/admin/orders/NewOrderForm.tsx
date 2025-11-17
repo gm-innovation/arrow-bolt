@@ -119,7 +119,7 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
       setClients(clientsData || []);
 
       // Fetch all admin users as potential supervisors
-      const { data: supervisorsData } = await supabase
+      const { data: supervisorsData, error: supervisorsError } = await supabase
         .from("profiles")
         .select(`
           id,
@@ -131,11 +131,15 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         .eq("company_id", profileData.company_id)
         .eq("user_roles.role", "admin");
 
+      console.log("Supervisors query result:", { supervisorsData, supervisorsError });
+
       // Transform and sort the data
       const formattedSupervisors = supervisorsData?.map((profile: any) => ({
         id: profile.id,
         full_name: profile.full_name
       })).sort((a, b) => a.full_name.localeCompare(b.full_name)) || [];
+
+      console.log("Formatted supervisors:", formattedSupervisors);
 
       setSupervisors(formattedSupervisors);
 
