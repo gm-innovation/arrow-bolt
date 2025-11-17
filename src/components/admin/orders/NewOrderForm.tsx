@@ -132,7 +132,10 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         .eq("role", "admin")
         .eq("profiles.company_id", profileData.company_id);
 
-      console.log("Supervisors query result:", { supervisorsData, supervisorsError });
+      console.log("Supervisors query - Full details:");
+      console.log("- Data:", JSON.stringify(supervisorsData, null, 2));
+      console.log("- Error:", JSON.stringify(supervisorsError, null, 2));
+      console.log("- Company ID:", profileData.company_id);
 
       // Transform and sort the data
       const formattedSupervisors = supervisorsData?.map((item: any) => ({
