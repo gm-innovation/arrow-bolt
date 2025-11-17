@@ -118,23 +118,23 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
       setClients(clientsData || []);
 
-      // Fetch all active technicians as potential supervisors
+      // Fetch all admin users as potential supervisors
       const { data: supervisorsData } = await supabase
-        .from("technicians")
+        .from("profiles")
         .select(`
           id,
-          user_id,
-          profiles!inner (
-            full_name
+          full_name,
+          user_roles!inner (
+            role
           )
         `)
         .eq("company_id", profileData.company_id)
-        .eq("active", true);
+        .eq("user_roles.role", "admin");
 
       // Transform and sort the data
-      const formattedSupervisors = supervisorsData?.map((tech: any) => ({
-        id: tech.id,
-        full_name: tech.profiles?.full_name || "Unknown"
+      const formattedSupervisors = supervisorsData?.map((profile: any) => ({
+        id: profile.id,
+        full_name: profile.full_name
       })).sort((a, b) => a.full_name.localeCompare(b.full_name)) || [];
 
       setSupervisors(formattedSupervisors);
