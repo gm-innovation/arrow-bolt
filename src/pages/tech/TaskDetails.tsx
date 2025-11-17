@@ -49,6 +49,7 @@ const TaskDetails = () => {
             description,
             status,
             created_at,
+            supervisor_id,
             clients:client_id (
               name,
               contact_person,
@@ -62,10 +63,6 @@ const TaskDetails = () => {
               vessel_type,
               flag,
               imo_number
-            ),
-            supervisor:supervisor_id (
-              user_id,
-              profiles:user_id (full_name, phone, email)
             ),
             created_by_profile:created_by (
               full_name,
@@ -93,6 +90,17 @@ const TaskDetails = () => {
 
       if (!task) {
         throw new Error("Tarefa não encontrada");
+      }
+
+      // Fetch supervisor profile if exists
+      let supervisorProfile = null;
+      if (task.service_orders.supervisor_id) {
+        const { data: supervisor } = await supabase
+          .from("profiles")
+          .select("full_name, phone, email")
+          .eq("id", task.service_orders.supervisor_id)
+          .single();
+        supervisorProfile = supervisor;
       }
 
       // Fetch all technicians assigned to this service order
@@ -143,9 +151,9 @@ const TaskDetails = () => {
           email: task.service_orders.clients?.email || "N/A",
         },
         supervisor: {
-          name: task.service_orders.supervisor?.profiles?.full_name || "Não definido",
-          phone: task.service_orders.supervisor?.profiles?.phone || "N/A",
-          email: task.service_orders.supervisor?.profiles?.email || "N/A",
+          name: supervisorProfile?.full_name || "Não definido",
+          phone: supervisorProfile?.phone || "N/A",
+          email: supervisorProfile?.email || "N/A",
         },
         team: {
           leadTechnician,
