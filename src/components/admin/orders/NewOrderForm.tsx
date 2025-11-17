@@ -118,34 +118,23 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
       setClients(clientsData || []);
 
-      // Fetch all admin users as potential supervisors
-      const { data: supervisorsData, error: supervisorsError } = await supabase
+      // Fetch all admin user IDs
+      const { data: adminRoles } = await supabase
         .from("user_roles")
-        .select(`
-          role,
-          profiles!user_id (
-            id,
-            full_name,
-            company_id
-          )
-        `)
-        .eq("role", "admin")
-        .eq("profiles.company_id", profileData.company_id);
+        .select("user_id")
+        .eq("role", "admin");
 
-      console.log("Supervisors query - Full details:");
-      console.log("- Data:", JSON.stringify(supervisorsData, null, 2));
-      console.log("- Error:", JSON.stringify(supervisorsError, null, 2));
-      console.log("- Company ID:", profileData.company_id);
+      const adminUserIds = adminRoles?.map(r => r.user_id) || [];
 
-      // Transform and sort the data
-      const formattedSupervisors = supervisorsData?.map((item: any) => ({
-        id: item.profiles.id,
-        full_name: item.profiles.full_name
-      })).sort((a, b) => a.full_name.localeCompare(b.full_name)) || [];
+      // Fetch profiles for those users in the company
+      const { data: supervisorsData } = await supabase
+        .from("profiles")
+        .select("id, full_name")
+        .in("id", adminUserIds)
+        .eq("company_id", profileData.company_id)
+        .order("full_name");
 
-      console.log("Formatted supervisors:", formattedSupervisors);
-
-      setSupervisors(formattedSupervisors);
+      setSupervisors(supervisorsData || []);
 
       // Fetch technicians
       const { data: techniciansData } = await supabase
