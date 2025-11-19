@@ -94,12 +94,12 @@ const TaskDetails = () => {
 
       // Fetch supervisor profile if exists
       let supervisorProfile = null;
-      if (task.service_orders.supervisor_id) {
+      if (task.service_orders?.supervisor_id) {
         const { data: supervisor } = await supabase
           .from("profiles")
           .select("full_name, phone, email")
           .eq("id", task.service_orders.supervisor_id)
-          .single();
+          .maybeSingle();
         supervisorProfile = supervisor;
       }
 
@@ -114,18 +114,18 @@ const TaskDetails = () => {
             profiles:user_id (full_name)
           )
         `)
-        .eq("service_order_id", task.service_orders.id);
+        .eq("service_order_id", task.service_orders?.id || '');
 
-      // Get unique technicians
+      // Get unique technicians with null checks
       const uniqueTechIds = new Set();
-      const techniciansList = allTasks
-        ?.filter((t: any) => {
-          if (!t.assigned_to || uniqueTechIds.has(t.assigned_to)) return false;
+      const techniciansList = (allTasks || [])
+        .filter((t: any) => {
+          if (!t?.assigned_to || uniqueTechIds.has(t.assigned_to)) return false;
           uniqueTechIds.add(t.assigned_to);
           return true;
         })
         .map((t: any) => t.technicians?.profiles?.full_name)
-        .filter(Boolean) || [];
+        .filter(Boolean);
 
       const uniqueTechnicians = [...new Set(techniciansList)];
 
@@ -135,26 +135,26 @@ const TaskDetails = () => {
 
       setTaskData(task);
       setServiceOrderData({
-        id: task.service_orders.order_number,
-        orderNumber: task.service_orders.order_number,
-        scheduledDate: task.service_orders.service_date_time 
+        id: task.service_orders?.order_number || "N/A",
+        orderNumber: task.service_orders?.order_number || "N/A",
+        scheduledDate: task.service_orders?.service_date_time 
           ? new Date(task.service_orders.service_date_time)
-          : task.service_orders.scheduled_date
+          : task.service_orders?.scheduled_date
           ? new Date(task.service_orders.scheduled_date)
           : new Date(),
-        location: task.service_orders.location || 
-                 task.service_orders.vessels?.name || 
+        location: task.service_orders?.location || 
+                 task.service_orders?.vessels?.name || 
                  "Local não especificado",
-        access: task.service_orders.access || "Sem informações de acesso",
+        access: task.service_orders?.access || "Sem informações de acesso",
         requester: {
-          name: task.service_orders.clients?.contact_person || 
-                task.service_orders.clients?.name || 
+          name: task.service_orders?.clients?.contact_person || 
+                task.service_orders?.clients?.name || 
                 "Não especificado",
           role: "Solicitante",
-          company: task.service_orders.clients?.name || "N/A",
-          cnpj: task.service_orders.clients?.cnpj || "N/A",
-          phone: task.service_orders.clients?.phone || "N/A",
-          email: task.service_orders.clients?.email || "N/A",
+          company: task.service_orders?.clients?.name || "N/A",
+          cnpj: task.service_orders?.clients?.cnpj || "N/A",
+          phone: task.service_orders?.clients?.phone || "N/A",
+          email: task.service_orders?.clients?.email || "N/A",
         },
         supervisor: {
           name: supervisorProfile?.full_name || "Não definido",
@@ -166,15 +166,15 @@ const TaskDetails = () => {
           assistants,
         },
         vessel: {
-          name: task.service_orders.vessels?.name || "N/A",
-          type: task.service_orders.vessels?.vessel_type || "N/A",
-          flag: task.service_orders.vessels?.flag || "N/A",
-          imo: task.service_orders.vessels?.imo_number || "N/A",
+          name: task.service_orders?.vessels?.name || "N/A",
+          type: task.service_orders?.vessels?.vessel_type || "N/A",
+          flag: task.service_orders?.vessels?.flag || "N/A",
+          imo: task.service_orders?.vessels?.imo_number || "N/A",
         },
         service: task.task_types?.name || task.title || "Serviço",
-        description: task.description || task.service_orders.description || "",
+        description: task.description || task.service_orders?.description || "",
         status: task.status,
-        serviceOrderId: task.service_orders.id,
+        serviceOrderId: task.service_orders?.id,
       });
 
     } catch (error: any) {
