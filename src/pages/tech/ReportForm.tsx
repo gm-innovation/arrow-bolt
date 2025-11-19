@@ -202,48 +202,97 @@ const ReportFormContent = () => {
         .from('tasks')
         .select(`
           id,
+          title,
           description,
-          service_order:service_orders (
+          service_orders:service_order_id (
             id,
             order_number,
             scheduled_date,
-            vessel:vessels (name),
-            client:clients (name, contact_person),
-            supervisor:technicians!service_orders_supervisor_id_fkey (
-              user_id,
-              profile:profiles (full_name)
-            )
+            service_date_time,
+            location,
+            access,
+            supervisor_id,
+            vessels:vessel_id (name),
+            clients:client_id (name, contact_person)
           ),
-          task_type:task_types (name)
+          task_types:task_type_id (name)
         `)
         .eq('id', taskId)
         .single();
 
       if (taskError) throw taskError;
 
-      if (taskData && taskData.service_order) {
-        const so = taskData.service_order as any;
+      // Fetch supervisor if exists
+      let supervisorName = 'N/A';
+      if (taskData?.service_orders?.supervisor_id) {
+        const { data: supervisor } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', taskData.service_orders.supervisor_id)
+          .single();
+        supervisorName = supervisor?.full_name || 'N/A';
+      }
+
+      // Fetch all technicians for this service order
+      const { data: allTasks } = await supabase
+        .from('tasks')
+        .select(`
+          id,
+          assigned_to,
+          technicians:assigned_to (
+            user_id,
+            profiles:user_id (full_name)
+          )
+        `)
+        .eq('service_order_id', taskData?.service_orders?.id);
+
+      // Get unique technicians
+      const uniqueTechIds = new Set();
+      const techniciansList = allTasks
+        ?.filter((t: any) => {
+          if (!t.assigned_to || uniqueTechIds.has(t.assigned_to)) return false;
+          uniqueTechIds.add(t.assigned_to);
+          return true;
+        })
+        .map((t: any) => t.technicians?.profiles?.full_name)
+        .filter(Boolean) || [];
+
+      const uniqueTechnicians = [...new Set(techniciansList)];
+      const leadTechnician = uniqueTechnicians[0] || 'Não atribuído';
+      const assistants = uniqueTechnicians.slice(1);
+
+      if (taskData && taskData.service_orders) {
+        const so = taskData.service_orders as any;
         setServiceOrderData({
           id: so.order_number || '',
-          date: so.scheduled_date ? new Date(so.scheduled_date) : new Date(),
-          location: so.vessel?.name || 'Local não especificado',
-          access: 'Acesso padrão',
+          date: so.service_date_time 
+            ? new Date(so.service_date_time)
+            : so.scheduled_date 
+            ? new Date(so.scheduled_date) 
+            : new Date(),
+          location: so.location || so.vessels?.name || 'Local não especificado',
+          access: so.access || 'Sem informações de acesso',
           requester: {
-            name: so.client?.contact_person || so.client?.name || 'N/A',
+            name: so.clients?.contact_person || so.clients?.name || 'N/A',
             role: 'Solicitante',
           },
           supervisor: {
-            name: so.supervisor?.profile?.full_name || 'N/A',
+            name: supervisorName,
           },
           team: {
-            leadTechnician: 'Técnico responsável',
-            assistants: [],
+            leadTechnician,
+            assistants,
           },
-          service: taskData.task_type?.name || taskData.description || 'Serviço',
+          service: taskData.task_types?.name || taskData.title || taskData.description || 'Serviço',
         });
       }
     } catch (error) {
       console.error("Error fetching service order data:", error);
+      toast({
+        title: "Erro ao carregar dados da OS",
+        description: "Não foi possível carregar os dados da ordem de serviço.",
+        variant: "destructive",
+      });
     }
   };
 
