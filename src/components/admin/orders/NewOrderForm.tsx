@@ -298,15 +298,17 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
         if (deleteError) throw deleteError;
 
-        // Create new tasks
-        if (formTaskTypes.length > 0) {
-          const tasksToInsert = formTaskTypes.map(taskTypeId => ({
-            service_order_id: orderId,
-            task_type_id: taskTypeId,
-            title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
-            status: "pending" as const,
-            assigned_to: leadTechId || selectedTechnicians[0] || null,
-          }));
+        // Create new tasks - one task per technician per task type
+        if (formTaskTypes.length > 0 && selectedTechnicians.length > 0) {
+          const tasksToInsert = selectedTechnicians.flatMap(techId => 
+            formTaskTypes.map(taskTypeId => ({
+              service_order_id: orderId,
+              task_type_id: taskTypeId,
+              title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+              status: "pending" as const,
+              assigned_to: techId,
+            }))
+          );
 
           const { error: tasksError } = await supabase
             .from("tasks")
@@ -345,15 +347,17 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
         if (orderError) throw orderError;
 
-        // Create tasks
-        if (formTaskTypes.length > 0 && serviceOrder) {
-          const tasksToInsert = formTaskTypes.map(taskTypeId => ({
-            service_order_id: serviceOrder.id,
-            task_type_id: taskTypeId,
-            title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
-            status: "pending" as const,
-            assigned_to: leadTechId || selectedTechnicians[0] || null,
-          }));
+        // Create tasks - one task per technician per task type
+        if (formTaskTypes.length > 0 && serviceOrder && selectedTechnicians.length > 0) {
+          const tasksToInsert = selectedTechnicians.flatMap(techId => 
+            formTaskTypes.map(taskTypeId => ({
+              service_order_id: serviceOrder.id,
+              task_type_id: taskTypeId,
+              title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+              status: "pending" as const,
+              assigned_to: techId,
+            }))
+          );
 
           const { error: tasksError } = await supabase
             .from("tasks")
