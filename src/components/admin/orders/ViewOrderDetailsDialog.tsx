@@ -40,15 +40,23 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         .select(`
           *,
           clients:client_id (name, contact_person, address),
-          vessels:vessel_id (name, vessel_type, flag),
-          supervisor:supervisor_id (
-            profiles:user_id (full_name)
-          )
+          vessels:vessel_id (name, vessel_type, flag)
         `)
         .eq("id", orderId)
         .single();
 
       if (orderError) throw orderError;
+
+      // Fetch supervisor if exists
+      let supervisorData = null;
+      if (orderData.supervisor_id) {
+        const { data: supervisor } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", orderData.supervisor_id)
+          .single();
+        supervisorData = supervisor;
+      }
 
       // Fetch tasks with technicians
       const { data: tasksData, error: tasksError } = await supabase
@@ -66,6 +74,7 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
 
       setOrderDetails({
         ...orderData,
+        supervisor: supervisorData,
         tasks: tasksData || [],
       });
     } catch (error: any) {
@@ -236,7 +245,7 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
               <div className="flex justify-between">
                 <dt className="text-sm font-medium text-muted-foreground">Supervisor:</dt>
                 <dd className="text-sm">
-                  {orderDetails.supervisor?.profiles?.full_name || "Não definido"}
+                  {orderDetails.supervisor?.full_name || "Não definido"}
                 </dd>
               </div>
               <div className="flex justify-between">

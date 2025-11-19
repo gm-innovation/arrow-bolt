@@ -117,8 +117,14 @@ const TaskDetails = () => {
         .eq("service_order_id", task.service_orders.id);
 
       // Get unique technicians
+      const uniqueTechIds = new Set();
       const techniciansList = allTasks
-        ?.map((t: any) => t.technicians?.profiles?.full_name)
+        ?.filter((t: any) => {
+          if (!t.assigned_to || uniqueTechIds.has(t.assigned_to)) return false;
+          uniqueTechIds.add(t.assigned_to);
+          return true;
+        })
+        .map((t: any) => t.technicians?.profiles?.full_name)
         .filter(Boolean) || [];
 
       const uniqueTechnicians = [...new Set(techniciansList)];
