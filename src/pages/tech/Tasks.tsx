@@ -57,7 +57,10 @@ const Tasks = () => {
           status,
           due_date,
           service_orders:service_order_id (
+            id,
             order_number,
+            scheduled_date,
+            service_date_time,
             vessels:vessel_id (
               name
             )
@@ -73,9 +76,16 @@ const Tasks = () => {
 
       const formattedTasks: Task[] = data?.map((task: any) => ({
         id: task.id,
+        orderNumber: task.service_orders?.order_number || "N/A",
         vesselName: task.service_orders?.vessels?.name || "N/A",
-        description: task.description || task.title,
-        scheduledDate: task.due_date ? new Date(task.due_date) : new Date(),
+        description: task.task_types?.name || task.title || task.description,
+        scheduledDate: task.service_orders?.service_date_time 
+          ? new Date(task.service_orders.service_date_time)
+          : task.service_orders?.scheduled_date
+          ? new Date(task.service_orders.scheduled_date)
+          : task.due_date 
+          ? new Date(task.due_date) 
+          : new Date(),
         status: task.status as TaskStatus,
       })) || [];
 
@@ -222,7 +232,7 @@ const Tasks = () => {
       <div key={task.id} className="bg-card rounded-lg border shadow-sm p-4 mb-4">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <div className="font-semibold">{task.id}</div>
+            <div className="font-semibold">OS {task.orderNumber}</div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
               <Ship className="h-4 w-4" />
               {task.vesselName}
@@ -415,7 +425,7 @@ const Tasks = () => {
                         const statusDisplay = getStatusDisplay(task.status);
                         return (
                           <TableRow key={task.id}>
-                            <TableCell>{task.id}</TableCell>
+                            <TableCell className="font-medium">{task.orderNumber || task.id}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Ship className="h-4 w-4" />
