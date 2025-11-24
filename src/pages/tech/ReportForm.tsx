@@ -673,21 +673,35 @@ interface ServiceOrderData {
 
   if (!taskValidated || !serviceOrderData) {
     return (
-      <div className="container mx-auto py-6 px-4 sm:px-6">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center max-w-md">
-            <h3 className="text-lg font-semibold mb-2">Não foi possível carregar o relatório</h3>
-            <p className="text-muted-foreground mb-4">
-              As informações da Ordem de Serviço não puderam ser carregadas. Por favor, volte e selecione uma tarefa válida.
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-destructive">Erro ao Carregar Tarefa</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              Não foi possível carregar os dados da tarefa. Isso pode acontecer se:
             </p>
-            <Button onClick={() => navigate('/tech/tasks')}>
+            <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground">
+              <li>A tarefa não está vinculada a uma Ordem de Serviço</li>
+              <li>Você não tem permissão para acessar esta tarefa</li>
+              <li>A tarefa foi removida ou modificada</li>
+              <li>Há um problema com as permissões do sistema</li>
+            </ul>
+            <Button 
+              onClick={() => navigate('/tech/tasks')} 
+              className="w-full"
+            >
               Voltar para Tarefas
             </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
+
+  // Get current report data
+  const reportData = taskReports[selectedTask] || taskReports.task1;
 
   return (
     <div className="container mx-auto py-6 px-4 sm:px-6 space-y-6">
