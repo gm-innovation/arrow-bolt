@@ -20,6 +20,7 @@ const queryClient = new QueryClient();
 
 interface ServiceOrderData {
   id: string;
+  orderNumber: string;
   date: Date;
   location: string;
   access: string;
@@ -37,19 +38,20 @@ interface ServiceOrderData {
   service: string;
 }
 
-const ReportFormContent = () => {
+  const ReportFormContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { reportId } = useParams();
   const [searchParams] = useSearchParams();
-  const taskId = searchParams.get("taskId") || "task1";
+  const taskId = searchParams.get("taskId");
 
-  const [selectedTask, setSelectedTask] = useState("task1");
+  const [selectedTask, setSelectedTask] = useState(taskId || "task1");
   const [isPDFOpen, setIsPDFOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [serviceOrderData, setServiceOrderData] = useState<ServiceOrderData | null>(null);
+  const [taskValidated, setTaskValidated] = useState(false);
   const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({
     task1: {
       modelInfo: "",
@@ -197,6 +199,16 @@ const ReportFormContent = () => {
   };
 
   const fetchServiceOrderData = async () => {
+    if (!taskId) {
+      toast({
+        title: "Erro de validação",
+        description: "ID da tarefa não foi fornecido. Você precisa selecionar uma tarefa para criar o relatório.",
+        variant: "destructive",
+      });
+      navigate('/tech/tasks');
+      return;
+    }
+
     try {
       const { data: taskData, error: taskError } = await supabase
         .from('tasks')
@@ -218,18 +230,38 @@ const ReportFormContent = () => {
           task_types:task_type_id (name)
         `)
         .eq('id', taskId)
-        .single();
+        .maybeSingle();
 
       if (taskError) throw taskError;
 
+      if (!taskData) {
+        toast({
+          title: "Tarefa não encontrada",
+          description: "A tarefa selecionada não foi encontrada no sistema.",
+          variant: "destructive",
+        });
+        navigate('/tech/tasks');
+        return;
+      }
+
+      if (!taskData.service_orders) {
+        toast({
+          title: "OS não encontrada",
+          description: "Esta tarefa não está vinculada a uma Ordem de Serviço.",
+          variant: "destructive",
+        });
+        navigate('/tech/tasks');
+        return;
+      }
+
       // Fetch supervisor if exists
       let supervisorName = 'N/A';
-      if (taskData?.service_orders?.supervisor_id) {
+      if (taskData.service_orders.supervisor_id) {
         const { data: supervisor } = await supabase
           .from('profiles')
           .select('full_name')
           .eq('id', taskData.service_orders.supervisor_id)
-          .single();
+          .maybeSingle();
         supervisorName = supervisor?.full_name || 'N/A';
       }
 
@@ -244,7 +276,7 @@ const ReportFormContent = () => {
             profiles:user_id (full_name)
           )
         `)
-        .eq('service_order_id', taskData?.service_orders?.id);
+        .eq('service_order_id', taskData.service_orders.id);
 
       // Get unique technicians
       const uniqueTechIds = new Set();
@@ -261,44 +293,60 @@ const ReportFormContent = () => {
       const leadTechnician = uniqueTechnicians[0] || 'Não atribuído';
       const assistants = uniqueTechnicians.slice(1);
 
-      if (taskData && taskData.service_orders) {
-        const so = taskData.service_orders as any;
-        setServiceOrderData({
-          id: so.order_number || '',
-          date: so.service_date_time 
-            ? new Date(so.service_date_time)
-            : so.scheduled_date 
-            ? new Date(so.scheduled_date) 
-            : new Date(),
-          location: so.location || so.vessels?.name || 'Local não especificado',
-          access: so.access || 'Sem informações de acesso',
-          requester: {
-            name: so.clients?.contact_person || so.clients?.name || 'N/A',
-            role: 'Solicitante',
-          },
-          supervisor: {
-            name: supervisorName,
-          },
-          team: {
-            leadTechnician,
-            assistants,
-          },
-          service: taskData.task_types?.name || taskData.title || taskData.description || 'Serviço',
-        });
-      }
-    } catch (error) {
+      const so = taskData.service_orders as any;
+      const orderNumber = so.order_number || taskData.id;
+      
+      setServiceOrderData({
+        id: orderNumber,
+        orderNumber: orderNumber,
+        date: so.service_date_time 
+          ? new Date(so.service_date_time)
+          : so.scheduled_date 
+          ? new Date(so.scheduled_date) 
+          : new Date(),
+        location: so.location || so.vessels?.name || 'Local não especificado',
+        access: so.access || 'Sem informações de acesso',
+        requester: {
+          name: so.clients?.contact_person || so.clients?.name || 'N/A',
+          role: 'Solicitante',
+        },
+        supervisor: {
+          name: supervisorName,
+        },
+        team: {
+          leadTechnician,
+          assistants,
+        },
+        service: taskData.task_types?.name || taskData.title || taskData.description || 'Serviço não especificado',
+      });
+      
+      setTaskValidated(true);
+    } catch (error: any) {
       console.error("Error fetching service order data:", error);
       toast({
         title: "Erro ao carregar dados da OS",
-        description: "Não foi possível carregar os dados da ordem de serviço.",
+        description: error.message || "Não foi possível carregar as informações da Ordem de Serviço.",
         variant: "destructive",
       });
+      navigate('/tech/tasks');
     }
   };
 
   useEffect(() => {
-    fetchTaskReports();
-    fetchServiceOrderData();
+    const loadData = async () => {
+      setIsLoading(true);
+      await fetchServiceOrderData();
+      
+      // Only fetch task reports if we have a valid taskId
+      if (taskId) {
+        const savedReports = await fetchTaskReports();
+        if (!savedReports) {
+          console.log("No saved reports found, using default state");
+        }
+      }
+      setIsLoading(false);
+    };
+    loadData();
   }, [taskId]);
 
   const handleAddTimeEntry = (taskId: string) => {
@@ -601,25 +649,61 @@ const ReportFormContent = () => {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Carregando relatório...</p>
+      <div className="container mx-auto py-6 px-4 sm:px-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Carregando informações da OS...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!taskValidated || !serviceOrderData) {
+    return (
+      <div className="container mx-auto py-6 px-4 sm:px-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center max-w-md">
+            <h3 className="text-lg font-semibold mb-2">Não foi possível carregar o relatório</h3>
+            <p className="text-muted-foreground mb-4">
+              As informações da Ordem de Serviço não puderam ser carregadas. Por favor, volte e selecione uma tarefa válida.
+            </p>
+            <Button onClick={() => navigate('/tech/tasks')}>
+              Voltar para Tarefas
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-3xl font-bold tracking-tight">
-          {reportId ? "Editar Relatório" : "Novo Relatório"}
-        </h2>
-        <Button variant="outline" onClick={() => setIsPDFOpen(true)}>
-          <FileText className="h-4 w-4 mr-2" />
-          Visualizar PDF
-        </Button>
+    <div className="container mx-auto py-6 px-4 sm:px-6 space-y-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate(-1)}>
+            ← Voltar
+          </Button>
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+              {reportId ? "Editar Relatório" : "Novo Relatório"}
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              OS: {serviceOrderData.orderNumber} - {serviceOrderData.service}
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button 
+            variant="outline" 
+            onClick={() => setIsPDFOpen(true)}
+            className="flex-1 sm:flex-none"
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            Visualizar PDF
+          </Button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
