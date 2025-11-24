@@ -200,6 +200,7 @@ interface ServiceOrderData {
 
   const fetchServiceOrderData = async () => {
     if (!taskId) {
+      console.error("No taskId provided");
       toast({
         title: "Erro de validação",
         description: "ID da tarefa não foi fornecido. Você precisa selecionar uma tarefa para criar o relatório.",
@@ -208,6 +209,8 @@ interface ServiceOrderData {
       navigate('/tech/tasks');
       return;
     }
+
+    console.log("Fetching service order data for task:", taskId);
 
     try {
       const { data: taskData, error: taskError } = await supabase
@@ -232,9 +235,13 @@ interface ServiceOrderData {
         .eq('id', taskId)
         .maybeSingle();
 
+      console.log("Task data fetched:", taskData);
+      console.log("Task error:", taskError);
+
       if (taskError) throw taskError;
 
       if (!taskData) {
+        console.error("Task data is null");
         toast({
           title: "Tarefa não encontrada",
           description: "A tarefa selecionada não foi encontrada no sistema.",
@@ -245,6 +252,7 @@ interface ServiceOrderData {
       }
 
       if (!taskData.service_orders) {
+        console.error("Service order not found for task");
         toast({
           title: "OS não encontrada",
           description: "Esta tarefa não está vinculada a uma Ordem de Serviço.",
@@ -296,7 +304,7 @@ interface ServiceOrderData {
       const so = taskData.service_orders as any;
       const orderNumber = so.order_number || taskData.id;
       
-      setServiceOrderData({
+      const serviceOrderData = {
         id: orderNumber,
         orderNumber: orderNumber,
         date: so.service_date_time 
@@ -318,9 +326,12 @@ interface ServiceOrderData {
           assistants,
         },
         service: taskData.task_types?.name || taskData.title || taskData.description || 'Serviço não especificado',
-      });
-      
+      };
+
+      console.log("Service order data prepared:", serviceOrderData);
+      setServiceOrderData(serviceOrderData);
       setTaskValidated(true);
+      console.log("Task validated successfully");
     } catch (error: any) {
       console.error("Error fetching service order data:", error);
       toast({
