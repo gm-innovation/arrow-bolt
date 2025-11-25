@@ -233,23 +233,12 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                 <dt className="text-sm font-medium text-muted-foreground">Status:</dt>
                 <dd className="text-sm">{getStatusBadge(orderDetails.status)}</dd>
               </div>
-            </dl>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-medium">Datas</h4>
-            <Separator className="my-2" />
-            <dl className="space-y-2">
               <div className="flex justify-between">
-                <dt className="text-sm font-medium text-muted-foreground">Criação:</dt>
-                <dd className="text-sm">
-                  {format(new Date(orderDetails.created_at), "dd/MM/yyyy HH:mm")}
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-sm font-medium text-muted-foreground">Agendamento:</dt>
-                <dd className="text-sm">
-                  {orderDetails.scheduled_date 
+                <dt className="text-sm font-medium text-muted-foreground">Data do Serviço:</dt>
+                <dd className="text-sm font-semibold">
+                  {orderDetails.service_date_time 
+                    ? format(new Date(orderDetails.service_date_time), "dd/MM/yyyy HH:mm")
+                    : orderDetails.scheduled_date
                     ? format(new Date(orderDetails.scheduled_date), "dd/MM/yyyy")
                     : "-"}
                 </dd>
@@ -269,12 +258,14 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
             <h4 className="text-sm font-medium">Equipe</h4>
             <Separator className="my-2" />
             <dl className="space-y-2">
-              <div className="flex justify-between">
-                <dt className="text-sm font-medium text-muted-foreground">Supervisor:</dt>
-                <dd className="text-sm">
-                  {orderDetails.supervisor?.full_name || "Não definido"}
-                </dd>
-              </div>
+              {orderDetails.supervisor && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-muted-foreground">Supervisor:</dt>
+                  <dd className="text-sm">
+                    {orderDetails.supervisor?.full_name || "Não definido"}
+                  </dd>
+                </div>
+              )}
               {leadTechnician && (
                 <div className="flex justify-between">
                   <dt className="text-sm font-medium text-muted-foreground">Técnico Responsável:</dt>
@@ -357,7 +348,36 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         </TabsContent>
 
         <TabsContent value="audit">
-          <AuditTrailViewer serviceOrderId={orderId} />
+          <ScrollArea className="h-[50vh] pr-4">
+            <div className="space-y-4 mb-4">
+              <div className="bg-muted/50 p-3 rounded-lg">
+                <div className="flex justify-between items-start mb-2">
+                  <span className="text-sm font-medium">Criação da OS</span>
+                  <span className="text-xs text-muted-foreground">
+                    {format(new Date(orderDetails.created_at), "dd/MM/yyyy HH:mm")}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Ordem de serviço criada no sistema
+                </p>
+              </div>
+              
+              {orderDetails.scheduled_date && (
+                <div className="bg-muted/50 p-3 rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-sm font-medium">Agendamento</span>
+                    <span className="text-xs text-muted-foreground">
+                      {format(new Date(orderDetails.scheduled_date), "dd/MM/yyyy")}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Data de agendamento do serviço
+                  </p>
+                </div>
+              )}
+            </div>
+            <AuditTrailViewer serviceOrderId={orderId} />
+          </ScrollArea>
         </TabsContent>
       </Tabs>
       </DialogContent>
