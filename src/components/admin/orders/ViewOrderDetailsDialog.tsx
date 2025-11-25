@@ -74,7 +74,7 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
       if (tasksError) throw tasksError;
 
       // Fetch initial visit first
-      const { data: visitData } = await supabase
+      const { data: visitData, error: visitError } = await supabase
         .from("service_visits")
         .select("id")
         .eq("service_order_id", orderId)
@@ -83,10 +83,14 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         .limit(1)
         .maybeSingle();
 
+      if (visitError) {
+        console.error("Error fetching visit:", visitError);
+      }
+
       // Then fetch visit technicians directly if visit exists
       let visitTechnicians = null;
       if (visitData?.id) {
-        const { data: techData } = await supabase
+        const { data: techData, error: techError } = await supabase
           .from("visit_technicians")
           .select(`
             technician_id,
@@ -98,7 +102,11 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
           `)
           .eq("visit_id", visitData.id);
         
-        visitTechnicians = techData;
+        if (techError) {
+          console.error("Error fetching visit technicians:", techError);
+        } else {
+          visitTechnicians = techData;
+        }
       }
 
       setOrderDetails({
