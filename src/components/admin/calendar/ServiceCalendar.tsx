@@ -6,8 +6,11 @@ import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Maximize2, Minimize2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 
 export type CalendarServiceOrder = {
   id: string;
@@ -25,12 +28,19 @@ export type CalendarServiceOrder = {
   technician_names?: string[];
 };
 
-interface ServiceCalendarProps {
+export interface ServiceCalendarProps {
   isExpanded?: boolean;
   onToggleExpanded?: () => void;
+  isFullscreen?: boolean;
+  onToggleFullscreen?: () => void;
 }
 
-export const ServiceCalendar = ({ isExpanded = false, onToggleExpanded }: ServiceCalendarProps) => {
+export const ServiceCalendar = ({ 
+  isExpanded = false, 
+  onToggleExpanded,
+  isFullscreen = false,
+  onToggleFullscreen
+}: ServiceCalendarProps) => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"day" | "week" | "month">("week");
@@ -166,17 +176,42 @@ export const ServiceCalendar = ({ isExpanded = false, onToggleExpanded }: Servic
   };
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-lg shadow">
-      <CalendarHeader
-        currentDate={currentDate}
-        view={view}
-        onViewChange={setView}
-        onDateChange={setCurrentDate}
-        onSearchClick={handleSearch}
-        onHelpClick={handleHelp}
-        onSettingsClick={handleSettings}
-        onMenuClick={handleMenu}
-      />
+    <div className={cn(
+      "flex flex-col h-full bg-white rounded-lg shadow",
+      isFullscreen && "fixed inset-0 z-50 p-6"
+    )}>
+      <div className="flex items-center justify-between mb-4">
+        <CalendarHeader
+          currentDate={currentDate}
+          view={view}
+          onViewChange={setView}
+          onDateChange={setCurrentDate}
+          onSearchClick={handleSearch}
+          onHelpClick={handleHelp}
+          onSettingsClick={handleSettings}
+          onMenuClick={handleMenu}
+        />
+        {onToggleFullscreen && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggleFullscreen}
+            className="ml-4"
+          >
+            {isFullscreen ? (
+              <>
+                <Minimize2 className="h-4 w-4 mr-2" />
+                Sair da Tela Cheia
+              </>
+            ) : (
+              <>
+                <Maximize2 className="h-4 w-4 mr-2" />
+                Tela Cheia
+              </>
+            )}
+          </Button>
+        )}
+      </div>
       
       {view === "day" && (
         <DayView date={currentDate} orders={serviceOrders} onEventClick={handleEventClick} />

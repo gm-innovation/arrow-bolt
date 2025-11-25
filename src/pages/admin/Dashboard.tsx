@@ -17,6 +17,7 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
+  const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
   const form = useForm<{ orderNumber: string }>({
     defaultValues: {
       orderNumber: "",
@@ -47,35 +48,43 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
-        <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-          <Button onClick={handleCreateOS} className="w-full sm:w-auto">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Nova OS
-          </Button>
-          <Button variant="outline" onClick={handleApproveReports} className="w-full sm:w-auto">
-            <FileText className="mr-2 h-4 w-4" />
-            Aprovar Relatórios
-          </Button>
-        </div>
-      </div>
+      {!isCalendarFullscreen && (
+        <>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+            <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
+              <Button onClick={handleCreateOS} className="w-full sm:w-auto">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Nova OS
+              </Button>
+              <Button variant="outline" onClick={handleApproveReports} className="w-full sm:w-auto">
+                <FileText className="mr-2 h-4 w-4" />
+                Aprovar Relatórios
+              </Button>
+            </div>
+          </div>
 
-      {!isCalendarExpanded && <DashboardStats />}
+          {!isCalendarExpanded && <DashboardStats />}
+        </>
+      )}
       
-      <Card className="card-responsive overflow-hidden">
-        <CardHeader>
-          <CardTitle>Agenda de Serviços</CardTitle>
-        </CardHeader>
+      <Card className={isCalendarFullscreen ? "h-screen" : "card-responsive overflow-hidden"}>
+        {!isCalendarFullscreen && (
+          <CardHeader>
+            <CardTitle>Agenda de Serviços</CardTitle>
+          </CardHeader>
+        )}
         <CardContent className="overflow-auto p-0 sm:p-6">
           <ServiceCalendar 
             isExpanded={isCalendarExpanded}
             onToggleExpanded={() => setIsCalendarExpanded(!isCalendarExpanded)}
+            isFullscreen={isCalendarFullscreen}
+            onToggleFullscreen={() => setIsCalendarFullscreen(!isCalendarFullscreen)}
           />
         </CardContent>
       </Card>
 
-      {!isCalendarExpanded && <DashboardCharts />}
+      {!isCalendarExpanded && !isCalendarFullscreen && <DashboardCharts />}
 
       <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
         <NewOrderDialog form={form} />
