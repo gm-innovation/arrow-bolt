@@ -212,7 +212,7 @@ export const ServiceCalendar = ({
 
   return (
     <div className={cn(
-      "flex flex-col h-full bg-white rounded-lg shadow",
+      "flex flex-col h-full bg-white rounded-lg shadow overflow-visible",
       isFullscreen && "fixed inset-0 z-50 p-6"
     )}>
       <div className="flex items-center justify-between mb-4">

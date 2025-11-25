@@ -62,7 +62,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
   };
 
   return (
-    <div className="flex-1 grid grid-cols-7 grid-rows-6 h-[calc(100vh-140px)] border-l border-t">
+    <div className="flex-1 grid grid-cols-7 grid-rows-6 h-[calc(100vh-140px)] border-l border-t relative">
       {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekDay) => (
         <div key={weekDay} className="p-1.5 text-xs font-medium text-center border-b border-r bg-muted/50">
           {weekDay}
@@ -77,7 +77,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
             <div
               key={`${weekIndex}-${dayIndex}`}
               className={cn(
-                "border-b border-r p-2 overflow-y-auto min-h-[160px]",
+                "border-b border-r p-2 min-h-[160px] relative",
                 day && isSameMonth(day, date) ? "bg-background" : "bg-muted/30"
               )}
             >
@@ -122,7 +122,13 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                               )}
                             </div>
                           </HoverCardTrigger>
-                          <HoverCardContent side="right" align="start" className="w-auto">
+                          <HoverCardContent 
+                            side="top" 
+                            align="center" 
+                            className="w-auto z-50"
+                            sideOffset={5}
+                            avoidCollisions={true}
+                          >
                             <ServiceOrderHoverCard order={order} />
                           </HoverCardContent>
                         </HoverCard>
