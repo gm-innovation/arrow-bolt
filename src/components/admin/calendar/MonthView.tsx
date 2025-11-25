@@ -62,9 +62,12 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
   };
 
   return (
-    <div className="flex-1 grid grid-cols-7 auto-rows-fr h-[calc(100vh-140px)] border relative">
+    <div className={cn(
+      "flex-1 grid grid-cols-7 auto-rows-fr border relative",
+      isExpanded ? "h-[calc(100vh-120px)]" : "h-[calc(100vh-140px)]"
+    )}>
       {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekDay) => (
-        <div key={weekDay} className="p-1.5 text-xs font-medium text-center border-b border-r bg-muted/50">
+        <div key={weekDay} className="p-1.5 text-xs font-medium text-center border-b border-r last:border-r-0 bg-muted/50">
           {weekDay}
         </div>
       ))}
@@ -77,7 +80,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
             <div
               key={`${weekIndex}-${dayIndex}`}
               className={cn(
-                "border-b border-r p-2 min-h-[160px] relative",
+                "border-b border-r last:border-r-0 p-2 min-h-[160px] relative",
                 day && isSameMonth(day, date) ? "bg-background" : "bg-muted/30"
               )}
             >
