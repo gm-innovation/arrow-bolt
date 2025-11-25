@@ -16,6 +16,8 @@ interface ServiceOrderListItemProps {
     description?: string;
     location?: string;
     technician_names?: string[];
+    lead_technician?: string;
+    auxiliary_technicians?: string[];
   };
   compact?: boolean;
   onClick?: () => void;
@@ -33,9 +35,22 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
     return colors[status] || "bg-gray-500";
   };
 
-  const technicianDisplay = order.technician_names && order.technician_names.length > 0
-    ? order.technician_names[0]
-    : order.supervisor_name || "Sem técnico";
+  // Build technician display string
+  let technicianDisplay = "Sem técnico";
+  
+  if (order.lead_technician) {
+    technicianDisplay = order.lead_technician;
+    if (order.auxiliary_technicians && order.auxiliary_technicians.length > 0) {
+      technicianDisplay += ` + ${order.auxiliary_technicians.length}`;
+    }
+  } else if (order.technician_names && order.technician_names.length > 0) {
+    technicianDisplay = order.technician_names[0];
+    if (order.technician_names.length > 1) {
+      technicianDisplay += ` + ${order.technician_names.length - 1}`;
+    }
+  } else if (order.supervisor_name) {
+    technicianDisplay = order.supervisor_name;
+  }
 
   return (
     <HoverCard openDelay={150} closeDelay={100}>
@@ -72,6 +87,9 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
             supervisor_name: order.supervisor_name,
             description: order.description,
             location: order.location,
+            technician_names: order.technician_names,
+            lead_technician: order.lead_technician,
+            auxiliary_technicians: order.auxiliary_technicians,
           }}
         />
       </HoverCardContent>
