@@ -81,13 +81,13 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
   const selectedClient = form.watch("clientId");
 
   useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  useEffect(() => {
-    if (isEditing && orderId) {
-      loadOrderData();
-    }
+    const initialize = async () => {
+      await fetchInitialData();
+      if (isEditing && orderId) {
+        await loadOrderData();
+      }
+    };
+    initialize();
   }, [isEditing, orderId]);
 
   useEffect(() => {
@@ -216,11 +216,38 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         taskTypes: tasksData ? [...new Set(tasksData.map(t => t.task_type_id).filter(Boolean))] : [],
       });
 
-      // Set selected technicians
-      if (tasksData) {
+      // Fetch visit data to determine lead technician
+      const { data: visitData } = await supabase
+        .from("service_visits")
+        .select(`
+          id,
+          visit_technicians (
+            technician_id,
+            is_lead
+          )
+        `)
+        .eq("service_order_id", orderId)
+        .eq("visit_type", "initial")
+        .order("visit_number", { ascending: true })
+        .limit(1)
+        .single();
+
+      // Set selected technicians from visit_technicians if available, otherwise from tasks
+      if (visitData?.visit_technicians && visitData.visit_technicians.length > 0) {
+        const techIds = visitData.visit_technicians.map((vt: any) => vt.technician_id);
+        setSelectedTechnicians(techIds);
+        
+        // Find the lead technician
+        const leadTech = visitData.visit_technicians.find((vt: any) => vt.is_lead);
+        if (leadTech) {
+          setLeadTechId(leadTech.technician_id);
+        } else if (techIds.length > 0) {
+          setLeadTechId(techIds[0]);
+        }
+      } else if (tasksData && tasksData.length > 0) {
+        // Fallback to tasks if no visit data
         const techIds = [...new Set(tasksData.map(t => t.assigned_to).filter(Boolean))];
         setSelectedTechnicians(techIds);
-        // Set lead tech as the first one (you might want to store this in the DB)
         if (techIds.length > 0) {
           setLeadTechId(techIds[0]);
         }
@@ -298,6 +325,40 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
 
         if (deleteError) throw deleteError;
 
+        // Get the initial visit
+        const { data: visitData } = await supabase
+          .from("service_visits")
+          .select("id")
+          .eq("service_order_id", orderId)
+          .eq("visit_type", "initial")
+          .order("visit_number", { ascending: true })
+          .limit(1)
+          .single();
+
+        if (visitData) {
+          // Delete existing visit technicians
+          await supabase
+            .from("visit_technicians")
+            .delete()
+            .eq("visit_id", visitData.id);
+
+          // Insert new visit technicians
+          if (selectedTechnicians.length > 0) {
+            const visitTechniciansToInsert = selectedTechnicians.map(techId => ({
+              visit_id: visitData.id,
+              technician_id: techId,
+              is_lead: techId === leadTechId,
+              assigned_by: user?.id,
+            }));
+
+            const { error: vtError } = await supabase
+              .from("visit_technicians")
+              .insert(visitTechniciansToInsert);
+
+            if (vtError) throw vtError;
+          }
+        }
+
         // Create new tasks - one task per technician per task type
         if (formTaskTypes.length > 0 && selectedTechnicians.length > 0) {
           const tasksToInsert = selectedTechnicians.flatMap(techId => 
@@ -346,6 +407,30 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
           .single();
 
         if (orderError) throw orderError;
+
+        // Get the automatically created initial visit
+        const { data: visitData } = await supabase
+          .from("service_visits")
+          .select("id")
+          .eq("service_order_id", serviceOrder.id)
+          .eq("visit_type", "initial")
+          .single();
+
+        if (visitData && selectedTechnicians.length > 0) {
+          // Insert visit technicians
+          const visitTechniciansToInsert = selectedTechnicians.map(techId => ({
+            visit_id: visitData.id,
+            technician_id: techId,
+            is_lead: techId === leadTechId,
+            assigned_by: user?.id,
+          }));
+
+          const { error: vtError } = await supabase
+            .from("visit_technicians")
+            .insert(visitTechniciansToInsert);
+
+          if (vtError) throw vtError;
+        }
 
         // Create tasks - one task per technician per task type
         if (formTaskTypes.length > 0 && serviceOrder && selectedTechnicians.length > 0) {
