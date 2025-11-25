@@ -65,7 +65,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
     <div
       className={cn(
         "flex-1 grid grid-cols-7 auto-rows-fr border relative",
-        isExpanded ? "h-[calc(100vh-80px)]" : "h-[calc(100vh-100px)]",
+        isExpanded ? "h-[calc(100vh-120px)]" : "h-[calc(100vh-140px)]",
       )}
     >
       {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekDay) => (
