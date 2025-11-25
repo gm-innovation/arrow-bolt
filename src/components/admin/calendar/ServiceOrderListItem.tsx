@@ -2,6 +2,12 @@ import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/h
 import { ServiceOrderHoverCard } from "./ServiceOrderHoverCard";
 import { cn } from "@/lib/utils";
 
+const formatShortName = (fullName: string) => {
+  const parts = fullName.trim().split(' ');
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
 interface ServiceOrderListItemProps {
   order: {
     id: string;
@@ -35,18 +41,18 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
     return colors[status] || "bg-gray-500";
   };
 
-  // Build technician display array
+  // Build technician display array with short names
   const technicianDisplay: string[] = [];
   
   if (order.lead_technician) {
-    technicianDisplay.push(order.lead_technician);
+    technicianDisplay.push(formatShortName(order.lead_technician));
     if (order.auxiliary_technicians && order.auxiliary_technicians.length > 0) {
-      technicianDisplay.push(...order.auxiliary_technicians);
+      technicianDisplay.push(...order.auxiliary_technicians.map(formatShortName));
     }
   } else if (order.technician_names && order.technician_names.length > 0) {
-    technicianDisplay.push(...order.technician_names);
+    technicianDisplay.push(...order.technician_names.map(formatShortName));
   } else if (order.supervisor_name) {
-    technicianDisplay.push(order.supervisor_name);
+    technicianDisplay.push(formatShortName(order.supervisor_name));
   }
 
   return (
