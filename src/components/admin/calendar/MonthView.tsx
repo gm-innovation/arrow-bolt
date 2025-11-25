@@ -91,13 +91,13 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                   </div>
                   
                   {dayOrders.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {dayOrders.map((order) => (
                         <HoverCard key={order.id} openDelay={150} closeDelay={100}>
                           <HoverCardTrigger asChild>
                             <div 
                               className={cn(
-                                "p-2.5 rounded-lg border-l-[6px] hover:shadow-lg cursor-pointer transition-all",
+                                "px-2 py-1 rounded border-l-[3px] hover:shadow cursor-pointer transition-all",
                                 order.status === "pending" && "border-l-yellow-500 bg-yellow-100/90 dark:bg-yellow-900/40",
                                 order.status === "in_progress" && "border-l-blue-500 bg-blue-100/90 dark:bg-blue-900/40",
                                 order.status === "completed" && "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
@@ -106,18 +106,18 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                               )}
                               onClick={() => onEventClick?.(order.id)}
                             >
-                              <div className="font-bold text-foreground text-sm mb-1">
+                              <div className="font-semibold text-foreground text-xs leading-tight">
                                 {order.scheduled_time} - {order.vessel_name}
                               </div>
                               {order.lead_technician && (
-                                <div className="text-xs font-semibold text-foreground/90">
+                                <div className="text-[10px] font-medium text-foreground/80 leading-tight mt-0.5">
                                   {formatShortName(order.lead_technician)}
                                 </div>
                               )}
                               {order.auxiliary_technicians && order.auxiliary_technicians.length > 0 && (
-                                <div className="space-y-0.5 mt-1">
+                                <div className="space-y-0 mt-0.5">
                                   {order.auxiliary_technicians.map((name, idx) => (
-                                    <div key={idx} className="text-xs font-medium text-foreground/80">
+                                    <div key={idx} className="text-[10px] font-medium text-foreground/70 leading-tight">
                                       {formatShortName(name)}
                                     </div>
                                   ))}
