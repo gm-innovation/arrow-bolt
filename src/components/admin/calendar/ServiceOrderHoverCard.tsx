@@ -11,6 +11,7 @@ interface ServiceOrderHoverCardProps {
     supervisor_name?: string;
     description?: string;
     location?: string;
+    technician_names?: string[];
   };
 }
 
@@ -91,6 +92,20 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
             <div className="flex-1">
               <p className="text-xs text-muted-foreground">Responsável</p>
               <p className="text-sm font-medium">{order.supervisor_name}</p>
+            </div>
+          </div>
+        )}
+
+        {order.technician_names && order.technician_names.length > 0 && (
+          <div className="flex items-start gap-2">
+            <User className="h-4 w-4 text-muted-foreground mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs text-muted-foreground">Técnicos</p>
+              <div className="space-y-0.5">
+                {order.technician_names.map((name, idx) => (
+                  <p key={idx} className="text-sm font-medium">{name}</p>
+                ))}
+              </div>
             </div>
           </div>
         )}

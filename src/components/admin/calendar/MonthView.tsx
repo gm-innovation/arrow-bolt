@@ -105,12 +105,16 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                                 <div className="font-medium text-foreground">
                                   {order.scheduled_time}
                                 </div>
-                                <div className="text-muted-foreground truncate">
+                                <div className="text-muted-foreground truncate font-medium">
                                   {order.vessel_name}
                                 </div>
                                 {order.technician_names && order.technician_names.length > 0 && (
-                                  <div className="text-muted-foreground/80 truncate text-[10px]">
-                                    {order.technician_names[0]}
+                                  <div className="space-y-0.5">
+                                    {order.technician_names.map((name, idx) => (
+                                      <div key={idx} className="text-muted-foreground truncate text-[10px]">
+                                        {name}
+                                      </div>
+                                    ))}
                                   </div>
                                 )}
                               </div>
@@ -127,12 +131,19 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                           <HoverCard key={order.id} openDelay={150} closeDelay={100}>
                             <HoverCardTrigger asChild>
                               <div 
-                                className="flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-accent/50 cursor-pointer transition-colors text-xs"
+                                className="flex flex-col gap-0.5 px-1.5 py-1 rounded hover:bg-accent/50 cursor-pointer transition-colors text-xs"
                                 onClick={() => onEventClick?.(order.id)}
                               >
-                                <div className={cn("w-2 h-2 rounded-full flex-shrink-0", getStatusColor(order.status))} />
-                                <span className="text-[10px] text-muted-foreground">{order.scheduled_time}</span>
-                                <span className="font-medium truncate text-[11px]">{order.vessel_name}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <div className={cn("w-2 h-2 rounded-full flex-shrink-0", getStatusColor(order.status))} />
+                                  <span className="text-[10px] text-muted-foreground">{order.scheduled_time}</span>
+                                  <span className="font-medium truncate text-[11px]">{order.vessel_name}</span>
+                                </div>
+                                {order.technician_names && order.technician_names.length > 0 && (
+                                  <div className="text-[9px] text-muted-foreground/70 truncate pl-4">
+                                    {order.technician_names.join(", ")}
+                                  </div>
+                                )}
                               </div>
                             </HoverCardTrigger>
                             <HoverCardContent side="right" align="start" className="w-auto">
