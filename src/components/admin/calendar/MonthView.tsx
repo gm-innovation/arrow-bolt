@@ -67,7 +67,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
       isExpanded ? "h-[calc(100vh-120px)]" : "h-[calc(100vh-140px)]"
     )}>
       {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekDay) => (
-        <div key={weekDay} className="p-3 text-lg font-bold text-center border-b-2 border-r-2 last:border-r-0 bg-muted">
+        <div key={weekDay} className="py-1.5 px-2 text-sm font-semibold text-center border-b-2 border-r-2 last:border-r-0 bg-muted">
           {weekDay}
         </div>
       ))}
