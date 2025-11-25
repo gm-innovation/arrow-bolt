@@ -35,21 +35,18 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
     return colors[status] || "bg-gray-500";
   };
 
-  // Build technician display string
-  let technicianDisplay = "Sem técnico";
+  // Build technician display array
+  const technicianDisplay: string[] = [];
   
   if (order.lead_technician) {
-    technicianDisplay = order.lead_technician;
+    technicianDisplay.push(order.lead_technician);
     if (order.auxiliary_technicians && order.auxiliary_technicians.length > 0) {
-      technicianDisplay += ` + ${order.auxiliary_technicians.length}`;
+      technicianDisplay.push(...order.auxiliary_technicians);
     }
   } else if (order.technician_names && order.technician_names.length > 0) {
-    technicianDisplay = order.technician_names[0];
-    if (order.technician_names.length > 1) {
-      technicianDisplay += ` + ${order.technician_names.length - 1}`;
-    }
+    technicianDisplay.push(...order.technician_names);
   } else if (order.supervisor_name) {
-    technicianDisplay = order.supervisor_name;
+    technicianDisplay.push(order.supervisor_name);
   }
 
   return (
@@ -68,9 +65,13 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
               <span className="text-xs text-muted-foreground">{order.scheduled_time}</span>
               <span className="font-medium truncate">{order.vessel_name}</span>
             </div>
-            {!compact && (
-              <div className="text-xs text-muted-foreground truncate">
-                {technicianDisplay}
+            {!compact && technicianDisplay.length > 0 && (
+              <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
+                {technicianDisplay.map((name, idx) => (
+                  <div key={idx} className="truncate">
+                    {name}
+                  </div>
+                ))}
               </div>
             )}
           </div>
