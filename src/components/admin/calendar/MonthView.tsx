@@ -41,7 +41,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
   }
 
   const getOrdersForDay = (day: Date) => {
-    return orders.filter(order => isSameDay(order.scheduled_date, day));
+    return orders.filter((order) => isSameDay(order.scheduled_date, day));
   };
 
   const getStatusColor = (status: string) => {
@@ -56,32 +56,37 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
   };
 
   const formatShortName = (fullName: string) => {
-    const parts = fullName.trim().split(' ');
+    const parts = fullName.trim().split(" ");
     if (parts.length === 1) return parts[0];
     return `${parts[0]} ${parts[parts.length - 1]}`;
   };
 
   return (
-    <div className={cn(
-      "flex-1 grid grid-cols-7 auto-rows-fr border relative",
-      isExpanded ? "h-[calc(100vh-120px)]" : "h-[calc(100vh-140px)]"
-    )}>
+    <div
+      className={cn(
+        "flex-1 grid grid-cols-7 auto-rows-fr border relative",
+        isExpanded ? "h-[calc(100vh-80px)]" : "h-[calc(100vh-100px)]",
+      )}
+    >
       {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekDay) => (
-        <div key={weekDay} className="py-1 px-2 text-xs font-medium text-center border-b border-r last:border-r-0 bg-muted/50 text-muted-foreground">
+        <div
+          key={weekDay}
+          className="py-1 px-2 text-xs font-medium text-center border-b border-r last:border-r-0 bg-muted/50 text-muted-foreground"
+        >
           {weekDay}
         </div>
       ))}
-      
-      {weeks.map((week, weekIndex) => (
+
+      {weeks.map((week, weekIndex) =>
         week.map((day, dayIndex) => {
           const dayOrders = day ? getOrdersForDay(day) : [];
-          
+
           return (
             <div
               key={`${weekIndex}-${dayIndex}`}
               className={cn(
                 "border-b border-r last:border-r-0 p-2 min-h-[150px] relative",
-                day && isSameMonth(day, date) ? "bg-background" : "bg-muted/50"
+                day && isSameMonth(day, date) ? "bg-background" : "bg-muted/50",
               )}
             >
               {day && (
@@ -89,20 +94,23 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                   <div className="text-sm font-normal mb-1 text-foreground/60">
                     {format(day, "d", { locale: ptBR })}
                   </div>
-                  
+
                   {dayOrders.length > 0 && (
                     <div className="space-y-1">
                       {dayOrders.map((order) => (
                         <HoverCard key={order.id} openDelay={150} closeDelay={100}>
                           <HoverCardTrigger asChild>
-                            <div 
+                            <div
                               className={cn(
                                 "px-2 py-1 rounded border-l-2 hover:shadow cursor-pointer transition-all",
-                                order.status === "pending" && "border-l-yellow-500 bg-yellow-100/90 dark:bg-yellow-900/40",
-                                order.status === "in_progress" && "border-l-blue-500 bg-blue-100/90 dark:bg-blue-900/40",
-                                order.status === "completed" && "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
+                                order.status === "pending" &&
+                                  "border-l-yellow-500 bg-yellow-100/90 dark:bg-yellow-900/40",
+                                order.status === "in_progress" &&
+                                  "border-l-blue-500 bg-blue-100/90 dark:bg-blue-900/40",
+                                order.status === "completed" &&
+                                  "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
                                 order.status === "cancelled" && "border-l-red-500 bg-red-100/90 dark:bg-red-900/40",
-                                order.status === "waiting" && "border-l-gray-500 bg-gray-100/90 dark:bg-gray-900/40"
+                                order.status === "waiting" && "border-l-gray-500 bg-gray-100/90 dark:bg-gray-900/40",
                               )}
                               onClick={() => onEventClick?.(order.id)}
                             >
@@ -125,9 +133,9 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                               )}
                             </div>
                           </HoverCardTrigger>
-                          <HoverCardContent 
-                            side="right" 
-                            align="start" 
+                          <HoverCardContent
+                            side="right"
+                            align="start"
                             className="w-auto max-w-md"
                             sideOffset={10}
                             collisionPadding={20}
@@ -143,8 +151,8 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
               )}
             </div>
           );
-        })
-      ))}
+        }),
+      )}
     </div>
   );
 };
