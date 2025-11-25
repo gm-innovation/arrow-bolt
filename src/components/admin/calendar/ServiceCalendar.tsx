@@ -70,9 +70,7 @@ export const ServiceCalendar = ({ isExpanded = false, onToggleExpanded }: Servic
           location,
           vessels:vessel_id (name),
           clients:client_id (name),
-          supervisor:technicians!supervisor_id (
-            user:profiles!inner (full_name)
-          ),
+          supervisor:profiles!supervisor_id (full_name),
           tasks (
             id,
             title,
@@ -109,7 +107,7 @@ export const ServiceCalendar = ({ isExpanded = false, onToggleExpanded }: Servic
           order_number: order.order_number,
           vessel_name: order.vessels?.name || "Sem embarcação",
           client_name: order.clients?.name,
-          supervisor_name: order.supervisor?.user?.full_name,
+          supervisor_name: order.supervisor?.full_name,
           status: order.status,
           scheduled_time: format(scheduledDateTime, "HH:mm"),
           scheduled_date: scheduledDateTime,
