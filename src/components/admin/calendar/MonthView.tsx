@@ -55,10 +55,16 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
     return colors[status] || "bg-gray-500";
   };
 
+  const formatShortName = (fullName: string) => {
+    const parts = fullName.trim().split(' ');
+    if (parts.length === 1) return parts[0];
+    return `${parts[0]} ${parts[parts.length - 1]}`;
+  };
+
   return (
-    <div className="flex-1 grid grid-cols-7 grid-rows-6 h-[calc(100vh-200px)]">
+    <div className="flex-1 grid grid-cols-7 grid-rows-6 h-[calc(100vh-140px)] border-l border-t">
       {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekDay) => (
-        <div key={weekDay} className="p-3 text-base font-semibold text-center border-b bg-muted/50">
+        <div key={weekDay} className="p-1.5 text-xs font-medium text-center border-b border-r bg-muted/50">
           {weekDay}
         </div>
       ))}
@@ -71,24 +77,24 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
             <div
               key={`${weekIndex}-${dayIndex}`}
               className={cn(
-                "border-b border-r p-3 overflow-y-auto min-h-[160px]",
+                "border-b border-r p-2 overflow-y-auto min-h-[160px]",
                 day && isSameMonth(day, date) ? "bg-background" : "bg-muted/30"
               )}
             >
               {day && (
                 <>
-                  <div className="text-base font-semibold mb-3 sticky top-0 bg-background/95 pb-1">
+                  <div className="text-sm font-semibold mb-2 sticky top-0 bg-background/95 pb-1">
                     {format(day, "d", { locale: ptBR })}
                   </div>
                   
                   {dayOrders.length > 0 && (
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {dayOrders.map((order) => (
                         <HoverCard key={order.id} openDelay={150} closeDelay={100}>
                           <HoverCardTrigger asChild>
                             <div 
                               className={cn(
-                                "p-2 rounded border-l-3 hover:bg-muted/50 cursor-pointer transition-colors",
+                                "p-1.5 rounded border-l-3 hover:bg-muted/50 cursor-pointer transition-colors",
                                 order.status === "pending" && "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20",
                                 order.status === "in_progress" && "border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20",
                                 order.status === "completed" && "border-l-green-500 bg-green-50/50 dark:bg-green-950/20",
@@ -97,19 +103,19 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                               )}
                               onClick={() => onEventClick?.(order.id)}
                             >
-                              <div className="font-semibold text-foreground text-xs mb-1">
+                              <div className="font-semibold text-foreground text-[11px] mb-0.5">
                                 {order.scheduled_time} - {order.vessel_name}
                               </div>
                               {order.lead_technician && (
-                                <div className="text-xs text-muted-foreground">
-                                  {order.lead_technician}
+                                <div className="text-[10px] text-muted-foreground">
+                                  {formatShortName(order.lead_technician)}
                                 </div>
                               )}
                               {order.auxiliary_technicians && order.auxiliary_technicians.length > 0 && (
-                                <div className="space-y-0.5 mt-1">
+                                <div className="space-y-0.5 mt-0.5">
                                   {order.auxiliary_technicians.map((name, idx) => (
-                                    <div key={idx} className="text-xs text-muted-foreground/80">
-                                      {name}
+                                    <div key={idx} className="text-[10px] text-muted-foreground/80">
+                                      {formatShortName(name)}
                                     </div>
                                   ))}
                                 </div>
