@@ -1,6 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Clock, User, FileText, MapPin } from "lucide-react";
 
+const formatShortName = (fullName: string) => {
+  const parts = fullName.trim().split(' ');
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[parts.length - 1]}`;
+};
+
 interface ServiceOrderHoverCardProps {
   order: {
     order_number: string;
@@ -107,14 +113,14 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
                 {order.lead_technician && (
                   <div>
                     <p className="text-xs text-muted-foreground">Responsável:</p>
-                    <p className="text-sm font-medium">{order.lead_technician}</p>
+                    <p className="text-sm font-medium">{formatShortName(order.lead_technician)}</p>
                   </div>
                 )}
                 {order.auxiliary_technicians && order.auxiliary_technicians.length > 0 && (
                   <div>
                     <p className="text-xs text-muted-foreground">Auxiliares:</p>
                     {order.auxiliary_technicians.map((name, idx) => (
-                      <p key={idx} className="text-sm">{name}</p>
+                      <p key={idx} className="text-sm">{formatShortName(name)}</p>
                     ))}
                   </div>
                 )}
