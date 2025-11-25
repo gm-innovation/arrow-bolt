@@ -1,6 +1,7 @@
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { ServiceOrderHoverCard } from "./ServiceOrderHoverCard";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
 import { cn } from "@/lib/utils";
 
@@ -8,9 +9,10 @@ interface MonthViewProps {
   date: Date;
   orders: CalendarServiceOrder[];
   isExpanded?: boolean;
+  onEventClick?: (orderId: string) => void;
 }
 
-export const MonthView = ({ date, orders, isExpanded = false }: MonthViewProps) => {
+export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: MonthViewProps) => {
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -87,70 +89,58 @@ export const MonthView = ({ date, orders, isExpanded = false }: MonthViewProps) 
                     isExpanded ? (
                       <div className="space-y-1">
                         {dayOrders.map((order) => (
-                          <div 
-                            key={order.id} 
-                            className={cn(
-                              "text-xs p-1.5 rounded border-l-2 hover:bg-muted/50 cursor-pointer transition-colors",
-                              order.status === "pending" && "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20",
-                              order.status === "in_progress" && "border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20",
-                              order.status === "completed" && "border-l-green-500 bg-green-50/50 dark:bg-green-950/20",
-                              order.status === "cancelled" && "border-l-red-500 bg-red-50/50 dark:bg-red-950/20",
-                              order.status === "waiting" && "border-l-gray-500 bg-gray-50/50 dark:bg-gray-950/20"
-                            )}
-                          >
-                            <div className="font-medium text-foreground">
-                              {order.scheduled_time}
-                            </div>
-                            <div className="text-muted-foreground truncate">
-                              {order.vessel_name}
-                            </div>
-                            {order.technician_names && order.technician_names.length > 0 && (
-                              <div className="text-muted-foreground/80 truncate text-[10px]">
-                                {order.technician_names[0]}
+                          <HoverCard key={order.id} openDelay={150} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                              <div 
+                                className={cn(
+                                  "text-xs p-1.5 rounded border-l-2 hover:bg-muted/50 cursor-pointer transition-colors",
+                                  order.status === "pending" && "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20",
+                                  order.status === "in_progress" && "border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20",
+                                  order.status === "completed" && "border-l-green-500 bg-green-50/50 dark:bg-green-950/20",
+                                  order.status === "cancelled" && "border-l-red-500 bg-red-50/50 dark:bg-red-950/20",
+                                  order.status === "waiting" && "border-l-gray-500 bg-gray-50/50 dark:bg-gray-950/20"
+                                )}
+                                onClick={() => onEventClick?.(order.id)}
+                              >
+                                <div className="font-medium text-foreground">
+                                  {order.scheduled_time}
+                                </div>
+                                <div className="text-muted-foreground truncate">
+                                  {order.vessel_name}
+                                </div>
+                                {order.technician_names && order.technician_names.length > 0 && (
+                                  <div className="text-muted-foreground/80 truncate text-[10px]">
+                                    {order.technician_names[0]}
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent side="right" align="start" className="w-auto">
+                              <ServiceOrderHoverCard order={order} />
+                            </HoverCardContent>
+                          </HoverCard>
                         ))}
                       </div>
                     ) : (
-                      <HoverCard openDelay={150} closeDelay={100}>
-                        <HoverCardTrigger asChild>
-                          <div className="flex gap-1 flex-wrap cursor-pointer">
-                            {dayOrders.slice(0, 3).map((order) => (
-                              <div
-                                key={order.id}
-                                className={cn("w-2 h-2 rounded-full", getStatusColor(order.status))}
-                                title={order.vessel_name}
-                              />
-                            ))}
-                            {dayOrders.length > 3 && (
-                              <span className="text-xs text-muted-foreground">
-                                +{dayOrders.length - 3}
-                              </span>
-                            )}
-                          </div>
-                        </HoverCardTrigger>
-                        <HoverCardContent side="right" align="start" className="w-64">
-                          <div className="space-y-2">
-                            <p className="font-semibold text-sm">
-                              {format(day, "d 'de' MMMM", { locale: ptBR })}
-                            </p>
-                            <div className="space-y-1 max-h-48 overflow-y-auto">
-                              {dayOrders.map((order) => (
-                                <div key={order.id} className="text-xs space-y-0.5">
-                                  <div className="flex items-center gap-2">
-                                    <div className={cn("w-2 h-2 rounded-full", getStatusColor(order.status))} />
-                                    <span className="font-medium">{order.scheduled_time}</span>
-                                    <span className="text-muted-foreground truncate">
-                                      {order.vessel_name}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </HoverCardContent>
-                      </HoverCard>
+                      <div className="space-y-1">
+                        {dayOrders.map((order) => (
+                          <HoverCard key={order.id} openDelay={150} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                              <div 
+                                className="flex items-center gap-1.5 px-1.5 py-1 rounded hover:bg-accent/50 cursor-pointer transition-colors text-xs"
+                                onClick={() => onEventClick?.(order.id)}
+                              >
+                                <div className={cn("w-2 h-2 rounded-full flex-shrink-0", getStatusColor(order.status))} />
+                                <span className="text-[10px] text-muted-foreground">{order.scheduled_time}</span>
+                                <span className="font-medium truncate text-[11px]">{order.vessel_name}</span>
+                              </div>
+                            </HoverCardTrigger>
+                            <HoverCardContent side="right" align="start" className="w-auto">
+                              <ServiceOrderHoverCard order={order} />
+                            </HoverCardContent>
+                          </HoverCard>
+                        ))}
+                      </div>
                     )
                   )}
                 </>

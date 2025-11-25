@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { CalendarHeader } from "./CalendarHeader";
 import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
@@ -30,6 +31,7 @@ interface ServiceCalendarProps {
 }
 
 export const ServiceCalendar = ({ isExpanded = false, onToggleExpanded }: ServiceCalendarProps) => {
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"day" | "week" | "month">("week");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -127,13 +129,7 @@ export const ServiceCalendar = ({ isExpanded = false, onToggleExpanded }: Servic
   };
 
   const handleEventClick = (orderId: string) => {
-    const order = serviceOrders.find(o => o.id === orderId);
-    if (order) {
-      toast({
-        title: "Detalhes do Serviço",
-        description: `${order.order_number} - ${order.vessel_name}`,
-      });
-    }
+    navigate(`/admin/service-orders?id=${orderId}`);
   };
 
   const handleSearch = () => {
@@ -188,7 +184,7 @@ export const ServiceCalendar = ({ isExpanded = false, onToggleExpanded }: Servic
         <WeekView date={currentDate} orders={serviceOrders} onEventClick={handleEventClick} />
       )}
       {view === "month" && (
-        <MonthView date={currentDate} orders={serviceOrders} />
+        <MonthView date={currentDate} orders={serviceOrders} isExpanded={isExpanded} onEventClick={handleEventClick} />
       )}
 
       <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
