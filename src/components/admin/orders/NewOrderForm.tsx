@@ -409,12 +409,17 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         if (orderError) throw orderError;
 
         // Get the automatically created initial visit
-        const { data: visitData } = await supabase
+        const { data: visitData, error: visitError } = await supabase
           .from("service_visits")
           .select("id")
           .eq("service_order_id", serviceOrder.id)
           .eq("visit_type", "initial")
           .single();
+
+        if (visitError) {
+          console.error("Error fetching visit for technicians:", visitError);
+          throw new Error("Erro ao buscar visita para atribuir técnicos");
+        }
 
         if (visitData && selectedTechnicians.length > 0) {
           // Insert visit technicians
