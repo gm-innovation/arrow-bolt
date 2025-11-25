@@ -63,11 +63,11 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
 
   return (
     <div className={cn(
-      "flex-1 grid grid-cols-7 auto-rows-fr border-2 relative",
+      "flex-1 grid grid-cols-7 auto-rows-fr border relative",
       isExpanded ? "h-[calc(100vh-120px)]" : "h-[calc(100vh-140px)]"
     )}>
       {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekDay) => (
-        <div key={weekDay} className="py-1.5 px-2 text-sm font-semibold text-center border-b-2 border-r-2 last:border-r-0 bg-muted">
+        <div key={weekDay} className="py-1 px-2 text-xs font-medium text-center border-b border-r last:border-r-0 bg-muted/50 text-muted-foreground">
           {weekDay}
         </div>
       ))}
@@ -80,13 +80,13 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
             <div
               key={`${weekIndex}-${dayIndex}`}
               className={cn(
-                "border-b-2 border-r-2 last:border-r-0 p-3 min-h-[200px] relative",
+                "border-b border-r last:border-r-0 p-2 min-h-[150px] relative",
                 day && isSameMonth(day, date) ? "bg-background" : "bg-muted/50"
               )}
             >
               {day && (
                 <>
-                  <div className="text-xl font-medium mb-2 sticky top-0 bg-background/95 pb-1">
+                  <div className="text-sm font-normal mb-1 text-foreground/60">
                     {format(day, "d", { locale: ptBR })}
                   </div>
                   
@@ -97,7 +97,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                           <HoverCardTrigger asChild>
                             <div 
                               className={cn(
-                                "px-2 py-1 rounded border-l-[3px] hover:shadow cursor-pointer transition-all",
+                                "px-2 py-1 rounded border-l-2 hover:shadow cursor-pointer transition-all",
                                 order.status === "pending" && "border-l-yellow-500 bg-yellow-100/90 dark:bg-yellow-900/40",
                                 order.status === "in_progress" && "border-l-blue-500 bg-blue-100/90 dark:bg-blue-900/40",
                                 order.status === "completed" && "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
