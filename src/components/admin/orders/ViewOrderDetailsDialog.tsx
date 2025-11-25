@@ -73,32 +73,39 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
 
       if (tasksError) throw tasksError;
 
-      // Fetch visit technicians to get lead/auxiliary info
+      // Fetch initial visit first
       const { data: visitData } = await supabase
         .from("service_visits")
-        .select(`
-          id,
-          visit_technicians (
-            technician_id,
-            is_lead,
-            technicians:technician_id (
-              id,
-              user_id,
-              profiles:user_id (full_name)
-            )
-          )
-        `)
+        .select("id")
         .eq("service_order_id", orderId)
         .eq("visit_type", "initial")
         .order("visit_number", { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
+
+      // Then fetch visit technicians directly if visit exists
+      let visitTechnicians = null;
+      if (visitData?.id) {
+        const { data: techData } = await supabase
+          .from("visit_technicians")
+          .select(`
+            technician_id,
+            is_lead,
+            technicians:technician_id (
+              id,
+              profiles:user_id (full_name)
+            )
+          `)
+          .eq("visit_id", visitData.id);
+        
+        visitTechnicians = techData;
+      }
 
       setOrderDetails({
         ...orderData,
         supervisor: supervisorData,
         tasks: tasksData || [],
-        visitTechnicians: visitData?.visit_technicians || [],
+        visitTechnicians: visitTechnicians || [],
       });
     } catch (error: any) {
       toast({
