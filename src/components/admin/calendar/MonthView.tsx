@@ -102,16 +102,16 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                                 )}
                                 onClick={() => onEventClick?.(order.id)}
                               >
-                                <div className="font-medium text-foreground">
+                                <div className="font-medium text-foreground text-[10px]">
                                   {order.scheduled_time}
                                 </div>
-                                <div className="text-muted-foreground truncate font-medium">
+                                <div className="text-muted-foreground truncate font-medium text-[10px]">
                                   {order.vessel_name}
                                 </div>
                                 {order.technician_names && order.technician_names.length > 0 && (
-                                  <div className="space-y-0.5">
+                                  <div className="space-y-0.5 mt-0.5">
                                     {order.technician_names.map((name, idx) => (
-                                      <div key={idx} className="text-muted-foreground truncate text-[10px]">
+                                      <div key={idx} className="text-muted-foreground truncate text-[9px]">
                                         {name}
                                       </div>
                                     ))}
@@ -126,23 +126,22 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                         ))}
                       </div>
                     ) : (
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {dayOrders.map((order) => (
                           <HoverCard key={order.id} openDelay={150} closeDelay={100}>
                             <HoverCardTrigger asChild>
                               <div 
-                                className="flex flex-col gap-0.5 px-1.5 py-1 rounded hover:bg-accent/50 cursor-pointer transition-colors text-xs"
+                                className="flex items-center gap-1 px-1 py-0.5 rounded hover:bg-accent/50 cursor-pointer transition-colors"
                                 onClick={() => onEventClick?.(order.id)}
                               >
-                                <div className="flex items-center gap-1.5">
-                                  <div className={cn("w-2 h-2 rounded-full flex-shrink-0", getStatusColor(order.status))} />
-                                  <span className="text-[10px] text-muted-foreground">{order.scheduled_time}</span>
-                                  <span className="font-medium truncate text-[11px]">{order.vessel_name}</span>
-                                </div>
+                                <div className={cn("w-1.5 h-1.5 rounded-full flex-shrink-0", getStatusColor(order.status))} />
+                                <span className="text-[9px] text-muted-foreground">{order.scheduled_time}</span>
+                                <span className="font-medium truncate text-[9px]">{order.vessel_name}</span>
                                 {order.technician_names && order.technician_names.length > 0 && (
-                                  <div className="text-[9px] text-muted-foreground/70 truncate pl-4">
-                                    {order.technician_names.join(", ")}
-                                  </div>
+                                  <span className="text-[8px] text-muted-foreground/70 truncate">
+                                    - {order.technician_names[0]}
+                                    {order.technician_names.length > 1 && ` +${order.technician_names.length - 1}`}
+                                  </span>
                                 )}
                               </div>
                             </HoverCardTrigger>
