@@ -68,13 +68,13 @@ const AdminDashboard = () => {
         </>
       )}
       
-      <Card className={isCalendarFullscreen ? "h-screen" : "card-responsive overflow-hidden"}>
+      <Card className={isCalendarFullscreen ? "h-screen" : "card-responsive overflow-visible"}>
         {!isCalendarFullscreen && (
           <CardHeader>
             <CardTitle>Agenda de Serviços</CardTitle>
           </CardHeader>
         )}
-        <CardContent className="overflow-auto p-0 sm:p-6">
+        <CardContent className="overflow-visible p-0 sm:p-6">
           <ServiceCalendar 
             isExpanded={isCalendarExpanded}
             onToggleExpanded={() => setIsCalendarExpanded(!isCalendarExpanded)}
