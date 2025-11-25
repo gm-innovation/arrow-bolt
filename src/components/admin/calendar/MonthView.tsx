@@ -86,7 +86,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
             >
               {day && (
                 <>
-                  <div className="text-3xl font-bold mb-3 sticky top-0 bg-background/95 pb-1">
+                  <div className="text-xl font-bold mb-2 sticky top-0 bg-background/95 pb-1">
                     {format(day, "d", { locale: ptBR })}
                   </div>
                   
