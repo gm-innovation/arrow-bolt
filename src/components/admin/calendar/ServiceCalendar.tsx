@@ -26,6 +26,8 @@ export type CalendarServiceOrder = {
   description?: string;
   location?: string;
   technician_names?: string[];
+  lead_technician?: string;
+  auxiliary_technicians?: string[];
 };
 
 export interface ServiceCalendarProps {
@@ -102,34 +104,67 @@ export const ServiceCalendar = ({
         return;
       }
 
-      const formattedOrders: CalendarServiceOrder[] = (orders || []).map((order: any) => {
-        const scheduledDateTime = order.service_date_time 
-          ? new Date(order.service_date_time)
-          : new Date(order.scheduled_date + "T08:00:00");
+      const formattedOrders: CalendarServiceOrder[] = await Promise.all(
+        (orders || []).map(async (order: any) => {
+          const scheduledDateTime = order.service_date_time 
+            ? new Date(order.service_date_time)
+            : new Date(order.scheduled_date + "T08:00:00");
 
-        const technicianNames = order.tasks
-          ?.map((task: any) => task.assigned_to?.user?.full_name)
-          .filter(Boolean) || [];
+          // Get visit technicians to determine lead/auxiliary
+          const { data: visitData } = await supabase
+            .from("service_visits")
+            .select(`
+              id,
+              visit_technicians (
+                technician_id,
+                is_lead,
+                technicians (
+                  id,
+                  profiles:user_id (full_name)
+                )
+              )
+            `)
+            .eq("service_order_id", order.id)
+            .eq("visit_type", "initial")
+            .order("visit_number", { ascending: true })
+            .limit(1)
+            .single();
 
-        const taskTypes = order.tasks
-          ?.map((task: any) => task.task_type?.name)
-          .filter(Boolean) || [];
+          const leadTech = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
+          const auxiliaryTechs = visitData?.visit_technicians?.filter((vt: any) => !vt.is_lead) || [];
 
-        return {
-          id: order.id,
-          order_number: order.order_number,
-          vessel_name: order.vessels?.name || "Sem embarcação",
-          client_name: order.clients?.name,
-          supervisor_name: order.supervisor?.full_name,
-          status: order.status,
-          scheduled_time: format(scheduledDateTime, "HH:mm"),
-          scheduled_date: scheduledDateTime,
-          task_type: taskTypes[0],
-          description: order.description,
-          location: order.location,
-          technician_names: technicianNames,
-        };
-      });
+          const technicianNames: string[] = order.tasks
+            ?.map((task: any) => task.assigned_to?.user?.full_name)
+            .filter((name): name is string => Boolean(name)) || [];
+
+          const uniqueTechNames: string[] = [...new Set(technicianNames)];
+
+          const taskTypes = order.tasks
+            ?.map((task: any) => task.task_type?.name)
+            .filter(Boolean) || [];
+
+          const auxiliaryNames: string[] = auxiliaryTechs
+            .map((vt: any) => vt.technicians?.profiles?.full_name)
+            .filter((name): name is string => Boolean(name));
+
+          return {
+            id: order.id,
+            order_number: order.order_number,
+            vessel_name: order.vessels?.name || "Sem embarcação",
+            client_name: order.clients?.name,
+            supervisor_name: order.supervisor?.full_name,
+            status: order.status,
+            scheduled_time: format(scheduledDateTime, "HH:mm"),
+            scheduled_date: scheduledDateTime,
+            task_type: taskTypes[0],
+            description: order.description,
+            location: order.location,
+            technician_names: uniqueTechNames,
+            lead_technician: leadTech?.technicians?.profiles?.full_name,
+            auxiliary_technicians: auxiliaryNames,
+          };
+        })
+      );
 
       setServiceOrders(formattedOrders);
     } catch (error) {

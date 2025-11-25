@@ -58,13 +58,14 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         supervisorData = supervisor;
       }
 
-      // Fetch tasks with technicians
+      // Fetch tasks with technicians and unique task types
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
         .select(`
           *,
           task_types:task_type_id (name, category),
           technicians:assigned_to (
+            id,
             profiles:user_id (full_name)
           )
         `)
@@ -72,10 +73,31 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
 
       if (tasksError) throw tasksError;
 
+      // Fetch visit technicians to get lead/auxiliary info
+      const { data: visitData } = await supabase
+        .from("service_visits")
+        .select(`
+          id,
+          visit_technicians (
+            technician_id,
+            is_lead,
+            technicians (
+              id,
+              profiles:user_id (full_name)
+            )
+          )
+        `)
+        .eq("service_order_id", orderId)
+        .eq("visit_type", "initial")
+        .order("visit_number", { ascending: true })
+        .limit(1)
+        .single();
+
       setOrderDetails({
         ...orderData,
         supervisor: supervisorData,
         tasks: tasksData || [],
+        visitTechnicians: visitData?.visit_technicians || [],
       });
     } catch (error: any) {
       toast({
@@ -132,11 +154,16 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
     );
   }
 
-  const technicians = orderDetails.tasks
-    ?.map((task: any) => task.technicians?.profiles?.full_name)
-    .filter(Boolean) || [];
+  const leadTechnician = orderDetails.visitTechnicians?.find((vt: any) => vt.is_lead);
+  const auxiliaryTechnicians = orderDetails.visitTechnicians?.filter((vt: any) => !vt.is_lead) || [];
 
-  const uniqueTechnicians = [...new Set(technicians)];
+  // Get unique task types to avoid showing duplicates
+  const uniqueTaskTypes = orderDetails.tasks?.reduce((acc: any[], task: any) => {
+    if (!acc.find(t => t.task_type_id === task.task_type_id)) {
+      acc.push(task);
+    }
+    return acc;
+  }, []) || [];
 
   const isCompleted = orderDetails.status === 'completed';
   const hasMeasurement = !!measurement;
@@ -248,25 +275,37 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                   {orderDetails.supervisor?.full_name || "Não definido"}
                 </dd>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-sm font-medium text-muted-foreground">Técnicos:</dt>
-                <dd className="text-sm">
-                  {uniqueTechnicians.length > 0 ? uniqueTechnicians.join(", ") : "Não atribuídos"}
-                </dd>
-              </div>
+              {leadTechnician && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-muted-foreground">Técnico Responsável:</dt>
+                  <dd className="text-sm font-medium">
+                    {leadTechnician.technicians?.profiles?.full_name}
+                  </dd>
+                </div>
+              )}
+              {auxiliaryTechnicians.length > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-muted-foreground">Auxiliares:</dt>
+                  <dd className="text-sm">
+                    {auxiliaryTechnicians.map((vt: any) => 
+                      vt.technicians?.profiles?.full_name
+                    ).join(", ")}
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
 
-          {orderDetails.tasks && orderDetails.tasks.length > 0 && (
+          {uniqueTaskTypes && uniqueTaskTypes.length > 0 && (
             <div>
               <h4 className="text-sm font-medium">Tarefas</h4>
               <Separator className="my-2" />
               <div className="space-y-2">
-                {orderDetails.tasks.map((task: any) => (
-                  <div key={task.id} className="flex justify-between items-center p-2 border rounded">
+                {uniqueTaskTypes.map((task: any) => (
+                  <div key={task.task_type_id} className="flex justify-between items-center p-2 border rounded">
                     <div className="flex-1">
-                      <p className="text-sm font-medium">{task.title}</p>
-                      {task.task_types && (
+                      <p className="text-sm font-medium">{task.task_types?.name}</p>
+                      {task.task_types?.category && (
                         <p className="text-xs text-muted-foreground">
                           {task.task_types.name} • {task.task_types.category}
                         </p>
@@ -290,9 +329,15 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
               <div className="flex justify-between">
                 <dt className="text-sm font-medium text-muted-foreground">Local:</dt>
                 <dd className="text-sm">
-                  {orderDetails.clients?.address || orderDetails.vessels?.flag || "Não especificado"}
+                  {orderDetails.location || "Não especificado"}
                 </dd>
               </div>
+              {orderDetails.access && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-muted-foreground">Acesso:</dt>
+                  <dd className="text-sm">{orderDetails.access}</dd>
+                </div>
+              )}
               {orderDetails.description && (
                 <div className="space-y-1">
                   <dt className="text-sm font-medium text-muted-foreground">Descrição:</dt>
