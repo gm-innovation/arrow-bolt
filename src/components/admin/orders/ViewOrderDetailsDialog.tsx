@@ -81,8 +81,9 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
           visit_technicians (
             technician_id,
             is_lead,
-            technicians (
+            technicians:technician_id (
               id,
+              user_id,
               profiles:user_id (full_name)
             )
           )
