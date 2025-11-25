@@ -62,12 +62,8 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
   };
 
   return (
-    <div
-      className={cn(
-        "flex-1 grid grid-cols-7 auto-rows-auto border relative",
-        isExpanded ? "h-[calc(100vh-120px)]" : "h-[calc(100vh-140px)]",
-      )}
-    >
+    <div className="flex-1 grid grid-cols-7 auto-rows-auto border relative overflow-auto">
+
       {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekDay) => (
         <div
           key={weekDay}
@@ -85,7 +81,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
             <div
               key={`${weekIndex}-${dayIndex}`}
               className={cn(
-                "border-b border-r last:border-r-0 p-2 min-h-[150px] relative",
+                "border-b border-r last:border-r-0 p-2 min-h-[80px] relative",
                 day && isSameMonth(day, date) ? "bg-background" : "bg-muted/50",
               )}
             >
@@ -96,55 +92,53 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                   </div>
 
                   {dayOrders.length > 0 && (
-                    <div className="space-y-1">
-                      {dayOrders.map((order) => (
-                        <HoverCard key={order.id} openDelay={150} closeDelay={100}>
-                          <HoverCardTrigger asChild>
-                            <div
-                              className={cn(
-                                "px-2 py-1 rounded border-l-2 hover:shadow cursor-pointer transition-all",
-                                order.status === "pending" &&
-                                  "border-l-yellow-500 bg-yellow-100/90 dark:bg-yellow-900/40",
-                                order.status === "in_progress" &&
-                                  "border-l-blue-500 bg-blue-100/90 dark:bg-blue-900/40",
-                                order.status === "completed" &&
-                                  "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
-                                order.status === "cancelled" && "border-l-red-500 bg-red-100/90 dark:bg-red-900/40",
-                                order.status === "waiting" && "border-l-gray-500 bg-gray-100/90 dark:bg-gray-900/40",
-                              )}
-                              onClick={() => onEventClick?.(order.id)}
-                            >
-                              <div className="font-semibold text-foreground text-xs leading-tight">
-                                {order.scheduled_time} - {order.vessel_name}
+                    <div className="space-y-0.5">
+                      {dayOrders.map((order) => {
+                        const allTechs = [
+                          order.lead_technician,
+                          ...(order.auxiliary_technicians || []),
+                        ].filter(Boolean).map(formatShortName).join(", ");
+
+                        return (
+                          <HoverCard key={order.id} openDelay={150} closeDelay={100}>
+                            <HoverCardTrigger asChild>
+                              <div
+                                className={cn(
+                                  "px-1.5 py-0.5 rounded border-l-2 hover:shadow cursor-pointer transition-all text-[10px]",
+                                  order.status === "pending" &&
+                                    "border-l-yellow-500 bg-yellow-100/90 dark:bg-yellow-900/40",
+                                  order.status === "in_progress" &&
+                                    "border-l-blue-500 bg-blue-100/90 dark:bg-blue-900/40",
+                                  order.status === "completed" &&
+                                    "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
+                                  order.status === "cancelled" && "border-l-red-500 bg-red-100/90 dark:bg-red-900/40",
+                                  order.status === "waiting" && "border-l-gray-500 bg-gray-100/90 dark:bg-gray-900/40",
+                                )}
+                                onClick={() => onEventClick?.(order.id)}
+                              >
+                                <div className="font-semibold text-foreground leading-tight truncate">
+                                  {order.scheduled_time} - {order.vessel_name}
+                                </div>
+                                {allTechs && (
+                                  <div className="font-medium text-foreground/70 leading-tight truncate">
+                                    {allTechs}
+                                  </div>
+                                )}
                               </div>
-                              {order.lead_technician && (
-                                <div className="text-[10px] font-medium text-foreground/80 leading-tight mt-0.5">
-                                  {formatShortName(order.lead_technician)}
-                                </div>
-                              )}
-                              {order.auxiliary_technicians && order.auxiliary_technicians.length > 0 && (
-                                <div className="space-y-0 mt-0.5">
-                                  {order.auxiliary_technicians.map((name, idx) => (
-                                    <div key={idx} className="text-[10px] font-medium text-foreground/70 leading-tight">
-                                      {formatShortName(name)}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </HoverCardTrigger>
-                          <HoverCardContent
-                            side="right"
-                            align="start"
-                            className="w-auto max-w-md"
-                            sideOffset={10}
-                            collisionPadding={20}
-                            avoidCollisions={true}
-                          >
-                            <ServiceOrderHoverCard order={order} />
-                          </HoverCardContent>
-                        </HoverCard>
-                      ))}
+                            </HoverCardTrigger>
+                            <HoverCardContent
+                              side="right"
+                              align="start"
+                              className="w-auto max-w-md"
+                              sideOffset={10}
+                              collisionPadding={20}
+                              avoidCollisions={true}
+                            >
+                              <ServiceOrderHoverCard order={order} />
+                            </HoverCardContent>
+                          </HoverCard>
+                        );
+                      })}
                     </div>
                   )}
                 </>
