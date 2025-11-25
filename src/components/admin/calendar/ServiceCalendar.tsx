@@ -78,7 +78,8 @@ export const ServiceCalendar = ({ isExpanded = false, onToggleExpanded }: Servic
             title,
             task_type:task_types (name),
             assigned_to:technicians (
-              user:profiles!inner (full_name)
+              id,
+              user:profiles!technicians_user_id_fkey (full_name)
             )
           )
         `)
