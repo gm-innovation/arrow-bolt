@@ -64,7 +64,7 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
   return (
     <div
       className={cn(
-        "flex-1 grid grid-cols-7 auto-rows-fr border relative",
+        "flex-1 grid grid-cols-7 auto-rows-auto border relative",
         isExpanded ? "h-[calc(100vh-120px)]" : "h-[calc(100vh-140px)]",
       )}
     >
