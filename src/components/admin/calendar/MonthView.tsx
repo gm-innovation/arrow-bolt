@@ -63,11 +63,11 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
 
   return (
     <div className={cn(
-      "flex-1 grid grid-cols-7 auto-rows-fr border relative",
+      "flex-1 grid grid-cols-7 auto-rows-fr border-2 relative",
       isExpanded ? "h-[calc(100vh-120px)]" : "h-[calc(100vh-140px)]"
     )}>
       {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((weekDay) => (
-        <div key={weekDay} className="p-1.5 text-xs font-medium text-center border-b border-r last:border-r-0 bg-muted/50">
+        <div key={weekDay} className="p-3 text-lg font-bold text-center border-b-2 border-r-2 last:border-r-0 bg-muted">
           {weekDay}
         </div>
       ))}
@@ -80,44 +80,44 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
             <div
               key={`${weekIndex}-${dayIndex}`}
               className={cn(
-                "border-b border-r last:border-r-0 p-2 min-h-[160px] relative",
-                day && isSameMonth(day, date) ? "bg-background" : "bg-muted/30"
+                "border-b-2 border-r-2 last:border-r-0 p-3 min-h-[200px] relative",
+                day && isSameMonth(day, date) ? "bg-background" : "bg-muted/50"
               )}
             >
               {day && (
                 <>
-                  <div className="text-sm font-semibold mb-2 sticky top-0 bg-background/95 pb-1">
+                  <div className="text-3xl font-bold mb-3 sticky top-0 bg-background/95 pb-1">
                     {format(day, "d", { locale: ptBR })}
                   </div>
                   
                   {dayOrders.length > 0 && (
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       {dayOrders.map((order) => (
                         <HoverCard key={order.id} openDelay={150} closeDelay={100}>
                           <HoverCardTrigger asChild>
                             <div 
                               className={cn(
-                                "p-1.5 rounded border-l-3 hover:bg-muted/50 cursor-pointer transition-colors",
-                                order.status === "pending" && "border-l-yellow-500 bg-yellow-50/50 dark:bg-yellow-950/20",
-                                order.status === "in_progress" && "border-l-blue-500 bg-blue-50/50 dark:bg-blue-950/20",
-                                order.status === "completed" && "border-l-green-500 bg-green-50/50 dark:bg-green-950/20",
-                                order.status === "cancelled" && "border-l-red-500 bg-red-50/50 dark:bg-red-950/20",
-                                order.status === "waiting" && "border-l-gray-500 bg-gray-50/50 dark:bg-gray-950/20"
+                                "p-2.5 rounded-lg border-l-[6px] hover:shadow-lg cursor-pointer transition-all",
+                                order.status === "pending" && "border-l-yellow-500 bg-yellow-100/90 dark:bg-yellow-900/40",
+                                order.status === "in_progress" && "border-l-blue-500 bg-blue-100/90 dark:bg-blue-900/40",
+                                order.status === "completed" && "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
+                                order.status === "cancelled" && "border-l-red-500 bg-red-100/90 dark:bg-red-900/40",
+                                order.status === "waiting" && "border-l-gray-500 bg-gray-100/90 dark:bg-gray-900/40"
                               )}
                               onClick={() => onEventClick?.(order.id)}
                             >
-                              <div className="font-semibold text-foreground text-[11px] mb-0.5">
+                              <div className="font-bold text-foreground text-sm mb-1">
                                 {order.scheduled_time} - {order.vessel_name}
                               </div>
                               {order.lead_technician && (
-                                <div className="text-[10px] text-muted-foreground">
+                                <div className="text-xs font-semibold text-foreground/90">
                                   {formatShortName(order.lead_technician)}
                                 </div>
                               )}
                               {order.auxiliary_technicians && order.auxiliary_technicians.length > 0 && (
-                                <div className="space-y-0.5 mt-0.5">
+                                <div className="space-y-0.5 mt-1">
                                   {order.auxiliary_technicians.map((name, idx) => (
-                                    <div key={idx} className="text-[10px] text-muted-foreground/80">
+                                    <div key={idx} className="text-xs font-medium text-foreground/80">
                                       {formatShortName(name)}
                                     </div>
                                   ))}
