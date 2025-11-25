@@ -123,10 +123,12 @@ export const MonthView = ({ date, orders, isExpanded = false, onEventClick }: Mo
                             </div>
                           </HoverCardTrigger>
                           <HoverCardContent 
-                            side="top" 
+                            side="right" 
                             align="start" 
-                            className="w-auto"
-                            sideOffset={8}
+                            className="w-auto max-w-md"
+                            sideOffset={10}
+                            collisionPadding={20}
+                            avoidCollisions={true}
                           >
                             <ServiceOrderHoverCard order={order} />
                           </HoverCardContent>

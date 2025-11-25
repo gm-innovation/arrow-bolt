@@ -83,7 +83,14 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
           </div>
         </div>
       </HoverCardTrigger>
-      <HoverCardContent side="right" align="start" className="w-auto">
+      <HoverCardContent 
+        side="right" 
+        align="start" 
+        className="w-auto max-w-md" 
+        sideOffset={10}
+        collisionPadding={20}
+        avoidCollisions={true}
+      >
         <ServiceOrderHoverCard
           order={{
             order_number: order.order_number,
