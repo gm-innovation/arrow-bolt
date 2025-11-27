@@ -74,11 +74,12 @@ const styles = StyleSheet.create({
   photosGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 10,
+    justifyContent: 'space-between',
     marginTop: 10,
   },
   photoContainer: {
-    width: '45%',
+    width: '48%',
+    marginBottom: 10,
   },
   photo: {
     width: '100%',
