@@ -72,15 +72,15 @@ const styles = StyleSheet.create({
     textDecoration: 'underline',
   },
   photosGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-start',
     marginTop: 10,
-    gap: 8,
+  },
+  photoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 10,
   },
   photoContainer: {
     width: '48%',
-    marginBottom: 10,
   },
   photo: {
     width: '100%',
@@ -261,6 +261,15 @@ const getImageFromStorage = async (imagePath: string): Promise<string | null> =>
   }
 };
 
+// Helper function to chunk array into groups
+const chunkArray = <T,>(array: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
 export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data }: ReportPDFProps & { photoBase64Data?: string[] }) => {
   // Group photos by category
   const groupedPhotos = useMemo(() => {
@@ -365,32 +374,41 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
               if (indexB === -1) return -1;
               return indexA - indexB;
             })
-            .map(([category, photos]) => (
-              <View key={category} style={styles.photoCategory}>
-                <Text style={styles.categoryTitle}>{category}</Text>
-                <View style={styles.photosGrid}>
-                  {photos.map(({ photo, index, base64 }) => (
-                    base64 && (
-                      <View key={index} style={styles.photoContainer}>
-                        <Image 
-                          src={base64} 
-                          style={styles.photo}
-                          cache={false}
-                        />
-                        <Text style={styles.photoCaption}>
-                          {photo.caption}
-                        </Text>
-                        {photo.description && (
-                          <Text style={styles.photoDescription}>
-                            Obs: {photo.description}
-                          </Text>
-                        )}
+            .map(([category, photos]) => {
+              const photoRows = chunkArray(photos, 2);
+              
+              return (
+                <View key={category} style={styles.photoCategory}>
+                  <Text style={styles.categoryTitle}>{category}</Text>
+                  <View style={styles.photosGrid}>
+                    {photoRows.map((row, rowIndex) => (
+                      <View key={rowIndex} style={styles.photoRow}>
+                        {row.map(({ photo, index, base64 }) => (
+                          base64 && (
+                            <View key={index} style={styles.photoContainer}>
+                              <Image 
+                                src={base64} 
+                                style={styles.photo}
+                                cache={false}
+                              />
+                              <Text style={styles.photoCaption}>
+                                {photo.caption}
+                              </Text>
+                              {photo.description && (
+                                <Text style={styles.photoDescription}>
+                                  Obs: {photo.description}
+                                </Text>
+                              )}
+                            </View>
+                          )
+                        ))}
+                        {row.length === 1 && <View style={styles.photoContainer} />}
                       </View>
-                    )
-                  ))}
+                    ))}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
         </View>
       )}
 
