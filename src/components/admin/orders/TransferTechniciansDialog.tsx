@@ -133,9 +133,31 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
         .eq("visit_type", "initial")
         .maybeSingle();
 
-      // Update visit_technicians table
+      // Update visit_technicians table - sync with current task assignments
       if (visitData?.id) {
-        // Get all current non-lead technicians in the visit
+        console.log("Syncing visit_technicians with task assignments...");
+        
+        // Get all tasks for this service order (after update)
+        const { data: allOrderTasks, error: tasksError } = await supabase
+          .from("tasks")
+          .select("id, assigned_to")
+          .eq("service_order_id", orderId);
+
+        if (tasksError) {
+          console.error("Error fetching tasks:", tasksError);
+          throw tasksError;
+        }
+
+        // Get unique technician IDs from all tasks
+        const technicianIdsInTasks = new Set(
+          allOrderTasks
+            ?.map(t => t.assigned_to)
+            .filter(Boolean) || []
+        );
+
+        console.log("Technicians in tasks:", Array.from(technicianIdsInTasks));
+
+        // Get current visit_technicians (non-lead only)
         const { data: currentAuxTechnicians, error: fetchVTError } = await supabase
           .from("visit_technicians")
           .select("id, technician_id")
@@ -144,64 +166,53 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
 
         if (fetchVTError) {
           console.error("Error fetching visit_technicians:", fetchVTError);
+          throw fetchVTError;
         }
 
         console.log("Current auxiliary technicians in visit:", currentAuxTechnicians);
 
-        // For each selected task, update visit_technicians using the OLD technician ID (from map)
-        for (const taskId of selectedTasks) {
-          const oldTechId = oldTechnicianMap.get(taskId);
-          
-          if (!oldTechId) continue;
+        // Remove technicians that are no longer in any task
+        const techniciansToRemove = currentAuxTechnicians?.filter(
+          vt => !technicianIdsInTasks.has(vt.technician_id)
+        ) || [];
 
-          // Find the visit_technicians record for this old technician
-          const vtRecord = currentAuxTechnicians?.find(vt => vt.technician_id === oldTechId);
-          
-          if (vtRecord) {
-            console.log(`Updating visit_technician ${vtRecord.id} from ${oldTechId} to ${newTechnicianId}`);
-            
-            // Update the existing record with the new technician
-            const { error: vtUpdateError } = await supabase
-              .from("visit_technicians")
-              .update({ 
-                technician_id: newTechnicianId,
-                assigned_by: user?.id 
-              })
-              .eq("id", vtRecord.id);
+        for (const vt of techniciansToRemove) {
+          console.log(`Removing technician ${vt.technician_id} from visit`);
+          const { error: deleteError } = await supabase
+            .from("visit_technicians")
+            .delete()
+            .eq("id", vt.id);
 
-            if (vtUpdateError) {
-              console.error("Error updating visit_technicians:", vtUpdateError);
-              throw vtUpdateError;
-            }
-          } else {
-            console.warn(`No visit_technician record found for old technician ${oldTechId}`);
+          if (deleteError) {
+            console.error("Error removing visit_technician:", deleteError);
+            throw deleteError;
           }
         }
 
-        // Check if new technician already exists in the visit (after updates)
-        const { data: newTechExists } = await supabase
-          .from("visit_technicians")
-          .select("id")
-          .eq("visit_id", visitData.id)
-          .eq("technician_id", newTechnicianId)
-          .maybeSingle();
+        // Add technicians that are in tasks but not in visit_technicians
+        const currentTechIds = new Set(currentAuxTechnicians?.map(vt => vt.technician_id) || []);
+        const techniciansToAdd = Array.from(technicianIdsInTasks).filter(
+          techId => !currentTechIds.has(techId)
+        );
 
-        // If not, add them as non-lead
-        if (!newTechExists) {
-          const { error: vtInsertError } = await supabase
+        for (const techId of techniciansToAdd) {
+          console.log(`Adding technician ${techId} to visit`);
+          const { error: insertError } = await supabase
             .from("visit_technicians")
             .insert({
               visit_id: visitData.id,
-              technician_id: newTechnicianId,
+              technician_id: techId,
               is_lead: false,
               assigned_by: user?.id,
             });
 
-          if (vtInsertError) {
-            console.error("Error inserting visit_technician:", vtInsertError);
-            throw vtInsertError;
+          if (insertError) {
+            console.error("Error adding visit_technician:", insertError);
+            throw insertError;
           }
         }
+
+        console.log("Visit technicians synchronized successfully");
       }
 
       // Create service history records with detailed old/new values
