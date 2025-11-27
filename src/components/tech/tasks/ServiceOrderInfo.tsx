@@ -143,7 +143,7 @@ export const ServiceOrderInfo = ({
             <p className="text-sm font-medium text-muted-foreground">Técnico Responsável</p>
             <p className="text-sm">{team.leadTechnician}</p>
           </div>
-          {team.assistants.length > 0 && (
+          {team.assistants && Array.isArray(team.assistants) && team.assistants.length > 0 && (
             <>
               <Separator />
               <div>
