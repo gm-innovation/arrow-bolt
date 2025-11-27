@@ -455,6 +455,7 @@ interface ServiceOrderData {
               updatedPhotos.push({
                 caption: photo.caption,
                 storagePath: storagePath,
+                description: photo.description || "", // ✅ Preserve description
                 file: photo.file // Keep file for immediate use
               });
             } else {
