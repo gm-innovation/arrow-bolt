@@ -175,7 +175,7 @@ export const ServiceCalendar = ({
   };
 
   const handleEventClick = (orderId: string) => {
-    navigate(`/admin/service-orders?id=${orderId}`);
+    navigate(`/admin/orders?id=${orderId}`);
   };
 
   const handleSearch = () => {
