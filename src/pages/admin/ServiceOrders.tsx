@@ -66,7 +66,9 @@ const ServiceOrders = () => {
   // Check for id parameter in URL and open details dialog
   useEffect(() => {
     const orderId = searchParams.get('id');
+    console.log('ServiceOrders useEffect - orderId:', orderId, 'isLoading:', isLoading);
     if (orderId && !isLoading) {
+      console.log('Opening dialog for order:', orderId);
       setSelectedOrderId(orderId);
       setActiveDialog('view');
       // Remove the id from URL after opening dialog
