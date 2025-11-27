@@ -34,7 +34,7 @@ export const WeekView = ({ date, orders, onEventClick }: WeekViewProps) => {
         ))}
       </div>
       
-      <div className="grid grid-cols-7 flex-1 overflow-y-auto">
+      <div className="grid grid-cols-7 flex-1 overflow-y-auto relative">
         {days.map((day) => {
           const dayOrders = getOrdersForDay(day);
           const visibleOrders = dayOrders.slice(0, MAX_VISIBLE);

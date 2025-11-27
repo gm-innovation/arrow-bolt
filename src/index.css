@@ -247,6 +247,11 @@
   }
 }
 
+/* Garantir que portals do Radix UI funcionem corretamente */
+[data-radix-popper-content-wrapper] {
+  z-index: 100 !important;
+}
+
 /* Responsive table utilities - Improved for mobile */
 @media (max-width: 768px) {
   .responsive-table thead {
