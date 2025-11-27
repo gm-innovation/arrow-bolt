@@ -44,7 +44,19 @@ export const AuditTrailViewer = ({ serviceOrderId }: AuditTrailViewerProps) => {
         .eq('service_order_id', serviceOrderId)
         .order('created_at', { ascending: false });
 
-      if (!error && data) {
+      if (error) {
+        console.error('Error fetching audit logs:', error);
+        // Try fallback query without join
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('service_history')
+          .select('*')
+          .eq('service_order_id', serviceOrderId)
+          .order('created_at', { ascending: false });
+        
+        if (!fallbackError && fallbackData) {
+          setAuditLogs(fallbackData as any);
+        }
+      } else if (data) {
         setAuditLogs(data as any);
       }
       setIsLoading(false);
@@ -116,6 +128,28 @@ export const AuditTrailViewer = ({ serviceOrderId }: AuditTrailViewerProps) => {
           <span className="line-through text-destructive">{log.old_values?.old_status || 'N/A'}</span>
           <ArrowRight className="inline h-3 w-3 mx-2" />
           <span className="text-primary font-medium">{log.new_values?.new_status || 'N/A'}</span>
+        </div>
+      );
+    }
+
+    if (log.action === 'technician_transfer') {
+      return (
+        <div className="mt-2 text-sm space-y-1">
+          <div>
+            <span className="text-muted-foreground">Técnico: </span>
+            <span className="line-through text-destructive">
+              {log.old_values?.technician_name || 'N/A'}
+            </span>
+            <ArrowRight className="inline h-3 w-3 mx-2" />
+            <span className="text-primary font-medium">
+              {log.new_values?.technician_name || 'N/A'}
+            </span>
+          </div>
+          {log.new_values?.reason && (
+            <p className="text-muted-foreground">
+              <span className="font-medium">Motivo:</span> {log.new_values.reason}
+            </p>
+          )}
         </div>
       );
     }
