@@ -5,7 +5,7 @@ import { CompanyHeader } from './pdf/CompanyHeader';
 import { ServiceOrderInfo } from './pdf/ServiceOrderInfo';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download, Save, Eye } from 'lucide-react';
 
@@ -60,8 +60,24 @@ const styles = StyleSheet.create({
     fontSize: 9,
     marginTop: 3,
     textAlign: 'center',
-    color: '#666',
+    color: '#555',
     fontStyle: 'italic',
+    backgroundColor: '#fffde7',
+    padding: 3,
+    borderRadius: 2,
+  },
+  categoryTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    marginTop: 10,
+    color: '#333',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ccc',
+    paddingBottom: 3,
+  },
+  photoCategory: {
+    marginBottom: 15,
   },
   surveySection: {
     marginTop: 20,
@@ -208,7 +224,30 @@ const getImageFromStorage = async (imagePath: string): Promise<string | null> =>
   }
 };
 
-export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data }: ReportPDFProps & { photoBase64Data?: string[] }) => (
+export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data }: ReportPDFProps & { photoBase64Data?: string[] }) => {
+  // Group photos by category
+  const groupedPhotos = useMemo(() => {
+    if (!report.photos) return {};
+    
+    return report.photos.reduce((acc, photo, index) => {
+      const category = photo.caption || 'Outras';
+      if (!acc[category]) {
+        acc[category] = [];
+      }
+      acc[category].push({ photo, index, base64: photoBase64Data?.[index] });
+      return acc;
+    }, {} as Record<string, Array<{ photo: any; index: number; base64?: string }>>);
+  }, [report.photos, photoBase64Data]);
+
+  // Preferred category order
+  const categoryOrder = [
+    'Equipamento',
+    'Placa de Identificação',
+    'Problema Encontrado',
+    'Serviço Executado'
+  ];
+
+  return (
   <Document>
     <Page size="A4" style={styles.page}>
       <CompanyHeader />
@@ -261,33 +300,45 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
         </View>
       </View>
 
-      {/* Photos Section */}
+      {/* Photos Section - Grouped by Category */}
       {photoBase64Data && photoBase64Data.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
-          <View style={styles.photosGrid}>
-            {photoBase64Data.map((base64Data, index) => {
-              console.log(`Rendering image ${index + 1}:`, base64Data?.substring(0, 50) + "...");
-              return (
-                <View key={index} style={styles.photoContainer}>
-                  <Image 
-                    src={base64Data} 
-                    style={styles.photo}
-                    cache={false}
-                  />
-                  <Text style={styles.photoCaption}>
-                    {report.photos[index]?.caption || `Foto ${index + 1}`}
-                  </Text>
-                  {/* ✅ Display description/observation */}
-                  {report.photos[index]?.description && (
-                    <Text style={styles.photoDescription}>
-                      {report.photos[index].description}
-                    </Text>
-                  )}
+          {Object.entries(groupedPhotos)
+            .sort(([a], [b]) => {
+              const indexA = categoryOrder.indexOf(a);
+              const indexB = categoryOrder.indexOf(b);
+              if (indexA === -1 && indexB === -1) return 0;
+              if (indexA === -1) return 1;
+              if (indexB === -1) return -1;
+              return indexA - indexB;
+            })
+            .map(([category, photos]) => (
+              <View key={category} style={styles.photoCategory}>
+                <Text style={styles.categoryTitle}>{category}</Text>
+                <View style={styles.photosGrid}>
+                  {photos.map(({ photo, index, base64 }) => (
+                    base64 && (
+                      <View key={index} style={styles.photoContainer}>
+                        <Image 
+                          src={base64} 
+                          style={styles.photo}
+                          cache={false}
+                        />
+                        <Text style={styles.photoCaption}>
+                          {photo.caption}
+                        </Text>
+                        {photo.description && (
+                          <Text style={styles.photoDescription}>
+                            Obs: {photo.description}
+                          </Text>
+                        )}
+                      </View>
+                    )
+                  ))}
                 </View>
-              );
-            })}
-          </View>
+              </View>
+            ))}
         </View>
       )}
 
@@ -327,7 +378,8 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
       </View>
     </Page>
   </Document>
-);
+  );
+};
 
 export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps) => {
   const { toast } = useToast();
