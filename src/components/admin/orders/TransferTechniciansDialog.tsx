@@ -106,6 +106,13 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
     try {
       setSubmitting(true);
 
+      // Collect old technician IDs before updating
+      const oldTechnicianIds = new Set(
+        selectedTasks
+          .map(taskId => tasks.find(t => t.id === taskId)?.assigned_to)
+          .filter(Boolean)
+      );
+
       // Update tasks with new technician
       const { error: updateError } = await supabase
         .from("tasks")
@@ -114,7 +121,61 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
 
       if (updateError) throw updateError;
 
-      // Create service history records for each transferred task
+      // Fetch the initial visit for this service order
+      const { data: visitData } = await supabase
+        .from("service_visits")
+        .select("id")
+        .eq("service_order_id", orderId)
+        .eq("visit_type", "initial")
+        .maybeSingle();
+
+      // Update visit_technicians table
+      if (visitData?.id) {
+        for (const oldTechId of oldTechnicianIds) {
+          if (!oldTechId) continue;
+
+          // Check if the old technician is assigned as non-lead in the visit
+          const { data: existingVT } = await supabase
+            .from("visit_technicians")
+            .select("id, is_lead")
+            .eq("visit_id", visitData.id)
+            .eq("technician_id", oldTechId)
+            .maybeSingle();
+
+          if (existingVT && !existingVT.is_lead) {
+            // Update the existing record with the new technician
+            await supabase
+              .from("visit_technicians")
+              .update({ 
+                technician_id: newTechnicianId,
+                assigned_by: user?.id 
+              })
+              .eq("id", existingVT.id);
+          }
+        }
+
+        // Check if new technician already exists in the visit
+        const { data: newTechExists } = await supabase
+          .from("visit_technicians")
+          .select("id")
+          .eq("visit_id", visitData.id)
+          .eq("technician_id", newTechnicianId)
+          .maybeSingle();
+
+        // If not, add them as non-lead
+        if (!newTechExists) {
+          await supabase
+            .from("visit_technicians")
+            .insert({
+              visit_id: visitData.id,
+              technician_id: newTechnicianId,
+              is_lead: false,
+              assigned_by: user?.id,
+            });
+        }
+      }
+
+      // Create service history records with detailed old/new values
       const historyRecords = selectedTasks.map(taskId => {
         const task = tasks.find(t => t.id === taskId);
         const oldTech = task?.technicians?.profiles?.full_name || "Não atribuído";
@@ -123,7 +184,17 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
         return {
           service_order_id: orderId,
           action: "technician_transfer",
+          change_type: "update",
           description: `Tarefa "${task?.title}" transferida de ${oldTech} para ${newTech}. ${reason ? `Motivo: ${reason}` : ""}`,
+          old_values: { 
+            technician_id: task?.assigned_to, 
+            technician_name: oldTech 
+          },
+          new_values: { 
+            technician_id: newTechnicianId, 
+            technician_name: newTech,
+            reason: reason || null
+          },
           performed_by: user?.id,
         };
       });
