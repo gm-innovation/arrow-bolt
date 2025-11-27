@@ -41,6 +41,7 @@ interface Report {
   rejection_reason: string | null;
   task?: {
     assigned_to?: string;
+    title?: string;
     service_order?: {
       order_number: string;
       location?: string;
@@ -125,6 +126,7 @@ const Reports = () => {
           *,
           task:tasks!task_reports_task_uuid_fkey (
             assigned_to,
+            title,
             service_order:service_orders (
               order_number,
               location,
@@ -395,7 +397,7 @@ const Reports = () => {
         leadTechnician: report.technician?.profile?.full_name || 'N/A',
         assistants: report.assistants?.map((a: any) => a.technician?.profile?.full_name).filter(Boolean) || [],
       },
-      service: serviceOrder?.description || 'Serviço não especificado',
+      service: report.task?.title || serviceOrder?.description || 'Serviço não especificado',
     };
   };
 
