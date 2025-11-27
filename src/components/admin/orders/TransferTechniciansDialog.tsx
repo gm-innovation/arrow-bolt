@@ -106,13 +106,6 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
     try {
       setSubmitting(true);
 
-      // Collect old technician IDs before updating
-      const oldTechnicianIds = new Set(
-        selectedTasks
-          .map(taskId => tasks.find(t => t.id === taskId)?.assigned_to)
-          .filter(Boolean)
-      );
-
       // Update tasks with new technician
       const { error: updateError } = await supabase
         .from("tasks")
@@ -129,20 +122,26 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
         .eq("visit_type", "initial")
         .maybeSingle();
 
-      // Update visit_technicians table
+      // Update visit_technicians table - fetch current auxiliary technicians
       if (visitData?.id) {
-        for (const oldTechId of oldTechnicianIds) {
+        // Get all current non-lead technicians in the visit
+        const { data: currentAuxTechnicians } = await supabase
+          .from("visit_technicians")
+          .select("id, technician_id")
+          .eq("visit_id", visitData.id)
+          .eq("is_lead", false);
+
+        // For each selected task, check if its old technician needs to be updated in visit_technicians
+        for (const taskId of selectedTasks) {
+          const task = tasks.find(t => t.id === taskId);
+          const oldTechId = task?.assigned_to;
+          
           if (!oldTechId) continue;
 
-          // Check if the old technician is assigned as non-lead in the visit
-          const { data: existingVT } = await supabase
-            .from("visit_technicians")
-            .select("id, is_lead")
-            .eq("visit_id", visitData.id)
-            .eq("technician_id", oldTechId)
-            .maybeSingle();
-
-          if (existingVT && !existingVT.is_lead) {
+          // Find the visit_technicians record for this old technician
+          const vtRecord = currentAuxTechnicians?.find(vt => vt.technician_id === oldTechId);
+          
+          if (vtRecord) {
             // Update the existing record with the new technician
             await supabase
               .from("visit_technicians")
@@ -150,7 +149,7 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
                 technician_id: newTechnicianId,
                 assigned_by: user?.id 
               })
-              .eq("id", existingVT.id);
+              .eq("id", vtRecord.id);
           }
         }
 
