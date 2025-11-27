@@ -43,6 +43,11 @@ interface Report {
     assigned_to?: string;
     service_order?: {
       order_number: string;
+      location?: string;
+      access?: string;
+      description?: string;
+      scheduled_date?: string;
+      service_date_time?: string;
       vessel?: {
         name: string;
       };
@@ -108,6 +113,11 @@ const Reports = () => {
             assigned_to,
             service_order:service_orders (
               order_number,
+              location,
+              access,
+              description,
+              scheduled_date,
+              service_date_time,
               vessel:vessels (name),
               client:clients (name)
             )
@@ -253,6 +263,35 @@ const Reports = () => {
   const handleViewReport = (report: Report) => {
     setSelectedReport(report);
     setIsPDFPreviewOpen(true);
+  };
+
+  // Prepare service order data for PDF
+  const getServiceOrderData = (report: Report) => {
+    const serviceOrder = report.task?.service_order;
+    const visitTechs = report.task?.assigned_to;
+    
+    return {
+      id: serviceOrder?.order_number || 'N/A',
+      date: serviceOrder?.service_date_time 
+        ? new Date(serviceOrder.service_date_time) 
+        : serviceOrder?.scheduled_date 
+          ? new Date(serviceOrder.scheduled_date)
+          : new Date(),
+      location: serviceOrder?.location || 'Local não especificado',
+      access: serviceOrder?.access || 'Acesso padrão',
+      requester: {
+        name: serviceOrder?.client?.name || 'N/A',
+        role: 'Cliente',
+      },
+      supervisor: {
+        name: 'N/A', // Could be fetched if needed
+      },
+      team: {
+        leadTechnician: report.technician?.profile?.full_name || 'N/A',
+        assistants: [],
+      },
+      service: serviceOrder?.description || 'Serviço não especificado',
+    };
   };
 
   const handleExportReports = () => {
@@ -434,6 +473,7 @@ const Reports = () => {
           onOpenChange={setIsPDFPreviewOpen}
           report={selectedReport.report_data}
           taskId={selectedReport.task_id}
+          serviceOrder={getServiceOrderData(selectedReport)}
         />
       )}
 
