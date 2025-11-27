@@ -22,7 +22,7 @@ export const DayView = ({ date, orders, onEventClick }: DayViewProps) => {
   const hours = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"));
 
   return (
-    <div className="flex flex-col h-[calc(100vh-200px)] overflow-y-auto">
+    <div className="flex flex-col h-[calc(100vh-200px)] overflow-y-auto relative">
       <div className="sticky top-0 bg-background z-10 flex border-b">
         <div className="w-20 flex-shrink-0" />
         <div className="flex-1 px-4 py-2">
