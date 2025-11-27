@@ -3,18 +3,20 @@ import { format } from 'date-fns';
 
 const styles = StyleSheet.create({
   section: {
-    marginBottom: 15,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
     marginBottom: 8,
+    marginTop: 8,
     backgroundColor: '#f0f0f0',
-    padding: 5,
+    padding: 6,
   },
   row: {
     flexDirection: 'row',
-    marginBottom: 5,
+    marginBottom: 4,
+    paddingVertical: 2,
   },
   label: {
     width: '30%',
