@@ -37,6 +37,39 @@ const styles = StyleSheet.create({
   value: {
     flex: 1,
   },
+  row: {
+    flexDirection: 'row',
+    marginBottom: 6,
+    paddingVertical: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e0e0e0',
+  },
+  fieldLabel: {
+    fontWeight: 'bold',
+    width: '35%',
+    fontSize: 10,
+    color: '#333',
+  },
+  fieldValue: {
+    flex: 1,
+    fontSize: 10,
+    color: '#000',
+  },
+  infoBox: {
+    backgroundColor: '#f9f9f9',
+    padding: 10,
+    borderRadius: 3,
+    marginBottom: 10,
+    border: '1pt solid #e0e0e0',
+  },
+  subSectionTitle: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    marginTop: 10,
+    color: '#444',
+    textDecoration: 'underline',
+  },
   photosGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -266,37 +299,52 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
       {/* Technical Report Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Relatório Técnico</Text>
-        <View style={styles.section}>
-          <Text style={styles.label}>Modelo:</Text>
-          <Text style={styles.value}>{report.modelInfo || 'N/A'}</Text>
+        
+        {/* Informações do Equipamento */}
+        <View style={styles.infoBox}>
+          <Text style={styles.subSectionTitle}>Informações do Equipamento</Text>
+          <View style={styles.row}>
+            <Text style={styles.fieldLabel}>Modelo:</Text>
+            <Text style={styles.fieldValue}>{report.modelInfo || 'N/A'}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.fieldLabel}>Marca:</Text>
+            <Text style={styles.fieldValue}>{report.brandInfo || 'N/A'}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.fieldLabel}>Número de Série:</Text>
+            <Text style={styles.fieldValue}>{report.serialNumber || 'N/A'}</Text>
+          </View>
         </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Marca:</Text>
-          <Text style={styles.value}>{report.brandInfo || 'N/A'}</Text>
+        
+        {/* Diagnóstico e Serviço */}
+        <View style={styles.infoBox}>
+          <Text style={styles.subSectionTitle}>Diagnóstico e Serviço</Text>
+          <View style={styles.row}>
+            <Text style={styles.fieldLabel}>Defeito Encontrado:</Text>
+            <Text style={styles.fieldValue}>{report.reportedIssue || 'N/A'}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.fieldLabel}>Trabalhos Executados:</Text>
+            <Text style={styles.fieldValue}>{report.executedWork || 'N/A'}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.fieldLabel}>Resultado:</Text>
+            <Text style={styles.fieldValue}>{report.result || 'N/A'}</Text>
+          </View>
         </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Número de Série:</Text>
-          <Text style={styles.value}>{report.serialNumber || 'N/A'}</Text>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Defeito Encontrado:</Text>
-          <Text style={styles.value}>{report.reportedIssue || 'N/A'}</Text>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Trabalhos Executados:</Text>
-          <Text style={styles.value}>{report.executedWork || 'N/A'}</Text>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Resultado:</Text>
-          <Text style={styles.value}>{report.result || 'N/A'}</Text>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Próximo Atendimento:</Text>
-          <Text style={styles.value}>{report.nextVisitWork || 'N/A'}</Text>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.label}>Material Fornecido:</Text>
-          <Text style={styles.value}>{report.suppliedMaterial || 'N/A'}</Text>
+        
+        {/* Próximos Passos */}
+        <View style={styles.infoBox}>
+          <Text style={styles.subSectionTitle}>Próximos Passos</Text>
+          <View style={styles.row}>
+            <Text style={styles.fieldLabel}>Próximo Atendimento:</Text>
+            <Text style={styles.fieldValue}>{report.nextVisitWork || 'N/A'}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.fieldLabel}>Material Fornecido:</Text>
+            <Text style={styles.fieldValue}>{report.suppliedMaterial || 'N/A'}</Text>
+          </View>
         </View>
       </View>
 
