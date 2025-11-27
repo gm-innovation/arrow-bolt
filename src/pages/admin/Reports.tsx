@@ -318,14 +318,62 @@ const Reports = () => {
     setIsPDFPreviewOpen(true);
   };
 
+  // Helper function to intelligently extract report data from nested structure
+  const extractReportData = (report: Report): TaskReport => {
+    if (!report.report_data) {
+      return {
+        modelInfo: '',
+        brandInfo: '',
+        serialNumber: '',
+        reportedIssue: '',
+        executedWork: '',
+        result: '',
+        nextVisitWork: '',
+        suppliedMaterial: '',
+        photos: [],
+        timeEntries: []
+      };
+    }
+    
+    // Try to access by task_id (UUID) - correct format
+    if (report.report_data[report.task_id]) {
+      return report.report_data[report.task_id];
+    }
+    
+    // Fallback: find first valid object in report_data (for legacy "task1" format)
+    const keys = Object.keys(report.report_data);
+    if (keys.length > 0) {
+      const firstKey = keys[0];
+      const data = report.report_data[firstKey];
+      // Verify it's a valid report object
+      if (data && typeof data === 'object' && 'modelInfo' in data) {
+        return data;
+      }
+    }
+    
+    // If report_data itself is already the report object
+    if ('modelInfo' in report.report_data) {
+      return report.report_data;
+    }
+    
+    // Return empty report if nothing found
+    return {
+      modelInfo: '',
+      brandInfo: '',
+      serialNumber: '',
+      reportedIssue: '',
+      executedWork: '',
+      result: '',
+      nextVisitWork: '',
+      suppliedMaterial: '',
+      photos: [],
+      timeEntries: []
+    };
+  };
+
   // Prepare service order data for PDF
   const getServiceOrderData = (report: Report) => {
     const serviceOrder = report.task?.service_order;
-    
-    // Extract report data from the nested structure (report_data is keyed by taskId)
-    const reportData = report.report_data ? 
-      (report.report_data[report.task_id] || report.report_data) : 
-      {};
     
     return {
       id: serviceOrder?.order_number || 'N/A',
@@ -528,10 +576,7 @@ const Reports = () => {
         <PDFPreviewDialog
           open={isPDFPreviewOpen}
           onOpenChange={setIsPDFPreviewOpen}
-          report={
-            selectedReport.report_data[selectedReport.task_id] || 
-            selectedReport.report_data
-          }
+          report={extractReportData(selectedReport)}
           taskId={selectedReport.task_id}
           serviceOrder={getServiceOrderData(selectedReport)}
         />
