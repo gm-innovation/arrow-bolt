@@ -127,11 +127,11 @@ const TaskDetails = () => {
         .map((t: any) => t.technicians?.profiles?.full_name)
         .filter(Boolean);
 
-      const uniqueTechnicians = [...new Set(techniciansList)];
+      const uniqueTechnicians = Array.isArray(techniciansList) ? [...new Set(techniciansList)] : [];
 
       // Determine lead technician (first assigned or current user's task)
       const leadTechnician = task.assigned_technician?.profiles?.full_name || uniqueTechnicians[0] || "Não atribuído";
-      const assistants = uniqueTechnicians.filter(name => name !== leadTechnician);
+      const assistants = (uniqueTechnicians || []).filter(name => name !== leadTechnician);
 
       setTaskData(task);
       setServiceOrderData({
