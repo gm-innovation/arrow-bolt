@@ -36,7 +36,7 @@ interface Report {
   task_id: string;
   status: string;
   created_at: string;
-  report_data: TaskReport;
+  report_data: any; // Changed to any since it's keyed by taskId in the database
   pdf_path: string | null;
   rejection_reason: string | null;
   task?: {
@@ -48,6 +48,7 @@ interface Report {
       description?: string;
       scheduled_date?: string;
       service_date_time?: string;
+      supervisor_id?: string;
       vessel?: {
         name: string;
       };
@@ -56,12 +57,25 @@ interface Report {
       };
     };
   };
+  visit?: {
+    id: string;
+  };
   technician?: {
     user_id?: string;
     profile?: {
       full_name: string;
     };
   };
+  supervisor?: {
+    full_name: string;
+  };
+  assistants?: Array<{
+    technician?: {
+      profile?: {
+        full_name: string;
+      };
+    };
+  }>;
 }
 
 const StatusBadge = ({ status }: { status: string }) => {
@@ -118,9 +132,13 @@ const Reports = () => {
               description,
               scheduled_date,
               service_date_time,
+              supervisor_id,
               vessel:vessels (name),
               client:clients (name)
             )
+          ),
+          visit:service_visits!task_reports_visit_id_fkey (
+            id
           )
         `)
         .in('status', ['submitted', 'approved', 'rejected'])
@@ -128,19 +146,54 @@ const Reports = () => {
 
       if (error) throw error;
 
-      // Fetch technician info for each report
+      // Fetch technician info, supervisor, and visit technicians for each report
       const reportsWithTechs = await Promise.all(
         (data || []).map(async (report: any) => {
+          let techData = null;
+          let supervisorData = null;
+          let visitTechnicians = [];
+
+          // Fetch assigned technician
           if (report.task?.assigned_to) {
-            const { data: techData } = await supabase
+            const { data } = await supabase
               .from('technicians')
               .select('user_id, profile:profiles(full_name)')
               .eq('id', report.task.assigned_to)
               .single();
-            
-            return { ...report, technician: techData };
+            techData = data;
           }
-          return report;
+
+          // Fetch supervisor
+          if (report.task?.service_order?.supervisor_id) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', report.task.service_order.supervisor_id)
+              .single();
+            supervisorData = data;
+          }
+
+          // Fetch visit technicians (auxiliaries)
+          if (report.visit?.id) {
+            const { data } = await supabase
+              .from('visit_technicians')
+              .select(`
+                is_lead,
+                technician:technicians (
+                  profile:profiles (full_name)
+                )
+              `)
+              .eq('visit_id', report.visit.id)
+              .eq('is_lead', false);
+            visitTechnicians = data || [];
+          }
+          
+          return { 
+            ...report, 
+            technician: techData,
+            supervisor: supervisorData,
+            assistants: visitTechnicians
+          };
         })
       );
 
@@ -268,7 +321,11 @@ const Reports = () => {
   // Prepare service order data for PDF
   const getServiceOrderData = (report: Report) => {
     const serviceOrder = report.task?.service_order;
-    const visitTechs = report.task?.assigned_to;
+    
+    // Extract report data from the nested structure (report_data is keyed by taskId)
+    const reportData = report.report_data ? 
+      (report.report_data[report.task_id] || report.report_data) : 
+      {};
     
     return {
       id: serviceOrder?.order_number || 'N/A',
@@ -284,11 +341,11 @@ const Reports = () => {
         role: 'Cliente',
       },
       supervisor: {
-        name: 'N/A', // Could be fetched if needed
+        name: report.supervisor?.full_name || 'N/A',
       },
       team: {
         leadTechnician: report.technician?.profile?.full_name || 'N/A',
-        assistants: [],
+        assistants: report.assistants?.map((a: any) => a.technician?.profile?.full_name).filter(Boolean) || [],
       },
       service: serviceOrder?.description || 'Serviço não especificado',
     };
@@ -471,7 +528,10 @@ const Reports = () => {
         <PDFPreviewDialog
           open={isPDFPreviewOpen}
           onOpenChange={setIsPDFPreviewOpen}
-          report={selectedReport.report_data}
+          report={
+            selectedReport.report_data[selectedReport.task_id] || 
+            selectedReport.report_data
+          }
           taskId={selectedReport.task_id}
           serviceOrder={getServiceOrderData(selectedReport)}
         />
