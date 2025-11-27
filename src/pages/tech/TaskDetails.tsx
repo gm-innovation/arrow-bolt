@@ -163,7 +163,7 @@ const TaskDetails = () => {
         },
         team: {
           leadTechnician,
-          assistants,
+          assistants: assistants || [],
         },
         vessel: {
           name: task.service_orders?.vessels?.name || "N/A",
