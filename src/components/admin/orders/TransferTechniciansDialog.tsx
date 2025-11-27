@@ -106,6 +106,17 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
     try {
       setSubmitting(true);
 
+      // CRITICAL: Capture old technician IDs BEFORE updating tasks
+      const oldTechnicianMap = new Map<string, string>();
+      for (const taskId of selectedTasks) {
+        const task = tasks.find(t => t.id === taskId);
+        if (task?.assigned_to) {
+          oldTechnicianMap.set(taskId, task.assigned_to);
+        }
+      }
+
+      console.log("Old technician map before update:", Array.from(oldTechnicianMap.entries()));
+
       // Update tasks with new technician
       const { error: updateError } = await supabase
         .from("tasks")
@@ -122,19 +133,24 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
         .eq("visit_type", "initial")
         .maybeSingle();
 
-      // Update visit_technicians table - fetch current auxiliary technicians
+      // Update visit_technicians table
       if (visitData?.id) {
         // Get all current non-lead technicians in the visit
-        const { data: currentAuxTechnicians } = await supabase
+        const { data: currentAuxTechnicians, error: fetchVTError } = await supabase
           .from("visit_technicians")
           .select("id, technician_id")
           .eq("visit_id", visitData.id)
           .eq("is_lead", false);
 
-        // For each selected task, check if its old technician needs to be updated in visit_technicians
+        if (fetchVTError) {
+          console.error("Error fetching visit_technicians:", fetchVTError);
+        }
+
+        console.log("Current auxiliary technicians in visit:", currentAuxTechnicians);
+
+        // For each selected task, update visit_technicians using the OLD technician ID (from map)
         for (const taskId of selectedTasks) {
-          const task = tasks.find(t => t.id === taskId);
-          const oldTechId = task?.assigned_to;
+          const oldTechId = oldTechnicianMap.get(taskId);
           
           if (!oldTechId) continue;
 
@@ -142,18 +158,27 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
           const vtRecord = currentAuxTechnicians?.find(vt => vt.technician_id === oldTechId);
           
           if (vtRecord) {
+            console.log(`Updating visit_technician ${vtRecord.id} from ${oldTechId} to ${newTechnicianId}`);
+            
             // Update the existing record with the new technician
-            await supabase
+            const { error: vtUpdateError } = await supabase
               .from("visit_technicians")
               .update({ 
                 technician_id: newTechnicianId,
                 assigned_by: user?.id 
               })
               .eq("id", vtRecord.id);
+
+            if (vtUpdateError) {
+              console.error("Error updating visit_technicians:", vtUpdateError);
+              throw vtUpdateError;
+            }
+          } else {
+            console.warn(`No visit_technician record found for old technician ${oldTechId}`);
           }
         }
 
-        // Check if new technician already exists in the visit
+        // Check if new technician already exists in the visit (after updates)
         const { data: newTechExists } = await supabase
           .from("visit_technicians")
           .select("id")
@@ -163,7 +188,7 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
 
         // If not, add them as non-lead
         if (!newTechExists) {
-          await supabase
+          const { error: vtInsertError } = await supabase
             .from("visit_technicians")
             .insert({
               visit_id: visitData.id,
@@ -171,13 +196,21 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
               is_lead: false,
               assigned_by: user?.id,
             });
+
+          if (vtInsertError) {
+            console.error("Error inserting visit_technician:", vtInsertError);
+            throw vtInsertError;
+          }
         }
       }
 
       // Create service history records with detailed old/new values
       const historyRecords = selectedTasks.map(taskId => {
         const task = tasks.find(t => t.id === taskId);
-        const oldTech = task?.technicians?.profiles?.full_name || "Não atribuído";
+        const oldTechId = oldTechnicianMap.get(taskId);
+        const oldTech = oldTechId 
+          ? technicians.find(t => t.id === oldTechId)?.profiles?.full_name || "Não atribuído"
+          : "Não atribuído";
         const newTech = technicians.find(t => t.id === newTechnicianId)?.profiles?.full_name || "Desconhecido";
         
         return {
@@ -186,7 +219,7 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
           change_type: "update",
           description: `Tarefa "${task?.title}" transferida de ${oldTech} para ${newTech}. ${reason ? `Motivo: ${reason}` : ""}`,
           old_values: { 
-            technician_id: task?.assigned_to, 
+            technician_id: oldTechId, 
             technician_name: oldTech 
           },
           new_values: { 
