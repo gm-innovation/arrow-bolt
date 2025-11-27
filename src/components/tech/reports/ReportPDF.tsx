@@ -275,27 +275,21 @@ const chunkArray = <T,>(array: T[], size: number): T[][] => {
 };
 
 export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data }: ReportPDFProps & { photoBase64Data?: string[] }) => {
-  // Group photos by category
-  const groupedPhotos = useMemo(() => {
-    if (!report.photos) return {};
+  // Create flat array with all photos and their base64 data
+  const allPhotosWithBase64 = useMemo(() => {
+    if (!report.photos || !photoBase64Data) return [];
     
-    return report.photos.reduce((acc, photo, index) => {
-      const category = photo.caption || 'Outras';
-      if (!acc[category]) {
-        acc[category] = [];
-      }
-      acc[category].push({ photo, index, base64: photoBase64Data?.[index] });
-      return acc;
-    }, {} as Record<string, Array<{ photo: any; index: number; base64?: string }>>);
+    return report.photos.map((photo, index) => ({
+      photo,
+      index,
+      base64: photoBase64Data[index]
+    })).filter(item => item.base64);
   }, [report.photos, photoBase64Data]);
 
-  // Preferred category order
-  const categoryOrder = [
-    'Equipamento',
-    'Placa de Identificação',
-    'Problema Encontrado',
-    'Serviço Executado'
-  ];
+  // Chunk all photos into rows of 2
+  const allPhotoRows = useMemo(() => {
+    return chunkArray(allPhotosWithBase64, 2);
+  }, [allPhotosWithBase64]);
 
   return (
   <Document>
@@ -365,54 +359,34 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
         </View>
       </View>
 
-      {/* Photos Section - Grouped by Category */}
+      {/* Photos Section - Two Columns (All Photos Together) */}
       {photoBase64Data && photoBase64Data.length > 0 && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
-          {Object.entries(groupedPhotos)
-            .sort(([a], [b]) => {
-              const indexA = categoryOrder.indexOf(a);
-              const indexB = categoryOrder.indexOf(b);
-              if (indexA === -1 && indexB === -1) return 0;
-              if (indexA === -1) return 1;
-              if (indexB === -1) return -1;
-              return indexA - indexB;
-            })
-            .map(([category, photos]) => {
-              const photoRows = chunkArray(photos, 2);
-              
-              return (
-                <View key={category} style={styles.photoCategory}>
-                  <Text style={styles.categoryTitle}>{category}</Text>
-                  <View style={styles.photosGrid}>
-                    {photoRows.map((row, rowIndex) => (
-                      <View key={rowIndex} style={styles.photoRow}>
-                        {row.map(({ photo, index, base64 }) => (
-                          base64 && (
-                            <View key={index} style={styles.photoContainer}>
-                              <Image 
-                                src={base64} 
-                                style={styles.photo}
-                                cache={false}
-                              />
-                              <Text style={styles.photoCaption}>
-                                {photo.caption}
-                              </Text>
-                              {photo.description && (
-                                <Text style={styles.photoDescription}>
-                                  Obs: {photo.description}
-                                </Text>
-                              )}
-                            </View>
-                          )
-                        ))}
-                        {row.length === 1 && <View style={styles.photoContainer} />}
-                      </View>
-                    ))}
+          <View style={styles.photosGrid}>
+            {allPhotoRows.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.photoRow}>
+                {row.map(({ photo, index, base64 }) => (
+                  <View key={index} style={styles.photoContainer}>
+                    <Image 
+                      src={base64} 
+                      style={styles.photo}
+                      cache={false}
+                    />
+                    <Text style={styles.photoCaption}>
+                      {photo.caption}
+                    </Text>
+                    {photo.description && (
+                      <Text style={styles.photoDescription}>
+                        Obs: {photo.description}
+                      </Text>
+                    )}
                   </View>
-                </View>
-              );
-            })}
+                ))}
+                {row.length === 1 && <View style={styles.photoContainer} />}
+              </View>
+            ))}
+          </View>
         </View>
       )}
 
