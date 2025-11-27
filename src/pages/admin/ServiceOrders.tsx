@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import {
@@ -50,6 +50,7 @@ type FormData = {
 
 const ServiceOrders = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const { user, userRole } = useAuth();
   const { orders, isLoading, invalidate } = useServiceOrders();
@@ -61,6 +62,17 @@ const ServiceOrders = () => {
   const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>("");
   const [activeDialog, setActiveDialog] = useState<"edit" | "transfer" | "view" | "return" | null>(null);
   const form = useForm<FormData>();
+
+  // Check for id parameter in URL and open details dialog
+  useEffect(() => {
+    const orderId = searchParams.get('id');
+    if (orderId && !isLoading) {
+      setSelectedOrderId(orderId);
+      setActiveDialog('view');
+      // Remove the id from URL after opening dialog
+      setSearchParams({});
+    }
+  }, [searchParams, isLoading, setSearchParams]);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
