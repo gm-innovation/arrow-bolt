@@ -359,7 +359,7 @@ const Reports = () => {
             <TableBody>
               {reports.map((report) => (
                 <TableRow key={report.id}>
-                  <TableCell className="font-medium">{report.task_id}</TableCell>
+                  <TableCell className="font-medium">{report.task?.service_order?.order_number || report.task_id}</TableCell>
                   <TableCell>{report.technician?.profile?.full_name || '-'}</TableCell>
                   <TableCell>{report.task?.service_order?.client?.name || '-'}</TableCell>
                   <TableCell>{report.task?.service_order?.vessel?.name || '-'}</TableCell>
@@ -369,25 +369,23 @@ const Reports = () => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleViewReport(report)}
+                        title="Visualizar"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
                       {report.pdf_path && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleViewReport(report)}
-                            title="Visualizar"
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleDownloadReport(report.pdf_path!)}
-                            title="Baixar"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDownloadReport(report.pdf_path!)}
+                          title="Baixar"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       )}
                       {report.status === "submitted" && (
                         <>
