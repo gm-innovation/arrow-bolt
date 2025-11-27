@@ -54,6 +54,14 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 5,
     textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  photoDescription: {
+    fontSize: 9,
+    marginTop: 3,
+    textAlign: 'center',
+    color: '#666',
+    fontStyle: 'italic',
   },
   surveySection: {
     marginTop: 20,
@@ -270,6 +278,12 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
                   <Text style={styles.photoCaption}>
                     {report.photos[index]?.caption || `Foto ${index + 1}`}
                   </Text>
+                  {/* ✅ Display description/observation */}
+                  {report.photos[index]?.description && (
+                    <Text style={styles.photoDescription}>
+                      {report.photos[index].description}
+                    </Text>
+                  )}
                 </View>
               );
             })}
