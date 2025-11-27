@@ -104,7 +104,7 @@ const Reports = () => {
         .from('task_reports')
         .select(`
           *,
-          task:tasks!task_reports_task_id_fkey (
+          task:tasks!task_reports_task_uuid_fkey (
             assigned_to,
             service_order:service_orders (
               order_number,
