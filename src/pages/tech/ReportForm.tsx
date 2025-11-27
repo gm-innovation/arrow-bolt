@@ -45,27 +45,14 @@ interface ServiceOrderData {
   const [searchParams] = useSearchParams();
   const taskId = searchParams.get("taskId");
 
-  const [selectedTask, setSelectedTask] = useState(taskId || "task1");
+  const [selectedTask, setSelectedTask] = useState(taskId || "");
   const [isPDFOpen, setIsPDFOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [serviceOrderData, setServiceOrderData] = useState<ServiceOrderData | null>(null);
   const [taskValidated, setTaskValidated] = useState(false);
-  const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({
-    task1: {
-      modelInfo: "",
-      brandInfo: "",
-      serialNumber: "",
-      reportedIssue: "",
-      executedWork: "",
-      result: "",
-      nextVisitWork: "",
-      suppliedMaterial: "",
-      photos: [],
-      timeEntries: [],
-    },
-  });
+  const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({});
 
   // Helper function to upload image to storage
   const uploadImageToStorage = async (file: File, taskId: string, imageIndex: number): Promise<string | null> => {
@@ -352,7 +339,26 @@ interface ServiceOrderData {
       if (taskId) {
         const savedReports = await fetchTaskReports();
         if (!savedReports) {
-          console.log("No saved reports found, using default state");
+          console.log("No saved reports found, initializing with taskId");
+          // Initialize with actual taskId instead of "task1"
+          setSelectedTask(taskId);
+          setTaskReports({
+            [taskId]: {
+              modelInfo: "",
+              brandInfo: "",
+              serialNumber: "",
+              reportedIssue: "",
+              executedWork: "",
+              result: "",
+              nextVisitWork: "",
+              suppliedMaterial: "",
+              photos: [],
+              timeEntries: [],
+            },
+          });
+        } else {
+          // Set selected task to the taskId if saved reports exist
+          setSelectedTask(taskId);
         }
       }
       setIsLoading(false);
@@ -702,7 +708,20 @@ interface ServiceOrderData {
   }
 
   // Get current report data
-  const reportData = taskReports[selectedTask] || taskReports.task1;
+  const reportData = taskReports[selectedTask] || (taskId ? taskReports[taskId] : null);
+  
+  if (!reportData) {
+    return (
+      <div className="container mx-auto py-6 px-4 sm:px-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Inicializando relatório...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto py-6 px-4 sm:px-6 space-y-6">
