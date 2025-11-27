@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Clock, User, FileText, MapPin } from "lucide-react";
 
 const formatShortName = (fullName: string) => {
-  const parts = fullName.trim().split(' ');
+  const parts = fullName.trim().split(" ");
   if (parts.length === 1) return parts[0];
   return `${parts[0]} ${parts[parts.length - 1]}`;
 };
@@ -50,9 +50,7 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
     <div className="space-y-3 min-w-[280px]">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground">Status</span>
-        <Badge className={getStatusBadgeVariant(order.status)}>
-          {getStatusLabel(order.status)}
-        </Badge>
+        <Badge className={getStatusBadgeVariant(order.status)}>{getStatusLabel(order.status)}</Badge>
       </div>
 
       <div className="space-y-2">
@@ -98,7 +96,7 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
           <div className="flex items-start gap-2">
             <User className="h-4 w-4 text-muted-foreground mt-0.5" />
             <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Responsável</p>
+              <p className="text-xs text-muted-foreground">Supervisor</p>
               <p className="text-sm font-medium">{order.supervisor_name}</p>
             </div>
           </div>
@@ -112,7 +110,7 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
               <div className="space-y-1">
                 {order.lead_technician && (
                   <div>
-                    <p className="text-xs text-muted-foreground">Responsável:</p>
+                    <p className="text-xs text-muted-foreground">Técnico:</p>
                     <p className="text-sm font-medium">{formatShortName(order.lead_technician)}</p>
                   </div>
                 )}
@@ -120,7 +118,9 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
                   <div>
                     <p className="text-xs text-muted-foreground">Auxiliares:</p>
                     {order.auxiliary_technicians.map((name, idx) => (
-                      <p key={idx} className="text-sm">{formatShortName(name)}</p>
+                      <p key={idx} className="text-sm">
+                        {formatShortName(name)}
+                      </p>
                     ))}
                   </div>
                 )}
