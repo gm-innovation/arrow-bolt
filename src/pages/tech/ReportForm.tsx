@@ -146,12 +146,16 @@ interface ServiceOrderData {
                 // Try to load the image from storage
                 const photoWithFile = await getImageFromStorage(photo.storagePath, photo.caption);
                 if (photoWithFile) {
-                  photosWithFiles.push(photoWithFile);
+                  photosWithFiles.push({
+                    ...photoWithFile,
+                    description: photo.description // ✅ Preserve description
+                  });
                 } else {
                   // If failed to load from storage, keep the reference
                   photosWithFiles.push({
                     caption: photo.caption,
-                    storagePath: photo.storagePath
+                    storagePath: photo.storagePath,
+                    description: photo.description // ✅ Preserve description
                   });
                 }
               } else {
@@ -473,6 +477,30 @@ interface ServiceOrderData {
     return updatedReportData;
   };
 
+  // Helper function to get visit_id for a task
+  const getVisitIdForTask = async (taskId: string): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          service_orders:service_order_id (
+            service_visits (id)
+          )
+        `)
+        .eq('id', taskId)
+        .single();
+
+      if (error) throw error;
+      
+      const serviceOrders = data?.service_orders as any;
+      const visits = serviceOrders?.service_visits;
+      return visits && Array.isArray(visits) && visits.length > 0 ? visits[0].id : null;
+    } catch (error) {
+      console.error("Error fetching visit_id:", error);
+      return null;
+    }
+  };
+
   const saveReportData = async (reportData: Record<string, TaskReport>, status: "draft" | "submitted") => {
     try {
       console.log("Starting report save process...");
@@ -488,10 +516,11 @@ interface ServiceOrderData {
       for (const [key, report] of Object.entries(reportDataWithStoragePaths)) {
         const { photos, ...reportWithoutFiles } = report;
         
-        // Process photos to save only storage paths and captions
+        // Process photos to save storage paths, captions AND descriptions
         const photosData = photos.map(photo => ({
           caption: photo.caption,
-          storagePath: photo.storagePath // Only save storage path
+          storagePath: photo.storagePath,
+          description: photo.description || "" // ✅ Include description
         }));
         
         serializableReportData[key] = {
@@ -511,12 +540,16 @@ interface ServiceOrderData {
         throw fetchError;
       }
 
+      // Get visit_id for the task
+      const visitId = await getVisitIdForTask(taskId!);
+
       let result;
       if (existingReports && existingReports.length > 0) {
         result = await supabase
           .from('task_reports')
           .update({
             report_data: serializableReportData,
+            visit_id: visitId, // ✅ Update visit_id
             updated_at: new Date().toISOString()
           })
           .eq('id', existingReports[0].id);
@@ -526,6 +559,7 @@ interface ServiceOrderData {
           .insert({
             task_id: taskId,
             task_uuid: taskId,
+            visit_id: visitId, // ✅ Include visit_id
             status: status,
             report_data: serializableReportData
           });
