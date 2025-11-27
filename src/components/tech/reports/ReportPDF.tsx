@@ -75,12 +75,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   photoRow: {
+    display: 'flex',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    width: '100%',
     marginBottom: 10,
   },
   photoContainer: {
     width: '48%',
+    display: 'flex',
+    flexDirection: 'column',
   },
   photo: {
     width: '100%',
