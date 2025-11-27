@@ -24,9 +24,9 @@ export const useMeasurements = (serviceOrderId?: string) => {
           measurement_expenses(*)
         `)
         .eq('service_order_id', serviceOrderId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       return data;
     },
     enabled: !!serviceOrderId,

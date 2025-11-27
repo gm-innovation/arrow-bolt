@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -38,11 +38,11 @@ export const ScheduleReturnDialog = ({ orderId, orderNumber, open, onClose }: Sc
   const [leadTechnicianId, setLeadTechnicianId] = useState<string>();
   const [loading, setLoading] = useState(false);
 
-  useState(() => {
+  useEffect(() => {
     if (open) {
       fetchTechnicians();
     }
-  });
+  }, [open]);
 
   const fetchTechnicians = async () => {
     setLoading(true);
