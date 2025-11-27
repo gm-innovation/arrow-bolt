@@ -519,6 +519,7 @@ interface ServiceOrderData {
           .from('task_reports')
           .insert({
             task_id: taskId,
+            task_uuid: taskId,
             status: status,
             report_data: serializableReportData
           });
