@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from '@react-pdf/renderer';
-import { format } from 'date-fns';
+import { format, parse, differenceInMinutes } from 'date-fns';
 
 const styles = StyleSheet.create({
   section: {
@@ -25,7 +25,49 @@ const styles = StyleSheet.create({
   value: {
     width: '70%',
   },
+  timeEntriesTable: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#e0e0e0',
+    padding: 5,
+    fontWeight: 'bold',
+    fontSize: 9,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#ccc',
+    padding: 5,
+    fontSize: 8,
+  },
+  tableCell: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  tableCellDate: {
+    width: '20%',
+  },
+  tableCellType: {
+    width: '25%',
+  },
+  tableCellTime: {
+    width: '15%',
+  },
+  tableCellHours: {
+    width: '20%',
+  },
 });
+
+type TimeEntry = {
+  id: string;
+  date: Date;
+  type: 'work_normal' | 'work_extra' | 'work_night' | 'standby' | 'travel_normal' | 'travel_extra' | 'wait_normal' | 'wait_extra';
+  startTime: string;
+  endTime: string;
+};
 
 type ServiceOrderInfoProps = {
   orderNumber: string;
@@ -44,6 +86,31 @@ type ServiceOrderInfoProps = {
     assistants: string[];
   };
   service: string;
+  timeEntries?: TimeEntry[];
+};
+
+const timeTypeLabels: Record<string, string> = {
+  work_normal: 'Trabalho HN',
+  work_extra: 'Trabalho HE',
+  travel_normal: 'Viagem HN',
+  travel_extra: 'Viagem HE',
+  wait_normal: 'Espera HN',
+  wait_extra: 'Espera HE',
+  work_night: 'Trabalho Noturno',
+  standby: 'Espera',
+};
+
+const calculateHours = (startTime: string, endTime: string): string => {
+  try {
+    const start = parse(startTime, 'HH:mm', new Date());
+    const end = parse(endTime, 'HH:mm', new Date());
+    const minutes = differenceInMinutes(end, start);
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h${mins > 0 ? ` ${mins}min` : ''}`;
+  } catch {
+    return 'N/A';
+  }
 };
 
 export const ServiceOrderInfo = ({
@@ -54,7 +121,8 @@ export const ServiceOrderInfo = ({
   requester,
   supervisor,
   team,
-  service
+  service,
+  timeEntries = []
 }: ServiceOrderInfoProps) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>Ordem de Serviço - {orderNumber}</Text>
@@ -105,5 +173,29 @@ export const ServiceOrderInfo = ({
       <Text style={styles.label}>Serviço:</Text>
       <Text style={styles.value}>{service}</Text>
     </View>
+    
+    {timeEntries && timeEntries.length > 0 && (
+      <>
+        <Text style={styles.sectionTitle}>Horários de Trabalho</Text>
+        <View style={styles.timeEntriesTable}>
+          <View style={styles.tableHeader}>
+            <Text style={styles.tableCellDate}>Data</Text>
+            <Text style={styles.tableCellType}>Tipo</Text>
+            <Text style={styles.tableCellTime}>Início</Text>
+            <Text style={styles.tableCellTime}>Fim</Text>
+            <Text style={styles.tableCellHours}>Horas</Text>
+          </View>
+          {timeEntries.map((entry, index) => (
+            <View key={entry.id || index} style={styles.tableRow}>
+              <Text style={styles.tableCellDate}>{format(entry.date, 'dd/MM/yyyy')}</Text>
+              <Text style={styles.tableCellType}>{timeTypeLabels[entry.type] || entry.type}</Text>
+              <Text style={styles.tableCellTime}>{entry.startTime}</Text>
+              <Text style={styles.tableCellTime}>{entry.endTime}</Text>
+              <Text style={styles.tableCellHours}>{calculateHours(entry.startTime, entry.endTime)}</Text>
+            </View>
+          ))}
+        </View>
+      </>
+    )}
   </View>
 );
