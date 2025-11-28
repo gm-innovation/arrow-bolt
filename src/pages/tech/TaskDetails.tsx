@@ -127,6 +127,9 @@ const TaskDetails = () => {
         `)
         .eq("service_order_id", task.service_orders?.id || '');
 
+      console.log("All tasks data:", allTasks);
+      console.log("Visit technicians data:", visitTechnicians);
+
       // Collect all unique technicians from both sources
       const techMap = new Map<string, { name: string; isLead: boolean }>();
       
@@ -160,6 +163,10 @@ const TaskDetails = () => {
       const assistants = allTechniciansList
         .filter(t => t.name !== leadTechnician)
         .map(t => t.name);
+
+      console.log("Tech map:", Array.from(techMap.entries()));
+      console.log("Lead technician:", leadTechnician);
+      console.log("Assistants:", assistants);
 
       setTaskData(task);
       setServiceOrderData({
