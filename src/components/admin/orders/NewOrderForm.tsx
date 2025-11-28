@@ -209,12 +209,20 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         .select("task_type_id, assigned_to")
         .eq("service_order_id", orderId);
 
+      // Convert serviceDateTime to correct format for datetime-local input
+      let formattedServiceDateTime = "";
+      if (orderData.service_date_time) {
+        const date = new Date(orderData.service_date_time);
+        // Format: YYYY-MM-DDTHH:MM (required by datetime-local input)
+        formattedServiceDateTime = date.toISOString().slice(0, 16);
+      }
+
       // Populate form with ALL fields
       form.reset({
         clientId: orderData.vessels?.client_id || "",
         vesselId: orderData.vessel_id || "",
         scheduledDate: orderData.scheduled_date || "",
-        serviceDateTime: orderData.service_date_time || "",
+        serviceDateTime: formattedServiceDateTime,
         location: orderData.location || "",
         access: orderData.access || "",
         singleReport: orderData.single_report || false,
