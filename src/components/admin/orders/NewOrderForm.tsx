@@ -47,10 +47,11 @@ type OrderFormData = z.infer<typeof orderFormSchema>;
 interface NewOrderFormProps {
   isEditing?: boolean;
   orderId?: string;
+  orderNumber?: string;
   onSuccess?: () => void;
 }
 
-export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProps) => {
+export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: NewOrderFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [clients, setClients] = useState<any[]>([]);
@@ -384,12 +385,15 @@ export const NewOrderForm = ({ isEditing, orderId, onSuccess }: NewOrderFormProp
         });
       } else {
         // CREATE new service order
-        const orderNumber = await generateOrderNumber(profileData.company_id);
+        // Validate orderNumber is provided
+        if (!orderNumber || orderNumber.trim() === "") {
+          throw new Error("Número da OS é obrigatório");
+        }
 
         const { data: serviceOrder, error: orderError } = await supabase
           .from("service_orders")
           .insert({
-            order_number: orderNumber,
+            order_number: orderNumber.trim(),
             company_id: profileData.company_id,
             created_by: user?.id,
             client_id: data.clientId,
