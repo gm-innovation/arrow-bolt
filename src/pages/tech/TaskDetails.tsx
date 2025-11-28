@@ -96,33 +96,70 @@ const TaskDetails = () => {
         supervisorProfile = supervisor;
       }
 
-      // Fetch all technicians assigned to this service order
+      // Fetch all technicians from tasks
       const { data: allTasks } = await supabase
         .from("tasks")
         .select(`
           id,
           assigned_to,
           technicians:assigned_to (
+            id,
             user_id,
             profiles:user_id (full_name)
           )
         `)
         .eq("service_order_id", task.service_orders?.id || '');
 
-      // Get unique technicians
-      const uniqueTechIds = new Set();
-      const techniciansList = safeArray(allTasks)
-        .filter((t: any) => {
-          if (!t?.assigned_to || uniqueTechIds.has(t.assigned_to)) return false;
-          uniqueTechIds.add(t.assigned_to);
-          return true;
-        })
-        .map((t: any) => t.technicians?.profiles?.full_name)
-        .filter(Boolean);
+      // Fetch technicians from visit_technicians (assigned to the service order's visits)
+      const { data: visitTechnicians } = await supabase
+        .from("service_visits")
+        .select(`
+          id,
+          visit_technicians (
+            technician_id,
+            is_lead,
+            technicians (
+              id,
+              user_id,
+              profiles:user_id (full_name)
+            )
+          )
+        `)
+        .eq("service_order_id", task.service_orders?.id || '');
 
-      const uniqueTechnicians = [...new Set(techniciansList)];
-      const leadTechnician = task.assigned_technician?.profiles?.full_name || uniqueTechnicians[0] || "Não atribuído";
-      const assistants = uniqueTechnicians.filter(name => name !== leadTechnician);
+      // Collect all unique technicians from both sources
+      const techMap = new Map<string, { name: string; isLead: boolean }>();
+      
+      // Add technicians from tasks
+      safeArray(allTasks).forEach((t: any) => {
+        if (t?.technicians?.id && t?.technicians?.profiles?.full_name) {
+          techMap.set(t.technicians.id, {
+            name: t.technicians.profiles.full_name,
+            isLead: t.assigned_to === task.assigned_to
+          });
+        }
+      });
+
+      // Add technicians from visits
+      safeArray(visitTechnicians).forEach((visit: any) => {
+        safeArray(visit.visit_technicians).forEach((vt: any) => {
+          if (vt?.technicians?.id && vt?.technicians?.profiles?.full_name) {
+            const existing = techMap.get(vt.technicians.id);
+            techMap.set(vt.technicians.id, {
+              name: vt.technicians.profiles.full_name,
+              isLead: existing?.isLead || vt.is_lead || false
+            });
+          }
+        });
+      });
+
+      // Determine lead technician and assistants
+      const allTechniciansList = Array.from(techMap.values());
+      const leadTech = allTechniciansList.find(t => t.isLead);
+      const leadTechnician = leadTech?.name || task.assigned_technician?.profiles?.full_name || "Não atribuído";
+      const assistants = allTechniciansList
+        .filter(t => t.name !== leadTechnician)
+        .map(t => t.name);
 
       setTaskData(task);
       setServiceOrderData({
