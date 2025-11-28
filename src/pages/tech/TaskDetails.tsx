@@ -1,19 +1,21 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { ServiceOrderInfo } from "@/components/tech/tasks/ServiceOrderInfo";
-import { AdminInfo } from "@/components/tech/tasks/AdminInfo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
-import { Calendar, Clock, History, Loader2, AlertCircle } from "lucide-react";
+import { Calendar, Clock, Loader2, AlertCircle, MapPin, Users, Ship, Building, CheckCircle, Wrench, ListCheck, Camera } from "lucide-react";
 import { NewContinuationVisitButton } from "@/components/tech/NewContinuationVisitButton";
 import { VisitHistoryTimeline } from "@/components/tech/VisitHistoryTimeline";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+
+// Helper functions for safe data handling
+const safeValue = (value: any, fallback: string = 'N/A') => value || fallback;
+const safeArray = (arr: any[] | null | undefined) => Array.isArray(arr) ? arr : [];
 
 const TaskDetails = () => {
   const { taskId } = useParams();
@@ -34,7 +36,6 @@ const TaskDetails = () => {
     try {
       setLoading(true);
 
-      // Fetch task with all related data
       const { data: task, error: taskError } = await supabase
         .from("tasks")
         .select(`
@@ -63,11 +64,6 @@ const TaskDetails = () => {
               vessel_type,
               flag,
               imo_number
-            ),
-            created_by_profile:created_by (
-              full_name,
-              phone,
-              email
             )
           ),
           task_types:task_type_id (
@@ -87,12 +83,9 @@ const TaskDetails = () => {
         .single();
 
       if (taskError) throw taskError;
+      if (!task) throw new Error("Tarefa não encontrada");
 
-      if (!task) {
-        throw new Error("Tarefa não encontrada");
-      }
-
-      // Fetch supervisor profile if exists
+      // Fetch supervisor profile
       let supervisorProfile = null;
       if (task.service_orders?.supervisor_id) {
         const { data: supervisor } = await supabase
@@ -116,9 +109,9 @@ const TaskDetails = () => {
         `)
         .eq("service_order_id", task.service_orders?.id || '');
 
-      // Get unique technicians with null checks
+      // Get unique technicians
       const uniqueTechIds = new Set();
-      const techniciansList = (allTasks || [])
+      const techniciansList = safeArray(allTasks)
         .filter((t: any) => {
           if (!t?.assigned_to || uniqueTechIds.has(t.assigned_to)) return false;
           uniqueTechIds.add(t.assigned_to);
@@ -127,11 +120,9 @@ const TaskDetails = () => {
         .map((t: any) => t.technicians?.profiles?.full_name)
         .filter(Boolean);
 
-      const uniqueTechnicians = Array.isArray(techniciansList) ? [...new Set(techniciansList)] : [];
-
-      // Determine lead technician (first assigned or current user's task)
+      const uniqueTechnicians = [...new Set(techniciansList)];
       const leadTechnician = task.assigned_technician?.profiles?.full_name || uniqueTechnicians[0] || "Não atribuído";
-      const assistants = (uniqueTechnicians || []).filter(name => name !== leadTechnician);
+      const assistants = uniqueTechnicians.filter(name => name !== leadTechnician);
 
       setTaskData(task);
       setServiceOrderData({
@@ -146,12 +137,9 @@ const TaskDetails = () => {
                  task.service_orders?.vessels?.name || 
                  "Local não especificado",
         access: task.service_orders?.access || "Sem informações de acesso",
-        requester: {
-          name: task.service_orders?.clients?.contact_person || 
-                task.service_orders?.clients?.name || 
-                "Não especificado",
-          role: "Solicitante",
-          company: task.service_orders?.clients?.name || "N/A",
+        client: {
+          name: task.service_orders?.clients?.name || "N/A",
+          contact: task.service_orders?.clients?.contact_person || "N/A",
           cnpj: task.service_orders?.clients?.cnpj || "N/A",
           phone: task.service_orders?.clients?.phone || "N/A",
           email: task.service_orders?.clients?.email || "N/A",
@@ -171,8 +159,6 @@ const TaskDetails = () => {
           flag: task.service_orders?.vessels?.flag || "N/A",
           imo: task.service_orders?.vessels?.imo_number || "N/A",
         },
-        service: task.task_types?.name || task.title || "Serviço",
-        description: task.description || task.service_orders?.description || "",
         status: task.status,
         serviceOrderId: task.service_orders?.id,
       });
@@ -203,7 +189,7 @@ const TaskDetails = () => {
         description: `A tarefa foi iniciada com sucesso.`,
       });
 
-      fetchTaskDetails(); // Refresh data
+      fetchTaskDetails();
     } catch (error: any) {
       toast({
         title: "Erro ao iniciar tarefa",
@@ -245,8 +231,16 @@ const TaskDetails = () => {
     );
   }
 
+  // Extract task type data safely
+  const taskTypeName = safeValue(taskData.task_types?.name || taskData.title, 'Tarefa');
+  const taskDescription = safeValue(taskData.task_types?.description || taskData.description);
+  const tools = safeArray(taskData.task_types?.tools);
+  const steps = safeArray(taskData.task_types?.steps);
+  const photoLabels = safeArray(taskData.task_types?.photo_labels);
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-3 flex-wrap">
@@ -266,81 +260,311 @@ const TaskDetails = () => {
             </div>
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 w-full md:w-auto">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button variant="outline" className="flex-1 md:flex-none">
-                <History className="mr-2 h-4 w-4" />
-                Histórico
-              </Button>
-            </SheetTrigger>
-            <SheetContent className="w-full sm:max-w-lg">
-              <SheetHeader>
-                <SheetTitle>Histórico de Visitas</SheetTitle>
-              </SheetHeader>
-              <div className="mt-6">
-                <VisitHistoryTimeline serviceOrderId={serviceOrderData.serviceOrderId} />
-              </div>
-            </SheetContent>
-          </Sheet>
-          <NewContinuationVisitButton serviceOrderId={serviceOrderData.serviceOrderId} />
-          <Button onClick={() => navigate("/tech/tasks")} variant="outline" className="flex-1 md:flex-none">
-            Voltar
-          </Button>
-        </div>
+        <Button onClick={() => navigate("/tech/tasks")} variant="outline">
+          Voltar
+        </Button>
       </div>
 
-      <ServiceOrderInfo
-        location={serviceOrderData.location}
-        access={serviceOrderData.access}
-        requester={serviceOrderData.requester}
-        supervisor={serviceOrderData.supervisor}
-        team={serviceOrderData.team}
-        vessel={serviceOrderData.vessel}
-      />
+      {/* Tabs */}
+      <Tabs defaultValue="resumo" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="resumo">Resumo da OS</TabsTrigger>
+          <TabsTrigger value="instrucoes">Instruções</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div>
-              <h3 className="text-lg font-semibold mb-2">{taskData.title}</h3>
-              {taskData.description && (
-                <p className="text-muted-foreground">{taskData.description}</p>
-              )}
-            </div>
-
-            {taskData.task_types && <AdminInfo taskType={taskData.task_types} />}
-
-            <div className="flex justify-center pt-4">
-              {taskData.status === "pending" && (
-                <Button size="lg" onClick={handleStartTask}>
-                  Iniciar Tarefa
-                </Button>
-              )}
-              {taskData.status === "in_progress" && (
-                <div className="text-center space-y-3">
-                  <Badge variant="default" className="text-lg px-4 py-2">
-                    Tarefa em Andamento
-                  </Badge>
-                  <p className="text-sm text-muted-foreground">
-                    Você pode criar o relatório quando finalizar a tarefa
-                  </p>
+        {/* Resumo Tab */}
+        <TabsContent value="resumo" className="space-y-4 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Client Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Building className="h-5 w-5" />
+                  Cliente
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Empresa</p>
+                  <p className="text-sm">{serviceOrderData.client.name}</p>
                 </div>
-              )}
-              {taskData.status === "completed" && (
-                <div className="text-center space-y-3">
-                  <Badge variant="outline" className="text-lg px-4 py-2">
-                    Tarefa Concluída
-                  </Badge>
-                  <Button onClick={() => navigate(`/tech/reports/new?taskId=${taskId}`)}>
-                    Criar Relatório
-                  </Button>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">CNPJ</p>
+                  <p className="text-sm">{serviceOrderData.client.cnpj}</p>
                 </div>
-              )}
-            </div>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Contato</p>
+                  <p className="text-sm">{serviceOrderData.client.contact}</p>
+                  {serviceOrderData.client.phone !== 'N/A' && (
+                    <p className="text-xs text-muted-foreground">{serviceOrderData.client.phone}</p>
+                  )}
+                  {serviceOrderData.client.email !== 'N/A' && (
+                    <p className="text-xs text-muted-foreground">{serviceOrderData.client.email}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Vessel Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Ship className="h-5 w-5" />
+                  Embarcação
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Nome</p>
+                  <p className="text-sm">{serviceOrderData.vessel.name}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Tipo</p>
+                    <p className="text-sm">{serviceOrderData.vessel.type}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Bandeira</p>
+                    <p className="text-sm">{serviceOrderData.vessel.flag}</p>
+                  </div>
+                </div>
+                {serviceOrderData.vessel.imo !== 'N/A' && (
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">IMO</p>
+                    <p className="text-sm">{serviceOrderData.vessel.imo}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Location Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <MapPin className="h-5 w-5" />
+                  Local e Acesso
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Local</p>
+                  <p className="text-sm">{serviceOrderData.location}</p>
+                </div>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Instruções de Acesso</p>
+                  <p className="text-sm">{serviceOrderData.access}</p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Team Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Users className="h-5 w-5" />
+                  Equipe
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Supervisor</p>
+                  <p className="text-sm">{serviceOrderData.supervisor.name}</p>
+                  {serviceOrderData.supervisor.phone !== 'N/A' && (
+                    <p className="text-xs text-muted-foreground">{serviceOrderData.supervisor.phone}</p>
+                  )}
+                  {serviceOrderData.supervisor.email !== 'N/A' && (
+                    <p className="text-xs text-muted-foreground">{serviceOrderData.supervisor.email}</p>
+                  )}
+                </div>
+                <Separator />
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Técnico Responsável</p>
+                  <p className="text-sm">{serviceOrderData.team.leadTechnician}</p>
+                </div>
+                {serviceOrderData.team.assistants.length > 0 && (
+                  <>
+                    <Separator />
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Auxiliares</p>
+                      <ul className="text-sm list-disc list-inside space-y-1">
+                        {serviceOrderData.team.assistants.map((assistant: string, index: number) => (
+                          <li key={index}>{assistant}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Action Buttons */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center gap-4">
+                {taskData.status === "pending" && (
+                  <Button size="lg" onClick={handleStartTask} className="w-full md:w-auto">
+                    <CheckCircle className="mr-2 h-5 w-5" />
+                    Iniciar Tarefa
+                  </Button>
+                )}
+                {taskData.status === "in_progress" && (
+                  <div className="text-center space-y-3 w-full">
+                    <Badge variant="default" className="text-lg px-4 py-2">
+                      Tarefa em Andamento
+                    </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Você pode criar o relatório quando finalizar a tarefa
+                    </p>
+                    <Button 
+                      onClick={() => navigate(`/tech/reports/new?taskId=${taskId}`)}
+                      className="w-full md:w-auto"
+                    >
+                      Criar Relatório
+                    </Button>
+                  </div>
+                )}
+                {taskData.status === "completed" && (
+                  <div className="text-center space-y-3 w-full">
+                    <Badge variant="outline" className="text-lg px-4 py-2">
+                      Tarefa Concluída
+                    </Badge>
+                    <Button 
+                      onClick={() => navigate(`/tech/reports/new?taskId=${taskId}`)}
+                      className="w-full md:w-auto"
+                    >
+                      Criar Relatório
+                    </Button>
+                  </div>
+                )}
+                <NewContinuationVisitButton 
+                  serviceOrderId={serviceOrderData.serviceOrderId}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Instruções Tab */}
+        <TabsContent value="instrucoes" className="space-y-4 mt-6">
+          {/* Task Name and Description */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-xl">{taskTypeName}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {taskDescription !== 'N/A' && (
+                <p className="text-muted-foreground">{taskDescription}</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Tools - only show if has data */}
+          {tools.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Wrench className="h-5 w-5" />
+                  Ferramentas e Equipamentos Necessários
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {tools.map((tool: any, index: number) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-primary mt-1">•</span>
+                      <span className="text-sm">
+                        {typeof tool === 'string' ? tool : safeValue(tool.name)}
+                        {tool.quantity && ` (${tool.quantity})`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Steps - only show if has data */}
+          {steps.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <ListCheck className="h-5 w-5" />
+                  Passo a Passo
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ol className="space-y-3">
+                  {steps.map((step: any, index: number) => (
+                    <li key={index} className="flex gap-3">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-medium">
+                        {index + 1}
+                      </span>
+                      <span className="text-sm pt-0.5">
+                        {typeof step === 'string' ? step : safeValue(step.description)}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Photos - only show if has data */}
+          {photoLabels.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Camera className="h-5 w-5" />
+                  Fotos Necessárias
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2">
+                  {photoLabels.map((label: any, index: number) => (
+                    <li key={index} className="flex items-start gap-2">
+                      <span className="text-primary mt-1">📷</span>
+                      <div className="text-sm">
+                        <p className="font-medium">
+                          {typeof label === 'string' ? label : safeValue(label.label || label.name)}
+                        </p>
+                        {label.description && (
+                          <p className="text-muted-foreground text-xs mt-1">
+                            {label.description}
+                          </p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Show message if no instructions */}
+          {tools.length === 0 && steps.length === 0 && photoLabels.length === 0 && (
+            <Card>
+              <CardContent className="py-8">
+                <p className="text-center text-muted-foreground">
+                  Nenhuma instrução específica foi definida para esta tarefa.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Histórico Tab */}
+        <TabsContent value="historico" className="space-y-4 mt-6">
+          <Card>
+            <CardContent className="pt-6">
+              <VisitHistoryTimeline serviceOrderId={serviceOrderData.serviceOrderId} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
