@@ -36,6 +36,7 @@ interface ServiceOrderData {
     assistants: string[];
   };
   service: string;
+  taskTitle?: string;
 }
 
   const ReportFormContent = () => {
@@ -317,6 +318,7 @@ interface ServiceOrderData {
           assistants,
         },
         service: taskData.task_types?.name || taskData.title || taskData.description || 'Serviço não especificado',
+        taskTitle: taskData.title || taskData.task_types?.name || 'Tarefa',
       };
 
       console.log("Service order data prepared:", serviceOrderData);
@@ -791,7 +793,7 @@ interface ServiceOrderData {
           <TabsList>
             {Object.keys(taskReports).map((taskId) => (
               <TabsTrigger key={taskId} value={taskId}>
-                Tarefa {taskId.replace("task", "")}
+                {serviceOrderData.taskTitle || 'Tarefa'}
               </TabsTrigger>
             ))}
           </TabsList>
