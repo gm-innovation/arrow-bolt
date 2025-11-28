@@ -278,7 +278,13 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
                 </Button>
               )}
               <h1 className="text-lg md:text-xl font-semibold text-gray-800 truncate">
-                {pageTitle || location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Dashboard"}
+                {pageTitle || (() => {
+                  const lastSegment = location.pathname.split("/").pop() || "Dashboard";
+                  // Don't show UUID patterns as titles
+                  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastSegment);
+                  if (isUUID) return "Detalhes";
+                  return lastSegment.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+                })()}
               </h1>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
