@@ -94,11 +94,12 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
   useEffect(() => {
     if (selectedClient) {
       fetchVessels(selectedClient);
-    } else {
+    } else if (!isEditing) {
+      // Only clear vessel when creating new order, not when editing
       setVessels([]);
       form.setValue("vesselId", "");
     }
-  }, [selectedClient]);
+  }, [selectedClient, isEditing]);
 
   const fetchInitialData = async () => {
     try {
@@ -196,6 +197,11 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         .single();
 
       if (orderError) throw orderError;
+
+      // Fetch vessels for the client BEFORE populating form
+      if (orderData.vessels?.client_id) {
+        await fetchVessels(orderData.vessels.client_id);
+      }
 
       // Fetch associated tasks
       const { data: tasksData } = await supabase
