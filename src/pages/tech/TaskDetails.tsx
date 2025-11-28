@@ -12,7 +12,6 @@ import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import DashboardLayout from "@/components/DashboardLayout";
 
 // Helper functions for safe data handling
 const safeValue = (value: any, fallback: string = 'N/A') => value || fallback;
@@ -32,6 +31,16 @@ const TaskDetails = () => {
       fetchTaskDetails();
     }
   }, [taskId]);
+
+  // Update page title when service order data is available
+  useEffect(() => {
+    if (serviceOrderData?.orderNumber) {
+      document.title = `OS ${serviceOrderData.orderNumber} - Naval OS`;
+    }
+    return () => {
+      document.title = 'Naval OS';
+    };
+  }, [serviceOrderData?.orderNumber]);
 
   const fetchTaskDetails = async () => {
     try {
@@ -249,27 +258,23 @@ const TaskDetails = () => {
 
   if (loading) {
     return (
-      <DashboardLayout userType="tech" pageTitle="Carregando...">
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
     );
   }
 
   if (!taskData || !serviceOrderData) {
     return (
-      <DashboardLayout userType="tech" pageTitle="Tarefa não encontrada">
-        <div className="space-y-6">
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Não foi possível carregar os detalhes da tarefa. A tarefa pode não existir ou você pode não ter permissão para visualizá-la.
-            </AlertDescription>
-          </Alert>
-          <Button onClick={() => navigate("/tech/tasks")}>Voltar para Tarefas</Button>
-        </div>
-      </DashboardLayout>
+      <div className="space-y-6">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Não foi possível carregar os detalhes da tarefa. A tarefa pode não existir ou você pode não ter permissão para visualizá-la.
+          </AlertDescription>
+        </Alert>
+        <Button onClick={() => navigate("/tech/tasks")}>Voltar para Tarefas</Button>
+      </div>
     );
   }
 
@@ -281,32 +286,31 @@ const TaskDetails = () => {
   const photoLabels = safeArray(taskData.task_types?.photo_labels);
 
   return (
-    <DashboardLayout userType="tech" pageTitle={`OS ${serviceOrderData.orderNumber}`}>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
-                OS {serviceOrderData.orderNumber}
-              </h2>
-              {getStatusBadge(serviceOrderData.status)}
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
+              OS {serviceOrderData.orderNumber}
+            </h2>
+            {getStatusBadge(serviceOrderData.status)}
+          </div>
+          <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              {format(serviceOrderData.scheduledDate, "dd/MM/yyyy")}
             </div>
-            <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                {format(serviceOrderData.scheduledDate, "dd/MM/yyyy")}
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                {format(serviceOrderData.scheduledDate, "HH:mm")}
-              </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              {format(serviceOrderData.scheduledDate, "HH:mm")}
             </div>
           </div>
-          <Button onClick={() => navigate("/tech/tasks")} variant="outline">
-            Voltar
-          </Button>
         </div>
+        <Button onClick={() => navigate("/tech/tasks")} variant="outline">
+          Voltar
+        </Button>
+      </div>
 
       {/* Tabs */}
       <Tabs defaultValue="resumo" className="w-full">
@@ -592,8 +596,7 @@ const TaskDetails = () => {
           </Card>
         </TabsContent>
       </Tabs>
-      </div>
-    </DashboardLayout>
+    </div>
   );
 };
 
