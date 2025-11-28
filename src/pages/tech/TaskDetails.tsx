@@ -85,6 +85,11 @@ const TaskDetails = () => {
       if (taskError) throw taskError;
       if (!task) throw new Error("Tarefa não encontrada");
 
+      console.log("Task data:", task);
+      console.log("Service Order:", task.service_orders);
+      console.log("Client:", task.service_orders?.clients);
+      console.log("Vessel:", task.service_orders?.vessels);
+
       // Fetch supervisor profile
       let supervisorProfile = null;
       if (task.service_orders?.supervisor_id) {
@@ -289,10 +294,6 @@ const TaskDetails = () => {
                   <p className="text-sm font-medium text-muted-foreground">Empresa</p>
                   <p className="text-sm">{serviceOrderData.client.name}</p>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">CNPJ</p>
-                  <p className="text-sm">{serviceOrderData.client.cnpj}</p>
-                </div>
                 <Separator />
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Contato</p>
@@ -320,15 +321,9 @@ const TaskDetails = () => {
                   <p className="text-sm font-medium text-muted-foreground">Nome</p>
                   <p className="text-sm">{serviceOrderData.vessel.name}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Tipo</p>
-                    <p className="text-sm">{serviceOrderData.vessel.type}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">Bandeira</p>
-                    <p className="text-sm">{serviceOrderData.vessel.flag}</p>
-                  </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Tipo</p>
+                  <p className="text-sm">{serviceOrderData.vessel.type}</p>
                 </div>
                 {serviceOrderData.vessel.imo !== 'N/A' && (
                   <div>
