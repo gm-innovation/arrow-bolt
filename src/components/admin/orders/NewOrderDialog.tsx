@@ -10,9 +10,12 @@ type FormData = {
 
 interface NewOrderDialogProps {
   form: UseFormReturn<FormData>;
+  onSuccess?: () => void;
 }
 
-export const NewOrderDialog = ({ form }: NewOrderDialogProps) => {
+export const NewOrderDialog = ({ form, onSuccess }: NewOrderDialogProps) => {
+  const orderNumber = form.watch("orderNumber");
+
   return (
     <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
       <DialogHeader className="flex-none flex flex-row justify-between items-center border-b pb-4">
@@ -39,7 +42,7 @@ export const NewOrderDialog = ({ form }: NewOrderDialogProps) => {
         </Form>
       </DialogHeader>
       <div className="flex-1 overflow-y-auto pr-2">
-        <NewOrderForm />
+        <NewOrderForm orderNumber={orderNumber} onSuccess={onSuccess} />
       </div>
     </DialogContent>
   );

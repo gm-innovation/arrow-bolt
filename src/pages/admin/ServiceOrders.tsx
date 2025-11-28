@@ -192,7 +192,13 @@ const ServiceOrders = () => {
                 Nova OS
               </Button>
             </DialogTrigger>
-            <NewOrderDialog form={form} />
+            <NewOrderDialog 
+              form={form} 
+              onSuccess={() => {
+                invalidate();
+                form.reset();
+              }}
+            />
           </Dialog>
         </div>
       </div>
