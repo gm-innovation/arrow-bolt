@@ -23,7 +23,8 @@ type AdminInfoProps = {
     name: string;
     tools: Tool[];
     steps: Step[];
-    photoLabels: PhotoLabel[];
+    photoLabels?: PhotoLabel[];
+    photo_labels?: PhotoLabel[];
   };
 };
 
@@ -36,7 +37,7 @@ export const AdminInfo = ({ taskType }: AdminInfoProps) => {
   // Parse tools, steps, and photo labels - pode vir como array de strings ou objetos
   const tools = safeArray(taskType?.tools);
   const steps = safeArray(taskType?.steps);
-  const photoLabels = safeArray(taskType?.photoLabels);
+  const photoLabels = safeArray(taskType?.photo_labels || taskType?.photoLabels);
 
   return (
     <div className="space-y-6">
