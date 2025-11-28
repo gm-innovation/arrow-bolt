@@ -305,6 +305,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
         supervisor={serviceOrder.supervisor}
         team={serviceOrder.team}
         service={serviceOrder.service}
+        timeEntries={report.timeEntries}
       />
 
       {/* Technical Report Section */}
