@@ -85,11 +85,6 @@ const TaskDetails = () => {
       if (taskError) throw taskError;
       if (!task) throw new Error("Tarefa não encontrada");
 
-      console.log("Task data:", task);
-      console.log("Service Order:", task.service_orders);
-      console.log("Client:", task.service_orders?.clients);
-      console.log("Vessel:", task.service_orders?.vessels);
-
       // Fetch supervisor profile
       let supervisorProfile = null;
       if (task.service_orders?.supervisor_id) {
