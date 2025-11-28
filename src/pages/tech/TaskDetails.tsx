@@ -399,12 +399,6 @@ const TaskDetails = () => {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Supervisor</p>
                   <p className="text-sm">{serviceOrderData.supervisor.name}</p>
-                  {serviceOrderData.supervisor.phone !== 'N/A' && (
-                    <p className="text-xs text-muted-foreground">{serviceOrderData.supervisor.phone}</p>
-                  )}
-                  {serviceOrderData.supervisor.email !== 'N/A' && (
-                    <p className="text-xs text-muted-foreground">{serviceOrderData.supervisor.email}</p>
-                  )}
                 </div>
                 <Separator />
                 <div>
