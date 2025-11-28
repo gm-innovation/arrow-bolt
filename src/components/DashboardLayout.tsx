@@ -29,9 +29,10 @@ import { UserMenu } from "@/components/UserMenu";
 interface DashboardLayoutProps {
   children: ReactNode;
   userType: "super-admin" | "admin" | "tech";
+  pageTitle?: string;
 }
 
-const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
+const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
@@ -277,7 +278,7 @@ const DashboardLayout = ({ children, userType }: DashboardLayoutProps) => {
                 </Button>
               )}
               <h1 className="text-lg md:text-xl font-semibold text-gray-800 truncate">
-                {location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Dashboard"}
+                {pageTitle || location.pathname.split("/").pop()?.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase()) || "Dashboard"}
               </h1>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
