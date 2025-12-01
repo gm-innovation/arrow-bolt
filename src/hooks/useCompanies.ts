@@ -10,6 +10,7 @@ export interface Company {
   address: string | null;
   cnpj: string | null;
   cep: string | null;
+  logo_url: string | null;
   subscription_plan: 'basic' | 'professional' | 'enterprise' | null;
   payment_status: 'paid' | 'pending' | 'overdue' | null;
   created_at: string;
