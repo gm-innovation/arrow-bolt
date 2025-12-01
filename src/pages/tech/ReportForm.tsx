@@ -277,38 +277,56 @@ interface ServiceOrderData {
         supervisorName = supervisor?.full_name || 'N/A';
       }
 
-      // Fetch technicians from visit_technicians table
-      console.log("Fetching visit data for service order:", taskData.service_orders.id);
-      const { data: visitData, error: visitError } = await supabase
+      // Fetch visit data - Step 1: Get the most recent visit
+      console.log("Fetching visit for service order:", taskData.service_orders.id);
+      const { data: visit, error: visitError } = await supabase
         .from('service_visits')
-        .select(`
-          id,
-          visit_technicians (
-            is_lead,
-            technicians:technician_id (
-              user_id,
-              profiles:user_id (full_name)
-            )
-          )
-        `)
+        .select('id, visit_number')
         .eq('service_order_id', taskData.service_orders.id)
         .order('visit_number', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       if (visitError) {
-        console.error("Error fetching visit data:", visitError);
+        console.error("Error fetching visit:", visitError);
       }
-      console.log("Visit data result:", visitData);
+      console.log("Visit result:", visit);
 
-      // Separate lead technician and assistants
-      const leadTechData = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
-      const leadTechnician = leadTechData?.technicians?.profiles?.full_name || 'Não atribuído';
+      // Step 2: Fetch visit technicians separately to avoid RLS issues with nested queries
+      let leadTechnician = 'Não atribuído';
+      let assistants: string[] = [];
+      
+      if (visit?.id) {
+        console.log("Fetching technicians for visit:", visit.id);
+        const { data: visitTechs, error: techError } = await supabase
+          .from('visit_technicians')
+          .select(`
+            is_lead,
+            technician_id,
+            technicians (
+              user_id,
+              profiles:user_id (
+                full_name
+              )
+            )
+          `)
+          .eq('visit_id', visit.id);
 
-      const assistants = visitData?.visit_technicians
-        ?.filter((vt: any) => !vt.is_lead)
-        .map((vt: any) => vt.technicians?.profiles?.full_name)
-        .filter(Boolean) || [];
+        if (techError) {
+          console.error("Error fetching visit technicians:", techError);
+        }
+        console.log("Visit technicians result:", visitTechs);
+
+        if (visitTechs) {
+          const leadTechData = visitTechs.find((vt: any) => vt.is_lead);
+          leadTechnician = leadTechData?.technicians?.profiles?.full_name || 'Não atribuído';
+          
+          assistants = visitTechs
+            .filter((vt: any) => !vt.is_lead)
+            .map((vt: any) => vt.technicians?.profiles?.full_name)
+            .filter(Boolean);
+        }
+      }
 
       // Fetch company data
       let companyData = null;
