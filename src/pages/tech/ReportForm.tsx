@@ -278,7 +278,8 @@ interface ServiceOrderData {
       }
 
       // Fetch technicians from visit_technicians table
-      const { data: visitData } = await supabase
+      console.log("Fetching visit data for service order:", taskData.service_orders.id);
+      const { data: visitData, error: visitError } = await supabase
         .from('service_visits')
         .select(`
           id,
@@ -295,6 +296,11 @@ interface ServiceOrderData {
         .limit(1)
         .maybeSingle();
 
+      if (visitError) {
+        console.error("Error fetching visit data:", visitError);
+      }
+      console.log("Visit data result:", visitData);
+
       // Separate lead technician and assistants
       const leadTechData = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
       const leadTechnician = leadTechData?.technicians?.profiles?.full_name || 'Não atribuído';
@@ -307,11 +313,17 @@ interface ServiceOrderData {
       // Fetch company data
       let companyData = null;
       if (taskData.service_orders.company_id) {
-        const { data: company } = await supabase
+        console.log("Fetching company with ID:", taskData.service_orders.company_id);
+        const { data: company, error: companyError } = await supabase
           .from('companies')
           .select('name, email, phone, address, cnpj, cep, logo_url')
           .eq('id', taskData.service_orders.company_id)
           .maybeSingle();
+        
+        if (companyError) {
+          console.error("Error fetching company:", companyError);
+        }
+        console.log("Company data result:", company);
         companyData = company;
       }
 
