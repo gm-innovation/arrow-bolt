@@ -534,9 +534,10 @@ interface ServiceOrderData {
       
       const { data: existingReports, error: fetchError } = await supabase
         .from('task_reports')
-        .select('id')
+        .select('id, status')
         .eq('task_id', taskId)
-        .eq('status', status);
+        .order('updated_at', { ascending: false })
+        .limit(1);
 
       if (fetchError) {
         console.error("Error checking for existing report:", fetchError);
@@ -552,7 +553,8 @@ interface ServiceOrderData {
           .from('task_reports')
           .update({
             report_data: serializableReportData,
-            visit_id: visitId, // ✅ Update visit_id
+            status: status,
+            visit_id: visitId,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingReports[0].id);
@@ -562,7 +564,7 @@ interface ServiceOrderData {
           .insert({
             task_id: taskId,
             task_uuid: taskId,
-            visit_id: visitId, // ✅ Include visit_id
+            visit_id: visitId,
             status: status,
             report_data: serializableReportData
           });

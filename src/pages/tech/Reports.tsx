@@ -207,7 +207,7 @@ const TechReports = () => {
   };
 
   const handleViewReport = (report: SavedReport) => {
-    navigate(`/tech/reports/edit?taskId=${report.task_id}`);
+    navigate(`/tech/reports/new?taskId=${report.task_id}`);
   };
 
   const handleOpenPDF = (report: TaskReport, taskId: string) => {
