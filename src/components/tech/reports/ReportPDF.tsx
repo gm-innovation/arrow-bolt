@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   },
   photo: {
     width: '100%',
-    height: 150,
+    height: 120,
     objectFit: 'cover',
   },
   photoCaption: {
@@ -98,12 +98,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   photoDescription: {
-    fontSize: 9,
+    fontSize: 8,
     marginTop: 3,
     textAlign: 'left',
     color: '#333',
     backgroundColor: '#f5f5f5',
-    padding: 5,
+    padding: 4,
     borderRadius: 2,
     borderLeft: '2pt solid #666',
   },
@@ -290,6 +290,9 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
   const allPhotosWithBase64 = useMemo(() => {
     if (!photoBase64Data) return [];
     console.log("ReportPDFContent - Photos with base64:", photoBase64Data.length);
+    photoBase64Data.forEach((item, idx) => {
+      console.log(`Photo ${idx}: caption="${item.photo.caption}", description="${item.photo.description || 'N/A'}"`);
+    });
     return photoBase64Data;
   }, [photoBase64Data]);
 
@@ -373,11 +376,11 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
           <View style={styles.photosGrid}>
             {allPhotoRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.photoRow}>
+              <View key={rowIndex} style={styles.photoRow} wrap={false}>
                 {row.map(({ photo, index, base64 }) => (
-                  <View key={index} style={styles.photoContainer} wrap={false}>
-                    <Image 
-                      src={base64} 
+                  <View key={index} style={styles.photoContainer}>
+                    <Image
+                      src={base64}
                       style={styles.photo}
                       cache={false}
                     />
