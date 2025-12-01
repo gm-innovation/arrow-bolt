@@ -100,12 +100,12 @@ const styles = StyleSheet.create({
   photoDescription: {
     fontSize: 9,
     marginTop: 3,
-    textAlign: 'center',
-    color: '#555',
-    fontStyle: 'italic',
-    backgroundColor: '#fffde7',
-    padding: 3,
+    textAlign: 'left',
+    color: '#333',
+    backgroundColor: '#f5f5f5',
+    padding: 5,
     borderRadius: 2,
+    borderLeft: '2pt solid #666',
   },
   categoryTitle: {
     fontSize: 12,
@@ -366,9 +366,9 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
           <View style={styles.photosGrid}>
             {allPhotoRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.photoRow} wrap={false}>
+              <View key={rowIndex} style={styles.photoRow}>
                 {row.map(({ photo, index, base64 }) => (
-                  <View key={index} style={styles.photoContainer}>
+                  <View key={index} style={styles.photoContainer} wrap={false}>
                     <Image 
                       src={base64} 
                       style={styles.photo}
@@ -379,7 +379,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
                     </Text>
                     {photo.description && (
                       <Text style={styles.photoDescription}>
-                        Obs: {photo.description}
+                        {photo.description}
                       </Text>
                     )}
                   </View>
