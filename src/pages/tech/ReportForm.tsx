@@ -131,7 +131,7 @@ interface ServiceOrderData {
       const { data, error } = await supabase
         .from('task_reports')
         .select('*')
-        .eq('task_id', taskId)
+        .eq('task_uuid', taskId)
         .order('updated_at', { ascending: false })
         .limit(1);
 
