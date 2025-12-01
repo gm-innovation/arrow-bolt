@@ -21,18 +21,32 @@ const styles = StyleSheet.create({
   },
 });
 
-export const CompanyHeader = () => (
+interface CompanyData {
+  name: string;
+  address: string;
+  cep: string;
+  phone: string;
+  cnpj: string;
+  email: string;
+  logoUrl?: string;
+}
+
+interface CompanyHeaderProps {
+  company: CompanyData;
+}
+
+export const CompanyHeader = ({ company }: CompanyHeaderProps) => (
   <View style={styles.header}>
     <Image 
-      src="/lovable-uploads/99776afb-688e-4743-927c-a8dfb9f3d1de.png"
+      src={company.logoUrl || "/lovable-uploads/99776afb-688e-4743-927c-a8dfb9f3d1de.png"}
       style={styles.logo}
     />
     <View style={styles.companyInfo}>
-      <Text>Google Marine LTDA</Text>
-      <Text>Rua Example, 123 - Cidade/UF</Text>
-      <Text>CEP: 12345-678</Text>
-      <Text>Tel: (11) 1234-5678</Text>
-      <Text>CNPJ: 12.345.678/0001-90</Text>
+      <Text>{company.name}</Text>
+      <Text>{company.address}</Text>
+      {company.cep && <Text>CEP: {company.cep}</Text>}
+      {company.phone && <Text>Tel: {company.phone}</Text>}
+      {company.cnpj && <Text>CNPJ: {company.cnpj}</Text>}
     </View>
   </View>
 );

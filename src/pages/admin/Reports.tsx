@@ -398,6 +398,15 @@ const Reports = () => {
         assistants: report.assistants?.map((a: any) => a.technician?.profile?.full_name).filter(Boolean) || [],
       },
       service: report.task?.title || serviceOrder?.description || 'Serviço não especificado',
+      company: {
+        name: 'Empresa não especificada',
+        email: '',
+        phone: '',
+        address: '',
+        cnpj: '',
+        cep: '',
+        logoUrl: '',
+      },
     };
   };
 

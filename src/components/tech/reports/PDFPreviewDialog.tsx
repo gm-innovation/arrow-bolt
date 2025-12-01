@@ -26,6 +26,15 @@ interface ServiceOrderData {
     assistants: string[];
   };
   service: string;
+  company: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    cnpj: string;
+    cep: string;
+    logoUrl: string;
+  };
 }
 
 interface PDFPreviewDialogProps {
@@ -61,6 +70,15 @@ export const PDFPreviewDialog = ({
       assistants: [],
     },
     service: "Serviço não especificado",
+    company: {
+      name: "Empresa não especificada",
+      email: "",
+      phone: "",
+      address: "",
+      cnpj: "",
+      cep: "",
+      logoUrl: "",
+    },
   };
 
   return (
