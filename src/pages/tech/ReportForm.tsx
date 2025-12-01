@@ -146,7 +146,8 @@ interface ServiceOrderData {
         
         const reportsWithRecreatedFiles: Record<string, TaskReport> = {};
         
-        for (const [key, report] of Object.entries(reportData)) {
+        // Normalize to always use taskId as key (fixes legacy "task1" format)
+        for (const [_legacyKey, report] of Object.entries(reportData)) {
           // Handle photos - try to load saved images
           const photosWithFiles: PhotoWithCaption[] = [];
           
@@ -175,7 +176,8 @@ interface ServiceOrderData {
             }
           }
           
-          reportsWithRecreatedFiles[key] = {
+          // Use taskId as key instead of legacy key (e.g., "task1")
+          reportsWithRecreatedFiles[taskId!] = {
             ...report,
             photos: photosWithFiles,
           };
