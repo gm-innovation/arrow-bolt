@@ -82,14 +82,15 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   photoContainer: {
-    width: '48%',
+    width: '100%',
     display: 'flex',
     flexDirection: 'column',
+    marginBottom: 10,
   },
   photo: {
     width: '100%',
-    height: 150,
-    objectFit: 'cover',
+    height: 200,
+    objectFit: 'contain',
   },
   photoCaption: {
     fontSize: 10,
@@ -293,9 +294,9 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
     return photoBase64Data;
   }, [photoBase64Data]);
 
-  // Chunk all photos into rows of 2
+  // Each photo in its own row to prevent cutting
   const allPhotoRows = useMemo(() => {
-    return chunkArray(allPhotosWithBase64, 2);
+    return allPhotosWithBase64.map(photo => [photo]);
   }, [allPhotosWithBase64]);
 
   return (
@@ -372,26 +373,21 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
           <View style={styles.photosGrid}>
-            {allPhotoRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.photoRow}>
-                {row.map(({ photo, index, base64 }) => (
-                  <View key={index} style={styles.photoContainer} wrap={false}>
-                    <Image 
-                      src={base64} 
-                      style={styles.photo}
-                      cache={false}
-                    />
-                    <Text style={styles.photoCaption}>
-                      {photo.caption}
-                    </Text>
-                    {photo.description && (
-                      <Text style={styles.photoDescription}>
-                        {photo.description}
-                      </Text>
-                    )}
-                  </View>
-                ))}
-                {row.length === 1 && <View style={styles.photoContainer} />}
+            {allPhotosWithBase64.map(({ photo, index, base64 }) => (
+              <View key={index} style={styles.photoContainer} wrap={false}>
+                <Image 
+                  src={base64} 
+                  style={styles.photo}
+                  cache={false}
+                />
+                <Text style={styles.photoCaption}>
+                  {photo.caption}
+                </Text>
+                {photo.description && (
+                  <Text style={styles.photoDescription}>
+                    {photo.description}
+                  </Text>
+                )}
               </View>
             ))}
           </View>
