@@ -180,6 +180,15 @@ interface ReportPDFProps {
       assistants: string[];
     };
     service: string;
+    company: {
+      name: string;
+      email: string;
+      phone: string;
+      address: string;
+      cnpj: string;
+      cep: string;
+      logoUrl: string;
+    };
   };
 }
 
@@ -304,7 +313,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
   return (
   <Document>
     <Page size="A4" style={styles.page}>
-      <CompanyHeader />
+      <CompanyHeader company={serviceOrder.company} />
       
       <ServiceOrderInfo
         orderNumber={serviceOrder.id}

@@ -37,6 +37,15 @@ interface ServiceOrderData {
   };
   service: string;
   taskTitle?: string;
+  company: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    cnpj: string;
+    cep: string;
+    logoUrl: string;
+  };
 }
 
   const ReportFormContent = () => {
@@ -219,6 +228,7 @@ interface ServiceOrderData {
             location,
             access,
             supervisor_id,
+            company_id,
             vessels:vessel_id (name),
             clients:client_id (name, contact_person)
           ),
@@ -293,6 +303,17 @@ interface ServiceOrderData {
       const leadTechnician = uniqueTechnicians[0] || 'Não atribuído';
       const assistants = uniqueTechnicians.slice(1);
 
+      // Fetch company data
+      let companyData = null;
+      if (taskData.service_orders.company_id) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('name, email, phone, address, cnpj, cep, logo_url')
+          .eq('id', taskData.service_orders.company_id)
+          .maybeSingle();
+        companyData = company;
+      }
+
       const so = taskData.service_orders as any;
       const orderNumber = so.order_number || taskData.id;
       
@@ -319,6 +340,15 @@ interface ServiceOrderData {
         },
         service: taskData.task_types?.name || taskData.title || taskData.description || 'Serviço não especificado',
         taskTitle: taskData.title || taskData.task_types?.name || 'Tarefa',
+        company: {
+          name: companyData?.name || 'Empresa não especificada',
+          email: companyData?.email || '',
+          phone: companyData?.phone || '',
+          address: companyData?.address || '',
+          cnpj: companyData?.cnpj || '',
+          cep: companyData?.cep || '',
+          logoUrl: companyData?.logo_url || '',
+        },
       };
 
       console.log("Service order data prepared:", serviceOrderData);
