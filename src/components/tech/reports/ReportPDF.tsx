@@ -274,17 +274,24 @@ const chunkArray = <T,>(array: T[], size: number): T[][] => {
   return chunks;
 };
 
-export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data }: ReportPDFProps & { photoBase64Data?: string[] }) => {
+interface PhotoWithBase64 {
+  index: number;
+  base64: string;
+  photo: {
+    caption: string;
+    description?: string;
+    file?: File;
+    storagePath?: string;
+  };
+}
+
+export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data }: ReportPDFProps & { photoBase64Data?: PhotoWithBase64[] }) => {
   // Create flat array with all photos and their base64 data
   const allPhotosWithBase64 = useMemo(() => {
-    if (!report.photos || !photoBase64Data) return [];
-    
-    return report.photos.map((photo, index) => ({
-      photo,
-      index,
-      base64: photoBase64Data[index]
-    })).filter(item => item.base64);
-  }, [report.photos, photoBase64Data]);
+    if (!photoBase64Data) return [];
+    console.log("ReportPDFContent - Photos with base64:", photoBase64Data.length);
+    return photoBase64Data;
+  }, [photoBase64Data]);
 
   // Chunk all photos into rows of 2
   const allPhotoRows = useMemo(() => {
@@ -362,13 +369,13 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
 
       {/* Photos Section - Two Columns (All Photos Together) */}
       {photoBase64Data && photoBase64Data.length > 0 && (
-        <View style={styles.section} wrap={false}>
+        <View style={styles.section}>
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
           <View style={styles.photosGrid}>
             {allPhotoRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.photoRow} wrap={false}>
+              <View key={rowIndex} style={styles.photoRow}>
                 {row.map(({ photo, index, base64 }) => (
-                  <View key={index} style={styles.photoContainer}>
+                  <View key={index} style={styles.photoContainer} wrap={false}>
                     <Image 
                       src={base64} 
                       style={styles.photo}
@@ -436,66 +443,91 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const [isDownloading, setIsDownloading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [photoBase64Data, setPhotoBase64Data] = useState<string[]>([]);
+  const [photoBase64Data, setPhotoBase64Data] = useState<PhotoWithBase64[]>([]);
 
-  const convertPhotosToBase64 = async () => {
+  const convertPhotosToBase64 = async (): Promise<PhotoWithBase64[]> => {
     if (!report.photos || report.photos.length === 0) {
       console.log("No photos to convert");
       return [];
     }
 
-    console.log("Converting", report.photos.length, "photos to base64");
+    console.log("=== Converting photos to base64 ===");
+    console.log("Total photos:", report.photos.length);
+    console.log("Photos data:", report.photos.map((p, i) => ({
+      index: i,
+      caption: p.caption,
+      description: p.description,
+      hasFile: !!p.file,
+      hasStoragePath: !!p.storagePath
+    })));
     
     try {
-      const base64Photos: string[] = [];
+      const photosWithBase64: PhotoWithBase64[] = [];
       
       for (let i = 0; i < report.photos.length; i++) {
         const photo = report.photos[i];
+        let base64String: string | null = null;
         
         // Check if photo has a storage path (saved image)
         if (photo.storagePath) {
-          console.log(`Loading photo ${i + 1} from storage:`, photo.storagePath);
-          const base64FromStorage = await getImageFromStorage(photo.storagePath);
-          if (base64FromStorage) {
-            base64Photos.push(base64FromStorage);
-            console.log(`Successfully loaded photo ${i + 1} from storage`);
-            continue;
+          console.log(`[Photo ${i + 1}] Loading from storage:`, photo.storagePath);
+          base64String = await getImageFromStorage(photo.storagePath);
+          if (base64String) {
+            console.log(`[Photo ${i + 1}] ✅ Loaded from storage`);
+          } else {
+            console.warn(`[Photo ${i + 1}] ⚠️ Failed to load from storage`);
           }
         }
         
         // If no storage path or failed to load from storage, convert file
-        if (photo.file) {
-          console.log(`Converting photo ${i + 1} from file:`, photo.file.name, photo.file.type, photo.file.size);
+        if (!base64String && photo.file) {
+          console.log(`[Photo ${i + 1}] Converting from file:`, photo.file.name, photo.file.type);
           
           // Validate file type
           if (!photo.file.type.startsWith('image/')) {
-            console.warn(`Skipping non-image file: ${photo.file.name}`);
-            continue;
-          }
-          
-          try {
-            const base64String = await fileToBase64(photo.file);
-            if (base64String && base64String.length > 0) {
-              base64Photos.push(base64String);
-              console.log(`Successfully converted photo ${i + 1} from file`);
-              
-              // Save to storage for future use
-              const storagePath = await saveImageToStorage(photo.file, taskId, i);
-              if (storagePath) {
-                // Update the photo object with storage path (this would need to be handled by parent component)
-                console.log(`Photo ${i + 1} saved to storage:`, storagePath);
+            console.warn(`[Photo ${i + 1}] ⚠️ Skipping non-image file`);
+          } else {
+            try {
+              base64String = await fileToBase64(photo.file);
+              if (base64String && base64String.length > 0) {
+                console.log(`[Photo ${i + 1}] ✅ Converted from file`);
+                
+                // Save to storage for future use
+                const storagePath = await saveImageToStorage(photo.file, taskId, i);
+                if (storagePath) {
+                  console.log(`[Photo ${i + 1}] ✅ Saved to storage:`, storagePath);
+                }
+              } else {
+                console.warn(`[Photo ${i + 1}] ⚠️ Empty base64 result`);
               }
-            } else {
-              console.warn(`Empty base64 result for photo ${i + 1}`);
+            } catch (error) {
+              console.error(`[Photo ${i + 1}] ❌ Error converting:`, error);
             }
-          } catch (error) {
-            console.error(`Error converting photo ${i + 1}:`, error);
           }
+        }
+        
+        // Only add if we successfully got base64
+        if (base64String) {
+          photosWithBase64.push({
+            index: i,
+            base64: base64String,
+            photo: photo
+          });
+          console.log(`[Photo ${i + 1}] ✅ Added to array with caption: "${photo.caption}", description: "${photo.description || 'none'}"`);
+        } else {
+          console.warn(`[Photo ${i + 1}] ❌ Skipped - no base64 data`);
         }
       }
       
-      console.log("Final base64Photos array length:", base64Photos.length);
-      return base64Photos;
+      console.log("=== Conversion complete ===");
+      console.log("Successfully converted:", photosWithBase64.length, "out of", report.photos.length);
+      console.log("Final data:", photosWithBase64.map(p => ({
+        index: p.index,
+        caption: p.photo.caption,
+        description: p.photo.description
+      })));
+      
+      return photosWithBase64;
     } catch (error) {
       console.error("Error in convertPhotosToBase64:", error);
       toast({
@@ -507,7 +539,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
     }
   };
 
-  const generatePdfBlob = async (base64Photos: string[]) => {
+  const generatePdfBlob = async (base64Photos: PhotoWithBase64[]) => {
     try {
       console.log("Creating PDF document with", base64Photos.length, "photos...");
       const pdfDoc = <ReportPDFContent 
