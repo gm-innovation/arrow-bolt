@@ -8,6 +8,8 @@ export interface Company {
   email: string | null;
   phone: string | null;
   address: string | null;
+  cnpj: string | null;
+  cep: string | null;
   subscription_plan: 'basic' | 'professional' | 'enterprise' | null;
   payment_status: 'paid' | 'pending' | 'overdue' | null;
   created_at: string;

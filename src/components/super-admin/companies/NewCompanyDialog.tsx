@@ -33,6 +33,8 @@ const formSchema = z.object({
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
+  cnpj: z.string().optional(),
+  cep: z.string().optional(),
   subscription_plan: z.enum(["basic", "professional", "enterprise"]),
   payment_status: z.enum(["paid", "pending", "overdue"]),
 });
@@ -55,6 +57,8 @@ export const NewCompanyDialog = ({ open, onOpenChange }: NewCompanyDialogProps) 
       email: "",
       phone: "",
       address: "",
+      cnpj: "",
+      cep: "",
       subscription_plan: "basic",
       payment_status: "pending",
     },
@@ -70,6 +74,8 @@ export const NewCompanyDialog = ({ open, onOpenChange }: NewCompanyDialogProps) 
         email: values.email || null,
         phone: values.phone || null,
         address: values.address || null,
+        cnpj: values.cnpj || null,
+        cep: values.cep || null,
       });
       toast.success("Empresa criada com sucesso!");
       form.reset();
@@ -141,6 +147,34 @@ export const NewCompanyDialog = ({ open, onOpenChange }: NewCompanyDialogProps) 
                   <FormLabel>Endereço</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Endereço completo" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="cnpj"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CNPJ</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="00.000.000/0000-00" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="cep"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CEP</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="00000-000" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

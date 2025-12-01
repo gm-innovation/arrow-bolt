@@ -33,6 +33,8 @@ const formSchema = z.object({
   email: z.string().email("Email inválido").optional().or(z.literal("")),
   phone: z.string().optional(),
   address: z.string().optional(),
+  cnpj: z.string().optional(),
+  cep: z.string().optional(),
   subscription_plan: z.enum(["basic", "professional", "enterprise"]),
   payment_status: z.enum(["paid", "pending", "overdue"]),
 });
@@ -68,6 +70,8 @@ export const EditCompanyDialog = ({ open, onOpenChange, company }: EditCompanyDi
         email: company.email || "",
         phone: company.phone || "",
         address: company.address || "",
+        cnpj: company.cnpj || "",
+        cep: company.cep || "",
         subscription_plan: company.subscription_plan || "basic",
         payment_status: company.payment_status || "pending",
       });
@@ -155,6 +159,34 @@ export const EditCompanyDialog = ({ open, onOpenChange, company }: EditCompanyDi
                   <FormLabel>Endereço</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Endereço completo" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="cnpj"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CNPJ</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="00.000.000/0000-00" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="cep"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>CEP</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="00000-000" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
