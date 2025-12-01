@@ -277,33 +277,32 @@ interface ServiceOrderData {
         supervisorName = supervisor?.full_name || 'N/A';
       }
 
-      // Fetch all technicians for this service order
-      const { data: allTasks } = await supabase
-        .from('tasks')
+      // Fetch technicians from visit_technicians table
+      const { data: visitData } = await supabase
+        .from('service_visits')
         .select(`
           id,
-          assigned_to,
-          technicians:assigned_to (
-            user_id,
-            profiles:user_id (full_name)
+          visit_technicians (
+            is_lead,
+            technicians:technician_id (
+              user_id,
+              profiles:user_id (full_name)
+            )
           )
         `)
-        .eq('service_order_id', taskData.service_orders.id);
+        .eq('service_order_id', taskData.service_orders.id)
+        .order('visit_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      // Get unique technicians
-      const uniqueTechIds = new Set();
-      const techniciansList = allTasks
-        ?.filter((t: any) => {
-          if (!t.assigned_to || uniqueTechIds.has(t.assigned_to)) return false;
-          uniqueTechIds.add(t.assigned_to);
-          return true;
-        })
-        .map((t: any) => t.technicians?.profiles?.full_name)
+      // Separate lead technician and assistants
+      const leadTechData = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
+      const leadTechnician = leadTechData?.technicians?.profiles?.full_name || 'Não atribuído';
+
+      const assistants = visitData?.visit_technicians
+        ?.filter((vt: any) => !vt.is_lead)
+        .map((vt: any) => vt.technicians?.profiles?.full_name)
         .filter(Boolean) || [];
-
-      const uniqueTechnicians = [...new Set(techniciansList)];
-      const leadTechnician = uniqueTechnicians[0] || 'Não atribuído';
-      const assistants = uniqueTechnicians.slice(1);
 
       // Fetch company data
       let companyData = null;

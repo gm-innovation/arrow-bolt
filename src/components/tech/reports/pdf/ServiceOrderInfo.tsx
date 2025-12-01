@@ -138,7 +138,11 @@ export const ServiceOrderInfo = ({
       
       <View style={styles.row}>
         <Text style={styles.label}>Hora:</Text>
-        <Text style={styles.value}>{format(date, 'HH:mm')}</Text>
+        <Text style={styles.value}>
+          {timeEntries && timeEntries.length > 0 
+            ? timeEntries[0].startTime 
+            : format(date, 'HH:mm')}
+        </Text>
       </View>
       
       <View style={styles.row}>
