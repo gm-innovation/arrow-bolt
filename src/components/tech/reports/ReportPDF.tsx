@@ -362,13 +362,13 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
 
       {/* Photos Section - Two Columns (All Photos Together) */}
       {photoBase64Data && photoBase64Data.length > 0 && (
-        <View style={styles.section}>
+        <View style={styles.section} wrap={false}>
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
           <View style={styles.photosGrid}>
             {allPhotoRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.photoRow}>
+              <View key={rowIndex} style={styles.photoRow} wrap={false}>
                 {row.map(({ photo, index, base64 }) => (
-                  <View key={index} style={styles.photoContainer} wrap={false}>
+                  <View key={index} style={styles.photoContainer}>
                     <Image 
                       src={base64} 
                       style={styles.photo}
