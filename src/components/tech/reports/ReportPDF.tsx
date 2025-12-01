@@ -313,7 +313,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
         <Text style={styles.sectionTitle}>Relatório Técnico</Text>
         
         {/* Informações do Equipamento */}
-        <View style={styles.infoBox}>
+        <View style={styles.infoBox} wrap={false}>
           <Text style={styles.subSectionTitle}>Informações do Equipamento</Text>
           <View style={styles.row}>
             <Text style={styles.fieldLabel}>Modelo:</Text>
@@ -330,7 +330,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
         </View>
         
         {/* Diagnóstico e Serviço */}
-        <View style={styles.infoBox}>
+        <View style={styles.infoBox} wrap={false}>
           <Text style={styles.subSectionTitle}>Diagnóstico e Serviço</Text>
           <View style={styles.row}>
             <Text style={styles.fieldLabel}>Defeito Encontrado:</Text>
@@ -347,7 +347,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
         </View>
         
         {/* Próximos Passos */}
-        <View style={styles.infoBox}>
+        <View style={styles.infoBox} wrap={false}>
           <Text style={styles.subSectionTitle}>Próximos Passos</Text>
           <View style={styles.row}>
             <Text style={styles.fieldLabel}>Próximo Atendimento:</Text>
@@ -366,7 +366,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
           <Text style={styles.sectionTitle}>Fotos do Serviço</Text>
           <View style={styles.photosGrid}>
             {allPhotoRows.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.photoRow}>
+              <View key={rowIndex} style={styles.photoRow} wrap={false}>
                 {row.map(({ photo, index, base64 }) => (
                   <View key={index} style={styles.photoContainer}>
                     <Image 
@@ -392,7 +392,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
       )}
 
       {/* Survey Section */}
-      <View style={styles.surveySection}>
+      <View style={styles.surveySection} wrap={false}>
         <Text style={styles.sectionTitle}>Pesquisa de Satisfação</Text>
         
         <View style={styles.surveyQuestion}>
