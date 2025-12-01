@@ -562,49 +562,28 @@ interface ServiceOrderData {
         };
       }
       
-      const { data: existingReports, error: fetchError } = await supabase
-        .from('task_reports')
-        .select('id, status')
-        .eq('task_id', taskId)
-        .order('updated_at', { ascending: false })
-        .limit(1);
-
-      if (fetchError) {
-        console.error("Error checking for existing report:", fetchError);
-        throw fetchError;
-      }
-
       // Get visit_id for the task
       const visitId = await getVisitIdForTask(taskId!);
 
-      let result;
-      if (existingReports && existingReports.length > 0) {
-        result = await supabase
-          .from('task_reports')
-          .update({
-            report_data: serializableReportData,
-            status: status,
-            visit_id: visitId,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingReports[0].id);
-      } else {
-        result = await supabase
-          .from('task_reports')
-          .insert({
-            task_id: taskId,
-            task_uuid: taskId,
-            visit_id: visitId,
-            status: status,
-            report_data: serializableReportData
-          });
+      // Use upsert to prevent duplicates
+      const { error } = await supabase
+        .from('task_reports')
+        .upsert({
+          task_id: taskId,
+          task_uuid: taskId,
+          visit_id: visitId,
+          status: status,
+          report_data: serializableReportData,
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'task_uuid'
+        });
+
+      if (error) {
+        throw error;
       }
 
-      if (result.error) {
-        throw result.error;
-      }
-
-      console.log("Report data saved successfully:", result.data);
+      console.log("Report data saved successfully");
       
       // Update local state with the storage paths
       setTaskReports(reportDataWithStoragePaths);

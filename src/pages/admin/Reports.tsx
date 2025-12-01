@@ -18,10 +18,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Eye, Download, CheckCircle, XOctagon, Loader2, FileDown } from "lucide-react";
+import { Eye, Download, CheckCircle, XOctagon, Loader2, FileDown, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
@@ -98,6 +108,8 @@ const Reports = () => {
   const [rejectionReason, setRejectionReason] = useState("");
   const [isPDFPreviewOpen, setIsPDFPreviewOpen] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState<Report | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -312,6 +324,44 @@ const Reports = () => {
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleDeleteReport = async () => {
+    if (!reportToDelete) return;
+
+    try {
+      setProcessingId(reportToDelete.id);
+      
+      // Deletar PDF do storage se existir
+      if (reportToDelete.pdf_path) {
+        await supabase.storage.from('reports').remove([reportToDelete.pdf_path]);
+      }
+      
+      // Deletar relatório do banco
+      const { error } = await supabase
+        .from('task_reports')
+        .delete()
+        .eq('id', reportToDelete.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Relatório excluído",
+        description: "O relatório foi excluído com sucesso.",
+      });
+      
+      setShowDeleteModal(false);
+      setReportToDelete(null);
+      fetchReports();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir relatório",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingId(null);
     }
   };
 
@@ -573,6 +623,19 @@ const Reports = () => {
                           </Button>
                         </>
                       )}
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          setReportToDelete(report);
+                          setShowDeleteModal(true);
+                        }}
+                        disabled={processingId === report.id}
+                        title="Excluir"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -638,6 +701,32 @@ const Reports = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Report Confirmation Dialog */}
+      <AlertDialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este relatório? Esta ação não pode ser desfeita e o PDF associado também será removido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!processingId}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteReport}
+              disabled={!!processingId}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {processingId ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Excluindo...</>
+              ) : (
+                "Excluir Relatório"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
