@@ -9,6 +9,7 @@ import { DemandForecast } from "@/components/manager/dashboard/DemandForecast";
 import { ForecastAccuracy } from "@/components/manager/dashboard/ForecastAccuracy";
 import { ExportReportButton } from "@/components/manager/dashboard/ExportReportButton";
 import { TechnicianProductivityReport } from "@/components/manager/dashboard/TechnicianProductivityReport";
+import { CoordinatorProductivityReport } from "@/components/manager/dashboard/CoordinatorProductivityReport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DashboardFilters {
@@ -37,7 +38,8 @@ const ManagerDashboard = () => {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="productivity">Produtividade</TabsTrigger>
+          <TabsTrigger value="coordinators">Coordenadores</TabsTrigger>
+          <TabsTrigger value="productivity">Técnicos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -55,6 +57,15 @@ const ManagerDashboard = () => {
             <ManagerCharts filters={filters} />
             <ConsolidatedCalendar filters={filters} />
           </div>
+        </TabsContent>
+
+        <TabsContent value="coordinators">
+          <CoordinatorProductivityReport 
+            dateRange={filters.startDate && filters.endDate ? {
+              start: filters.startDate,
+              end: filters.endDate
+            } : undefined}
+          />
         </TabsContent>
 
         <TabsContent value="productivity">
