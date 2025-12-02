@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.demand-forecast]
 verify_jwt = true
+
+[functions.ai-proactive-check]
+verify_jwt = false
