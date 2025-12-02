@@ -4,27 +4,54 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ClipboardList, CheckCircle, Clock, Users } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface ManagerStatsProps {
-  coordinatorId: string | null;
+interface DashboardFilters {
+  startDate?: Date;
+  endDate?: Date;
+  statuses: string[];
+  clientId?: string;
+  coordinatorId?: string;
 }
 
-export const ManagerStats = ({ coordinatorId }: ManagerStatsProps) => {
+interface ManagerStatsProps {
+  filters: DashboardFilters;
+}
+
+export const ManagerStats = ({ filters }: ManagerStatsProps) => {
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["manager-stats", coordinatorId],
+    queryKey: ["manager-stats", filters],
     queryFn: async () => {
-      let query = supabase.from("service_orders").select("id, status");
+      let query = supabase.from("service_orders").select("id, status, created_at, client_id, created_by");
       
-      if (coordinatorId) {
-        query = query.eq("created_by", coordinatorId);
+      if (filters.coordinatorId) {
+        query = query.eq("created_by", filters.coordinatorId);
+      }
+
+      if (filters.clientId) {
+        query = query.eq("client_id", filters.clientId);
+      }
+
+      if (filters.startDate) {
+        query = query.gte("created_at", filters.startDate.toISOString());
+      }
+
+      if (filters.endDate) {
+        query = query.lte("created_at", filters.endDate.toISOString());
       }
 
       const { data: orders, error } = await query;
       if (error) throw error;
 
-      const total = orders.length;
-      const completed = orders.filter(o => o.status === "completed").length;
-      const inProgress = orders.filter(o => o.status === "in_progress").length;
-      const pending = orders.filter(o => o.status === "pending").length;
+      let filteredOrders = orders;
+
+      // Apply status filter if any statuses are selected
+      if (filters.statuses.length > 0) {
+        filteredOrders = filteredOrders.filter(o => filters.statuses.includes(o.status || ""));
+      }
+
+      const total = filteredOrders.length;
+      const completed = filteredOrders.filter(o => o.status === "completed").length;
+      const inProgress = filteredOrders.filter(o => o.status === "in_progress").length;
+      const pending = filteredOrders.filter(o => o.status === "pending").length;
 
       // Get number of coordinators
       const { count: coordinatorCount } = await supabase
@@ -56,7 +83,7 @@ export const ManagerStats = ({ coordinatorId }: ManagerStatsProps) => {
         <CardContent>
           <div className="text-2xl font-bold">{stats?.total || 0}</div>
           <p className="text-xs text-muted-foreground">
-            {coordinatorId ? "Do coordenador selecionado" : "De todos os coordenadores"}
+            {filters.coordinatorId || filters.clientId || filters.statuses.length > 0 ? "Com filtros aplicados" : "De todos os coordenadores"}
           </p>
         </CardContent>
       </Card>

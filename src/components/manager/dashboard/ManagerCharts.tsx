@@ -4,28 +4,55 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface ManagerChartsProps {
-  coordinatorId: string | null;
+interface DashboardFilters {
+  startDate?: Date;
+  endDate?: Date;
+  statuses: string[];
+  clientId?: string;
+  coordinatorId?: string;
 }
 
-export const ManagerCharts = ({ coordinatorId }: ManagerChartsProps) => {
+interface ManagerChartsProps {
+  filters: DashboardFilters;
+}
+
+export const ManagerCharts = ({ filters }: ManagerChartsProps) => {
   const { data: chartData, isLoading } = useQuery({
-    queryKey: ["manager-charts", coordinatorId],
+    queryKey: ["manager-charts", filters],
     queryFn: async () => {
-      let query = supabase.from("service_orders").select("status");
+      let query = supabase.from("service_orders").select("status, created_at, client_id, created_by");
       
-      if (coordinatorId) {
-        query = query.eq("created_by", coordinatorId);
+      if (filters.coordinatorId) {
+        query = query.eq("created_by", filters.coordinatorId);
+      }
+
+      if (filters.clientId) {
+        query = query.eq("client_id", filters.clientId);
+      }
+
+      if (filters.startDate) {
+        query = query.gte("created_at", filters.startDate.toISOString());
+      }
+
+      if (filters.endDate) {
+        query = query.lte("created_at", filters.endDate.toISOString());
       }
 
       const { data: orders, error } = await query;
       if (error) throw error;
 
+      let filteredOrders = orders;
+
+      // Apply status filter if any statuses are selected
+      if (filters.statuses.length > 0) {
+        filteredOrders = filteredOrders.filter(o => filters.statuses.includes(o.status || ""));
+      }
+
       const statusCount = {
-        pending: orders.filter(o => o.status === "pending").length,
-        in_progress: orders.filter(o => o.status === "in_progress").length,
-        completed: orders.filter(o => o.status === "completed").length,
-        cancelled: orders.filter(o => o.status === "cancelled").length,
+        pending: filteredOrders.filter(o => o.status === "pending").length,
+        in_progress: filteredOrders.filter(o => o.status === "in_progress").length,
+        completed: filteredOrders.filter(o => o.status === "completed").length,
+        cancelled: filteredOrders.filter(o => o.status === "cancelled").length,
       };
 
       const barData = [
