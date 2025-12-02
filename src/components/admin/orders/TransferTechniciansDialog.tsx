@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
 
 interface TransferTechniciansDialogProps {
   orderId: string;
@@ -18,6 +19,7 @@ interface TransferTechniciansDialogProps {
 export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechniciansDialogProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { sendTaskAssignmentNotification } = useWhatsAppNotification();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -25,6 +27,7 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [newTechnicianId, setNewTechnicianId] = useState<string>("");
   const [reason, setReason] = useState<string>("");
+  const [orderNumber, setOrderNumber] = useState<string>("");
 
   useEffect(() => {
     fetchData();
@@ -33,6 +36,17 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
   const fetchData = async () => {
     try {
       setLoading(true);
+
+      // Fetch order number
+      const { data: orderData } = await supabase
+        .from("service_orders")
+        .select("order_number")
+        .eq("id", orderId)
+        .single();
+
+      if (orderData) {
+        setOrderNumber(orderData.order_number);
+      }
 
       // Fetch tasks for this service order
       const { data: tasksData, error: tasksError } = await supabase
@@ -65,7 +79,8 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
           id,
           profiles:user_id (
             id,
-            full_name
+            full_name,
+            phone
           )
         `)
         .eq("company_id", profileData.company_id)
@@ -262,6 +277,23 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
           });
 
         if (notifError) console.error("Error creating notification:", notifError);
+
+        // Send WhatsApp notification
+        const phoneNumber = newTechProfile.profiles?.phone;
+        const techName = newTechProfile.profiles?.full_name || "Técnico";
+        const taskTitles = selectedTasks
+          .map(taskId => tasks.find(t => t.id === taskId)?.title)
+          .filter(Boolean)
+          .join(", ");
+
+        if (phoneNumber && orderNumber) {
+          sendTaskAssignmentNotification(
+            phoneNumber,
+            techName,
+            taskTitles,
+            orderNumber
+          ).catch(err => console.error("WhatsApp notification failed:", err));
+        }
       }
 
       toast({

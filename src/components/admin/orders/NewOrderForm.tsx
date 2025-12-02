@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetails } from "./ServiceDetails";
 import { TechniciansSelection } from "./TechniciansSelection";
+import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
 
 const orderFormSchema = z.object({
   clientId: z.string().min(1, "Cliente é obrigatório"),
@@ -54,6 +55,7 @@ interface NewOrderFormProps {
 export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: NewOrderFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { sendTaskAssignmentNotification } = useWhatsAppNotification();
   const [clients, setClients] = useState<any[]>([]);
   const [vessels, setVessels] = useState<any[]>([]);
   const [supervisors, setSupervisors] = useState<any[]>([]);
@@ -138,13 +140,14 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
 
       setSupervisors(supervisorsData || []);
 
-      // Fetch technicians
+      // Fetch technicians with phone numbers
       const { data: techniciansData } = await supabase
         .from("technicians")
         .select(`
           id,
           profiles:user_id (
-            full_name
+            full_name,
+            phone
           )
         `)
         .eq("company_id", profileData.company_id)
@@ -472,6 +475,28 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             .insert(tasksToInsert);
 
           if (tasksError) throw tasksError;
+
+          // Send WhatsApp notifications to assigned technicians
+          const taskTitles = formTaskTypes
+            .map(taskTypeId => taskTypes.find(t => t.id === taskTypeId)?.name)
+            .filter(Boolean)
+            .join(", ");
+
+          for (const techId of selectedTechnicians) {
+            const tech = technicians.find(t => t.id === techId);
+            const phoneNumber = tech?.profiles?.phone;
+            const techName = tech?.profiles?.full_name || "Técnico";
+
+            if (phoneNumber) {
+              // Send WhatsApp notification (fire and forget - don't block the main flow)
+              sendTaskAssignmentNotification(
+                phoneNumber,
+                techName,
+                taskTitles,
+                orderNumber!
+              ).catch(err => console.error("WhatsApp notification failed:", err));
+            }
+          }
         }
 
         toast({
