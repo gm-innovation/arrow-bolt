@@ -89,8 +89,17 @@ export const DemandForecast = ({ filters }: DemandForecastProps) => {
   // Mutation for generating forecast
   const forecastMutation = useMutation({
     mutationFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const { data, error } = await supabase.functions.invoke("demand-forecast", {
-        body: { historicalData }
+        body: { 
+          historicalData,
+          coordinatorId: filters.coordinatorId,
+          clientId: filters.clientId
+        },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`
+        }
       });
 
       if (error) throw error;
