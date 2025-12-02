@@ -41,6 +41,8 @@ import ManagerDashboard from "./pages/manager/Dashboard";
 import ManagerCoordinators from "./pages/manager/Coordinators";
 import ManagerServiceOrders from "./pages/manager/ServiceOrders";
 import ManagerReports from "./pages/manager/Reports";
+import ManagerProfile from "./pages/manager/Profile";
+import ManagerSettings from "./pages/manager/Settings";
 
 import TechDashboard from "./pages/tech/Dashboard";
 import TechTasks from "./pages/tech/Tasks";
@@ -176,6 +178,26 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['manager']}>
                     <DashboardLayout userType="manager">
                       <ManagerReports />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <DashboardLayout userType="manager">
+                      <ManagerProfile />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/settings"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <DashboardLayout userType="manager">
+                      <ManagerSettings />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
