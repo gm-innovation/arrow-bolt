@@ -8,6 +8,7 @@ export interface AIMessage {
   id?: string;
   role: 'user' | 'assistant';
   content: string;
+  image?: string;
   metadata?: Record<string, unknown>;
   created_at?: string;
 }
@@ -20,6 +21,24 @@ export interface AIConversation {
   updated_at: string;
 }
 
+export interface ProactiveAlert {
+  id: string;
+  alert_type: string;
+  title: string;
+  message: string;
+  reference_data?: Json;
+}
+
+export interface ReportFields {
+  reportedIssue: string;
+  executedWork: string;
+  result: string;
+  brandInfo?: string;
+  modelInfo?: string;
+  serialNumber?: string;
+  observations?: string;
+}
+
 interface UseAIChatOptions {
   userRole: string;
   context?: {
@@ -27,6 +46,7 @@ interface UseAIChatOptions {
     serviceOrderId?: string;
     companyId?: string;
     currentScreen?: string;
+    taskId?: string;
     taskData?: Record<string, unknown>;
     serviceOrderData?: Record<string, unknown>;
   };
@@ -41,6 +61,42 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [reportPreview, setReportPreview] = useState<ReportFields | null>(null);
+  const [proactiveAlerts, setProactiveAlerts] = useState<ProactiveAlert[]>([]);
+
+  // Fetch proactive alerts
+  const fetchProactiveAlerts = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('ai_proactive_alerts')
+        .select('id, alert_type, title, message, reference_data')
+        .eq('user_id', user.id)
+        .eq('read', false)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      setProactiveAlerts(data || []);
+    } catch (error) {
+      console.error('Error fetching proactive alerts:', error);
+    }
+  }, [user?.id]);
+
+  // Dismiss alert
+  const dismissAlert = useCallback(async (alertId: string) => {
+    try {
+      await supabase
+        .from('ai_proactive_alerts')
+        .update({ read: true })
+        .eq('id', alertId);
+      
+      setProactiveAlerts(prev => prev.filter(a => a.id !== alertId));
+    } catch (error) {
+      console.error('Error dismissing alert:', error);
+    }
+  }, []);
 
   // Fetch user's conversations
   const fetchConversations = useCallback(async () => {
@@ -168,7 +224,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
   }, []);
 
   // Send a message
-  const sendMessage = useCallback(async (messageText: string) => {
+  const sendMessage = useCallback(async (messageText: string, image?: string) => {
     if (!messageText.trim() || isLoading || !user?.id) return;
 
     setIsLoading(true);
@@ -186,11 +242,11 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
     }
 
     // Add user message to UI
-    const userMsg: AIMessage = { role: 'user', content: messageText.trim() };
+    const userMsg: AIMessage = { role: 'user', content: messageText.trim(), image };
     setMessages(prev => [...prev, userMsg]);
 
     // Save user message
-    await saveMessage(conversationId, 'user', messageText.trim());
+    await saveMessage(conversationId, 'user', messageText.trim(), image ? { has_image: true } : undefined);
 
     // Update title if first message
     if (messages.length === 0) {
@@ -208,6 +264,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
         },
         body: JSON.stringify({
           message: messageText,
+          image,
           userRole,
           context: {
             ...context,
@@ -222,80 +279,98 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
         throw new Error(errorData.error || 'Erro ao processar sua solicitação');
       }
 
-      if (!response.body) {
-        throw new Error('Resposta sem conteúdo');
-      }
+      // Check content type to determine response format
+      const contentType = response.headers.get('content-type') || '';
+      
+      if (contentType.includes('application/json')) {
+        // Non-streaming response (tool calling)
+        const data = await response.json();
+        
+        if (data.type === 'report_generation' && data.fields) {
+          setReportPreview(data.fields);
+          assistantContent = data.message || 'Campos do relatório extraídos! Revise abaixo.';
+          setMessages(prev => [...prev, { role: 'assistant', content: assistantContent }]);
+        } else if (data.content) {
+          assistantContent = data.content;
+          setMessages(prev => [...prev, { role: 'assistant', content: assistantContent }]);
+        }
+      } else {
+        // Streaming response
+        if (!response.body) {
+          throw new Error('Resposta sem conteúdo');
+        }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = '';
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let textBuffer = '';
 
-      // Add empty assistant message
-      setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
+        // Add empty assistant message
+        setMessages(prev => [...prev, { role: 'assistant', content: '' }]);
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
 
-        textBuffer += decoder.decode(value, { stream: true });
+          textBuffer += decoder.decode(value, { stream: true });
 
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
+          let newlineIndex: number;
+          while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+            let line = textBuffer.slice(0, newlineIndex);
+            textBuffer = textBuffer.slice(newlineIndex + 1);
 
-          if (line.endsWith('\r')) line = line.slice(0, -1);
-          if (line.startsWith(':') || line.trim() === '') continue;
-          if (!line.startsWith('data: ')) continue;
+            if (line.endsWith('\r')) line = line.slice(0, -1);
+            if (line.startsWith(':') || line.trim() === '') continue;
+            if (!line.startsWith('data: ')) continue;
 
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === '[DONE]') break;
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr === '[DONE]') break;
 
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => {
-                const newMessages = [...prev];
-                const lastIdx = newMessages.length - 1;
-                if (newMessages[lastIdx]?.role === 'assistant') {
-                  newMessages[lastIdx] = { ...newMessages[lastIdx], content: assistantContent };
-                }
-                return newMessages;
-              });
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                assistantContent += content;
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastIdx = newMessages.length - 1;
+                  if (newMessages[lastIdx]?.role === 'assistant') {
+                    newMessages[lastIdx] = { ...newMessages[lastIdx], content: assistantContent };
+                  }
+                  return newMessages;
+                });
+              }
+            } catch {
+              textBuffer = line + '\n' + textBuffer;
+              break;
             }
-          } catch {
-            textBuffer = line + '\n' + textBuffer;
-            break;
           }
         }
-      }
 
-      // Process remaining buffer
-      if (textBuffer.trim()) {
-        for (let raw of textBuffer.split('\n')) {
-          if (!raw) continue;
-          if (raw.endsWith('\r')) raw = raw.slice(0, -1);
-          if (raw.startsWith(':') || raw.trim() === '') continue;
-          if (!raw.startsWith('data: ')) continue;
-          const jsonStr = raw.slice(6).trim();
-          if (jsonStr === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              assistantContent += content;
-              setMessages(prev => {
-                const newMessages = [...prev];
-                const lastIdx = newMessages.length - 1;
-                if (newMessages[lastIdx]?.role === 'assistant') {
-                  newMessages[lastIdx] = { ...newMessages[lastIdx], content: assistantContent };
-                }
-                return newMessages;
-              });
-            }
-          } catch { /* ignore */ }
+        // Process remaining buffer
+        if (textBuffer.trim()) {
+          for (let raw of textBuffer.split('\n')) {
+            if (!raw) continue;
+            if (raw.endsWith('\r')) raw = raw.slice(0, -1);
+            if (raw.startsWith(':') || raw.trim() === '') continue;
+            if (!raw.startsWith('data: ')) continue;
+            const jsonStr = raw.slice(6).trim();
+            if (jsonStr === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
+                assistantContent += content;
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  const lastIdx = newMessages.length - 1;
+                  if (newMessages[lastIdx]?.role === 'assistant') {
+                    newMessages[lastIdx] = { ...newMessages[lastIdx], content: assistantContent };
+                  }
+                  return newMessages;
+                });
+              }
+            } catch { /* ignore */ }
+          }
         }
       }
 
@@ -303,7 +378,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
       const responseTime = Date.now() - startTime;
       const messageId = await saveMessage(conversationId, 'assistant', assistantContent, {
         response_time_ms: responseTime,
-        model: 'google/gemini-2.5-flash'
+        model: image ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash'
       });
 
       // Update the message with its ID for feedback
@@ -331,6 +406,12 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
   const startNewConversation = useCallback(() => {
     setCurrentConversationId(null);
     setMessages([]);
+    setReportPreview(null);
+  }, []);
+
+  // Clear report preview
+  const clearReportPreview = useCallback(() => {
+    setReportPreview(null);
   }, []);
 
   // Delete a conversation
@@ -380,10 +461,11 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
     }
   }, [user?.id]);
 
-  // Load conversations on mount
+  // Load conversations and alerts on mount
   useEffect(() => {
     fetchConversations();
-  }, [fetchConversations]);
+    fetchProactiveAlerts();
+  }, [fetchConversations, fetchProactiveAlerts]);
 
   return {
     messages,
@@ -391,11 +473,15 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
     currentConversationId,
     isLoading,
     isLoadingConversations,
+    reportPreview,
+    proactiveAlerts,
     sendMessage,
     loadConversation,
     startNewConversation,
     deleteConversation,
     submitFeedback,
-    fetchConversations
+    fetchConversations,
+    clearReportPreview,
+    dismissAlert
   };
 }

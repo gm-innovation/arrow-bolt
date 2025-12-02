@@ -6,16 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { FileText, Check, X, Edit2 } from 'lucide-react';
-
-interface ReportFields {
-  reportedIssue: string;
-  executedWork: string;
-  result: string;
-  brandInfo?: string;
-  modelInfo?: string;
-  serialNumber?: string;
-  observations?: string;
-}
+import type { ReportFields } from '@/hooks/useAIChat';
 
 interface AIReportPreviewProps {
   fields: ReportFields;

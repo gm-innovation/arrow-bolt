@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { useAIChat } from '@/hooks/useAIChat';
+import { useAIChat, type ReportFields } from '@/hooks/useAIChat';
 import { AIMessageFeedback } from './AIMessageFeedback';
 import { AIConversationList } from './AIConversationList';
 import { AIActionButton, detectActionsFromResponse } from './AIActionButton';
+import { AIPhotoUpload } from './AIPhotoUpload';
+import { AIReportPreview } from './AIReportPreview';
+import { useNavigate } from 'react-router-dom';
 
 interface AIChatProps {
   userRole: string;
@@ -16,6 +19,7 @@ interface AIChatProps {
     serviceOrderId?: string;
     companyId?: string;
     currentScreen?: string;
+    taskId?: string;
     taskData?: Record<string, unknown>;
     serviceOrderData?: Record<string, unknown>;
   };
@@ -25,7 +29,7 @@ const quickSuggestions: Record<string, string[]> = {
   technician: [
     "Como resolver problema de sinal fraco?",
     "Quais ferramentas usar para instalação?",
-    "Quem já fez este tipo de serviço?"
+    "Gerar relatório: fiz manutenção no radar"
   ],
   admin: [
     "Qual técnico está disponível hoje?",
@@ -40,20 +44,26 @@ const quickSuggestions: Record<string, string[]> = {
 };
 
 export function AIChat({ userRole, context }: AIChatProps) {
+  const navigate = useNavigate();
   const {
     messages,
     conversations,
     currentConversationId,
     isLoading,
     isLoadingConversations,
+    reportPreview,
+    proactiveAlerts,
     sendMessage,
     loadConversation,
     startNewConversation,
     deleteConversation,
-    submitFeedback
+    submitFeedback,
+    clearReportPreview,
+    dismissAlert
   } = useAIChat({ userRole, context });
 
   const [input, setInput] = useState('');
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -66,8 +76,9 @@ export function AIChat({ userRole, context }: AIChatProps) {
 
   const handleSend = () => {
     if (!input.trim() || isLoading) return;
-    sendMessage(input);
+    sendMessage(input, selectedImage || undefined);
     setInput('');
+    setSelectedImage(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -85,6 +96,16 @@ export function AIChat({ userRole, context }: AIChatProps) {
   const handleNewConversation = () => {
     startNewConversation();
     setShowHistory(false);
+  };
+
+  const handleApplyReport = (fields: ReportFields) => {
+    clearReportPreview();
+    navigate('/tech/report-form', { 
+      state: { 
+        prefill: fields, 
+        taskId: context?.taskId 
+      } 
+    });
   };
 
   // Show conversation history panel
@@ -131,7 +152,49 @@ export function AIChat({ userRole, context }: AIChatProps) {
 
       {/* Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        {messages.length === 0 ? (
+        {/* Proactive Alerts */}
+        {proactiveAlerts.length > 0 && (
+          <div className="mb-4 space-y-2">
+            {proactiveAlerts.map((alert) => (
+              <div 
+                key={alert.id} 
+                className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-lg p-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-amber-800 dark:text-amber-200 text-sm">
+                      🔔 {alert.title}
+                    </p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
+                      {alert.message}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => dismissAlert(alert.id)}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Report Preview */}
+        {reportPreview && (
+          <div className="mb-4">
+            <AIReportPreview
+              fields={reportPreview}
+              onApply={handleApplyReport}
+              onDismiss={clearReportPreview}
+            />
+          </div>
+        )}
+
+        {messages.length === 0 && !reportPreview ? (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-8">
             <Sparkles className="h-12 w-12 text-primary/50" />
             <div>
@@ -192,7 +255,16 @@ export function AIChat({ userRole, context }: AIChatProps) {
                         )}
                       </div>
                     ) : (
-                      <span>{msg.content}</span>
+                      <div>
+                        {msg.image && (
+                          <img 
+                            src={msg.image} 
+                            alt="Imagem enviada" 
+                            className="max-w-full rounded mb-2"
+                          />
+                        )}
+                        <span>{msg.content}</span>
+                      </div>
                     )}
                   </div>
 
@@ -221,14 +293,20 @@ export function AIChat({ userRole, context }: AIChatProps) {
 
       {/* Input */}
       <div className="p-3 border-t">
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-end">
+          {userRole === 'technician' && (
+            <AIPhotoUpload
+              selectedImage={selectedImage}
+              onImageSelect={setSelectedImage}
+            />
+          )}
           <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Digite sua pergunta..."
-            className="min-h-[40px] max-h-[120px] resize-none"
+            placeholder={selectedImage ? "Descreva o que quer analisar na foto..." : "Digite sua pergunta..."}
+            className="min-h-[40px] max-h-[120px] resize-none flex-1"
             rows={1}
             disabled={isLoading}
           />
