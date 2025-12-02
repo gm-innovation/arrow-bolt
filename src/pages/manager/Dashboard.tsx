@@ -7,6 +7,7 @@ import { ManagerDashboardFilters } from "@/components/manager/dashboard/ManagerD
 import { TrendsComparison } from "@/components/manager/dashboard/TrendsComparison";
 import { DemandForecast } from "@/components/manager/dashboard/DemandForecast";
 import { ForecastAccuracy } from "@/components/manager/dashboard/ForecastAccuracy";
+import { ExportReportButton } from "@/components/manager/dashboard/ExportReportButton";
 
 interface DashboardFilters {
   startDate?: Date;
@@ -21,11 +22,12 @@ const ManagerDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Dashboard Gerencial</h2>
-          <p className="text-muted-foreground">Visão consolidada de todas as operações</p>
+          <p className="text-muted-foreground">Visao consolidada de todas as operacoes</p>
         </div>
+        <ExportReportButton filters={filters} />
       </div>
 
       <ManagerDashboardFilters filters={filters} onFiltersChange={setFilters} />
