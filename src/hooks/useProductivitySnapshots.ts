@@ -85,92 +85,199 @@ export const useProductivitySnapshots = (dateRange?: { start: Date; end: Date })
   });
 };
 
+// Novo hook que calcula produtividade em tempo real baseado em tasks e time_entries
 export const useTechnicianProductivity = (dateRange?: { start: Date; end: Date }) => {
-  const { data: snapshots = [], isLoading } = useProductivitySnapshots(dateRange);
+  const { user } = useAuth();
 
-  // Group by technician and calculate aggregates
-  const productivityByTechnician = snapshots.reduce((acc, snapshot) => {
-    const techId = snapshot.technician_id;
-    
-    if (!acc[techId]) {
-      const techProfile = Array.isArray(snapshot.technician?.profile) 
-        ? snapshot.technician?.profile[0] 
-        : snapshot.technician?.profile;
-      
-      acc[techId] = {
-        technician_id: techId,
-        technician_name: techProfile?.full_name || 'Técnico',
-        avatar_url: techProfile?.avatar_url || null,
-        total_tasks_completed: 0,
-        total_tasks_assigned: 0,
-        total_hours_worked: 0,
-        completion_rate: 0,
-        avg_task_duration: 0,
-        avg_satisfaction: 0,
-        trend: 'stable' as const,
-        snapshots: [],
-      };
-    }
+  const { data: productivityData, isLoading } = useQuery({
+    queryKey: ['technician-productivity-realtime', user?.id, dateRange?.start, dateRange?.end],
+    queryFn: async () => {
+      if (!user?.id) return [];
 
-    acc[techId].total_tasks_completed += snapshot.tasks_completed || 0;
-    acc[techId].total_tasks_assigned += snapshot.tasks_assigned || 0;
-    acc[techId].total_hours_worked += snapshot.hours_worked || 0;
-    acc[techId].snapshots.push(snapshot);
+      // Get user's company
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
 
-    return acc;
-  }, {} as Record<string, TechnicianProductivity>);
+      if (!profile?.company_id) return [];
 
-  // Calculate rates and trends
-  const productivityList = Object.values(productivityByTechnician).map((tech) => {
-    // Completion rate
-    tech.completion_rate = tech.total_tasks_assigned > 0
-      ? (tech.total_tasks_completed / tech.total_tasks_assigned) * 100
-      : 0;
+      // Get all technicians in the company with their profiles
+      const { data: technicians, error: techError } = await supabase
+        .from('technicians')
+        .select(`
+          id,
+          user_id,
+          active,
+          profile:profiles!technicians_user_id_fkey (
+            full_name,
+            avatar_url
+          )
+        `)
+        .eq('company_id', profile.company_id)
+        .eq('active', true);
 
-    // Average task duration
-    const durations = tech.snapshots
-      .filter(s => s.average_task_duration !== null)
-      .map(s => s.average_task_duration!);
-    tech.avg_task_duration = durations.length > 0
-      ? durations.reduce((a, b) => a + b, 0) / durations.length
-      : 0;
+      if (techError) throw techError;
+      if (!technicians || technicians.length === 0) return [];
 
-    // Average satisfaction
-    const satisfactions = tech.snapshots
-      .filter(s => s.satisfaction_avg !== null)
-      .map(s => s.satisfaction_avg!);
-    tech.avg_satisfaction = satisfactions.length > 0
-      ? satisfactions.reduce((a, b) => a + b, 0) / satisfactions.length
-      : 0;
+      const technicianIds = technicians.map(t => t.id);
 
-    // Trend calculation (compare first half vs second half)
-    if (tech.snapshots.length >= 2) {
-      const mid = Math.floor(tech.snapshots.length / 2);
-      const firstHalf = tech.snapshots.slice(0, mid);
-      const secondHalf = tech.snapshots.slice(mid);
+      // Build tasks query with date filter
+      let tasksQuery = supabase
+        .from('tasks')
+        .select('id, assigned_to, status, completed_at, created_at')
+        .in('assigned_to', technicianIds);
 
-      const firstHalfAvg = firstHalf.reduce((sum, s) => sum + (s.tasks_completed || 0), 0) / firstHalf.length;
-      const secondHalfAvg = secondHalf.reduce((sum, s) => sum + (s.tasks_completed || 0), 0) / secondHalf.length;
-
-      if (secondHalfAvg > firstHalfAvg * 1.1) {
-        tech.trend = 'up';
-      } else if (secondHalfAvg < firstHalfAvg * 0.9) {
-        tech.trend = 'down';
+      if (dateRange) {
+        tasksQuery = tasksQuery
+          .gte('created_at', dateRange.start.toISOString())
+          .lte('created_at', dateRange.end.toISOString());
       }
-    }
 
-    return tech;
+      const { data: tasks, error: tasksError } = await tasksQuery;
+      if (tasksError) throw tasksError;
+
+      // Build time_entries query with date filter
+      let timeEntriesQuery = supabase
+        .from('time_entries')
+        .select('id, technician_id, entry_date, start_time, end_time')
+        .in('technician_id', technicianIds);
+
+      if (dateRange) {
+        timeEntriesQuery = timeEntriesQuery
+          .gte('entry_date', dateRange.start.toISOString().split('T')[0])
+          .lte('entry_date', dateRange.end.toISOString().split('T')[0]);
+      }
+
+      const { data: timeEntries, error: timeError } = await timeEntriesQuery;
+      if (timeError) throw timeError;
+
+      // Calculate productivity for each technician
+      const productivityMap: Record<string, TechnicianProductivity> = {};
+
+      for (const tech of technicians) {
+        const techProfile = Array.isArray(tech.profile) ? tech.profile[0] : tech.profile;
+        
+        // Filter tasks for this technician
+        const techTasks = tasks?.filter(t => t.assigned_to === tech.id) || [];
+        const completedTasks = techTasks.filter(t => t.status === 'completed');
+        
+        // Calculate hours worked from time_entries
+        const techTimeEntries = timeEntries?.filter(te => te.technician_id === tech.id) || [];
+        let totalHours = 0;
+        
+        for (const entry of techTimeEntries) {
+          const [startHour, startMin] = entry.start_time.split(':').map(Number);
+          const [endHour, endMin] = entry.end_time.split(':').map(Number);
+          const startMinutes = startHour * 60 + startMin;
+          const endMinutes = endHour * 60 + endMin;
+          const hours = (endMinutes - startMinutes) / 60;
+          if (hours > 0) totalHours += hours;
+        }
+
+        // Calculate average task duration (time from creation to completion)
+        let avgDuration = 0;
+        const completedWithDates = completedTasks.filter(t => t.completed_at && t.created_at);
+        if (completedWithDates.length > 0) {
+          const totalDuration = completedWithDates.reduce((sum, task) => {
+            const created = new Date(task.created_at);
+            const completed = new Date(task.completed_at!);
+            const durationHours = (completed.getTime() - created.getTime()) / (1000 * 60 * 60);
+            return sum + durationHours;
+          }, 0);
+          avgDuration = totalDuration / completedWithDates.length;
+        }
+
+        // Calculate completion rate
+        const completionRate = techTasks.length > 0 
+          ? (completedTasks.length / techTasks.length) * 100 
+          : 0;
+
+        // Create mock snapshots for trend calculation (group by date)
+        const tasksByDate: Record<string, { completed: number; assigned: number; hours: number }> = {};
+        
+        for (const task of techTasks) {
+          const date = task.created_at.split('T')[0];
+          if (!tasksByDate[date]) {
+            tasksByDate[date] = { completed: 0, assigned: 0, hours: 0 };
+          }
+          tasksByDate[date].assigned++;
+          if (task.status === 'completed') {
+            tasksByDate[date].completed++;
+          }
+        }
+
+        for (const entry of techTimeEntries) {
+          const date = entry.entry_date;
+          if (!tasksByDate[date]) {
+            tasksByDate[date] = { completed: 0, assigned: 0, hours: 0 };
+          }
+          const [startHour, startMin] = entry.start_time.split(':').map(Number);
+          const [endHour, endMin] = entry.end_time.split(':').map(Number);
+          const hours = ((endHour * 60 + endMin) - (startHour * 60 + startMin)) / 60;
+          if (hours > 0) tasksByDate[date].hours += hours;
+        }
+
+        const sortedDates = Object.keys(tasksByDate).sort();
+        const snapshots: ProductivitySnapshot[] = sortedDates.map(date => ({
+          id: `${tech.id}-${date}`,
+          technician_id: tech.id,
+          company_id: profile.company_id,
+          snapshot_date: date,
+          tasks_completed: tasksByDate[date].completed,
+          tasks_assigned: tasksByDate[date].assigned,
+          hours_worked: tasksByDate[date].hours,
+          average_task_duration: null,
+          satisfaction_avg: null,
+          created_at: date,
+        }));
+
+        // Calculate trend based on recent vs older data
+        let trend: 'up' | 'down' | 'stable' = 'stable';
+        if (snapshots.length >= 4) {
+          const mid = Math.floor(snapshots.length / 2);
+          const firstHalf = snapshots.slice(0, mid);
+          const secondHalf = snapshots.slice(mid);
+          
+          const firstHalfAvg = firstHalf.reduce((sum, s) => sum + (s.tasks_completed || 0), 0) / firstHalf.length;
+          const secondHalfAvg = secondHalf.reduce((sum, s) => sum + (s.tasks_completed || 0), 0) / secondHalf.length;
+          
+          if (secondHalfAvg > firstHalfAvg * 1.1) trend = 'up';
+          else if (secondHalfAvg < firstHalfAvg * 0.9) trend = 'down';
+        }
+
+        productivityMap[tech.id] = {
+          technician_id: tech.id,
+          technician_name: techProfile?.full_name || 'Técnico',
+          avatar_url: techProfile?.avatar_url || null,
+          total_tasks_completed: completedTasks.length,
+          total_tasks_assigned: techTasks.length,
+          total_hours_worked: totalHours,
+          completion_rate: completionRate,
+          avg_task_duration: avgDuration,
+          avg_satisfaction: 0, // Would need satisfaction data from another source
+          trend,
+          snapshots,
+        };
+      }
+
+      // Sort by completion rate descending
+      return Object.values(productivityMap)
+        .filter(p => p.total_tasks_assigned > 0 || p.total_hours_worked > 0)
+        .sort((a, b) => b.completion_rate - a.completion_rate);
+    },
+    enabled: !!user?.id,
   });
 
-  // Sort by completion rate
-  productivityList.sort((a, b) => b.completion_rate - a.completion_rate);
+  const productivity = productivityData || [];
 
   return {
-    productivity: productivityList,
+    productivity,
     isLoading,
-    totalTechnicians: productivityList.length,
-    averageCompletionRate: productivityList.length > 0
-      ? productivityList.reduce((sum, t) => sum + t.completion_rate, 0) / productivityList.length
+    totalTechnicians: productivity.length,
+    averageCompletionRate: productivity.length > 0
+      ? productivity.reduce((sum, t) => sum + t.completion_rate, 0) / productivity.length
       : 0,
   };
 };
