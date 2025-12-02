@@ -11,3 +11,21 @@ verify_jwt = false
 
 [functions.ai-assistant]
 verify_jwt = false
+
+[functions.generate-embeddings]
+verify_jwt = false
+
+[functions.delete-user]
+verify_jwt = true
+
+[functions.update-user]
+verify_jwt = true
+
+[functions.extract-certificate-data]
+verify_jwt = true
+
+[functions.extract-technician-data]
+verify_jwt = true
+
+[functions.demand-forecast]
+verify_jwt = true

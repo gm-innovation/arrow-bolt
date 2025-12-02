@@ -36,6 +36,7 @@ import AdminReports from "./pages/admin/Reports";
 import AdminProfile from "./pages/admin/Profile";
 import AdminSettings from "./pages/admin/Settings";
 import MeasurementSettings from "./pages/admin/MeasurementSettings";
+import AIAnalytics from "./pages/admin/AIAnalytics";
 
 import ManagerDashboard from "./pages/manager/Dashboard";
 import ManagerCoordinators from "./pages/manager/Coordinators";
@@ -372,6 +373,16 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['admin']}>
                     <DashboardLayout userType="admin">
                       <MeasurementSettings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/ai-analytics"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <AIAnalytics />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
