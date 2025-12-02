@@ -4,6 +4,7 @@ import { ManagerCharts } from "@/components/manager/dashboard/ManagerCharts";
 import { ConsolidatedCalendar } from "@/components/manager/dashboard/ConsolidatedCalendar";
 import { CriticalOrdersCard } from "@/components/manager/dashboard/CriticalOrdersCard";
 import { ManagerDashboardFilters } from "@/components/manager/dashboard/ManagerDashboardFilters";
+import { TrendsComparison } from "@/components/manager/dashboard/TrendsComparison";
 
 interface DashboardFilters {
   startDate?: Date;
@@ -30,6 +31,8 @@ const ManagerDashboard = () => {
       <ManagerStats filters={filters} />
       
       <CriticalOrdersCard />
+
+      <TrendsComparison filters={filters} />
       
       <div className="grid gap-6 lg:grid-cols-2">
         <ManagerCharts filters={filters} />
