@@ -10,6 +10,21 @@ interface AIAssistantProps {
     taskTypeId?: string;
     serviceOrderId?: string;
     companyId?: string;
+    currentScreen?: string;
+    taskData?: {
+      title?: string;
+      status?: string;
+      vessel?: string;
+      client?: string;
+      tools?: string[];
+      steps?: string[];
+    };
+    serviceOrderData?: {
+      orderNumber?: string;
+      status?: string;
+      scheduledDate?: string;
+      technicians?: string[];
+    };
   };
 }
 
@@ -47,7 +62,7 @@ export function AIAssistant({ context }: AIAssistantProps) {
     <div
       className={cn(
         "fixed bottom-6 right-6 z-50 flex flex-col bg-background border rounded-lg shadow-2xl transition-all duration-200",
-        isMinimized ? "w-80 h-14" : "w-96 h-[500px] max-h-[80vh]"
+        isMinimized ? "w-80 h-14" : "w-96 h-[600px] max-h-[85vh]"
       )}
     >
       {/* Header */}
