@@ -195,8 +195,9 @@ const Reports = () => {
               .from('visit_technicians')
               .select(`
                 is_lead,
-                technician:technicians (
-                  profile:profiles (full_name)
+                technicians (
+                  user_id,
+                  profiles:user_id (full_name)
                 )
               `)
               .eq('visit_id', report.visit.id)
@@ -486,7 +487,7 @@ const Reports = () => {
       },
       team: {
         leadTechnician: report.technician?.profile?.full_name || 'N/A',
-        assistants: report.assistants?.map((a: any) => a.technician?.profile?.full_name).filter(Boolean) || [],
+        assistants: report.assistants?.map((a: any) => a.technicians?.profiles?.full_name).filter(Boolean) || [],
       },
       service: report.task?.title || serviceOrder?.description || 'Serviço não especificado',
       company: {
