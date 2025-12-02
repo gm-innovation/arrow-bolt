@@ -153,18 +153,54 @@ export const useTechnicianProductivity = (dateRange?: { start: Date; end: Date }
       const { data: timeEntries, error: timeError } = await timeEntriesQuery;
       if (timeError) throw timeError;
 
-      // Deduplicate tasks by (service_order_id, task_type_id) to count each unique task only once
-      // This prevents counting the same task multiple times when it's assigned to multiple technicians
+      // Fetch task_reports to get timeEntries from report_data as fallback
+      const taskIds = tasks?.map(t => t.id) || [];
+      const { data: taskReports } = taskIds.length > 0 
+        ? await supabase
+            .from('task_reports')
+            .select('task_id, report_data')
+            .in('task_id', taskIds)
+        : { data: [] };
+
+      // Extract timeEntries from report_data for each task
+      const reportTimeEntriesMap: Record<string, Array<{ date: string; startTime: string; endTime: string }>> = {};
+      if (taskReports) {
+        for (const report of taskReports) {
+          const reportData = report.report_data as Record<string, { timeEntries?: Array<{ date: string; startTime: string; endTime: string }> }>;
+          if (reportData) {
+            for (const [_key, data] of Object.entries(reportData)) {
+              if (data?.timeEntries && Array.isArray(data.timeEntries)) {
+                reportTimeEntriesMap[report.task_id] = data.timeEntries;
+              }
+            }
+          }
+        }
+      }
+
+      // Deduplicate tasks by (service_order_id, task_type_id) but merge status
+      // If ANY task in a group is completed, the whole group is considered completed
       const getUniqueTaskKey = (task: { service_order_id: string; task_type_id: string | null }) => 
         `${task.service_order_id}-${task.task_type_id || 'no-type'}`;
       
-      const seenTaskKeys = new Set<string>();
-      const uniqueTasks = tasks?.filter(task => {
+      // Group tasks by key
+      const taskGroups = new Map<string, typeof tasks>();
+      tasks?.forEach(task => {
         const key = getUniqueTaskKey(task);
-        if (seenTaskKeys.has(key)) return false;
-        seenTaskKeys.add(key);
-        return true;
-      }) || [];
+        if (!taskGroups.has(key)) taskGroups.set(key, []);
+        taskGroups.get(key)!.push(task);
+      });
+
+      // Merge tasks - if any task in group is completed, mark as completed for all technicians
+      const mergedTasks = Array.from(taskGroups.entries()).map(([_key, group]) => {
+        const isCompleted = group.some(t => t.status === 'completed');
+        const completedTask = group.find(t => t.status === 'completed');
+        return {
+          ...group[0],
+          status: isCompleted ? 'completed' : group[0].status,
+          completed_at: completedTask?.completed_at || group[0].completed_at,
+          technician_ids: group.map(t => t.assigned_to).filter(Boolean) as string[]
+        };
+      });
 
       // Calculate productivity for each technician
       const productivityMap: Record<string, TechnicianProductivity> = {};
@@ -172,14 +208,11 @@ export const useTechnicianProductivity = (dateRange?: { start: Date; end: Date }
       for (const tech of technicians) {
         const techProfile = Array.isArray(tech.profile) ? tech.profile[0] : tech.profile;
         
-        // Filter unique tasks for this technician (using deduplicated set)
-        const techTaskKeys = new Set(
-          tasks?.filter(t => t.assigned_to === tech.id).map(getUniqueTaskKey) || []
-        );
-        const techTasks = uniqueTasks.filter(t => techTaskKeys.has(getUniqueTaskKey(t)));
+        // Get tasks where this technician is involved (from merged groups)
+        const techTasks = mergedTasks.filter(t => t.technician_ids.includes(tech.id));
         const completedTasks = techTasks.filter(t => t.status === 'completed');
         
-        // Calculate hours worked from time_entries
+        // Calculate hours worked from time_entries table
         const techTimeEntries = timeEntries?.filter(te => te.technician_id === tech.id) || [];
         let totalHours = 0;
         
@@ -190,6 +223,26 @@ export const useTechnicianProductivity = (dateRange?: { start: Date; end: Date }
           const endMinutes = endHour * 60 + endMin;
           const hours = (endMinutes - startMinutes) / 60;
           if (hours > 0) totalHours += hours;
+        }
+
+        // Fallback: If no time_entries, try to get from task_reports
+        if (totalHours === 0) {
+          const techTaskIds = tasks?.filter(t => t.assigned_to === tech.id).map(t => t.id) || [];
+          for (const taskIdForReport of techTaskIds) {
+            const reportEntries = reportTimeEntriesMap[taskIdForReport];
+            if (reportEntries) {
+              for (const entry of reportEntries) {
+                if (entry.startTime && entry.endTime) {
+                  const [startHour, startMin] = entry.startTime.split(':').map(Number);
+                  const [endHour, endMin] = entry.endTime.split(':').map(Number);
+                  const startMinutes = startHour * 60 + startMin;
+                  const endMinutes = endHour * 60 + endMin;
+                  const hours = (endMinutes - startMinutes) / 60;
+                  if (hours > 0) totalHours += hours;
+                }
+              }
+            }
+          }
         }
 
         // Calculate average task duration (time from creation to completion)

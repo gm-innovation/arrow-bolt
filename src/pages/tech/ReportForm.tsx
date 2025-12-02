@@ -565,6 +565,64 @@ interface ServiceOrderData {
     }
   };
 
+  // Sync timeEntries to time_entries table
+  const syncTimeEntriesToDatabase = async (reportData: Record<string, TaskReport>, taskIdToSync: string) => {
+    try {
+      // Get current user
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      // Get technician_id for current user
+      const { data: techData } = await supabase
+        .from('technicians')
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .single();
+
+      if (!techData) {
+        console.log("No technician found for current user, skipping time_entries sync");
+        return;
+      }
+
+      for (const [_taskKey, report] of Object.entries(reportData)) {
+        if (report.timeEntries && report.timeEntries.length > 0) {
+          // Delete existing entries for this task/technician
+          await supabase
+            .from('time_entries')
+            .delete()
+            .eq('task_id', taskIdToSync)
+            .eq('technician_id', techData.id);
+
+          // Insert new entries
+          const entries = report.timeEntries.map(entry => ({
+            task_id: taskIdToSync,
+            technician_id: techData.id,
+            entry_type: entry.type || 'work_normal',
+            entry_date: entry.date instanceof Date 
+              ? entry.date.toISOString().split('T')[0] 
+              : new Date(entry.date).toISOString().split('T')[0],
+            start_time: entry.startTime,
+            end_time: entry.endTime
+          })).filter(e => e.start_time && e.end_time); // Only insert valid entries
+
+          if (entries.length > 0) {
+            const { error: insertError } = await supabase
+              .from('time_entries')
+              .insert(entries);
+
+            if (insertError) {
+              console.error("Error inserting time_entries:", insertError);
+            } else {
+              console.log(`Synced ${entries.length} time entries to database`);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error syncing time entries:", error);
+    }
+  };
+
   const saveReportData = async (reportData: Record<string, TaskReport>, status: "draft" | "submitted") => {
     try {
       console.log("Starting report save process...");
@@ -615,6 +673,9 @@ interface ServiceOrderData {
       }
 
       console.log("Report data saved successfully");
+
+      // Sync timeEntries to time_entries table for productivity tracking
+      await syncTimeEntriesToDatabase(reportDataWithStoragePaths, taskId!);
       
       // Update local state with the storage paths
       setTaskReports(reportDataWithStoragePaths);
