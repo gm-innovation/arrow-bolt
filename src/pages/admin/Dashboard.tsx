@@ -11,6 +11,8 @@ import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 import { useForm } from "react-hook-form";
+import { AIAssistant } from "@/components/ai/AIAssistant";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -89,6 +91,9 @@ const AdminDashboard = () => {
       <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
         <NewOrderDialog form={form} />
       </Dialog>
+
+      {/* AI Assistant */}
+      <AIAssistant />
     </div>
   );
 };
