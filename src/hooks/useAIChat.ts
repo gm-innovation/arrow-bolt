@@ -63,6 +63,26 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
   const [isLoadingConversations, setIsLoadingConversations] = useState(false);
   const [reportPreview, setReportPreview] = useState<ReportFields | null>(null);
   const [proactiveAlerts, setProactiveAlerts] = useState<ProactiveAlert[]>([]);
+  const [userCompanyId, setUserCompanyId] = useState<string | null>(context?.companyId || null);
+
+  // Fetch user's company ID if not provided in context
+  useEffect(() => {
+    const fetchCompanyId = async () => {
+      if (!user?.id || context?.companyId) return;
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.company_id) {
+        setUserCompanyId(profile.company_id);
+      }
+    };
+    
+    fetchCompanyId();
+  }, [user?.id, context?.companyId]);
 
   // Fetch proactive alerts
   const fetchProactiveAlerts = useCallback(async () => {
@@ -268,6 +288,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
           userRole,
           context: {
             ...context,
+            companyId: context?.companyId || userCompanyId,
             conversationId
           },
           messages: messages.map(m => ({ role: m.role, content: m.content }))
@@ -400,7 +421,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
     } finally {
       setIsLoading(false);
     }
-  }, [currentConversationId, messages, user?.id, userRole, context, isLoading, createConversation, saveMessage, updateConversationTitle]);
+  }, [currentConversationId, messages, user?.id, userRole, context, userCompanyId, isLoading, createConversation, saveMessage, updateConversationTitle]);
 
   // Start a new conversation
   const startNewConversation = useCallback(() => {
