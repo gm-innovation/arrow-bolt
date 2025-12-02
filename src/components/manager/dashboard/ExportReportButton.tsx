@@ -2,9 +2,16 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { FileDown, Loader2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { FileDown, Loader2, FileSpreadsheet, FileText, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { downloadManagerReport } from "./ManagerReportPDF";
+import { exportManagerReportToExcel } from "@/lib/exportUtils";
 import { format, subMonths, parseISO, eachMonthOfInterval, isSameMonth, startOfYear, endOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -22,6 +29,7 @@ interface ExportReportButtonProps {
 
 export const ExportReportButton = ({ filters }: ExportReportButtonProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [exportType, setExportType] = useState<"pdf" | "excel" | null>(null);
 
   // Fetch all data needed for the report
   const { data: stats } = useQuery({
@@ -178,13 +186,14 @@ export const ExportReportButton = ({ filters }: ExportReportButtonProps) => {
     }
   });
 
-  const handleExport = async () => {
+  const handleExportPDF = async () => {
     if (!stats || !trends) {
       toast.error("Aguarde o carregamento dos dados.");
       return;
     }
 
     setIsGenerating(true);
+    setExportType("pdf");
 
     try {
       await downloadManagerReport({
@@ -200,28 +209,73 @@ export const ExportReportButton = ({ filters }: ExportReportButtonProps) => {
         generatedAt: new Date(),
       });
 
-      toast.success("Relatorio PDF gerado com sucesso!");
+      toast.success("Relatório PDF gerado com sucesso!");
     } catch (error) {
       console.error("Error generating PDF:", error);
-      toast.error("Erro ao gerar relatorio PDF.");
+      toast.error("Erro ao gerar relatório PDF.");
     } finally {
       setIsGenerating(false);
+      setExportType(null);
     }
   };
 
+  const handleExportExcel = async () => {
+    if (!stats || !trends) {
+      toast.error("Aguarde o carregamento dos dados.");
+      return;
+    }
+
+    setIsGenerating(true);
+    setExportType("excel");
+
+    try {
+      exportManagerReportToExcel({
+        stats,
+        trends,
+        accuracy: accuracy || undefined,
+        generatedAt: new Date(),
+      });
+
+      toast.success("Relatório Excel gerado com sucesso!");
+    } catch (error) {
+      console.error("Error generating Excel:", error);
+      toast.error("Erro ao gerar relatório Excel.");
+    } finally {
+      setIsGenerating(false);
+      setExportType(null);
+    }
+  };
+
+  const isLoading = !stats || !trends;
+
   return (
-    <Button onClick={handleExport} disabled={isGenerating || !stats || !trends} variant="outline">
-      {isGenerating ? (
-        <>
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Gerando PDF...
-        </>
-      ) : (
-        <>
-          <FileDown className="h-4 w-4 mr-2" />
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" disabled={isGenerating || isLoading}>
+          {isGenerating ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              {exportType === "pdf" ? "Gerando PDF..." : "Gerando Excel..."}
+            </>
+          ) : (
+            <>
+              <FileDown className="h-4 w-4 mr-2" />
+              Exportar
+              <ChevronDown className="h-4 w-4 ml-2" />
+            </>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={handleExportPDF} disabled={isGenerating}>
+          <FileText className="h-4 w-4 mr-2" />
           Exportar PDF
-        </>
-      )}
-    </Button>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={handleExportExcel} disabled={isGenerating}>
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Exportar Excel
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 };
