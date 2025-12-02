@@ -32,3 +32,6 @@ verify_jwt = true
 
 [functions.ai-proactive-check]
 verify_jwt = false
+
+[functions.whatsapp-webhook]
+verify_jwt = false
