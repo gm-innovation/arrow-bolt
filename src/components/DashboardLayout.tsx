@@ -28,6 +28,7 @@ import { NotificationBell as AdminNotificationBell } from "@/components/admin/No
 import { ManagerNotificationBell } from "@/components/manager/NotificationBell";
 import { UserMenu } from "@/components/UserMenu";
 import { ChatButton } from "@/components/chat/ChatButton";
+import { useWhatsAppAutoNotifier } from "@/hooks/useWhatsAppAutoNotifier";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -42,6 +43,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
   const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  // Hook para enviar WhatsApp automaticamente quando notificações são criadas
+  useWhatsAppAutoNotifier();
 
   useEffect(() => {
     if (isMobile) {

@@ -90,11 +90,28 @@ export const useWhatsAppNotification = () => {
     });
   };
 
+  const sendTaskAutoCompletedNotification = async (
+    phoneNumber: string,
+    technicianName: string,
+    taskTitle: string,
+    orderNumber: string,
+    leadName: string
+  ) => {
+    const message = `✅ *Tarefa Concluída*\n\nOlá ${technicianName}!\n\nA tarefa "${taskTitle}" na OS #${orderNumber} foi concluída pelo técnico líder ${leadName}.\n\nSua participação foi registrada automaticamente.`;
+    
+    return sendWhatsAppMessage({
+      to: phoneNumber,
+      message,
+      notificationType: "task_auto_completed",
+    });
+  };
+
   return {
     sendWhatsAppMessage,
     sendTaskAssignmentNotification,
     sendScheduleChangeNotification,
     sendCriticalOrderNotification,
     sendReportSubmittedNotification,
+    sendTaskAutoCompletedNotification,
   };
 };
