@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AIAssistant } from "@/components/ai/AIAssistant";
 
 const Tasks = () => {
   const navigate = useNavigate();
@@ -497,6 +498,9 @@ const Tasks = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* AI Assistant */}
+      <AIAssistant />
     </div>
   );
 };
