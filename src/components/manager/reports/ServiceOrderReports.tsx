@@ -196,7 +196,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
               .eq('service_order_id', taskData.service_orders.id)
               .order('visit_number', { ascending: false })
               .limit(1)
-              .single();
+              .maybeSingle();
             visitId = visitData?.id;
           }
           
