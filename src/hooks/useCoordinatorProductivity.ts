@@ -133,10 +133,9 @@ export const useCoordinatorProductivity = (dateRange?: { start: Date; end: Date 
         };
       }
 
-      // Sort by completion rate
+      // Sort by completion rate (show all coordinators, even with 0 orders)
       return Object.values(productivityMap)
-        .filter(c => c.total_orders > 0)
-        .sort((a, b) => b.completion_rate - a.completion_rate);
+        .sort((a, b) => b.total_orders - a.total_orders || b.completion_rate - a.completion_rate);
     },
     enabled: !!user?.id,
   });
