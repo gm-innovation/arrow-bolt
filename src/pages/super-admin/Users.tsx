@@ -95,6 +95,8 @@ const Users = () => {
         return "Super Admin";
       case "admin":
         return "Admin";
+      case "manager":
+        return "Gerente";
       case "tech":
         return "Técnico";
       default:
@@ -136,6 +138,7 @@ const Users = () => {
             <SelectContent>
               <SelectItem value="super_admin">Super Admin</SelectItem>
               <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="manager">Gerente</SelectItem>
               <SelectItem value="tech">Técnico</SelectItem>
             </SelectContent>
           </Select>
