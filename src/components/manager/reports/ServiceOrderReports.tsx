@@ -14,16 +14,11 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Eye, FileText, Download, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
+import { TaskReport } from "@/components/tech/reports/types";
 
 interface ServiceOrderReportsProps {
   filters?: {
@@ -43,10 +38,18 @@ interface ReportData {
   pdf_path: string | null;
   approved_at: string | null;
   rejection_reason: string | null;
+  visit_id?: string | null;
   task: {
     title: string;
+    assigned_to?: string;
     service_order: {
       order_number: string;
+      location?: string;
+      access?: string;
+      description?: string;
+      scheduled_date?: string;
+      service_date_time?: string;
+      company_id?: string;
       client: { name: string } | null;
       vessel: { name: string } | null;
     };
@@ -54,6 +57,25 @@ interface ReportData {
       user: { full_name: string };
     } | null;
   };
+  supervisor?: {
+    full_name: string;
+  } | null;
+  assistants?: Array<{
+    technicians?: {
+      profiles?: {
+        full_name: string;
+      };
+    };
+  }>;
+  company?: {
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    cnpj: string;
+    cep: string;
+    logo_url: string;
+  } | null;
 }
 
 export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
@@ -85,7 +107,8 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
           pdf_path,
           approved_at,
           rejection_reason,
-          task_uuid
+          task_uuid,
+          visit_id
         `)
         .order('created_at', { ascending: false });
 
@@ -106,6 +129,12 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 id,
                 order_number,
                 company_id,
+                location,
+                access,
+                description,
+                scheduled_date,
+                service_date_time,
+                supervisor_id,
                 created_at,
                 created_by,
                 clients (name),
@@ -144,12 +173,59 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
             }
           }
 
+          // Fetch supervisor
+          let supervisorData = null;
+          if (taskData.service_orders?.supervisor_id) {
+            const { data } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', taskData.service_orders.supervisor_id)
+              .single();
+            supervisorData = data;
+          }
+
+          // Fetch visit technicians (assistants)
+          let visitTechnicians: any[] = [];
+          if (report.visit_id) {
+            const { data } = await supabase
+              .from('visit_technicians')
+              .select(`
+                is_lead,
+                technicians (
+                  user_id,
+                  profiles:user_id (full_name)
+                )
+              `)
+              .eq('visit_id', report.visit_id)
+              .eq('is_lead', false);
+            visitTechnicians = data || [];
+          }
+
+          // Fetch company data
+          let companyData = null;
+          if (taskData.service_orders?.company_id) {
+            const { data } = await supabase
+              .from('companies')
+              .select('name, email, phone, address, cnpj, cep, logo_url')
+              .eq('id', taskData.service_orders.company_id)
+              .single();
+            companyData = data;
+          }
+
           return {
             ...report,
+            visit_id: report.visit_id,
             task: {
               title: taskData.title,
+              assigned_to: taskData.assigned_to,
               service_order: {
                 order_number: taskData.service_orders.order_number,
+                location: taskData.service_orders.location,
+                access: taskData.service_orders.access,
+                description: taskData.service_orders.description,
+                scheduled_date: taskData.service_orders.scheduled_date,
+                service_date_time: taskData.service_orders.service_date_time,
+                company_id: taskData.service_orders.company_id,
                 client: taskData.service_orders.clients,
                 vessel: taskData.service_orders.vessels,
               },
@@ -157,6 +233,9 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 user: { full_name: technicianName },
               },
             },
+            supervisor: supervisorData,
+            assistants: visitTechnicians,
+            company: companyData,
           };
         })
       );
@@ -174,6 +253,8 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
         return <Badge variant="destructive"><XCircle className="w-3 h-3 mr-1" /> Rejeitado</Badge>;
       case 'pending':
         return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" /> Pendente</Badge>;
+      case 'submitted':
+        return <Badge variant="outline" className="bg-yellow-50 text-yellow-800 border-yellow-300"><Clock className="w-3 h-3 mr-1" /> Submetido</Badge>;
       default:
         return <Badge variant="outline"><AlertCircle className="w-3 h-3 mr-1" /> {status}</Badge>;
     }
@@ -203,6 +284,95 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
     } catch (error) {
       console.error('Error downloading PDF:', error);
     }
+  };
+
+  // Helper function to extract report data from nested structure
+  const extractReportData = (report: ReportData): TaskReport => {
+    if (!report.report_data) {
+      return {
+        modelInfo: '',
+        brandInfo: '',
+        serialNumber: '',
+        reportedIssue: '',
+        executedWork: '',
+        result: '',
+        nextVisitWork: '',
+        suppliedMaterial: '',
+        photos: [],
+        timeEntries: []
+      };
+    }
+    
+    // Try to access by task_id (UUID)
+    if (report.report_data[report.task_id]) {
+      return report.report_data[report.task_id];
+    }
+    
+    // Fallback: find first valid object in report_data
+    const keys = Object.keys(report.report_data);
+    if (keys.length > 0) {
+      const firstKey = keys[0];
+      const data = report.report_data[firstKey];
+      if (data && typeof data === 'object' && 'modelInfo' in data) {
+        return data;
+      }
+    }
+    
+    // If report_data itself is already the report object
+    if ('modelInfo' in report.report_data) {
+      return report.report_data;
+    }
+    
+    return {
+      modelInfo: '',
+      brandInfo: '',
+      serialNumber: '',
+      reportedIssue: '',
+      executedWork: '',
+      result: '',
+      nextVisitWork: '',
+      suppliedMaterial: '',
+      photos: [],
+      timeEntries: []
+    };
+  };
+
+  // Prepare service order data for PDF
+  const getServiceOrderData = (report: ReportData) => {
+    const serviceOrder = report.task?.service_order;
+    const company = report.company;
+    
+    return {
+      id: serviceOrder?.order_number || 'N/A',
+      date: serviceOrder?.service_date_time 
+        ? new Date(serviceOrder.service_date_time) 
+        : serviceOrder?.scheduled_date 
+          ? new Date(serviceOrder.scheduled_date)
+          : new Date(),
+      location: serviceOrder?.location || 'Local não especificado',
+      access: serviceOrder?.access || 'Acesso padrão',
+      requester: {
+        name: serviceOrder?.client?.name || 'N/A',
+        role: 'Cliente',
+      },
+      supervisor: {
+        name: report.supervisor?.full_name || 'N/A',
+      },
+      team: {
+        leadTechnician: report.task?.technician?.user.full_name || 'N/A',
+        assistants: report.assistants?.map((a: any) => a.technicians?.profiles?.full_name).filter(Boolean) || [],
+      },
+      service: report.task?.title || serviceOrder?.description || 'Serviço não especificado',
+      company: {
+        name: company?.name?.trim() || 'Empresa não especificada',
+        email: company?.email?.trim() || '',
+        phone: company?.phone?.trim() || '',
+        address: company?.address?.trim() || '',
+        cnpj: company?.cnpj?.trim() || '',
+        cep: company?.cep?.trim() || '',
+        logoUrl: company?.logo_url?.trim() || '',
+      },
+    };
   };
 
   if (isLoading) {
@@ -240,6 +410,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 <TableHead>Embarcação</TableHead>
                 <TableHead>Tarefa</TableHead>
                 <TableHead>Técnico</TableHead>
+                <TableHead>Supervisor</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead>Data</TableHead>
                 <TableHead className="text-center">Ações</TableHead>
@@ -256,6 +427,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                     <TableCell>{report.task.service_order.vessel?.name || 'N/A'}</TableCell>
                     <TableCell>{report.task.title}</TableCell>
                     <TableCell>{report.task.technician?.user.full_name || 'N/A'}</TableCell>
+                    <TableCell>{report.supervisor?.full_name || 'N/A'}</TableCell>
                     <TableCell className="text-center">
                       {getStatusBadge(report.status)}
                     </TableCell>
@@ -268,7 +440,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleViewReport(report)}
-                          title="Ver detalhes"
+                          title="Ver relatório completo"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -288,7 +460,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground">
                     Nenhum relatório encontrado
                   </TableCell>
                 </TableRow>
@@ -298,149 +470,16 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
         </CardContent>
       </Card>
 
-      {/* Report Details Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle>
-              Detalhes do Relatório - OS {selectedReport?.task.service_order.order_number}
-            </DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="max-h-[60vh] pr-4">
-            {selectedReport && (
-              <div className="space-y-6">
-                {/* Header Info */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Cliente</p>
-                    <p className="font-medium">{selectedReport.task.service_order.client?.name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Embarcação</p>
-                    <p className="font-medium">{selectedReport.task.service_order.vessel?.name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Técnico</p>
-                    <p className="font-medium">{selectedReport.task.technician?.user.full_name || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    {getStatusBadge(selectedReport.status)}
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Data de Criação</p>
-                    <p className="font-medium">
-                      {format(new Date(selectedReport.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </p>
-                  </div>
-                  {selectedReport.approved_at && (
-                    <div>
-                      <p className="text-sm text-muted-foreground">Data de Aprovação</p>
-                      <p className="font-medium">
-                        {format(new Date(selectedReport.approved_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {selectedReport.rejection_reason && (
-                  <div className="p-4 bg-destructive/10 rounded-lg">
-                    <p className="text-sm text-muted-foreground">Motivo da Rejeição</p>
-                    <p className="text-destructive">{selectedReport.rejection_reason}</p>
-                  </div>
-                )}
-
-                {/* Report Data */}
-                <div className="space-y-4">
-                  <h4 className="font-semibold">Dados do Relatório</h4>
-                  
-                  {/* Time Entries */}
-                  {selectedReport.report_data?.timeEntries && selectedReport.report_data.timeEntries.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium mb-2">Registros de Tempo</p>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Tipo</TableHead>
-                            <TableHead>Data</TableHead>
-                            <TableHead>Início</TableHead>
-                            <TableHead>Fim</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {selectedReport.report_data.timeEntries.map((entry: any, idx: number) => (
-                            <TableRow key={idx}>
-                              <TableCell>{entry.type}</TableCell>
-                              <TableCell>{entry.date}</TableCell>
-                              <TableCell>{entry.startTime}</TableCell>
-                              <TableCell>{entry.endTime}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  )}
-
-                  {/* Notes */}
-                  {selectedReport.report_data?.notes && (
-                    <div>
-                      <p className="text-sm font-medium mb-2">Observações</p>
-                      <p className="p-3 bg-muted rounded-lg">{selectedReport.report_data.notes}</p>
-                    </div>
-                  )}
-
-                  {/* Equipment Info */}
-                  {selectedReport.report_data?.equipment && (
-                    <div>
-                      <p className="text-sm font-medium mb-2">Informações do Equipamento</p>
-                      <div className="grid grid-cols-2 gap-2 p-3 bg-muted rounded-lg">
-                        {Object.entries(selectedReport.report_data.equipment).map(([key, value]) => (
-                          <div key={key}>
-                            <span className="text-muted-foreground capitalize">{key}: </span>
-                            <span>{String(value)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Steps */}
-                  {selectedReport.report_data?.steps && selectedReport.report_data.steps.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium mb-2">Etapas Realizadas</p>
-                      <ul className="list-disc list-inside space-y-1">
-                        {selectedReport.report_data.steps.map((step: any, idx: number) => (
-                          <li key={idx} className={step.completed ? 'text-green-600' : 'text-muted-foreground'}>
-                            {step.name} {step.completed && '✓'}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Photos */}
-                  {selectedReport.report_data?.photos && selectedReport.report_data.photos.length > 0 && (
-                    <div>
-                      <p className="text-sm font-medium mb-2">Fotos ({selectedReport.report_data.photos.length})</p>
-                      <div className="grid grid-cols-3 gap-2">
-                        {selectedReport.report_data.photos.map((photo: any, idx: number) => (
-                          <div key={idx} className="aspect-square bg-muted rounded-lg overflow-hidden">
-                            <img 
-                              src={photo.url || photo} 
-                              alt={`Foto ${idx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
+      {/* PDF Preview Dialog */}
+      {selectedReport && (
+        <PDFPreviewDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          report={extractReportData(selectedReport)}
+          taskId={selectedReport.task_id}
+          serviceOrder={getServiceOrderData(selectedReport)}
+        />
+      )}
     </>
   );
 }
