@@ -204,6 +204,16 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/manager/measurement-settings"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <DashboardLayout userType="manager">
+                      <MeasurementSettings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Admin Routes */}
               <Route
