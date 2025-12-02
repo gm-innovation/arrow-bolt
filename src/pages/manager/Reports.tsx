@@ -1,7 +1,46 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart3, TrendingUp, Users, ClipboardList } from "lucide-react";
+import { useState } from "react";
+import { useManagerReports } from "@/hooks/useManagerReports";
+import { ReportsFilters } from "@/components/manager/reports/ReportsFilters";
+import { MetricsCards } from "@/components/manager/reports/MetricsCards";
+import { ReportsCharts } from "@/components/manager/reports/ReportsCharts";
+import { CoordinatorTable } from "@/components/manager/reports/CoordinatorTable";
+import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
+import { toast } from "sonner";
 
 const ManagerReports = () => {
+  const [filters, setFilters] = useState<{
+    startDate?: Date;
+    endDate?: Date;
+    coordinatorId?: string | null;
+  }>({});
+
+  const { metrics, coordinatorComparison, monthlyTrend, isLoading } = useManagerReports(filters);
+
+  const handleExport = () => {
+    if (!coordinatorComparison || coordinatorComparison.length === 0) {
+      toast.error("Nenhum dado disponível para exportar");
+      return;
+    }
+
+    try {
+      const exportData = coordinatorComparison.map((item) => ({
+        Coordenador: item.coordinator_name,
+        "Total de OSs": item.total_orders,
+        "OSs Concluídas": item.completed_orders,
+        "OSs em Andamento": item.in_progress_orders,
+        "OSs Pendentes": item.pending_orders,
+        "Taxa de Conclusão (%)": item.completion_rate,
+      }));
+
+      const fileName = `relatorio-coordenadores-${formatDateForExport(new Date())}`;
+      exportToCSV(exportData, fileName);
+      toast.success("Relatório exportado com sucesso!");
+    } catch (error) {
+      console.error("Error exporting report:", error);
+      toast.error("Erro ao exportar relatório");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -9,64 +48,17 @@ const ManagerReports = () => {
         <p className="text-muted-foreground">Análises e métricas da empresa</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de OSs</CardTitle>
-            <ClipboardList className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">-</div>
-            <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Coordenadores</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">-</div>
-            <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Performance</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">-</div>
-            <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Análises</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">-</div>
-            <p className="text-xs text-muted-foreground">Em desenvolvimento</p>
-          </CardContent>
-        </Card>
-      </div>
+      <ReportsFilters onFilterChange={setFilters} onExport={handleExport} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Relatórios Detalhados</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            Funcionalidade de relatórios consolidados em desenvolvimento. 
-            Em breve você terá acesso a análises detalhadas de desempenho, 
-            gráficos comparativos e métricas avançadas.
-          </p>
-        </CardContent>
-      </Card>
+      <MetricsCards metrics={metrics} isLoading={isLoading} />
+
+      <ReportsCharts
+        monthlyTrend={monthlyTrend}
+        coordinatorComparison={coordinatorComparison}
+        isLoading={isLoading}
+      />
+
+      <CoordinatorTable data={coordinatorComparison} isLoading={isLoading} />
     </div>
   );
 };
