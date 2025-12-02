@@ -230,6 +230,7 @@ const Reports = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // 1. Aprovar o relatório
       const { error } = await supabase
         .from('task_reports')
         .update({
@@ -242,9 +243,35 @@ const Reports = () => {
 
       if (error) throw error;
 
+      // 2. Buscar task_id do relatório aprovado
+      const { data: reportData } = await supabase
+        .from('task_reports')
+        .select('task_uuid')
+        .eq('id', reportId)
+        .single();
+
+      // 3. Atualizar status da OS para 'completed'
+      if (reportData?.task_uuid) {
+        const { data: taskData } = await supabase
+          .from('tasks')
+          .select('service_order_id')
+          .eq('id', reportData.task_uuid)
+          .single();
+
+        if (taskData?.service_order_id) {
+          await supabase
+            .from('service_orders')
+            .update({ 
+              status: 'completed',
+              completed_date: new Date().toISOString().split('T')[0]
+            })
+            .eq('id', taskData.service_order_id);
+        }
+      }
+
       toast({
         title: "Relatório aprovado",
-        description: "O relatório foi aprovado com sucesso.",
+        description: "O relatório foi aprovado e a OS foi concluída.",
       });
 
       fetchReports();

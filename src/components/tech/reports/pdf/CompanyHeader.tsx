@@ -44,7 +44,7 @@ export const CompanyHeader = ({ company }: CompanyHeaderProps) => (
     <View style={styles.companyInfo}>
       <Text>{company.name}</Text>
       <Text>{company.address}</Text>
-      {company.cep && <Text>CEP: {company.cep}</Text>}
+      {company.cep?.trim() && <Text>CEP: {company.cep.trim()}</Text>}
       {company.phone && <Text>Tel: {company.phone}</Text>}
       {company.cnpj && <Text>CNPJ: {company.cnpj}</Text>}
     </View>
