@@ -11,12 +11,25 @@ export const CoordinatorFilter = ({ selectedCoordinator, onCoordinatorChange }: 
   const { data: coordinators } = useQuery({
     queryKey: ["coordinators-filter"],
     queryFn: async () => {
+      // Get current user's company
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!currentProfile?.company_id) return [];
+
       const { data: adminRoles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "admin");
 
       if (rolesError) throw rolesError;
+      if (!adminRoles || adminRoles.length === 0) return [];
 
       const userIds = adminRoles.map(r => r.user_id);
 
@@ -24,10 +37,11 @@ export const CoordinatorFilter = ({ selectedCoordinator, onCoordinatorChange }: 
         .from("profiles")
         .select("id, full_name, email")
         .in("id", userIds)
+        .eq("company_id", currentProfile.company_id)
         .order("full_name");
 
       if (profilesError) throw profilesError;
-      return profiles;
+      return profiles || [];
     }
   });
 
