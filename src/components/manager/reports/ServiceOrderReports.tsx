@@ -424,6 +424,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 <TableHead>Embarcação</TableHead>
                 <TableHead>Tarefa</TableHead>
                 <TableHead>Técnico</TableHead>
+                <TableHead>Auxiliar(es)</TableHead>
                 <TableHead>Supervisor</TableHead>
                 <TableHead className="text-center">Status</TableHead>
                 <TableHead>Data</TableHead>
@@ -441,6 +442,11 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                     <TableCell>{report.task.service_order.vessel?.name || 'N/A'}</TableCell>
                     <TableCell>{report.task.title}</TableCell>
                     <TableCell>{report.task.technician?.user.full_name || 'N/A'}</TableCell>
+                    <TableCell>
+                      {report.assistants && report.assistants.length > 0
+                        ? report.assistants.map((a: any) => a.technicians?.profiles?.full_name).filter(Boolean).join(', ') || 'N/A'
+                        : 'N/A'}
+                    </TableCell>
                     <TableCell>{report.supervisor?.full_name || 'N/A'}</TableCell>
                     <TableCell className="text-center">
                       {getStatusBadge(report.status)}
@@ -474,7 +480,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="text-center text-muted-foreground">
                     Nenhum relatório encontrado
                   </TableCell>
                 </TableRow>
