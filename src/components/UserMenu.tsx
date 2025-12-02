@@ -49,7 +49,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
     switch (userType) {
       case "super-admin": return "/super-admin/settings";
       case "admin": return "/admin/profile";
-      case "manager": return "/manager/dashboard";
+      case "manager": return "/manager/profile";
       case "tech": return "/tech/profile";
       default: return "/";
     }
@@ -59,7 +59,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
     switch (userType) {
       case "super-admin": return "/super-admin/settings";
       case "admin": return "/admin/settings";
-      case "manager": return "/manager/dashboard";
+      case "manager": return "/manager/settings";
       case "tech": return "/tech/settings";
       default: return "/";
     }
