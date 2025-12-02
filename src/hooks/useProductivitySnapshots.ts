@@ -123,10 +123,10 @@ export const useTechnicianProductivity = (dateRange?: { start: Date; end: Date }
 
       const technicianIds = technicians.map(t => t.id);
 
-      // Build tasks query with date filter
+      // Build tasks query with date filter - include service_order_id and task_type_id for deduplication
       let tasksQuery = supabase
         .from('tasks')
-        .select('id, assigned_to, status, completed_at, created_at')
+        .select('id, assigned_to, status, completed_at, created_at, service_order_id, task_type_id')
         .in('assigned_to', technicianIds);
 
       if (dateRange) {
@@ -153,14 +153,30 @@ export const useTechnicianProductivity = (dateRange?: { start: Date; end: Date }
       const { data: timeEntries, error: timeError } = await timeEntriesQuery;
       if (timeError) throw timeError;
 
+      // Deduplicate tasks by (service_order_id, task_type_id) to count each unique task only once
+      // This prevents counting the same task multiple times when it's assigned to multiple technicians
+      const getUniqueTaskKey = (task: { service_order_id: string; task_type_id: string | null }) => 
+        `${task.service_order_id}-${task.task_type_id || 'no-type'}`;
+      
+      const seenTaskKeys = new Set<string>();
+      const uniqueTasks = tasks?.filter(task => {
+        const key = getUniqueTaskKey(task);
+        if (seenTaskKeys.has(key)) return false;
+        seenTaskKeys.add(key);
+        return true;
+      }) || [];
+
       // Calculate productivity for each technician
       const productivityMap: Record<string, TechnicianProductivity> = {};
 
       for (const tech of technicians) {
         const techProfile = Array.isArray(tech.profile) ? tech.profile[0] : tech.profile;
         
-        // Filter tasks for this technician
-        const techTasks = tasks?.filter(t => t.assigned_to === tech.id) || [];
+        // Filter unique tasks for this technician (using deduplicated set)
+        const techTaskKeys = new Set(
+          tasks?.filter(t => t.assigned_to === tech.id).map(getUniqueTaskKey) || []
+        );
+        const techTasks = uniqueTasks.filter(t => techTaskKeys.has(getUniqueTaskKey(t)));
         const completedTasks = techTasks.filter(t => t.status === 'completed');
         
         // Calculate hours worked from time_entries
