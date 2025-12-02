@@ -55,7 +55,7 @@ interface NewOrderFormProps {
 export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: NewOrderFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const { sendTaskAssignmentNotification } = useWhatsAppNotification();
+  const { sendTaskAssignmentNotification, sendScheduleChangeNotification } = useWhatsAppNotification();
   const [clients, setClients] = useState<any[]>([]);
   const [vessels, setVessels] = useState<any[]>([]);
   const [supervisors, setSupervisors] = useState<any[]>([]);
@@ -64,6 +64,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
   const [leadTechId, setLeadTechId] = useState<string>("");
   const [taskTypes, setTaskTypes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [originalScheduledDate, setOriginalScheduledDate] = useState<string>("");
+  const [originalOrderNumber, setOriginalOrderNumber] = useState<string>("");
 
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderFormSchema),
@@ -219,6 +221,10 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         // Format: YYYY-MM-DDTHH:MM (required by datetime-local input)
         formattedServiceDateTime = date.toISOString().slice(0, 16);
       }
+
+      // Save original values for change detection
+      setOriginalScheduledDate(orderData.scheduled_date || "");
+      setOriginalOrderNumber(orderData.order_number || "");
 
       // Populate form with ALL fields
       form.reset({
@@ -394,6 +400,26 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             .insert(tasksToInsert);
 
           if (tasksError) throw tasksError;
+        }
+
+        // Send WhatsApp notification if schedule changed
+        if (originalScheduledDate && data.scheduledDate !== originalScheduledDate) {
+          const formattedDate = new Date(data.scheduledDate).toLocaleDateString('pt-BR');
+          
+          for (const techId of selectedTechnicians) {
+            const tech = technicians.find(t => t.id === techId);
+            const phoneNumber = tech?.profiles?.phone;
+            const techName = tech?.profiles?.full_name || "Técnico";
+
+            if (phoneNumber) {
+              sendScheduleChangeNotification(
+                phoneNumber,
+                techName,
+                originalOrderNumber || orderNumber || "",
+                formattedDate
+              ).catch(err => console.error("WhatsApp schedule notification failed:", err));
+            }
+          }
         }
 
         toast({
