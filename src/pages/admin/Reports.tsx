@@ -147,6 +147,7 @@ const Reports = () => {
               scheduled_date,
               service_date_time,
               supervisor_id,
+              company_id,
               vessel:vessels (name),
               client:clients (name)
             )
@@ -160,12 +161,13 @@ const Reports = () => {
 
       if (error) throw error;
 
-      // Fetch technician info, supervisor, and visit technicians for each report
+      // Fetch technician info, supervisor, visit technicians, and company for each report
       const reportsWithTechs = await Promise.all(
         (data || []).map(async (report: any) => {
           let techData = null;
           let supervisorData = null;
           let visitTechnicians = [];
+          let companyData = null;
 
           // Fetch assigned technician
           if (report.task?.assigned_to) {
@@ -201,12 +203,23 @@ const Reports = () => {
               .eq('is_lead', false);
             visitTechnicians = data || [];
           }
+
+          // Fetch company data
+          if (report.task?.service_order?.company_id) {
+            const { data } = await supabase
+              .from('companies')
+              .select('name, email, phone, address, cnpj, cep, logo_url')
+              .eq('id', report.task.service_order.company_id)
+              .single();
+            companyData = data;
+          }
           
           return { 
             ...report, 
             technician: techData,
             supervisor: supervisorData,
-            assistants: visitTechnicians
+            assistants: visitTechnicians,
+            company: companyData
           };
         })
       );
@@ -453,6 +466,7 @@ const Reports = () => {
   // Prepare service order data for PDF
   const getServiceOrderData = (report: Report) => {
     const serviceOrder = report.task?.service_order;
+    const company = (report as any).company;
     
     return {
       id: serviceOrder?.order_number || 'N/A',
@@ -476,13 +490,13 @@ const Reports = () => {
       },
       service: report.task?.title || serviceOrder?.description || 'Serviço não especificado',
       company: {
-        name: 'Empresa não especificada',
-        email: '',
-        phone: '',
-        address: '',
-        cnpj: '',
-        cep: '',
-        logoUrl: '',
+        name: company?.name?.trim() || 'Empresa não especificada',
+        email: company?.email?.trim() || '',
+        phone: company?.phone?.trim() || '',
+        address: company?.address?.trim() || '',
+        cnpj: company?.cnpj?.trim() || '',
+        cep: company?.cep?.trim() || '',
+        logoUrl: company?.logo_url?.trim() || '',
       },
     };
   };
