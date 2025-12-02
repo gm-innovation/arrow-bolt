@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { ManagerStats } from "@/components/manager/dashboard/ManagerStats";
 import { ManagerCharts } from "@/components/manager/dashboard/ManagerCharts";
@@ -23,13 +23,17 @@ interface DashboardFilters {
 
 const ManagerDashboard = () => {
   const location = useLocation();
-  const initialCoordinatorId = (location.state as { coordinatorId?: string })?.coordinatorId;
-  
-  const [filters, setFilters] = useState<DashboardFilters>({ 
-    statuses: [],
-    coordinatorId: initialCoordinatorId 
-  });
-  const [activeTab, setActiveTab] = useState(initialCoordinatorId ? "coordinators" : "overview");
+  const [filters, setFilters] = useState<DashboardFilters>({ statuses: [] });
+  const [activeTab, setActiveTab] = useState("overview");
+
+  // Reagir a navegação com coordinatorId
+  useEffect(() => {
+    const coordinatorId = (location.state as { coordinatorId?: string })?.coordinatorId;
+    if (coordinatorId) {
+      setFilters(prev => ({ ...prev, coordinatorId }));
+      setActiveTab("coordinators");
+    }
+  }, [location.state]);
 
   return (
     <div className="space-y-6">
@@ -73,6 +77,7 @@ const ManagerDashboard = () => {
               start: filters.startDate,
               end: filters.endDate
             } : undefined}
+            coordinatorId={filters.coordinatorId}
           />
         </TabsContent>
 

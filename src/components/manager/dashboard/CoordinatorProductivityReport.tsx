@@ -43,15 +43,22 @@ import { useCoordinatorProductivity } from "@/hooks/useCoordinatorProductivity";
 
 interface CoordinatorProductivityReportProps {
   dateRange?: { start: Date; end: Date };
+  coordinatorId?: string;
 }
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--secondary))", "#22c55e", "#f59e0b", "#ef4444"];
 
 export const CoordinatorProductivityReport = ({
   dateRange,
+  coordinatorId,
 }: CoordinatorProductivityReportProps) => {
-  const { data: productivity = [], isLoading } = useCoordinatorProductivity(dateRange);
+  const { data: productivityData = [], isLoading } = useCoordinatorProductivity(dateRange);
   const [expandedCoordinator, setExpandedCoordinator] = useState<string | null>(null);
+
+  // Filtrar por coordenador específico se fornecido
+  const productivity = coordinatorId 
+    ? productivityData.filter(p => p.coordinator_id === coordinatorId)
+    : productivityData;
 
   const getInitials = (name: string) => {
     return name
