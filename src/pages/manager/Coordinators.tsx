@@ -15,6 +15,18 @@ const Coordinators = () => {
   const { data: coordinators, isLoading } = useQuery({
     queryKey: ["coordinators"],
     queryFn: async () => {
+      // Get current user's company
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      const { data: currentProfile } = await supabase
+        .from("profiles")
+        .select("company_id")
+        .eq("id", user.id)
+        .single();
+
+      if (!currentProfile?.company_id) return [];
+
       // Get all users with admin role
       const { data: adminRoles, error: rolesError } = await supabase
         .from("user_roles")
@@ -22,16 +34,19 @@ const Coordinators = () => {
         .eq("role", "admin");
 
       if (rolesError) throw rolesError;
+      if (!adminRoles || adminRoles.length === 0) return [];
 
       const userIds = adminRoles.map(r => r.user_id);
 
-      // Get profiles for these users
+      // Get profiles for these users in the same company
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("*")
-        .in("id", userIds);
+        .in("id", userIds)
+        .eq("company_id", currentProfile.company_id);
 
       if (profilesError) throw profilesError;
+      if (!profiles || profiles.length === 0) return [];
 
       // Get stats for each coordinator
       const coordinatorsWithStats = await Promise.all(
@@ -97,8 +112,19 @@ const Coordinators = () => {
         </div>
       </div>
 
+      {(!filteredCoordinators || filteredCoordinators.length === 0) ? (
+        <Card className="col-span-full">
+          <CardContent className="py-10 text-center text-muted-foreground">
+            <User className="h-12 w-12 mx-auto mb-4 opacity-30" />
+            <p>Nenhum coordenador encontrado</p>
+            <p className="text-sm mt-2">
+              {searchTerm ? "Tente buscar por outro termo" : "Não há coordenadores cadastrados na sua empresa"}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {filteredCoordinators?.map((coordinator) => (
+        {filteredCoordinators.map((coordinator) => (
           <Card key={coordinator.id} className="hover:shadow-md transition-shadow">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium">
@@ -156,6 +182,7 @@ const Coordinators = () => {
           </Card>
         ))}
       </div>
+      )}
     </div>
   );
 };
