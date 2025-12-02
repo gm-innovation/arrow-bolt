@@ -372,13 +372,13 @@ interface ServiceOrderData {
         service: taskData.task_types?.name || taskData.title || taskData.description || 'Serviço não especificado',
         taskTitle: taskData.title || taskData.task_types?.name || 'Tarefa',
         company: {
-          name: companyData?.name || 'Empresa não especificada',
-          email: companyData?.email || '',
-          phone: companyData?.phone || '',
-          address: companyData?.address || '',
-          cnpj: companyData?.cnpj || '',
-          cep: companyData?.cep || '',
-          logoUrl: companyData?.logo_url || '',
+          name: companyData?.name?.trim() || 'Empresa não especificada',
+          email: companyData?.email?.trim() || '',
+          phone: companyData?.phone?.trim() || '',
+          address: companyData?.address?.trim() || '',
+          cnpj: companyData?.cnpj?.trim() || '',
+          cep: companyData?.cep?.trim() || '',
+          logoUrl: companyData?.logo_url?.trim() || '',
         },
       };
 

@@ -99,6 +99,7 @@ export const useSuperAdminReports = (filters: ReportFilters = {}) => {
 
   const approveReportMutation = useMutation({
     mutationFn: async (reportId: string) => {
+      // 1. Aprovar o relatório
       const { error } = await supabase
         .from('task_reports')
         .update({ 
@@ -108,12 +109,39 @@ export const useSuperAdminReports = (filters: ReportFilters = {}) => {
         .eq('id', reportId);
 
       if (error) throw error;
+
+      // 2. Buscar task_uuid do relatório aprovado
+      const { data: reportData } = await supabase
+        .from('task_reports')
+        .select('task_uuid')
+        .eq('id', reportId)
+        .single();
+
+      // 3. Atualizar status da OS para 'completed'
+      if (reportData?.task_uuid) {
+        const { data: taskData } = await supabase
+          .from('tasks')
+          .select('service_order_id')
+          .eq('id', reportData.task_uuid)
+          .single();
+
+        if (taskData?.service_order_id) {
+          await supabase
+            .from('service_orders')
+            .update({ 
+              status: 'completed',
+              completed_date: new Date().toISOString().split('T')[0]
+            })
+            .eq('id', taskData.service_order_id);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['super-admin-reports'] });
+      queryClient.invalidateQueries({ queryKey: ['service-orders'] });
       toast({
         title: "Relatório aprovado",
-        description: "O relatório foi aprovado com sucesso",
+        description: "O relatório foi aprovado e a OS foi concluída",
       });
     },
     onError: () => {
