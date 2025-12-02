@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   Wrench,
+  Calculator,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -71,6 +72,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Coordenadores", icon: Users, path: "/manager/coordinators" },
     { title: "Ordens de Serviço", icon: ClipboardList, path: "/manager/orders" },
     { title: "Relatórios", icon: FileText, path: "/manager/reports" },
+    { title: "Config. Medição", icon: Calculator, path: "/manager/measurement-settings" },
   ];
 
   const techMenuItems = [
