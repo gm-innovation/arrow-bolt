@@ -10,6 +10,7 @@ export interface WhatsAppSettings {
   notify_schedule_change: boolean;
   notify_critical_orders: boolean;
   notify_report_submitted: boolean;
+  notify_task_auto_completed: boolean;
 }
 
 const SETTINGS_KEY = "whatsapp_settings";
@@ -20,6 +21,7 @@ const defaultSettings: WhatsAppSettings = {
   notify_schedule_change: true,
   notify_critical_orders: true,
   notify_report_submitted: true,
+  notify_task_auto_completed: true,
 };
 
 export const useWhatsAppSettings = () => {

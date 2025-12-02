@@ -17,6 +17,7 @@ const settingsSchema = z.object({
   notify_schedule_change: z.boolean(),
   notify_critical_orders: z.boolean(),
   notify_report_submitted: z.boolean(),
+  notify_task_auto_completed: z.boolean(),
 });
 
 export const WhatsAppSettingsTab = () => {
@@ -32,6 +33,7 @@ export const WhatsAppSettingsTab = () => {
       notify_schedule_change: true,
       notify_critical_orders: true,
       notify_report_submitted: true,
+      notify_task_auto_completed: true,
     },
   });
 
@@ -43,6 +45,7 @@ export const WhatsAppSettingsTab = () => {
         notify_schedule_change: settings.notify_schedule_change ?? true,
         notify_critical_orders: settings.notify_critical_orders ?? true,
         notify_report_submitted: settings.notify_report_submitted ?? true,
+        notify_task_auto_completed: settings.notify_task_auto_completed ?? true,
       });
     }
   }, [settings]);
@@ -212,6 +215,24 @@ export const WhatsAppSettingsTab = () => {
                       <FormLabel className="font-medium">Relatório Enviado</FormLabel>
                       <FormDescription>
                         Notificar supervisores quando técnicos enviam relatórios
+                      </FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="notify_task_auto_completed"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between rounded-lg border p-4">
+                    <div>
+                      <FormLabel className="font-medium">Tarefa Auto-Completada</FormLabel>
+                      <FormDescription>
+                        Notificar auxiliares quando o líder conclui uma tarefa compartilhada
                       </FormDescription>
                     </div>
                     <FormControl>
