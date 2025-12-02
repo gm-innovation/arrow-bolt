@@ -3,6 +3,7 @@ import { ManagerStats } from "@/components/manager/dashboard/ManagerStats";
 import { CoordinatorFilter } from "@/components/manager/dashboard/CoordinatorFilter";
 import { ManagerCharts } from "@/components/manager/dashboard/ManagerCharts";
 import { ConsolidatedCalendar } from "@/components/manager/dashboard/ConsolidatedCalendar";
+import { CriticalOrdersCard } from "@/components/manager/dashboard/CriticalOrdersCard";
 
 const ManagerDashboard = () => {
   const [selectedCoordinator, setSelectedCoordinator] = useState<string | null>(null);
@@ -21,6 +22,8 @@ const ManagerDashboard = () => {
       </div>
 
       <ManagerStats coordinatorId={selectedCoordinator} />
+      
+      <CriticalOrdersCard />
       
       <div className="grid gap-6 lg:grid-cols-2">
         <ManagerCharts coordinatorId={selectedCoordinator} />

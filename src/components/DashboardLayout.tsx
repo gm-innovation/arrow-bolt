@@ -24,6 +24,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/super-admin/NotificationBell";
 import { NotificationBell as AdminNotificationBell } from "@/components/admin/NotificationBell";
+import { ManagerNotificationBell } from "@/components/manager/NotificationBell";
 import { UserMenu } from "@/components/UserMenu";
 
 interface DashboardLayoutProps {
@@ -302,6 +303,8 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
                 <NotificationBell />
               ) : userType === "admin" ? (
                 <AdminNotificationBell />
+              ) : userType === "manager" ? (
+                <ManagerNotificationBell />
               ) : (
                 <Button 
                   variant="ghost" 
