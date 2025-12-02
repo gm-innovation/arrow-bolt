@@ -190,7 +190,29 @@ const Reports = () => {
           }
 
           // Fetch visit technicians (auxiliaries)
-          if (report.visit?.id) {
+          let visitId = report.visit?.id;
+          
+          // If visit_id is null, try to get it from the service_order
+          if (!visitId && report.task?.service_order) {
+            const { data: taskData } = await supabase
+              .from('tasks')
+              .select('service_order_id')
+              .eq('id', report.task_uuid)
+              .single();
+            
+            if (taskData?.service_order_id) {
+              const { data: visitData } = await supabase
+                .from('service_visits')
+                .select('id')
+                .eq('service_order_id', taskData.service_order_id)
+                .order('visit_number', { ascending: false })
+                .limit(1)
+                .single();
+              visitId = visitData?.id;
+            }
+          }
+          
+          if (visitId) {
             const { data } = await supabase
               .from('visit_technicians')
               .select(`
@@ -200,7 +222,7 @@ const Reports = () => {
                   profiles:user_id (full_name)
                 )
               `)
-              .eq('visit_id', report.visit.id)
+              .eq('visit_id', visitId)
               .eq('is_lead', false);
             visitTechnicians = data || [];
           }
