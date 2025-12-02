@@ -8,15 +8,23 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface ConsolidatedCalendarProps {
-  coordinatorId: string | null;
+interface DashboardFilters {
+  startDate?: Date;
+  endDate?: Date;
+  statuses: string[];
+  clientId?: string;
+  coordinatorId?: string;
 }
 
-export const ConsolidatedCalendar = ({ coordinatorId }: ConsolidatedCalendarProps) => {
+interface ConsolidatedCalendarProps {
+  filters: DashboardFilters;
+}
+
+export const ConsolidatedCalendar = ({ filters }: ConsolidatedCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
 
   const { data: orders, isLoading } = useQuery({
-    queryKey: ["calendar-orders", coordinatorId, selectedDate],
+    queryKey: ["calendar-orders", filters, selectedDate],
     queryFn: async () => {
       if (!selectedDate) return [];
 
@@ -31,13 +39,25 @@ export const ConsolidatedCalendar = ({ coordinatorId }: ConsolidatedCalendarProp
         .gte("scheduled_date", format(selectedDate, "yyyy-MM-dd"))
         .lte("scheduled_date", format(selectedDate, "yyyy-MM-dd"));
 
-      if (coordinatorId) {
-        query = query.eq("created_by", coordinatorId);
+      if (filters.coordinatorId) {
+        query = query.eq("created_by", filters.coordinatorId);
+      }
+
+      if (filters.clientId) {
+        query = query.eq("client_id", filters.clientId);
       }
 
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+
+      let filteredOrders = data || [];
+
+      // Apply status filter if any statuses are selected
+      if (filters.statuses.length > 0) {
+        filteredOrders = filteredOrders.filter(o => filters.statuses.includes(o.status || ""));
+      }
+
+      return filteredOrders;
     }
   });
 
