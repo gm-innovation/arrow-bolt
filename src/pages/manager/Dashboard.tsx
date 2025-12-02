@@ -8,6 +8,8 @@ import { TrendsComparison } from "@/components/manager/dashboard/TrendsCompariso
 import { DemandForecast } from "@/components/manager/dashboard/DemandForecast";
 import { ForecastAccuracy } from "@/components/manager/dashboard/ForecastAccuracy";
 import { ExportReportButton } from "@/components/manager/dashboard/ExportReportButton";
+import { TechnicianProductivityReport } from "@/components/manager/dashboard/TechnicianProductivityReport";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface DashboardFilters {
   startDate?: Date;
@@ -32,20 +34,38 @@ const ManagerDashboard = () => {
 
       <ManagerDashboardFilters filters={filters} onFiltersChange={setFilters} />
 
-      <ManagerStats filters={filters} />
-      
-      <CriticalOrdersCard />
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="productivity">Produtividade</TabsTrigger>
+        </TabsList>
 
-      <TrendsComparison filters={filters} />
+        <TabsContent value="overview" className="space-y-6">
+          <ManagerStats filters={filters} />
+          
+          <CriticalOrdersCard />
 
-      <DemandForecast filters={filters} />
+          <TrendsComparison filters={filters} />
 
-      <ForecastAccuracy filters={filters} />
-      
-      <div className="grid gap-6 lg:grid-cols-2">
-        <ManagerCharts filters={filters} />
-        <ConsolidatedCalendar filters={filters} />
-      </div>
+          <DemandForecast filters={filters} />
+
+          <ForecastAccuracy filters={filters} />
+          
+          <div className="grid gap-6 lg:grid-cols-2">
+            <ManagerCharts filters={filters} />
+            <ConsolidatedCalendar filters={filters} />
+          </div>
+        </TabsContent>
+
+        <TabsContent value="productivity">
+          <TechnicianProductivityReport 
+            dateRange={filters.startDate && filters.endDate ? {
+              start: filters.startDate,
+              end: filters.endDate
+            } : undefined}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -52,6 +52,8 @@ import ReportForm from "./pages/tech/ReportForm";
 import TechNotifications from "./pages/tech/Notifications";
 import InstallApp from "./pages/tech/InstallApp";
 import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
+import Chat from "./pages/Chat";
+import { OfflineIndicator } from "./components/OfflineIndicator";
 
 // Create a new QueryClient instance with proper configuration
 const queryClient = new QueryClient({
@@ -457,9 +459,52 @@ const App = () => {
                 }
               />
 
+              {/* Chat Routes - All roles */}
+              <Route
+                path="/admin/chat"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <Chat />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/chat"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <DashboardLayout userType="manager">
+                      <Chat />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tech/chat"
+                element={
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <Chat />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/super-admin/chat"
+                element={
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <DashboardLayout userType="super-admin">
+                      <Chat />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Catch all route */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+            <OfflineIndicator />
           </SidebarProvider>
         </AuthProvider>
       </BrowserRouter>

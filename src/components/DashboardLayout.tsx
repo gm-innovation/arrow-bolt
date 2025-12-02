@@ -26,6 +26,7 @@ import { NotificationBell } from "@/components/super-admin/NotificationBell";
 import { NotificationBell as AdminNotificationBell } from "@/components/admin/NotificationBell";
 import { ManagerNotificationBell } from "@/components/manager/NotificationBell";
 import { UserMenu } from "@/components/UserMenu";
+import { ChatButton } from "@/components/chat/ChatButton";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -299,6 +300,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
               </h1>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <ChatButton userType={userType} />
               {userType === "super-admin" ? (
                 <NotificationBell />
               ) : userType === "admin" ? (
