@@ -28,7 +28,7 @@ import { UserMenu } from "@/components/UserMenu";
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  userType: "super-admin" | "admin" | "tech";
+  userType: "super-admin" | "admin" | "manager" | "tech";
   pageTitle?: string;
 }
 
@@ -64,6 +64,13 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Tipos de Tarefas", icon: ClipboardList, path: "/admin/task-types" },
   ];
 
+  const managerMenuItems = [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/manager/dashboard" },
+    { title: "Coordenadores", icon: Users, path: "/manager/coordinators" },
+    { title: "Ordens de Serviço", icon: ClipboardList, path: "/manager/orders" },
+    { title: "Relatórios", icon: FileText, path: "/manager/reports" },
+  ];
+
   const techMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/tech/dashboard" },
     { title: "Tarefas", icon: ClipboardList, path: "/tech/tasks" },
@@ -74,6 +81,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
   const menuItems = {
     "super-admin": superAdminMenuItems,
     admin: adminMenuItems,
+    manager: managerMenuItems,
     tech: techMenuItems,
   }[userType];
 
@@ -89,13 +97,15 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
   const userColors = {
     "super-admin": "from-purple-600 to-blue-600",
     "admin": "from-blue-600 to-cyan-600",
+    "manager": "from-indigo-600 to-purple-600",
     "tech": "from-cyan-600 to-teal-600"
   };
 
   const getUserTitle = () => {
     switch (userType) {
       case "super-admin": return "Super Administrador";
-      case "admin": return "Administrador";
+      case "admin": return "Coordenador";
+      case "manager": return "Gerente";
       case "tech": return "Técnico";
       default: return "";
     }

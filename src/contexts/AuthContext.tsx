@@ -79,10 +79,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    // After successful login, fetch role and redirect
+    if (!error && data.user) {
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', data.user.id)
+        .maybeSingle();
+      
+      if (roleData?.role) {
+        const roleRedirects = {
+          'super_admin': '/super-admin/dashboard',
+          'admin': '/admin/dashboard',
+          'manager': '/manager/dashboard',
+          'technician': '/tech/dashboard',
+        };
+        
+        const redirectPath = roleRedirects[roleData.role as keyof typeof roleRedirects];
+        if (redirectPath) {
+          window.location.href = redirectPath;
+        }
+      }
+    }
+    
     return { error };
   };
 

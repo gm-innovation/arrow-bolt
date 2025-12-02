@@ -37,6 +37,11 @@ import AdminProfile from "./pages/admin/Profile";
 import AdminSettings from "./pages/admin/Settings";
 import MeasurementSettings from "./pages/admin/MeasurementSettings";
 
+import ManagerDashboard from "./pages/manager/Dashboard";
+import ManagerCoordinators from "./pages/manager/Coordinators";
+import ManagerServiceOrders from "./pages/manager/ServiceOrders";
+import ManagerReports from "./pages/manager/Reports";
+
 import TechDashboard from "./pages/tech/Dashboard";
 import TechTasks from "./pages/tech/Tasks";
 import TaskDetails from "./pages/tech/TaskDetails";
@@ -134,6 +139,48 @@ const App = () => {
                 }
               />
               
+              {/* Manager Routes */}
+              <Route
+                path="/manager/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <DashboardLayout userType="manager">
+                      <ManagerDashboard />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/coordinators"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <DashboardLayout userType="manager">
+                      <ManagerCoordinators />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/orders"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <DashboardLayout userType="manager">
+                      <ManagerServiceOrders />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/reports"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <DashboardLayout userType="manager">
+                      <ManagerReports />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+
               {/* Admin Routes */}
               <Route
                 path="/admin/dashboard"
