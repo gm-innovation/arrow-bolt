@@ -5,6 +5,7 @@ import { ConsolidatedCalendar } from "@/components/manager/dashboard/Consolidate
 import { CriticalOrdersCard } from "@/components/manager/dashboard/CriticalOrdersCard";
 import { ManagerDashboardFilters } from "@/components/manager/dashboard/ManagerDashboardFilters";
 import { TrendsComparison } from "@/components/manager/dashboard/TrendsComparison";
+import { DemandForecast } from "@/components/manager/dashboard/DemandForecast";
 
 interface DashboardFilters {
   startDate?: Date;
@@ -33,6 +34,8 @@ const ManagerDashboard = () => {
       <CriticalOrdersCard />
 
       <TrendsComparison filters={filters} />
+
+      <DemandForecast filters={filters} />
       
       <div className="grid gap-6 lg:grid-cols-2">
         <ManagerCharts filters={filters} />
