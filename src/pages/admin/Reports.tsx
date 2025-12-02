@@ -198,7 +198,7 @@ const Reports = () => {
               .from('tasks')
               .select('service_order_id')
               .eq('id', report.task_uuid)
-              .single();
+              .maybeSingle();
             
             if (taskData?.service_order_id) {
               const { data: visitData } = await supabase
@@ -207,7 +207,7 @@ const Reports = () => {
                 .eq('service_order_id', taskData.service_order_id)
                 .order('visit_number', { ascending: false })
                 .limit(1)
-                .single();
+                .maybeSingle();
               visitId = visitData?.id;
             }
           }
@@ -618,6 +618,7 @@ const Reports = () => {
               <TableRow>
                 <TableHead>ID</TableHead>
                 <TableHead>Técnico</TableHead>
+                <TableHead>Auxiliar(es)</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Embarcação</TableHead>
                 <TableHead>Data de Criação</TableHead>
@@ -630,6 +631,11 @@ const Reports = () => {
                 <TableRow key={report.id}>
                   <TableCell className="font-medium">{report.task?.service_order?.order_number || report.task_id}</TableCell>
                   <TableCell>{report.technician?.profile?.full_name || '-'}</TableCell>
+                  <TableCell>
+                    {report.assistants && report.assistants.length > 0
+                      ? report.assistants.map((a: any) => a.technicians?.profiles?.full_name).filter(Boolean).join(', ') || '-'
+                      : '-'}
+                  </TableCell>
                   <TableCell>{report.task?.service_order?.client?.name || '-'}</TableCell>
                   <TableCell>{report.task?.service_order?.vessel?.name || '-'}</TableCell>
                   <TableCell>{format(new Date(report.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
