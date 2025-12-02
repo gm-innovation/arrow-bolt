@@ -4,6 +4,9 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WhatsAppSettingsTab } from "@/components/admin/settings/WhatsAppSettingsTab";
+import { Bell, MessageCircle, Palette } from "lucide-react";
 
 const AdminSettings = () => {
   const { toast } = useToast();
@@ -29,104 +32,129 @@ const AdminSettings = () => {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Notificações</CardTitle>
-          <CardDescription>
-            Configure como você deseja receber notificações
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="email-notifications">Notificações por Email</Label>
-              <p className="text-sm text-muted-foreground">
-                Receba atualizações importantes por email
-              </p>
-            </div>
-            <Switch
-              id="email-notifications"
-              checked={emailNotifications}
-              onCheckedChange={() => handleToggle(setEmailNotifications, emailNotifications, "Notificações por email")}
-            />
-          </div>
+      <Tabs defaultValue="notifications" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Notificações
+          </TabsTrigger>
+          <TabsTrigger value="whatsapp" className="flex items-center gap-2">
+            <MessageCircle className="h-4 w-4" />
+            WhatsApp
+          </TabsTrigger>
+          <TabsTrigger value="appearance" className="flex items-center gap-2">
+            <Palette className="h-4 w-4" />
+            Aparência
+          </TabsTrigger>
+        </TabsList>
 
-          <Separator />
+        <TabsContent value="notifications" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Notificações</CardTitle>
+              <CardDescription>
+                Configure como você deseja receber notificações
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="email-notifications">Notificações por Email</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receba atualizações importantes por email
+                  </p>
+                </div>
+                <Switch
+                  id="email-notifications"
+                  checked={emailNotifications}
+                  onCheckedChange={() => handleToggle(setEmailNotifications, emailNotifications, "Notificações por email")}
+                />
+              </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="push-notifications">Notificações Push</Label>
-              <p className="text-sm text-muted-foreground">
-                Receba notificações push no navegador
-              </p>
-            </div>
-            <Switch
-              id="push-notifications"
-              checked={pushNotifications}
-              onCheckedChange={() => handleToggle(setPushNotifications, pushNotifications, "Notificações push")}
-            />
-          </div>
-        </CardContent>
-      </Card>
+              <Separator />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Alertas do Sistema</CardTitle>
-          <CardDescription>
-            Configure os tipos de alertas que você deseja receber
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="report-approval">Aprovação de Relatórios</Label>
-              <p className="text-sm text-muted-foreground">
-                Notificar quando houver relatórios pendentes de aprovação
-              </p>
-            </div>
-            <Switch
-              id="report-approval"
-              checked={reportApprovalNotif}
-              onCheckedChange={() => handleToggle(setReportApprovalNotif, reportApprovalNotif, "Alertas de aprovação")}
-            />
-          </div>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="push-notifications">Notificações Push</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Receba notificações push no navegador
+                  </p>
+                </div>
+                <Switch
+                  id="push-notifications"
+                  checked={pushNotifications}
+                  onCheckedChange={() => handleToggle(setPushNotifications, pushNotifications, "Notificações push")}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-          <Separator />
+          <Card>
+            <CardHeader>
+              <CardTitle>Alertas do Sistema</CardTitle>
+              <CardDescription>
+                Configure os tipos de alertas que você deseja receber
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="report-approval">Aprovação de Relatórios</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Notificar quando houver relatórios pendentes de aprovação
+                  </p>
+                </div>
+                <Switch
+                  id="report-approval"
+                  checked={reportApprovalNotif}
+                  onCheckedChange={() => handleToggle(setReportApprovalNotif, reportApprovalNotif, "Alertas de aprovação")}
+                />
+              </div>
 
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label htmlFor="new-order">Novas Ordens de Serviço</Label>
-              <p className="text-sm text-muted-foreground">
-                Notificar quando novas ordens forem criadas
-              </p>
-            </div>
-            <Switch
-              id="new-order"
-              checked={newOrderNotif}
-              onCheckedChange={() => handleToggle(setNewOrderNotif, newOrderNotif, "Alertas de novas OS")}
-            />
-          </div>
-        </CardContent>
-      </Card>
+              <Separator />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Preferências de Visualização</CardTitle>
-          <CardDescription>
-            Personalize a aparência do sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Tema</Label>
-              <p className="text-sm text-muted-foreground">
-                Em desenvolvimento - modo claro/escuro em breve
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="new-order">Novas Ordens de Serviço</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Notificar quando novas ordens forem criadas
+                  </p>
+                </div>
+                <Switch
+                  id="new-order"
+                  checked={newOrderNotif}
+                  onCheckedChange={() => handleToggle(setNewOrderNotif, newOrderNotif, "Alertas de novas OS")}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="whatsapp">
+          <WhatsAppSettingsTab />
+        </TabsContent>
+
+        <TabsContent value="appearance">
+          <Card>
+            <CardHeader>
+              <CardTitle>Preferências de Visualização</CardTitle>
+              <CardDescription>
+                Personalize a aparência do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Tema</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Em desenvolvimento - modo claro/escuro em breve
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
