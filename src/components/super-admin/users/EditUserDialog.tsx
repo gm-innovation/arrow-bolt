@@ -158,7 +158,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                       <SelectItem value="super_admin">Super Admin</SelectItem>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="manager">Gerente</SelectItem>
-                      <SelectItem value="tech">Técnico</SelectItem>
+                      <SelectItem value="technician">Técnico</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
