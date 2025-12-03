@@ -18,6 +18,7 @@ import {
   X,
   Wrench,
   Calculator,
+  History,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Clientes", icon: Users, path: "/admin/clients" },
     { title: "Relatórios", icon: FileText, path: "/admin/reports" },
     { title: "Tipos de Tarefas", icon: ClipboardList, path: "/admin/task-types" },
+    { title: "Logs de Auditoria", icon: History, path: "/admin/audit-logs" },
   ];
 
   const managerMenuItems = [
