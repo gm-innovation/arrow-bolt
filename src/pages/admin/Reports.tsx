@@ -31,7 +31,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Eye, Download, CheckCircle, XOctagon, Loader2, FileDown, Trash2 } from "lucide-react";
+import { Eye, Download, CheckCircle, XOctagon, Loader2, FileDown, Trash2, Search } from "lucide-react";
+import { SemanticSearchDialog } from "@/components/admin/reports/SemanticSearchDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
@@ -609,10 +610,21 @@ const Reports = () => {
             Gerencie os relatórios de serviços
           </p>
         </div>
-        <Button variant="outline" onClick={handleExportReports} disabled={reports.length === 0}>
-          <FileDown className="mr-2 h-4 w-4" />
-          Exportar Relatórios
-        </Button>
+        <div className="flex gap-2">
+          <SemanticSearchDialog 
+            onSelectReport={(reportId) => {
+              const report = reports.find(r => r.id === reportId);
+              if (report) {
+                setSelectedReport(report);
+                setIsPDFPreviewOpen(true);
+              }
+            }} 
+          />
+          <Button variant="outline" onClick={handleExportReports} disabled={reports.length === 0}>
+            <FileDown className="mr-2 h-4 w-4" />
+            Exportar Relatórios
+          </Button>
+        </div>
       </div>
 
       <Card>
