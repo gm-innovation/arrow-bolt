@@ -34,13 +34,13 @@ interface NegativeFeedback {
   message_content: string;
 }
 
-export function useAIAnalytics(period: '7d' | '30d' | '90d' = '30d') {
+export function useAIAnalytics(period: '7d' | '30d' | '90d' = '30d', companyIdProp?: string) {
   const { user, userRole } = useAuth();
   
   const daysBack = period === '7d' ? 7 : period === '30d' ? 30 : 90;
   const startDate = startOfDay(subDays(new Date(), daysBack));
 
-  // Fetch company ID from profile
+  // Fetch company ID from profile (only if companyIdProp not provided)
   const { data: profileData } = useQuery({
     queryKey: ['user-profile-company', user?.id],
     queryFn: async () => {
@@ -52,10 +52,11 @@ export function useAIAnalytics(period: '7d' | '30d' | '90d' = '30d') {
         .single();
       return data?.company_id;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id && !companyIdProp
   });
 
-  const companyId = profileData;
+  // Use prop if provided, otherwise use profile data
+  const companyId = companyIdProp || profileData;
 
   // Fetch usage metrics
   const { data: usageMetrics, isLoading: loadingMetrics } = useQuery({
