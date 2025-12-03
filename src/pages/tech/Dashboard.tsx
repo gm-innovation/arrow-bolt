@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -33,10 +33,12 @@ import {
   Line,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow, format, isToday, isTomorrow, parseISO } from "date-fns";
+import { formatDistanceToNow, format, isToday, isTomorrow, parseISO, eachDayOfInterval, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DateRange } from "react-day-picker";
 
 interface UpcomingTask {
   id: string;
@@ -71,10 +73,15 @@ const TechDashboard = () => {
     avgTaskDuration: 0,
   });
   const [productivityData, setProductivityData] = useState<any[]>([]);
+  const [productivityRange, setProductivityRange] = useState<DateRange>({
+    from: subDays(new Date(), 13),
+    to: new Date(),
+  });
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [upcomingTasks, setUpcomingTasks] = useState<UpcomingTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [technicianId, setTechnicianId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -205,30 +212,8 @@ const TechDashboard = () => {
         hoursLastWeek += hours;
       });
 
-      // Fetch productivity data for the last 14 days
-      const last14Days = Array.from({ length: 14 }, (_, i) => {
-        const date = new Date();
-        date.setDate(date.getDate() - (13 - i));
-        return date;
-      });
-
-      const productivityPromises = last14Days.map(async (date) => {
-        const dateStr = date.toISOString().split("T")[0];
-        const { count } = await supabase
-          .from("tasks")
-          .select("id", { count: "exact", head: true })
-          .eq("assigned_to", technician.id)
-          .eq("status", "completed")
-          .gte("completed_at", `${dateStr}T00:00:00`)
-          .lte("completed_at", `${dateStr}T23:59:59`);
-
-        return {
-          name: date.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit" }),
-          tasks: count || 0,
-        };
-      });
-
-      const productivity = await Promise.all(productivityPromises);
+      // Save technician ID for productivity data fetch
+      setTechnicianId(technician.id);
 
       // Fetch notifications
       const { data: notificationsData } = await supabase
@@ -283,7 +268,6 @@ const TechDashboard = () => {
         completionRate,
         avgTaskDuration,
       });
-      setProductivityData(productivity);
       setNotifications(notificationsData || []);
       setUnreadCount(unread);
     } catch (error) {
@@ -297,6 +281,40 @@ const TechDashboard = () => {
       setLoading(false);
     }
   };
+
+  // Fetch productivity data based on date range
+  const fetchProductivityData = useCallback(async () => {
+    if (!technicianId || !productivityRange.from || !productivityRange.to) return;
+
+    const days = eachDayOfInterval({
+      start: productivityRange.from,
+      end: productivityRange.to,
+    });
+
+    const productivityPromises = days.map(async (date) => {
+      const dateStr = format(date, "yyyy-MM-dd");
+      const { count } = await supabase
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .eq("assigned_to", technicianId)
+        .eq("status", "completed")
+        .gte("completed_at", `${dateStr}T00:00:00`)
+        .lte("completed_at", `${dateStr}T23:59:59`);
+
+      return {
+        name: format(date, "EEE dd", { locale: ptBR }),
+        tasks: count || 0,
+      };
+    });
+
+    const productivity = await Promise.all(productivityPromises);
+    setProductivityData(productivity);
+  }, [technicianId, productivityRange]);
+
+  // Fetch productivity when technicianId or date range changes
+  useEffect(() => {
+    fetchProductivityData();
+  }, [fetchProductivityData]);
 
   const getTaskDateLabel = (dueDate: string | null) => {
     if (!dueDate) return null;
@@ -520,8 +538,13 @@ const TechDashboard = () => {
 
       {/* Productivity Chart */}
       <Card>
-        <CardHeader>
-          <CardTitle>Produtividade (14 dias)</CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <CardTitle>Produtividade</CardTitle>
+          <DateRangePicker
+            value={productivityRange}
+            onChange={(range) => range && setProductivityRange(range)}
+            className="w-auto"
+          />
         </CardHeader>
         <CardContent>
           <div className="h-[250px]">
@@ -535,6 +558,11 @@ const TechDashboard = () => {
               </BarChart>
             </ResponsiveContainer>
           </div>
+          {productivityData.length > 0 && (
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Total no período: {productivityData.reduce((acc, d) => acc + d.tasks, 0)} tarefas concluídas
+            </p>
+          )}
         </CardContent>
       </Card>
 

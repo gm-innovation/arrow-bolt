@@ -31,6 +31,7 @@ import { UserMenu } from "@/components/UserMenu";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { useWhatsAppAutoNotifier } from "@/hooks/useWhatsAppAutoNotifier";
 import { AIAssistant } from "@/components/ai/AIAssistant";
+import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -309,6 +310,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
               </h1>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
+              <OfflineSyncIndicator />
               <ChatButton userType={userType} />
               {userType === "super-admin" ? (
                 <NotificationBell />

@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText } from "lucide-react";
+import { Loader2, FileText, FileSpreadsheet } from "lucide-react";
 import { useMeasurements } from "@/hooks/useMeasurements";
 import { useServiceRates } from "@/hooks/useServiceRates";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,8 @@ import { TravelsTab } from "./TravelsTab";
 import { ExpensesTab } from "./ExpensesTab";
 import { MeasurementSummary } from "./MeasurementSummary";
 import { MeasurementPDFPreview } from "./MeasurementPDFPreview";
+import { exportMeasurementToExcel } from "@/lib/exportMeasurements";
+import { useToast } from "@/hooks/use-toast";
 
 interface MeasurementFormProps {
   serviceOrderId: string;
@@ -39,6 +41,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
   const { rates } = useServiceRates();
   const [activeTab, setActiveTab] = useState("basic");
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const { toast } = useToast();
 
   // Fetch service order details for PDF with client, vessel and company
   const { data: serviceOrder } = useQuery({
@@ -242,6 +245,87 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
     onClose?.();
   };
 
+  const handleExportExcel = () => {
+    try {
+      exportMeasurementToExcel(
+        {
+          id: measurement.id,
+          category: measurement.category,
+          status: measurement.status,
+          created_at: measurement.created_at || '',
+          finalized_at: measurement.finalized_at || undefined,
+          subtotal_man_hours: measurement.subtotal_man_hours || 0,
+          subtotal_materials: measurement.subtotal_materials || 0,
+          subtotal_services: measurement.subtotal_services || 0,
+          subtotal_travels: measurement.subtotal_travels || 0,
+          subtotal_expenses: measurement.subtotal_expenses || 0,
+          subtotal: measurement.subtotal || 0,
+          tax_percentage: measurement.tax_percentage || 0,
+          tax_amount: measurement.tax_amount || 0,
+          total_amount: measurement.total_amount || 0,
+          service_order: serviceOrder ? {
+            order_number: serviceOrder.order_number,
+            client: serviceOrder.client,
+            vessel: serviceOrder.vessel,
+          } : undefined,
+        },
+        (measurement.measurement_man_hours || []).map(h => ({
+          technician_name: h.technician_name,
+          technician_role: h.technician_role,
+          hour_type: h.hour_type,
+          work_type: h.work_type,
+          entry_date: h.entry_date,
+          start_time: h.start_time,
+          end_time: h.end_time,
+          total_hours: h.total_hours,
+          hourly_rate: h.hourly_rate,
+          total_value: h.total_value,
+        })),
+        (measurement.measurement_materials || []).map(m => ({
+          name: m.name,
+          quantity: m.quantity,
+          unit_value: m.unit_value,
+          markup_percentage: m.markup_percentage || 0,
+          total_value: m.total_value,
+        })),
+        (measurement.measurement_travels || []).map(t => ({
+          travel_type: t.travel_type,
+          from_city: t.from_city,
+          to_city: t.to_city,
+          distance_km: t.distance_km || undefined,
+          km_rate: t.km_rate || undefined,
+          fixed_value: t.fixed_value || undefined,
+          total_value: t.total_value,
+          description: t.description || undefined,
+        })),
+        (measurement.measurement_expenses || []).map(e => ({
+          expense_type: e.expense_type,
+          description: e.description || undefined,
+          base_value: e.base_value,
+          admin_fee_percentage: e.admin_fee_percentage || 0,
+          admin_fee_amount: e.admin_fee_amount,
+          total_value: e.total_value,
+        })),
+        (measurement.measurement_services || []).map(s => ({
+          name: s.name,
+          description: s.description || undefined,
+          value: s.value,
+        }))
+      );
+      toast({
+        title: "Exportação concluída",
+        description: "O arquivo Excel foi baixado com sucesso.",
+      });
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      toast({
+        title: "Erro na exportação",
+        description: "Não foi possível exportar para Excel.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -317,11 +401,18 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
         </Button>
         <Button
           variant="outline"
+          onClick={handleExportExcel}
+        >
+          <FileSpreadsheet className="h-4 w-4 mr-2" />
+          Excel
+        </Button>
+        <Button
+          variant="outline"
           onClick={() => setShowPDFPreview(true)}
           disabled={!serviceOrder}
         >
           <FileText className="h-4 w-4 mr-2" />
-          Gerar PDF
+          PDF
         </Button>
         {isDraft && (
           <Button 
