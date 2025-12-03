@@ -1,4 +1,5 @@
 import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
+import { TechnicianTimeEntry } from '../MeasurementForm';
 
 const styles = StyleSheet.create({
   page: {
@@ -76,6 +77,14 @@ const styles = StyleSheet.create({
     color: '#333',
     backgroundColor: '#f0f0f0',
     padding: 4,
+  },
+  subSectionTitle: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    marginTop: 6,
+    color: '#555',
+    fontStyle: 'italic',
   },
   // Table styles
   table: {
@@ -165,9 +174,14 @@ const styles = StyleSheet.create({
 interface MeasurementPDFContentProps {
   measurement: any;
   serviceOrder: any;
+  technicianTimeEntries: TechnicianTimeEntry[];
 }
 
-export const MeasurementPDFContent = ({ measurement, serviceOrder }: MeasurementPDFContentProps) => {
+export const MeasurementPDFContent = ({ 
+  measurement, 
+  serviceOrder, 
+  technicianTimeEntries 
+}: MeasurementPDFContentProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -186,15 +200,16 @@ export const MeasurementPDFContent = ({ measurement, serviceOrder }: Measurement
 
   // Hour type labels
   const hourTypeLabels: Record<string, string> = {
-    normal: 'HN',
-    extra: 'HE',
-    noturno: 'HN',
+    work_normal: 'HN',
+    work_extra: 'HE',
+    work_night: 'Noturna',
+    standby: 'Espera',
   };
 
   // Work type labels
   const workTypeLabels: Record<string, string> = {
-    externo: 'Trabalho externo',
-    interno: 'Trabalho interno',
+    trabalho: 'Trabalho',
+    espera_deslocamento: 'Espera/Deslocamento',
     laboratorio: 'Laboratório',
   };
 
@@ -202,7 +217,19 @@ export const MeasurementPDFContent = ({ measurement, serviceOrder }: Measurement
   const roleLabels: Record<string, string> = {
     tecnico: 'Técnico',
     auxiliar: 'Auxiliar',
+    engenheiro: 'Engenheiro',
+    supervisor: 'Supervisor',
   };
+
+  // Calculate totals including technician entries
+  const technicianHoursTotal = technicianTimeEntries.reduce((sum, e) => sum + e.total_value, 0);
+  const manualHoursTotal = (measurement.measurement_man_hours || []).reduce(
+    (sum: number, e: any) => sum + (Number(e.total_value) || 0), 
+    0
+  );
+  const totalManHours = technicianHoursTotal + manualHoursTotal;
+
+  const hasManHours = technicianTimeEntries.length > 0 || (measurement.measurement_man_hours?.length > 0);
 
   return (
     <Document>
@@ -239,48 +266,95 @@ export const MeasurementPDFContent = ({ measurement, serviceOrder }: Measurement
             <Text style={styles.osInfoValue}>{clientName}</Text>
           </View>
           <View style={styles.osInfoItem}>
-            <Text style={styles.osInfoLabel}>Embarcações:</Text>
+            <Text style={styles.osInfoLabel}>Embarcação:</Text>
             <Text style={styles.osInfoValue}>{vesselName}</Text>
           </View>
         </View>
 
-        {/* Man Hours Table */}
-        {measurement.measurement_man_hours?.length > 0 && (
+        {/* Man Hours Table - Combined from technician entries and manual entries */}
+        {hasManHours && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Mão de Obra</Text>
-            <View style={styles.table}>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.tableCell, { width: '10%' }]}>Data</Text>
-                <Text style={[styles.tableCell, { width: '10%' }]}>Início</Text>
-                <Text style={[styles.tableCell, { width: '10%' }]}>Fim</Text>
-                <Text style={[styles.tableCell, { width: '10%' }]}>Total HH</Text>
-                <Text style={[styles.tableCell, { width: '28%' }]}>Descrição</Text>
-                <Text style={[styles.tableCell, { width: '10%' }]}>Horário</Text>
-                <Text style={[styles.tableCell, { width: '10%' }]}>Valor HH</Text>
-                <Text style={[styles.tableCell, { width: '12%', textAlign: 'right' }]}>Valor Total</Text>
-              </View>
-              {measurement.measurement_man_hours.map((entry: any, index: number) => {
-                const workTypeLabel = workTypeLabels[entry.work_type] || entry.work_type;
-                const roleLabel = roleLabels[entry.technician_role] || entry.technician_role;
-                const hourTypeLabel = hourTypeLabels[entry.hour_type] || entry.hour_type;
-                const description = `${workTypeLabel} + 1 ${roleLabel}`;
-                
-                return (
-                  <View key={index} style={styles.tableRow}>
-                    <Text style={[styles.tableCell, { width: '10%' }]}>{formatDate(entry.entry_date)}</Text>
-                    <Text style={[styles.tableCell, { width: '10%' }]}>{entry.start_time?.substring(0, 5)}</Text>
-                    <Text style={[styles.tableCell, { width: '10%' }]}>{entry.end_time?.substring(0, 5)}</Text>
-                    <Text style={[styles.tableCell, { width: '10%' }]}>{Number(entry.total_hours).toFixed(2)}</Text>
-                    <Text style={[styles.tableCell, { width: '28%' }]}>{description}</Text>
-                    <Text style={[styles.tableCell, { width: '10%' }]}>{hourTypeLabel}</Text>
-                    <Text style={[styles.tableCell, { width: '10%' }]}>{formatCurrency(entry.hourly_rate)}</Text>
-                    <Text style={[styles.tableCell, { width: '12%', textAlign: 'right' }]}>
-                      {formatCurrency(entry.total_value)}
-                    </Text>
+            
+            {/* Technician Time Entries (automatic) */}
+            {technicianTimeEntries.length > 0 && (
+              <>
+                <Text style={styles.subSectionTitle}>Horas dos Técnicos (registros automáticos)</Text>
+                <View style={styles.table}>
+                  <View style={styles.tableHeader}>
+                    <Text style={[styles.tableCell, { width: '12%' }]}>Data</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>Início</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>Fim</Text>
+                    <Text style={[styles.tableCell, { width: '8%' }]}>Total</Text>
+                    <Text style={[styles.tableCell, { width: '20%' }]}>Técnico</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>Função</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>Tipo</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>Taxa/h</Text>
+                    <Text style={[styles.tableCell, { width: '10%', textAlign: 'right' }]}>Valor</Text>
                   </View>
-                );
-              })}
-            </View>
+                  {technicianTimeEntries.map((entry, index) => (
+                    <View key={index} style={styles.tableRow}>
+                      <Text style={[styles.tableCell, { width: '12%' }]}>{formatDate(entry.entry_date)}</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>{entry.start_time?.substring(0, 5)}</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>{entry.end_time?.substring(0, 5)}</Text>
+                      <Text style={[styles.tableCell, { width: '8%' }]}>{entry.total_hours.toFixed(2)}h</Text>
+                      <Text style={[styles.tableCell, { width: '20%' }]}>{entry.technician_name}</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>{roleLabels[entry.role_type]}</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>{hourTypeLabels[entry.entry_type] || entry.entry_type}</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>{formatCurrency(entry.hourly_rate)}</Text>
+                      <Text style={[styles.tableCell, { width: '10%', textAlign: 'right' }]}>
+                        {formatCurrency(entry.total_value)}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              </>
+            )}
+
+            {/* Manual Man Hour Entries */}
+            {measurement.measurement_man_hours?.length > 0 && (
+              <>
+                <Text style={styles.subSectionTitle}>
+                  {technicianTimeEntries.length > 0 ? 'Entradas Adicionais (coordenador)' : ''}
+                </Text>
+                <View style={styles.table}>
+                  {technicianTimeEntries.length === 0 && (
+                    <View style={styles.tableHeader}>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>Data</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>Início</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>Fim</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>Total HH</Text>
+                      <Text style={[styles.tableCell, { width: '28%' }]}>Descrição</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>Horário</Text>
+                      <Text style={[styles.tableCell, { width: '10%' }]}>Valor HH</Text>
+                      <Text style={[styles.tableCell, { width: '12%', textAlign: 'right' }]}>Valor Total</Text>
+                    </View>
+                  )}
+                  {measurement.measurement_man_hours.map((entry: any, index: number) => {
+                    const workTypeLabel = workTypeLabels[entry.work_type] || entry.work_type;
+                    const roleLabel = roleLabels[entry.technician_role] || entry.technician_role;
+                    const hourTypeLabel = hourTypeLabels[entry.hour_type] || entry.hour_type;
+                    const description = `${workTypeLabel} + 1 ${roleLabel}`;
+                    
+                    return (
+                      <View key={index} style={styles.tableRow}>
+                        <Text style={[styles.tableCell, { width: '10%' }]}>{formatDate(entry.entry_date)}</Text>
+                        <Text style={[styles.tableCell, { width: '10%' }]}>{entry.start_time?.substring(0, 5)}</Text>
+                        <Text style={[styles.tableCell, { width: '10%' }]}>{entry.end_time?.substring(0, 5)}</Text>
+                        <Text style={[styles.tableCell, { width: '10%' }]}>{Number(entry.total_hours).toFixed(2)}</Text>
+                        <Text style={[styles.tableCell, { width: '28%' }]}>{description}</Text>
+                        <Text style={[styles.tableCell, { width: '10%' }]}>{hourTypeLabel}</Text>
+                        <Text style={[styles.tableCell, { width: '10%' }]}>{formatCurrency(entry.hourly_rate)}</Text>
+                        <Text style={[styles.tableCell, { width: '12%', textAlign: 'right' }]}>
+                          {formatCurrency(entry.total_value)}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+            
             <Text style={styles.legend}>HN = Hora Normal | HE = Hora Extra</Text>
           </View>
         )}
@@ -387,15 +461,15 @@ export const MeasurementPDFContent = ({ measurement, serviceOrder }: Measurement
         <View style={styles.totalsSection}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>SubTotal:</Text>
-            <Text style={styles.totalValue}>{formatCurrency(measurement.subtotal)}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(measurement.subtotal + technicianHoursTotal)}</Text>
           </View>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>ISS {measurement.tax_percentage}%:</Text>
             <Text style={styles.totalValue}>{formatCurrency(measurement.tax_amount)}</Text>
           </View>
           <View style={styles.grandTotalRow}>
-            <Text style={styles.grandTotalLabel}>SubTotal:</Text>
-            <Text style={styles.grandTotalValue}>{formatCurrency(measurement.total_amount)}</Text>
+            <Text style={styles.grandTotalLabel}>Total:</Text>
+            <Text style={styles.grandTotalValue}>{formatCurrency(measurement.total_amount + technicianHoursTotal)}</Text>
           </View>
         </View>
 
