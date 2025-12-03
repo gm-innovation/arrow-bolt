@@ -55,7 +55,7 @@ export const NewClientForm = ({ clientData, onSuccess }: NewClientFormProps) => 
           />
         </TabsContent>
         <TabsContent value="contacts">
-          <ContactsForm />
+          <ContactsForm clientId={clientId || clientData?.id || null} />
         </TabsContent>
         <TabsContent value="vessels">
           {(clientId || clientData?.id) && (

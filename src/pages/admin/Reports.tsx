@@ -305,6 +305,16 @@ const Reports = () => {
         }
       }
 
+      // 4. Gerar embeddings para busca semântica
+      try {
+        await supabase.functions.invoke('generate-embeddings', {
+          body: { task_report_id: reportId }
+        });
+        console.log('Embeddings gerados com sucesso');
+      } catch (embeddingError) {
+        console.error('Erro ao gerar embeddings (não crítico):', embeddingError);
+      }
+
       toast({
         title: "Relatório aprovado",
         description: "O relatório foi aprovado e a OS foi concluída.",

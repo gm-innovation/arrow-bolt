@@ -1,23 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { SignaturePad, SignaturePadRef } from "@/components/ui/SignaturePad";
 
 const SatisfactionSurvey = () => {
   const navigate = useNavigate();
   const { taskId } = useParams();
   const { toast } = useToast();
+  const signaturePadRef = useRef<SignaturePadRef>(null);
+  
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [comments, setComments] = useState("");
-  const [signature, setSignature] = useState("");
+  const [clientName, setClientName] = useState("");
   const [task, setTask] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [hasSignature, setHasSignature] = useState(false);
 
   useEffect(() => {
     if (taskId) {
@@ -46,11 +51,24 @@ const SatisfactionSurvey = () => {
     }
   };
 
+  const handleSignatureEnd = () => {
+    setHasSignature(!signaturePadRef.current?.isEmpty());
+  };
+
   const handleSubmit = async () => {
-    if (!taskId || !signature || rating === 0) {
+    if (!taskId || !clientName || rating === 0) {
       toast({
         title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios",
+        description: "Por favor, preencha o nome e a avaliação",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (signaturePadRef.current?.isEmpty()) {
+      toast({
+        title: "Assinatura obrigatória",
+        description: "Por favor, assine no campo de assinatura",
         variant: "destructive",
       });
       return;
@@ -59,18 +77,36 @@ const SatisfactionSurvey = () => {
     try {
       setLoading(true);
 
-      // Update task report with satisfaction data
+      // Get signature as base64
+      const signatureImage = signaturePadRef.current?.toDataURL() || "";
+
+      // First, fetch existing report data to merge
+      const { data: existingReport } = await supabase
+        .from("task_reports")
+        .select("report_data")
+        .eq("task_id", taskId)
+        .single();
+
+      // Merge satisfaction data with existing report_data
+      const existingData = (existingReport?.report_data && typeof existingReport.report_data === 'object') 
+        ? existingReport.report_data as Record<string, unknown>
+        : {};
+      const updatedReportData = {
+        ...existingData,
+        satisfaction: {
+          rating,
+          comments,
+          clientName,
+          signatureImage,
+          submittedAt: new Date().toISOString(),
+        },
+      };
+
+      // Update task report with merged data
       const { error } = await supabase
         .from("task_reports")
         .update({
-          report_data: {
-            satisfaction: {
-              rating,
-              comments,
-              signature,
-              submittedAt: new Date().toISOString(),
-            },
-          },
+          report_data: updatedReportData,
         })
         .eq("task_id", taskId);
 
@@ -124,23 +160,32 @@ const SatisfactionSurvey = () => {
               <button
                 key={star}
                 type="button"
-                className="focus:outline-none"
+                className="focus:outline-none transition-transform hover:scale-110"
                 onMouseEnter={() => setHoveredRating(star)}
                 onMouseLeave={() => setHoveredRating(0)}
                 onClick={() => setRating(star)}
               >
                 <Star
-                  className={`h-8 w-8 ${
+                  className={`h-10 w-10 ${
                     star <= (hoveredRating || rating)
                       ? "fill-yellow-400 text-yellow-400"
-                      : "text-gray-300"
+                      : "text-muted-foreground"
                   }`}
                 />
               </button>
             ))}
           </div>
+          {rating > 0 && (
+            <p className="text-center text-sm text-muted-foreground">
+              {rating === 1 && "Muito insatisfeito"}
+              {rating === 2 && "Insatisfeito"}
+              {rating === 3 && "Neutro"}
+              {rating === 4 && "Satisfeito"}
+              {rating === 5 && "Muito satisfeito"}
+            </p>
+          )}
           <div className="space-y-2">
-            <label className="font-medium">Comentários</label>
+            <Label>Comentários (opcional)</Label>
             <Textarea
               value={comments}
               onChange={(e) => setComments(e.target.value)}
@@ -157,15 +202,28 @@ const SatisfactionSurvey = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label className="font-medium">Nome do Cliente</label>
+            <Label htmlFor="clientName">Nome do Cliente *</Label>
             <Input
-              value={signature}
-              onChange={(e) => setSignature(e.target.value)}
-              placeholder="Digite seu nome completo"
+              id="clientName"
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              placeholder="Digite o nome completo"
             />
           </div>
+          
+          <div className="space-y-2">
+            <Label>Assinatura *</Label>
+            <p className="text-sm text-muted-foreground">
+              Desenhe sua assinatura no campo abaixo
+            </p>
+            <SignaturePad
+              ref={signaturePadRef}
+              onEnd={handleSignatureEnd}
+            />
+          </div>
+
           <div className="text-sm text-muted-foreground">
-            Data: {new Date().toLocaleDateString()}
+            Data: {new Date().toLocaleDateString("pt-BR")}
           </div>
         </CardContent>
       </Card>
@@ -173,7 +231,8 @@ const SatisfactionSurvey = () => {
       <div className="flex justify-end">
         <Button
           onClick={handleSubmit}
-          disabled={!signature || rating === 0 || loading}
+          disabled={!clientName || rating === 0 || loading}
+          size="lg"
         >
           {loading ? "Enviando..." : "Enviar Pesquisa"}
         </Button>
