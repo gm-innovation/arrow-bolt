@@ -25,13 +25,18 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
   const [activeTab, setActiveTab] = useState("basic");
   const [showPDFPreview, setShowPDFPreview] = useState(false);
 
-  // Fetch service order details for PDF
+  // Fetch service order details for PDF with client, vessel and company
   const { data: serviceOrder } = useQuery({
-    queryKey: ['service-order', serviceOrderId],
+    queryKey: ['service-order-full', serviceOrderId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('service_orders')
-        .select('*')
+        .select(`
+          *,
+          client:clients (name),
+          vessel:vessels (name),
+          company:companies (name, cnpj, address, cep, phone, email, logo_url)
+        `)
         .eq('id', serviceOrderId)
         .single();
 
