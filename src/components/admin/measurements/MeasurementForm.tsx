@@ -56,11 +56,11 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
 
       const taskIds = tasks.map(t => t.id);
 
-      // Get task reports
+      // Get task reports - using task_uuid which is the UUID reference
       const { data: reports, error: reportsError } = await supabase
         .from('task_reports')
         .select('report_data')
-        .in('task_id', taskIds);
+        .in('task_uuid', taskIds);
 
       if (reportsError) throw reportsError;
       return reports || [];
