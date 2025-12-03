@@ -65,7 +65,8 @@ const TechDashboard = () => {
     completedLastWeek: 0,
     hoursThisWeek: 0,
     hoursLastWeek: 0,
-    averageRating: 0,
+    averageRating: null as number | null,
+    totalRatings: 0,
     completionRate: 0,
     avgTaskDuration: 0,
   });
@@ -239,8 +240,36 @@ const TechDashboard = () => {
 
       const unread = notificationsData?.filter(n => !n.read).length || 0;
 
-      // Calculate average task duration (mock for now)
+      // Calculate average task duration
       const avgTaskDuration = totalCompleted && totalCompleted > 0 ? hoursThisWeek / (completedThisWeek || 1) : 0;
+
+      // Fetch real average rating from satisfaction surveys
+      // The satisfaction data is stored in task_reports.report_data.satisfaction.rating
+      const { data: taskReportsWithRatings } = await supabase
+        .from("task_reports")
+        .select(`
+          report_data,
+          task:tasks!task_reports_task_uuid_fkey (
+            assigned_to
+          )
+        `)
+        .eq("task.assigned_to", technician.id);
+
+      // Extract ratings from report_data.satisfaction.rating
+      let totalRating = 0;
+      let ratingCount = 0;
+      taskReportsWithRatings?.forEach((report) => {
+        const reportData = report.report_data as Record<string, unknown>;
+        if (reportData?.satisfaction) {
+          const satisfaction = reportData.satisfaction as Record<string, unknown>;
+          if (satisfaction?.rating && typeof satisfaction.rating === 'number') {
+            totalRating += satisfaction.rating;
+            ratingCount++;
+          }
+        }
+      });
+
+      const averageRating = ratingCount > 0 ? totalRating / ratingCount : null;
 
       setStats({
         assignedTasks: allAssignedTasks?.length || 0,
@@ -249,7 +278,8 @@ const TechDashboard = () => {
         completedLastWeek: completedLastWeek || 0,
         hoursThisWeek,
         hoursLastWeek,
-        averageRating: 4.8,
+        averageRating,
+        totalRatings: ratingCount,
         completionRate,
         avgTaskDuration,
       });
@@ -373,20 +403,32 @@ const TechDashboard = () => {
             <Star className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.averageRating.toFixed(1)}</div>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  className={cn(
-                    "h-3 w-3",
-                    star <= Math.round(stats.averageRating)
-                      ? "text-yellow-500 fill-yellow-500"
-                      : "text-muted"
-                  )}
-                />
-              ))}
-            </div>
+            {stats.averageRating !== null ? (
+              <>
+                <div className="text-2xl font-bold">{stats.averageRating.toFixed(1)}</div>
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <Star
+                      key={star}
+                      className={cn(
+                        "h-3 w-3",
+                        star <= Math.round(stats.averageRating!)
+                          ? "text-yellow-500 fill-yellow-500"
+                          : "text-muted"
+                      )}
+                    />
+                  ))}
+                  <span className="text-xs text-muted-foreground ml-1">
+                    ({stats.totalRatings})
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-muted-foreground">--</div>
+                <p className="text-xs text-muted-foreground">Sem avaliações</p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
