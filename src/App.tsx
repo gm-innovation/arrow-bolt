@@ -37,6 +37,8 @@ import AdminProfile from "./pages/admin/Profile";
 import AdminSettings from "./pages/admin/Settings";
 import MeasurementSettings from "./pages/admin/MeasurementSettings";
 import AuditLogs from "./pages/admin/AuditLogs";
+import Checklists from "./pages/admin/Checklists";
+import TechnicianLocations from "./pages/admin/TechnicianLocations";
 
 
 import ManagerDashboard from "./pages/manager/Dashboard";
@@ -374,6 +376,26 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['admin']}>
                     <DashboardLayout userType="admin">
                       <MeasurementSettings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/checklists"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <Checklists />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/technician-locations"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <TechnicianLocations />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
