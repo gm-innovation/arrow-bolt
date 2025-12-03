@@ -127,6 +127,10 @@ export const incrementAttempts = async (id: number) => {
   }
 };
 
+export const clearAllPendingChanges = async () => {
+  await offlineDb.pendingChanges.clear();
+};
+
 // Task offline operations
 export const saveTasksOffline = async (tasks: OfflineTask[]) => {
   await offlineDb.tasks.bulkPut(tasks.map(t => ({ ...t, synced: true })));
