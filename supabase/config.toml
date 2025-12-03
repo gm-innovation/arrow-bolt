@@ -7,7 +7,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.create-user]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai-assistant]
 verify_jwt = false
