@@ -1,115 +1,164 @@
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, Image, StyleSheet } from '@react-pdf/renderer';
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    fontSize: 10,
+    padding: 30,
+    fontSize: 9,
     fontFamily: 'Helvetica',
   },
+  // Header with company info
   header: {
-    marginBottom: 20,
-    borderBottom: '2 solid #333',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 15,
     paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  logo: {
+    width: 150,
+    height: 60,
+    objectFit: 'contain',
+  },
+  companyInfo: {
+    width: '55%',
+    textAlign: 'right',
+    fontSize: 8,
+  },
+  companyName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 3,
+  },
+  companyDetail: {
+    marginBottom: 2,
+    color: '#333',
+  },
+  // Title section
+  titleSection: {
+    marginVertical: 15,
+    textAlign: 'center',
   },
   title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#666',
-  },
-  section: {
-    marginTop: 15,
-    marginBottom: 10,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    color: '#333',
-    borderBottom: '1 solid #ddd',
-    paddingBottom: 4,
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 4,
-  },
-  label: {
-    width: '40%',
-    fontWeight: 'bold',
-    color: '#555',
-  },
-  value: {
-    width: '60%',
-    color: '#333',
-  },
-  table: {
-    marginTop: 10,
-    marginBottom: 10,
-  },
-  tableHeader: {
-    flexDirection: 'row',
-    backgroundColor: '#f0f0f0',
-    padding: 5,
-    fontWeight: 'bold',
-    borderBottom: '1 solid #333',
-  },
-  tableRow: {
-    flexDirection: 'row',
-    padding: 5,
-    borderBottom: '1 solid #e0e0e0',
-  },
-  tableCell: {
-    fontSize: 9,
-  },
-  summary: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: '#f9f9f9',
-    border: '1 solid #ddd',
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  summaryLabel: {
-    fontSize: 11,
-    color: '#555',
-  },
-  summaryValue: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTop: '2 solid #333',
-  },
-  totalLabel: {
-    fontSize: 13,
-    fontWeight: 'bold',
-  },
-  totalValue: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#000',
   },
+  // OS Info line
+  osInfoLine: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+    gap: 30,
+  },
+  osInfoItem: {
+    flexDirection: 'row',
+  },
+  osInfoLabel: {
+    fontWeight: 'bold',
+    marginRight: 5,
+  },
+  osInfoValue: {
+    color: '#333',
+  },
+  // Section
+  section: {
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    marginBottom: 6,
+    color: '#333',
+    backgroundColor: '#f0f0f0',
+    padding: 4,
+  },
+  // Table styles
+  table: {
+    marginBottom: 5,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#e8e8e8',
+    padding: 4,
+    fontWeight: 'bold',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    padding: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  tableCell: {
+    fontSize: 8,
+  },
+  legend: {
+    fontSize: 7,
+    color: '#666',
+    marginTop: 4,
+    fontStyle: 'italic',
+  },
+  // Totals section - right aligned
+  totalsSection: {
+    marginTop: 20,
+    alignItems: 'flex-end',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 4,
+    width: 200,
+  },
+  totalLabel: {
+    fontSize: 10,
+    textAlign: 'right',
+    width: 120,
+  },
+  totalValue: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    textAlign: 'right',
+    width: 80,
+  },
+  grandTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 5,
+    paddingTop: 5,
+    borderTopWidth: 2,
+    borderTopColor: '#333',
+    width: 200,
+  },
+  grandTotalLabel: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    textAlign: 'right',
+    width: 120,
+  },
+  grandTotalValue: {
+    fontSize: 11,
+    fontWeight: 'bold',
+    textAlign: 'right',
+    width: 80,
+  },
+  // Footer
   footer: {
     position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
+    bottom: 20,
+    left: 30,
+    right: 30,
     textAlign: 'center',
     color: '#999',
-    fontSize: 8,
-    borderTop: '1 solid #ddd',
-    paddingTop: 10,
+    fontSize: 7,
+    borderTopWidth: 1,
+    borderTopColor: '#ddd',
+    paddingTop: 8,
   },
 });
 
@@ -123,95 +172,136 @@ export const MeasurementPDFContent = ({ measurement, serviceOrder }: Measurement
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL',
-    }).format(value);
+    }).format(value || 0);
   };
 
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('pt-BR');
   };
 
-  const categoryLabels = {
-    CATIVO: 'Cativo',
-    LABORATORIO: 'Laboratório',
-    EXTERNO: 'Externo',
+  // Get company data from serviceOrder
+  const company = serviceOrder?.company || {};
+  const clientName = serviceOrder?.client?.name || 'N/A';
+  const vesselName = serviceOrder?.vessel?.name || 'N/A';
+
+  // Hour type labels
+  const hourTypeLabels: Record<string, string> = {
+    normal: 'HN',
+    extra: 'HE',
+    noturno: 'HN',
+  };
+
+  // Work type labels
+  const workTypeLabels: Record<string, string> = {
+    externo: 'Trabalho externo',
+    interno: 'Trabalho interno',
+    laboratorio: 'Laboratório',
+  };
+
+  // Role labels
+  const roleLabels: Record<string, string> = {
+    tecnico: 'Técnico',
+    auxiliar: 'Auxiliar',
   };
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
+        {/* Header with Company Info */}
         <View style={styles.header}>
-          <Text style={styles.title}>MEDIÇÃO FINAL</Text>
-          <Text style={styles.subtitle}>OS #{serviceOrder.order_number}</Text>
+          <Image 
+            src={company.logo_url || "/lovable-uploads/99776afb-688e-4743-927c-a8dfb9f3d1de.png"}
+            style={styles.logo}
+          />
+          <View style={styles.companyInfo}>
+            <Text style={styles.companyName}>{company.name || 'Empresa'}</Text>
+            {company.email && <Text style={styles.companyDetail}>{company.email}</Text>}
+            {company.cnpj && <Text style={styles.companyDetail}>CNPJ: {company.cnpj}</Text>}
+            {company.address && <Text style={styles.companyDetail}>{company.address}</Text>}
+            {company.cep && <Text style={styles.companyDetail}>CEP: {company.cep}</Text>}
+            {company.phone && <Text style={styles.companyDetail}>Tel: {company.phone}</Text>}
+          </View>
         </View>
 
-        {/* Basic Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Informações Básicas</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Categoria:</Text>
-            <Text style={styles.value}>{categoryLabels[measurement.category]}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.label}>Data de Criação:</Text>
-            <Text style={styles.value}>{formatDate(measurement.created_at)}</Text>
-          </View>
-          {measurement.finalized_at && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Data de Finalização:</Text>
-              <Text style={styles.value}>{formatDate(measurement.finalized_at)}</Text>
-            </View>
-          )}
+        {/* Title */}
+        <View style={styles.titleSection}>
+          <Text style={styles.title}>Medição Final</Text>
         </View>
 
-        {/* Man Hours */}
+        {/* OS Info Line */}
+        <View style={styles.osInfoLine}>
+          <View style={styles.osInfoItem}>
+            <Text style={styles.osInfoLabel}>Ordem de Serviço:</Text>
+            <Text style={styles.osInfoValue}>{serviceOrder?.order_number || 'N/A'}</Text>
+          </View>
+          <View style={styles.osInfoItem}>
+            <Text style={styles.osInfoLabel}>Cliente:</Text>
+            <Text style={styles.osInfoValue}>{clientName}</Text>
+          </View>
+          <View style={styles.osInfoItem}>
+            <Text style={styles.osInfoLabel}>Embarcações:</Text>
+            <Text style={styles.osInfoValue}>{vesselName}</Text>
+          </View>
+        </View>
+
+        {/* Man Hours Table */}
         {measurement.measurement_man_hours?.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Horas Homem</Text>
+            <Text style={styles.sectionTitle}>Mão de Obra</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.tableCell, { width: '15%' }]}>Data</Text>
-                <Text style={[styles.tableCell, { width: '20%' }]}>Técnico</Text>
-                <Text style={[styles.tableCell, { width: '15%' }]}>Função</Text>
-                <Text style={[styles.tableCell, { width: '15%' }]}>Tipo Hora</Text>
-                <Text style={[styles.tableCell, { width: '15%' }]}>Horas</Text>
-                <Text style={[styles.tableCell, { width: '20%', textAlign: 'right' }]}>Valor</Text>
+                <Text style={[styles.tableCell, { width: '10%' }]}>Data</Text>
+                <Text style={[styles.tableCell, { width: '10%' }]}>Início</Text>
+                <Text style={[styles.tableCell, { width: '10%' }]}>Fim</Text>
+                <Text style={[styles.tableCell, { width: '10%' }]}>Total HH</Text>
+                <Text style={[styles.tableCell, { width: '28%' }]}>Descrição</Text>
+                <Text style={[styles.tableCell, { width: '10%' }]}>Horário</Text>
+                <Text style={[styles.tableCell, { width: '10%' }]}>Valor HH</Text>
+                <Text style={[styles.tableCell, { width: '12%', textAlign: 'right' }]}>Valor Total</Text>
               </View>
-              {measurement.measurement_man_hours.map((entry: any, index: number) => (
-                <View key={index} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, { width: '15%' }]}>{formatDate(entry.entry_date)}</Text>
-                  <Text style={[styles.tableCell, { width: '20%' }]}>{entry.technician_name}</Text>
-                  <Text style={[styles.tableCell, { width: '15%' }]}>{entry.technician_role}</Text>
-                  <Text style={[styles.tableCell, { width: '15%' }]}>{entry.hour_type}</Text>
-                  <Text style={[styles.tableCell, { width: '15%' }]}>{entry.total_hours}h</Text>
-                  <Text style={[styles.tableCell, { width: '20%', textAlign: 'right' }]}>
-                    {formatCurrency(entry.total_value)}
-                  </Text>
-                </View>
-              ))}
+              {measurement.measurement_man_hours.map((entry: any, index: number) => {
+                const workTypeLabel = workTypeLabels[entry.work_type] || entry.work_type;
+                const roleLabel = roleLabels[entry.technician_role] || entry.technician_role;
+                const hourTypeLabel = hourTypeLabels[entry.hour_type] || entry.hour_type;
+                const description = `${workTypeLabel} + 1 ${roleLabel}`;
+                
+                return (
+                  <View key={index} style={styles.tableRow}>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>{formatDate(entry.entry_date)}</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>{entry.start_time?.substring(0, 5)}</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>{entry.end_time?.substring(0, 5)}</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>{Number(entry.total_hours).toFixed(2)}</Text>
+                    <Text style={[styles.tableCell, { width: '28%' }]}>{description}</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>{hourTypeLabel}</Text>
+                    <Text style={[styles.tableCell, { width: '10%' }]}>{formatCurrency(entry.hourly_rate)}</Text>
+                    <Text style={[styles.tableCell, { width: '12%', textAlign: 'right' }]}>
+                      {formatCurrency(entry.total_value)}
+                    </Text>
+                  </View>
+                );
+              })}
             </View>
+            <Text style={styles.legend}>HN = Hora Normal | HE = Hora Extra</Text>
           </View>
         )}
 
-        {/* Materials */}
+        {/* Materials Table */}
         {measurement.measurement_materials?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Materiais</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.tableCell, { width: '40%' }]}>Material</Text>
-                <Text style={[styles.tableCell, { width: '15%' }]}>Qtd</Text>
-                <Text style={[styles.tableCell, { width: '20%' }]}>Valor Unit.</Text>
-                <Text style={[styles.tableCell, { width: '10%' }]}>Markup</Text>
-                <Text style={[styles.tableCell, { width: '15%', textAlign: 'right' }]}>Total</Text>
+                <Text style={[styles.tableCell, { width: '50%' }]}>Material</Text>
+                <Text style={[styles.tableCell, { width: '15%' }]}>Quantidade</Text>
+                <Text style={[styles.tableCell, { width: '17%' }]}>Valor Unitário</Text>
+                <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>Valor Total</Text>
               </View>
               {measurement.measurement_materials.map((material: any, index: number) => (
                 <View key={index} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, { width: '40%' }]}>{material.name}</Text>
+                  <Text style={[styles.tableCell, { width: '50%' }]}>{material.name}</Text>
                   <Text style={[styles.tableCell, { width: '15%' }]}>{material.quantity}</Text>
-                  <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(material.unit_value)}</Text>
-                  <Text style={[styles.tableCell, { width: '10%' }]}>{material.markup_percentage}%</Text>
-                  <Text style={[styles.tableCell, { width: '15%', textAlign: 'right' }]}>
+                  <Text style={[styles.tableCell, { width: '17%' }]}>{formatCurrency(material.unit_value)}</Text>
+                  <Text style={[styles.tableCell, { width: '18%', textAlign: 'right' }]}>
                     {formatCurrency(material.total_value)}
                   </Text>
                 </View>
@@ -220,7 +310,7 @@ export const MeasurementPDFContent = ({ measurement, serviceOrder }: Measurement
           </View>
         )}
 
-        {/* Services */}
+        {/* Services Table */}
         {measurement.measurement_services?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Serviços</Text>
@@ -243,25 +333,23 @@ export const MeasurementPDFContent = ({ measurement, serviceOrder }: Measurement
           </View>
         )}
 
-        {/* Travels */}
+        {/* Travels Table */}
         {measurement.measurement_travels?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Deslocamentos</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.tableCell, { width: '20%' }]}>Tipo</Text>
-                <Text style={[styles.tableCell, { width: '20%' }]}>Origem</Text>
-                <Text style={[styles.tableCell, { width: '20%' }]}>Destino</Text>
+                <Text style={[styles.tableCell, { width: '25%' }]}>Origem</Text>
+                <Text style={[styles.tableCell, { width: '25%' }]}>Destino</Text>
                 <Text style={[styles.tableCell, { width: '20%' }]}>Distância</Text>
-                <Text style={[styles.tableCell, { width: '20%', textAlign: 'right' }]}>Valor</Text>
+                <Text style={[styles.tableCell, { width: '30%', textAlign: 'right' }]}>Valor</Text>
               </View>
               {measurement.measurement_travels.map((travel: any, index: number) => (
                 <View key={index} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, { width: '20%' }]}>{travel.travel_type}</Text>
-                  <Text style={[styles.tableCell, { width: '20%' }]}>{travel.from_city}</Text>
-                  <Text style={[styles.tableCell, { width: '20%' }]}>{travel.to_city}</Text>
+                  <Text style={[styles.tableCell, { width: '25%' }]}>{travel.from_city}</Text>
+                  <Text style={[styles.tableCell, { width: '25%' }]}>{travel.to_city}</Text>
                   <Text style={[styles.tableCell, { width: '20%' }]}>{travel.distance_km ? `${travel.distance_km} km` : '-'}</Text>
-                  <Text style={[styles.tableCell, { width: '20%', textAlign: 'right' }]}>
+                  <Text style={[styles.tableCell, { width: '30%', textAlign: 'right' }]}>
                     {formatCurrency(travel.total_value)}
                   </Text>
                 </View>
@@ -270,23 +358,23 @@ export const MeasurementPDFContent = ({ measurement, serviceOrder }: Measurement
           </View>
         )}
 
-        {/* Expenses */}
+        {/* Expenses Table */}
         {measurement.measurement_expenses?.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Despesas</Text>
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.tableCell, { width: '25%' }]}>Tipo</Text>
-                <Text style={[styles.tableCell, { width: '30%' }]}>Descrição</Text>
-                <Text style={[styles.tableCell, { width: '20%' }]}>Valor Base</Text>
-                <Text style={[styles.tableCell, { width: '25%', textAlign: 'right' }]}>Total</Text>
+                <Text style={[styles.tableCell, { width: '30%' }]}>Tipo</Text>
+                <Text style={[styles.tableCell, { width: '40%' }]}>Descrição</Text>
+                <Text style={[styles.tableCell, { width: '30%', textAlign: 'right' }]}>Valor</Text>
               </View>
               {measurement.measurement_expenses.map((expense: any, index: number) => (
                 <View key={index} style={styles.tableRow}>
-                  <Text style={[styles.tableCell, { width: '25%' }]}>{expense.expense_type}</Text>
-                  <Text style={[styles.tableCell, { width: '30%' }]}>{expense.description || '-'}</Text>
-                  <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(expense.base_value)}</Text>
-                  <Text style={[styles.tableCell, { width: '25%', textAlign: 'right' }]}>
+                  <Text style={[styles.tableCell, { width: '30%' }]}>
+                    {expense.expense_type === 'hospedagem' ? 'Hospedagem' : 'Alimentação'}
+                  </Text>
+                  <Text style={[styles.tableCell, { width: '40%' }]}>{expense.description || '-'}</Text>
+                  <Text style={[styles.tableCell, { width: '30%', textAlign: 'right' }]}>
                     {formatCurrency(expense.total_value)}
                   </Text>
                 </View>
@@ -295,39 +383,19 @@ export const MeasurementPDFContent = ({ measurement, serviceOrder }: Measurement
           </View>
         )}
 
-        {/* Summary */}
-        <View style={styles.summary}>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal Horas Homem:</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(measurement.subtotal_man_hours || 0)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal Materiais:</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(measurement.subtotal_materials || 0)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal Serviços:</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(measurement.subtotal_services || 0)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal Deslocamentos:</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(measurement.subtotal_travels || 0)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal Despesas:</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(measurement.subtotal_expenses || 0)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Subtotal Geral:</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(measurement.subtotal || 0)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>Impostos ({measurement.tax_percentage}%):</Text>
-            <Text style={styles.summaryValue}>{formatCurrency(measurement.tax_amount || 0)}</Text>
+        {/* Totals - Right Aligned */}
+        <View style={styles.totalsSection}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>SubTotal:</Text>
+            <Text style={styles.totalValue}>{formatCurrency(measurement.subtotal)}</Text>
           </View>
           <View style={styles.totalRow}>
-            <Text style={styles.totalLabel}>TOTAL GERAL:</Text>
-            <Text style={styles.totalValue}>{formatCurrency(measurement.total_amount || 0)}</Text>
+            <Text style={styles.totalLabel}>ISS {measurement.tax_percentage}%:</Text>
+            <Text style={styles.totalValue}>{formatCurrency(measurement.tax_amount)}</Text>
+          </View>
+          <View style={styles.grandTotalRow}>
+            <Text style={styles.grandTotalLabel}>SubTotal:</Text>
+            <Text style={styles.grandTotalValue}>{formatCurrency(measurement.total_amount)}</Text>
           </View>
         </View>
 
