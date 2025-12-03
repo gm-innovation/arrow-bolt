@@ -29,6 +29,7 @@ import { ManagerNotificationBell } from "@/components/manager/NotificationBell";
 import { UserMenu } from "@/components/UserMenu";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { useWhatsAppAutoNotifier } from "@/hooks/useWhatsAppAutoNotifier";
+import { AIAssistant } from "@/components/ai/AIAssistant";
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -333,6 +334,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
           <div className="flex-1 p-4 md:p-6">
             {children}
           </div>
+          
+          {/* AI Assistant - disponível em todas as páginas */}
+          <AIAssistant />
           
           {/* Footer */}
           <div className="border-t border-border bg-background py-4 px-4 md:px-6">

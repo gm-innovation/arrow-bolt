@@ -12,7 +12,6 @@ import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { AIAssistant } from "@/components/ai/AIAssistant";
 
 // Helper functions for safe data handling
 const safeValue = (value: any, fallback: string = 'N/A') => value || fallback;
@@ -597,14 +596,6 @@ const TaskDetails = () => {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* AI Assistant with task context */}
-      <AIAssistant 
-        context={{
-          taskTypeId: taskData?.task_type_id,
-          serviceOrderId: serviceOrderData?.serviceOrderId,
-        }}
-      />
     </div>
   );
 };
