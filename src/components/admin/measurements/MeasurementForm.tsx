@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, FileText } from "lucide-react";
 import { useMeasurements } from "@/hooks/useMeasurements";
+import { useServiceRates } from "@/hooks/useServiceRates";
 import { supabase } from "@/integrations/supabase/client";
 import { BasicInfoTab } from "./BasicInfoTab";
 import { ManHoursTab } from "./ManHoursTab";
@@ -20,8 +21,22 @@ interface MeasurementFormProps {
   onClose?: () => void;
 }
 
+export interface TechnicianTimeEntry {
+  id: string;
+  entry_date: string;
+  start_time: string;
+  end_time: string;
+  entry_type: string;
+  technician_name: string;
+  role_type: 'tecnico' | 'auxiliar';
+  total_hours: number;
+  hourly_rate: number;
+  total_value: number;
+}
+
 export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProps) => {
   const { measurement, isLoading, finalizeMeasurement } = useMeasurements(serviceOrderId);
+  const { rates } = useServiceRates();
   const [activeTab, setActiveTab] = useState("basic");
   const [showPDFPreview, setShowPDFPreview] = useState(false);
 
@@ -44,6 +59,116 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
       return data;
     },
     enabled: !!serviceOrderId,
+  });
+
+  // Fetch technician time entries for PDF
+  const { data: technicianTimeEntries = [] } = useQuery({
+    queryKey: ['time-entries-for-pdf', serviceOrderId, rates],
+    queryFn: async (): Promise<TechnicianTimeEntry[]> => {
+      // 1. Buscar todas as tasks da OS
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('service_order_id', serviceOrderId);
+
+      if (tasksError) throw tasksError;
+      if (!tasks || tasks.length === 0) return [];
+
+      const taskIds = tasks.map(t => t.id);
+
+      // 2. Buscar time_entries com dados do técnico
+      const { data: entries, error: entriesError } = await supabase
+        .from('time_entries')
+        .select(`
+          id,
+          entry_date,
+          start_time,
+          end_time,
+          entry_type,
+          technician_id,
+          technician:technicians!inner (
+            id,
+            user_id,
+            profiles:user_id (
+              full_name
+            )
+          )
+        `)
+        .in('task_id', taskIds);
+
+      if (entriesError) throw entriesError;
+      if (!entries || entries.length === 0) return [];
+
+      // 3. Buscar todas as visitas da OS
+      const { data: visits, error: visitsError } = await supabase
+        .from('service_visits')
+        .select('id')
+        .eq('service_order_id', serviceOrderId);
+
+      if (visitsError) throw visitsError;
+      if (!visits || visits.length === 0) return [];
+
+      const visitIds = visits.map(v => v.id);
+
+      // 4. Buscar visit_technicians para saber is_lead
+      const { data: visitTechs, error: visitTechsError } = await supabase
+        .from('visit_technicians')
+        .select('technician_id, is_lead')
+        .in('visit_id', visitIds);
+
+      if (visitTechsError) throw visitTechsError;
+
+      // Criar um mapa de technician_id -> is_lead
+      const isLeadMap = new Map<string, boolean>();
+      visitTechs?.forEach(vt => {
+        if (vt.is_lead) {
+          isLeadMap.set(vt.technician_id, true);
+        } else if (!isLeadMap.has(vt.technician_id)) {
+          isLeadMap.set(vt.technician_id, false);
+        }
+      });
+
+      // 5. Processar cada entry e calcular valores
+      const processedEntries: TechnicianTimeEntry[] = entries.map(entry => {
+        const technicianId = entry.technician_id;
+        const isLead = isLeadMap.get(technicianId) ?? false;
+        const roleType = isLead ? 'tecnico' : 'auxiliar';
+
+        // Calcular horas
+        const startTime = new Date(`1970-01-01T${entry.start_time}`);
+        const endTime = new Date(`1970-01-01T${entry.end_time}`);
+        const diffMs = endTime.getTime() - startTime.getTime();
+        const totalHours = Math.round((diffMs / (1000 * 60 * 60)) * 100) / 100;
+
+        // Buscar taxa
+        const rate = rates.find(
+          r => r.role_type === roleType && 
+              r.hour_type === entry.entry_type && 
+              r.work_type === 'trabalho'
+        );
+        const hourlyRate = rate?.rate_value || 0;
+        const totalValue = hourlyRate * totalHours;
+
+        const technicianData = entry.technician as any;
+        const technicianName = technicianData?.profiles?.full_name || 'Técnico';
+
+        return {
+          id: entry.id,
+          entry_date: entry.entry_date,
+          start_time: entry.start_time,
+          end_time: entry.end_time,
+          entry_type: entry.entry_type,
+          technician_name: technicianName,
+          role_type: roleType,
+          total_hours: totalHours,
+          hourly_rate: hourlyRate,
+          total_value: totalValue,
+        };
+      });
+
+      return processedEntries;
+    },
+    enabled: !!serviceOrderId && rates.length >= 0,
   });
 
   // Fetch task reports to get technician materials
@@ -216,6 +341,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
         <MeasurementPDFPreview
           measurement={measurement}
           serviceOrder={serviceOrder}
+          technicianTimeEntries={technicianTimeEntries}
           open={showPDFPreview}
           onOpenChange={setShowPDFPreview}
         />

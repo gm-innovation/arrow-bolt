@@ -6,10 +6,12 @@ import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Download, ExternalLink, Save, Loader2 } from 'lucide-react';
+import { TechnicianTimeEntry } from './MeasurementForm';
 
 interface MeasurementPDFPreviewProps {
   measurement: any;
   serviceOrder: any;
+  technicianTimeEntries: TechnicianTimeEntry[];
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -17,6 +19,7 @@ interface MeasurementPDFPreviewProps {
 export const MeasurementPDFPreview = ({
   measurement,
   serviceOrder,
+  technicianTimeEntries,
   open,
   onOpenChange,
 }: MeasurementPDFPreviewProps) => {
@@ -26,7 +29,11 @@ export const MeasurementPDFPreview = ({
 
   const generatePdfBlob = async () => {
     const blob = await pdf(
-      <MeasurementPDFContent measurement={measurement} serviceOrder={serviceOrder} />
+      <MeasurementPDFContent 
+        measurement={measurement} 
+        serviceOrder={serviceOrder} 
+        technicianTimeEntries={technicianTimeEntries}
+      />
     ).toBlob();
     return blob;
   };
