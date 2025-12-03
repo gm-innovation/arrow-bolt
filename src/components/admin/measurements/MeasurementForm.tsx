@@ -41,6 +41,54 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
     enabled: !!serviceOrderId,
   });
 
+  // Fetch task reports to get technician materials
+  const { data: taskReports } = useQuery({
+    queryKey: ['task-reports-materials', serviceOrderId],
+    queryFn: async () => {
+      // Get tasks for this service order
+      const { data: tasks, error: tasksError } = await supabase
+        .from('tasks')
+        .select('id')
+        .eq('service_order_id', serviceOrderId);
+
+      if (tasksError) throw tasksError;
+      if (!tasks || tasks.length === 0) return [];
+
+      const taskIds = tasks.map(t => t.id);
+
+      // Get task reports
+      const { data: reports, error: reportsError } = await supabase
+        .from('task_reports')
+        .select('report_data')
+        .in('task_id', taskIds);
+
+      if (reportsError) throw reportsError;
+      return reports || [];
+    },
+    enabled: !!serviceOrderId,
+  });
+
+  // Extract supplied materials from task reports
+  const technicianMaterials: string[] = [];
+  if (taskReports) {
+    for (const report of taskReports) {
+      const reportData = report.report_data as Record<string, any>;
+      if (reportData) {
+        // The report_data can have different structures, try to extract suppliedMaterial
+        for (const key of Object.keys(reportData)) {
+          const taskData = reportData[key];
+          if (taskData?.suppliedMaterial && typeof taskData.suppliedMaterial === 'string' && taskData.suppliedMaterial.trim()) {
+            technicianMaterials.push(taskData.suppliedMaterial);
+          }
+        }
+        // Also check if suppliedMaterial is directly on report_data
+        if (reportData.suppliedMaterial && typeof reportData.suppliedMaterial === 'string' && reportData.suppliedMaterial.trim()) {
+          technicianMaterials.push(reportData.suppliedMaterial);
+        }
+      }
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-8">
@@ -100,6 +148,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
                 measurementId={measurement.id}
                 materials={measurement.measurement_materials || []}
                 disabled={!isDraft}
+                technicianMaterials={technicianMaterials}
               />
             </TabsContent>
 

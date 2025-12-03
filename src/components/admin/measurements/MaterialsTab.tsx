@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Lightbulb } from "lucide-react";
 import { useMeasurementMaterials } from "@/hooks/useMeasurementMaterials";
 import { useMeasurementSettings } from "@/hooks/useMeasurementSettings";
 
@@ -22,9 +22,10 @@ interface MaterialsTabProps {
   measurementId: string;
   materials: any[];
   disabled?: boolean;
+  technicianMaterials?: string[];
 }
 
-export const MaterialsTab = ({ measurementId, materials, disabled }: MaterialsTabProps) => {
+export const MaterialsTab = ({ measurementId, materials, disabled, technicianMaterials }: MaterialsTabProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const { addMaterial, removeMaterial } = useMeasurementMaterials();
   const { settings } = useMeasurementSettings();
@@ -61,8 +62,32 @@ export const MaterialsTab = ({ measurementId, materials, disabled }: MaterialsTa
     setIsAdding(false);
   };
 
+  // Filter out empty materials
+  const filteredTechnicianMaterials = technicianMaterials?.filter(m => m && m.trim() !== '');
+
   return (
     <div className="space-y-4">
+      {/* Reference: Materials reported by technicians */}
+      {filteredTechnicianMaterials && filteredTechnicianMaterials.length > 0 && (
+        <Card className="p-4 bg-muted/50 border-primary/20">
+          <div className="flex items-start gap-2">
+            <Lightbulb className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-foreground">
+                Materiais informados pelo técnico:
+              </p>
+              <ul className="text-sm text-muted-foreground space-y-1">
+                {filteredTechnicianMaterials.map((material, index) => (
+                  <li key={index} className="border-l-2 border-primary/30 pl-2">
+                    {material}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </Card>
+      )}
+
       {!disabled && !isAdding && (
         <Button onClick={() => setIsAdding(true)} size="sm">
           <Plus className="h-4 w-4 mr-2" />
