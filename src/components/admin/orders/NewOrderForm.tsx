@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetails } from "./ServiceDetails";
 import { TechniciansSelection } from "./TechniciansSelection";
+import { LocationAccessSection } from "./LocationAccessSection";
 import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
 
 const orderFormSchema = z.object({
@@ -27,12 +28,15 @@ const orderFormSchema = z.object({
       return selectedDate >= today;
     }, "Data não pode ser no passado"),
   serviceDateTime: z.string().optional(),
-  location: z.string()
+  plannedLocation: z.string()
     .max(200, "Local deve ter no máximo 200 caracteres")
     .optional(),
-  access: z.string()
-    .max(200, "Acesso deve ter no máximo 200 caracteres")
+  accessPointId: z.string().optional(),
+  accessInstructions: z.string()
+    .max(500, "Instruções devem ter no máximo 500 caracteres")
     .optional(),
+  expectedContext: z.string().optional(),
+  boardingMethod: z.string().optional(),
   taskTypes: z.array(z.string())
     .min(1, "Selecione pelo menos um tipo de tarefa"),
   singleReport: z.boolean().optional(),
@@ -74,8 +78,11 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
       vesselId: "",
       scheduledDate: "",
       serviceDateTime: "",
-      location: "",
-      access: "",
+      plannedLocation: "",
+      accessPointId: "",
+      accessInstructions: "",
+      expectedContext: "docked",
+      boardingMethod: "gangway",
       taskTypes: [],
       singleReport: false,
       description: "",
@@ -232,8 +239,11 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         vesselId: orderData.vessel_id || "",
         scheduledDate: orderData.scheduled_date || "",
         serviceDateTime: formattedServiceDateTime,
-        location: orderData.location || "",
-        access: orderData.access || "",
+        plannedLocation: orderData.planned_location || orderData.location || "",
+        accessPointId: orderData.access_point_id || "",
+        accessInstructions: orderData.access_instructions || orderData.access || "",
+        expectedContext: orderData.expected_context || "docked",
+        boardingMethod: orderData.boarding_method || "gangway",
         singleReport: orderData.single_report || false,
         description: orderData.description || "",
         supervisorId: orderData.supervisor_id || "",
@@ -332,8 +342,11 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             supervisor_id: data.supervisorId || null,
             scheduled_date: data.scheduledDate,
             service_date_time: data.serviceDateTime || null,
-            location: data.location?.trim() || null,
-            access: data.access?.trim() || null,
+            planned_location: data.plannedLocation?.trim() || null,
+            access_point_id: data.accessPointId || null,
+            access_instructions: data.accessInstructions?.trim() || null,
+            expected_context: data.expectedContext || null,
+            boarding_method: data.boardingMethod || null,
             single_report: data.singleReport || false,
             description: data.description?.trim() || null,
           })
@@ -444,8 +457,11 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             supervisor_id: data.supervisorId || null,
             scheduled_date: data.scheduledDate,
             service_date_time: data.serviceDateTime || null,
-            location: data.location?.trim() || null,
-            access: data.access?.trim() || null,
+            planned_location: data.plannedLocation?.trim() || null,
+            access_point_id: data.accessPointId || null,
+            access_instructions: data.accessInstructions?.trim() || null,
+            expected_context: data.expectedContext || null,
+            boarding_method: data.boardingMethod || null,
             single_report: data.singleReport || false,
             description: data.description?.trim() || null,
             status: "pending",
@@ -536,8 +552,11 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         vesselId: "",
         scheduledDate: "",
         serviceDateTime: "",
-        location: "",
-        access: "",
+        plannedLocation: "",
+        accessPointId: "",
+        accessInstructions: "",
+        expectedContext: "docked",
+        boardingMethod: "gangway",
         taskTypes: [],
         singleReport: false,
         description: "",
@@ -672,6 +691,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             </FormItem>
           )}
         />
+
+        <LocationAccessSection form={form} vesselId={form.watch("vesselId") || null} />
 
         <ServiceDetails form={form} taskTypes={taskTypes} />
 

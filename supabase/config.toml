@@ -41,3 +41,9 @@ verify_jwt = true
 
 [functions.send-push-notification]
 verify_jwt = false
+
+[functions.ais-vessel-position]
+verify_jwt = true
+
+[functions.geofence-check]
+verify_jwt = true
