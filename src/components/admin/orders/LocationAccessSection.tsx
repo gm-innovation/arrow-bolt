@@ -213,9 +213,9 @@ export function LocationAccessSection({ form, vesselId }: LocationAccessSectionP
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="">Nenhum / Outro</SelectItem>
+                  <SelectItem value="none">Nenhum / Outro</SelectItem>
                   {loadingAccessPoints ? (
-                    <SelectItem value="" disabled>Carregando...</SelectItem>
+                    <SelectItem value="__loading__" disabled>Carregando...</SelectItem>
                   ) : (
                     accessPoints.map((point) => (
                       <SelectItem key={point.id} value={point.id}>
