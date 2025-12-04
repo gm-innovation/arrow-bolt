@@ -354,6 +354,8 @@ interface ServiceOrderData {
       const serviceOrderData = {
         id: orderNumber,
         orderNumber: orderNumber,
+        serviceOrderId: so.id,
+        vesselName: so.vessels?.name || '',
         date: so.service_date_time 
           ? new Date(so.service_date_time)
           : so.scheduled_date 
