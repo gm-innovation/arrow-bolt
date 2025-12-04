@@ -129,7 +129,7 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
   const handleCreateMeasurement = async () => {
     await createMeasurement.mutateAsync({
       service_order_id: orderId,
-      category: 'CATIVO',
+      category: 'EXTERNO',
     });
     setShowMeasurementDialog(true);
   };

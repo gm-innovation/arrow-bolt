@@ -238,7 +238,6 @@ export const exportMeasurementToExcel = (
 // Helper functions
 const translateCategory = (category: string) => {
   const map: Record<string, string> = {
-    CATIVO: "Cativo",
     LABORATORIO: "Laboratório",
     EXTERNO: "Externo",
   };
