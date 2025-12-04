@@ -15,23 +15,27 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { signIn, user, userRole } = useAuth();
+  const { signIn, user, userRole, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (user) {
+    // Only process after auth loading is complete
+    if (authLoading) return;
+    
+    if (user && userRole) {
       if (userRole === 'super_admin') {
         navigate("/super-admin/dashboard");
       } else if (userRole === 'admin') {
         navigate("/admin/dashboard");
+      } else if (userRole === 'manager') {
+        navigate("/manager/dashboard");
       } else if (userRole === 'technician') {
         navigate("/tech/dashboard");
-      } else if (userRole === null) {
-        // Usuário sem role atribuído - exibir erro
-        setError("Usuário sem permissões. Contate o administrador.");
-        setLoading(false);
       }
+    } else if (user && !userRole && !loading) {
+      // Only show error if user is logged in, role is null, AND form is not loading
+      setError("Usuário sem permissões. Contate o administrador.");
     }
-  }, [user, userRole, navigate]);
+  }, [user, userRole, authLoading, navigate, loading]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
