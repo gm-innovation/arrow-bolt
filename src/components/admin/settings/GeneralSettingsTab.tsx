@@ -14,7 +14,6 @@ const settingsSchema = z.object({
   km_rate: z.number().min(0, "Valor deve ser maior ou igual a 0"),
   default_material_markup: z.number().min(0).max(100),
   expense_admin_fee: z.number().min(0).max(100),
-  tax_cativo: z.number().min(0).max(100),
   tax_laboratorio: z.number().min(0).max(100),
   tax_externo: z.number().min(0).max(100),
 });
@@ -28,7 +27,6 @@ export const GeneralSettingsTab = () => {
       km_rate: 2.50,
       default_material_markup: 30.00,
       expense_admin_fee: 20.00,
-      tax_cativo: 2.00,
       tax_laboratorio: 5.00,
       tax_externo: 2.00,
     },
@@ -40,7 +38,6 @@ export const GeneralSettingsTab = () => {
         km_rate: Number(settings.km_rate),
         default_material_markup: Number(settings.default_material_markup),
         expense_admin_fee: Number(settings.expense_admin_fee),
-        tax_cativo: Number(settings.tax_cativo),
         tax_laboratorio: Number(settings.tax_laboratorio),
         tax_externo: Number(settings.tax_externo),
       });
@@ -140,30 +137,6 @@ export const GeneralSettingsTab = () => {
         <Card className="p-6">
           <h3 className="font-semibold text-lg mb-4">Impostos por Categoria</h3>
           <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="tax_cativo"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>CATIVO (%)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      {...field}
-                      onChange={(e) => field.onChange(parseFloat(e.target.value))}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Taxa de imposto para serviços da categoria CATIVO
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <Separator />
-
             <FormField
               control={form.control}
               name="tax_laboratorio"

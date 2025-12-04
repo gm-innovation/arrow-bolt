@@ -34,7 +34,7 @@ export const BasicInfoTab = ({ measurement, serviceOrderId, disabled }: BasicInf
     },
   });
 
-  const handleCategoryChange = (category: 'CATIVO' | 'LABORATORIO' | 'EXTERNO') => {
+  const handleCategoryChange = (category: 'LABORATORIO' | 'EXTERNO') => {
     updateCategory.mutate({
       id: measurement.id,
       category,
@@ -86,7 +86,6 @@ export const BasicInfoTab = ({ measurement, serviceOrderId, disabled }: BasicInf
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="CATIVO">CATIVO (2%)</SelectItem>
               <SelectItem value="LABORATORIO">LABORATÓRIO (5%)</SelectItem>
               <SelectItem value="EXTERNO">EXTERNO (2%)</SelectItem>
             </SelectContent>
