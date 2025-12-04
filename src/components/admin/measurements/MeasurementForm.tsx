@@ -363,6 +363,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
                 materials={measurement.measurement_materials || []}
                 disabled={!isDraft}
                 technicianMaterials={technicianMaterials}
+                serviceOrderId={serviceOrderId}
               />
             </TabsContent>
 

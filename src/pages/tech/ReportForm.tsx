@@ -10,6 +10,7 @@ import { TimeEntriesSection } from "@/components/tech/reports/TimeEntriesSection
 import { EquipmentInfoSection } from "@/components/tech/reports/EquipmentInfoSection";
 import { ServiceDetailsSection } from "@/components/tech/reports/ServiceDetailsSection";
 import { PhotosSection } from "@/components/tech/reports/PhotosSection";
+import { MaterialsSection } from "@/components/tech/reports/MaterialsSection";
 import { TaskReport, TimeEntry, PhotoWithCaption } from "@/components/tech/reports/types";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,10 +21,12 @@ const queryClient = new QueryClient();
 
 interface ServiceOrderData {
   id: string;
+  serviceOrderId: string;
   orderNumber: string;
   date: Date;
   location: string;
   access: string;
+  vesselName?: string;
   requester: {
     name: string;
     role: string;

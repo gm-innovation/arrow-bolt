@@ -14,6 +14,9 @@ export const useMeasurementMaterials = () => {
       unit_value: number;
       markup_percentage: number;
       total_value: number;
+      external_product_id?: number | null;
+      external_product_code?: string | null;
+      source?: string;
     }) => {
       const { error } = await supabase
         .from('measurement_materials')

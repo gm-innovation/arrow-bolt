@@ -47,3 +47,6 @@ verify_jwt = true
 
 [functions.geofence-check]
 verify_jwt = true
+
+[functions.get-eva-materials]
+verify_jwt = false
