@@ -10,6 +10,18 @@ export interface TaskReport {
   suppliedMaterial: string;
   photos: PhotoWithCaption[];
   timeEntries: TimeEntry[];
+  materials?: MaterialEntry[];
+}
+
+export interface MaterialEntry {
+  id: string;
+  external_product_id?: number;
+  external_product_code?: string;
+  name: string;
+  unit_value: number;
+  quantity: number;
+  used: boolean;
+  source: 'eva' | 'manual';
 }
 
 export interface PhotoWithCaption {
