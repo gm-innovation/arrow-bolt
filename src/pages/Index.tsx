@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Ship } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -15,20 +14,20 @@ const Index = () => {
               <Ship className="h-20 w-20 text-white" />
             </div>
           </div>
-          <h1 className="text-5xl font-bold mb-4">Naval OS Manager</h1>
+          <h1 className="text-5xl font-bold mb-4">Arrow</h1>
           <p className="text-xl text-white/80 max-w-2xl mx-auto">
-            Sistema completo de gerenciamento de ordens de serviço para a indústria naval.
-            Controle eficiente de tarefas, relatórios e manutenção.
+            Sistema completo de gerenciamento de ordens de serviço para a indústria naval. Controle eficiente de
+            tarefas, relatórios e manutenção.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
-            <Button 
+            <Button
               className="text-lg py-6 px-8 bg-white text-ocean-dark hover:bg-white/90 transition-all"
               onClick={() => navigate("/login")}
             >
               Entrar no Sistema
             </Button>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="text-lg py-6 px-8 border-white text-white hover:bg-white/10 transition-all"
             >
               Saiba Mais
@@ -42,29 +41,23 @@ const Index = () => {
               <Ship className="h-6 w-6" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Gerenciamento de Frota</h3>
-            <p className="text-white/80">
-              Controle completo da sua frota de embarcações com histórico de manutenção.
-            </p>
+            <p className="text-white/80">Controle completo da sua frota de embarcações com histórico de manutenção.</p>
           </div>
-          
+
           <div className="bg-white/10 backdrop-blur-md p-6 rounded-xl border border-white/20 transform transition-all hover:translate-y-[-5px] hover:shadow-xl">
             <div className="p-3 bg-white/20 w-fit rounded-lg mb-4">
               <Ship className="h-6 w-6" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Ordens de Serviço</h3>
-            <p className="text-white/80">
-              Crie e gerencie ordens de serviço com atribuição automática aos técnicos.
-            </p>
+            <p className="text-white/80">Crie e gerencie ordens de serviço com atribuição automática aos técnicos.</p>
           </div>
-          
+
           <div className="bg-white/10 backdrop-blur-md p-6 rounded-xl border border-white/20 transform transition-all hover:translate-y-[-5px] hover:shadow-xl">
             <div className="p-3 bg-white/20 w-fit rounded-lg mb-4">
               <Ship className="h-6 w-6" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Relatórios Detalhados</h3>
-            <p className="text-white/80">
-              Gere relatórios detalhados de manutenção e histórico de serviços.
-            </p>
+            <p className="text-white/80">Gere relatórios detalhados de manutenção e histórico de serviços.</p>
           </div>
         </div>
       </div>
