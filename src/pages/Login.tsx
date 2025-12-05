@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,15 +19,15 @@ const Login = () => {
   useEffect(() => {
     // Only process after auth loading is complete
     if (authLoading) return;
-    
+
     if (user && userRole) {
-      if (userRole === 'super_admin') {
+      if (userRole === "super_admin") {
         navigate("/super-admin/dashboard");
-      } else if (userRole === 'admin') {
+      } else if (userRole === "admin") {
         navigate("/admin/dashboard");
-      } else if (userRole === 'manager') {
+      } else if (userRole === "manager") {
         navigate("/manager/dashboard");
-      } else if (userRole === 'technician') {
+      } else if (userRole === "technician") {
         navigate("/tech/dashboard");
       }
     } else if (user && !userRole && !loading) {
@@ -74,10 +73,8 @@ const Login = () => {
                 <Ship className="h-10 w-10 text-ocean-light" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-center font-bold">Naval OS Manager</CardTitle>
-            <CardDescription className="text-center">
-              Digite suas credenciais para acessar o sistema
-            </CardDescription>
+            <CardTitle className="text-2xl text-center font-bold">Arrow</CardTitle>
+            <CardDescription className="text-center">Digite suas credenciais para acessar o sistema</CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
             <CardContent className="space-y-4">
@@ -107,15 +104,11 @@ const Login = () => {
                   />
                 </div>
               </div>
-              {error && (
-                <div className="text-sm text-red-500 mt-2 bg-red-50 p-2 rounded-md">
-                  {error}
-                </div>
-              )}
+              {error && <div className="text-sm text-red-500 mt-2 bg-red-50 p-2 rounded-md">{error}</div>}
             </CardContent>
             <CardFooter className="flex flex-col space-y-4">
-              <Button 
-                type="submit" 
+              <Button
+                type="submit"
                 className="w-full bg-ocean-light hover:bg-ocean text-white font-medium py-5"
                 disabled={loading}
               >
