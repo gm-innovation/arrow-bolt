@@ -35,10 +35,10 @@ const TaskDetails = () => {
   // Update page title when service order data is available
   useEffect(() => {
     if (serviceOrderData?.orderNumber) {
-      document.title = `OS ${serviceOrderData.orderNumber} - Naval OS`;
+      document.title = `OS ${serviceOrderData.orderNumber} - Arrow`;
     }
     return () => {
-      document.title = 'Naval OS';
+      document.title = 'Arrow';
     };
   }, [serviceOrderData?.orderNumber]);
 

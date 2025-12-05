@@ -238,7 +238,7 @@ export const exportManagerReportToExcel = (data: ManagerReportExcelData) => {
     name: "Informações",
     data: [
       { info: "Relatório Gerado em", valor: formatDateForExport(data.generatedAt) },
-      { info: "Sistema", valor: "AquaTask - Dashboard Gerencial" },
+      { info: "Sistema", valor: "Arrow - Dashboard Gerencial" },
     ],
     headers: { info: "Informação", valor: "Valor" }
   });

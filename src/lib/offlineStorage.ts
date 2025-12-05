@@ -51,7 +51,7 @@ class OfflineDatabase extends Dexie {
   cache!: Table<CachedData>;
 
   constructor() {
-    super('AquaTaskOffline');
+    super('ArrowOffline');
     
     this.version(1).stores({
       tasks: 'id, status, service_order_id, assigned_to, updated_at, synced',
