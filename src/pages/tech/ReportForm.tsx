@@ -226,6 +226,7 @@ interface ServiceOrderData {
           id,
           title,
           description,
+          task_order_number,
           service_orders:service_order_id (
             id,
             order_number,
@@ -350,7 +351,8 @@ interface ServiceOrderData {
       }
 
       const so = taskData.service_orders as any;
-      const orderNumber = so.order_number || taskData.id;
+      // Use task_order_number if available, otherwise fall back to service order's order_number
+      const orderNumber = (taskData as any).task_order_number || so.order_number || taskData.id;
       
       const serviceOrderData = {
         id: orderNumber,

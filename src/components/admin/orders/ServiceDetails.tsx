@@ -2,16 +2,23 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Plus, X } from "lucide-react";
+import { X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 
 interface ServiceDetailsProps {
   form: any;
   taskTypes: { id: string; name: string; category?: string }[];
+  taskOrderNumbers?: Record<string, string>;
+  onTaskOrderNumberChange?: (taskTypeId: string, orderNumber: string) => void;
 }
 
-export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
+export const ServiceDetails = ({ 
+  form, 
+  taskTypes, 
+  taskOrderNumbers = {},
+  onTaskOrderNumberChange 
+}: ServiceDetailsProps) => {
   const selectedTaskTypes = form.watch("taskTypes") || [];
   const singleReport = form.watch("singleReport");
 
@@ -24,7 +31,7 @@ export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
 
   const handleRemoveTaskType = (typeToRemove: string) => {
     const currentTypes = form.getValues("taskTypes") || [];
-    form.setValue("taskTypes", currentTypes.filter(type => type !== typeToRemove));
+    form.setValue("taskTypes", currentTypes.filter((type: string) => type !== typeToRemove));
   };
 
   return (
@@ -93,7 +100,7 @@ export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
             </SelectContent>
           </Select>
           <div className="flex flex-wrap gap-2 mt-2">
-            {selectedTaskTypes.map((typeId) => {
+            {selectedTaskTypes.map((typeId: string) => {
               const taskType = taskTypes.find(t => t.id === typeId);
               return (
                 <Badge key={typeId} variant="secondary" className="flex items-center gap-1">
@@ -136,6 +143,34 @@ export const ServiceDetails = ({ form, taskTypes }: ServiceDetailsProps) => {
           </FormItem>
         )}
       />
+
+      {/* Task-specific OS numbers when singleReport is false */}
+      {!singleReport && selectedTaskTypes.length > 0 && (
+        <div className="space-y-3 p-4 border rounded-lg bg-muted/30">
+          <FormLabel className="text-base">Número de OS por Tarefa</FormLabel>
+          <div className="text-sm text-muted-foreground mb-3">
+            Defina um número de OS individual para cada tarefa (opcional)
+          </div>
+          <div className="space-y-3">
+            {selectedTaskTypes.map((typeId: string) => {
+              const taskType = taskTypes.find(t => t.id === typeId);
+              return (
+                <div key={typeId} className="flex items-center gap-3">
+                  <span className="text-sm font-medium min-w-[150px]">
+                    {taskType?.name}
+                  </span>
+                  <Input
+                    placeholder="Nº OS (ex: OS-2024-0001)"
+                    value={taskOrderNumbers[typeId] || ""}
+                    onChange={(e) => onTaskOrderNumberChange?.(typeId, e.target.value)}
+                    className="max-w-[200px]"
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
