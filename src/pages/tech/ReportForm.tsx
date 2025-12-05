@@ -66,6 +66,7 @@ interface ServiceOrderData {
   const [serviceOrderData, setServiceOrderData] = useState<ServiceOrderData | null>(null);
   const [taskValidated, setTaskValidated] = useState(false);
   const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({});
+  const [requiredPhotoLabels, setRequiredPhotoLabels] = useState<string[]>([]);
 
   // Helper function to upload image to storage
   const uploadImageToStorage = async (file: File, taskId: string, imageIndex: number): Promise<string | null> => {
@@ -237,7 +238,7 @@ interface ServiceOrderData {
             vessels:vessel_id (name),
             clients:client_id (name, contact_person)
           ),
-          task_types:task_type_id (name)
+          task_types:task_type_id (name, photo_labels)
         `)
         .eq('id', taskId)
         .maybeSingle();
@@ -389,6 +390,12 @@ interface ServiceOrderData {
 
       console.log("Service order data prepared:", serviceOrderData);
       setServiceOrderData(serviceOrderData);
+      
+      // Set required photo labels from task type
+      const photoLabels = (taskData.task_types as any)?.photo_labels || [];
+      setRequiredPhotoLabels(photoLabels);
+      console.log("Required photo labels:", photoLabels);
+      
       setTaskValidated(true);
       console.log("Task validated successfully");
     } catch (error: any) {
@@ -769,26 +776,22 @@ interface ServiceOrderData {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validar fotos obrigatórias (todas as fotos padrão)
+    // Validar fotos obrigatórias baseadas no tipo de tarefa
     const report = taskReports[selectedTask];
-    const requiredPhotoTypes = [
-      "Equipamento",
-      "Placa de Identificação", 
-      "Problema Encontrado",
-      "Serviço Executado"
-    ];
     
-    const missingPhotos = requiredPhotoTypes.filter(
-      type => !report?.photos?.some(photo => photo.caption === type)
-    );
-    
-    if (missingPhotos.length > 0) {
-      toast({
-        title: "Fotos obrigatórias",
-        description: `Adicione as seguintes fotos antes de enviar: ${missingPhotos.join(", ")}`,
-        variant: "destructive",
-      });
-      return;
+    if (requiredPhotoLabels.length > 0) {
+      const missingPhotos = requiredPhotoLabels.filter(
+        label => !report?.photos?.some(photo => photo.caption === label)
+      );
+      
+      if (missingPhotos.length > 0) {
+        toast({
+          title: "Fotos obrigatórias",
+          description: `Adicione as seguintes fotos antes de enviar: ${missingPhotos.join(", ")}`,
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     try {
@@ -965,6 +968,7 @@ interface ServiceOrderData {
                     taskId={taskId}
                     photos={report.photos}
                     onUpdatePhotos={handleUpdatePhotos}
+                    requiredPhotoLabels={requiredPhotoLabels}
                   />
                 </CardContent>
               </Card>
