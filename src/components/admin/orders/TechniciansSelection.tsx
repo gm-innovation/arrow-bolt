@@ -3,8 +3,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, AlertTriangle, Phone } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useBatchTechnicianAvailability } from "@/hooks/useTechnicianAvailability";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface TechniciansSelectionProps {
   technicians: { id: string; profiles?: { full_name: string } }[];
@@ -13,7 +17,18 @@ interface TechniciansSelectionProps {
   leadTechId: string;
   onLeadTechChange: (techId: string) => void;
   onRemoveTechnician: (techId: string) => void;
+  scheduledDate?: Date;
 }
+
+const statusLabels: Record<string, string> = {
+  vacation: 'Férias',
+  day_off: 'Folga',
+  medical_exam: 'Exame Médico',
+  training: 'Treinamento',
+  sick_leave: 'Atestado',
+  on_call: 'Sobreaviso',
+  available: 'Disponível'
+};
 
 export const TechniciansSelection = ({ 
   technicians, 
@@ -21,8 +36,12 @@ export const TechniciansSelection = ({
   onTechnicianToggle, 
   leadTechId, 
   onLeadTechChange,
-  onRemoveTechnician 
+  onRemoveTechnician,
+  scheduledDate
 }: TechniciansSelectionProps) => {
+  const technicianIds = technicians.map(t => t.id);
+  const { availabilityMap, isLoading } = useBatchTechnicianAvailability(technicianIds, scheduledDate);
+
   const handleAddTechnician = (techId: string) => {
     if (!selectedTechnicians.includes(techId)) {
       onTechnicianToggle(techId);
@@ -42,6 +61,47 @@ export const TechniciansSelection = ({
     }
   };
 
+  const renderAvailabilityBadge = (techId: string) => {
+    const availability = availabilityMap[techId];
+    if (!availability || isLoading) return null;
+
+    if (!availability.is_available) {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="destructive" className="text-xs gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              {statusLabels[availability.status_type] || 'Indisponível'}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="font-medium">Técnico indisponível</p>
+            <p className="text-xs text-muted-foreground">{availability.status_description}</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    if (availability.status_type === 'on_call') {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="secondary" className="text-xs gap-1 bg-amber-100 text-amber-800 border-amber-200">
+              <Phone className="h-3 w-3" />
+              Sobreaviso
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="font-medium">Técnico de sobreaviso</p>
+            <p className="text-xs text-muted-foreground">Disponível para emergências</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <div className="space-y-4">
       <FormLabel>Técnicos</FormLabel>
@@ -53,11 +113,28 @@ export const TechniciansSelection = ({
           <SelectContent>
             {technicians
               .filter(tech => !selectedTechnicians.includes(tech.id))
-              .map((tech) => (
-                <SelectItem key={tech.id} value={tech.id}>
-                  {tech.profiles?.full_name}
-                </SelectItem>
-              ))}
+              .map((tech) => {
+                const availability = availabilityMap[tech.id];
+                const isUnavailable = availability && !availability.is_available;
+                
+                return (
+                  <SelectItem 
+                    key={tech.id} 
+                    value={tech.id}
+                    className={isUnavailable ? 'text-destructive' : ''}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{tech.profiles?.full_name}</span>
+                      {isUnavailable && (
+                        <AlertTriangle className="h-3 w-3 text-destructive" />
+                      )}
+                      {availability?.status_type === 'on_call' && (
+                        <Phone className="h-3 w-3 text-amber-600" />
+                      )}
+                    </div>
+                  </SelectItem>
+                );
+              })}
           </SelectContent>
         </Select>
 
@@ -79,6 +156,7 @@ export const TechniciansSelection = ({
                       <Label htmlFor={techId} className="flex-1 cursor-pointer font-normal">
                         {tech?.profiles?.full_name}
                       </Label>
+                      {renderAvailabilityBadge(techId)}
                       {isLead && (
                         <Badge variant="default" className="text-xs">
                           Responsável

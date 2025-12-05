@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 
 interface UserMenuProps {
-  userType: "super-admin" | "admin" | "manager" | "tech";
+  userType: "super-admin" | "admin" | "manager" | "tech" | "hr";
 }
 
 export const UserMenu = ({ userType }: UserMenuProps) => {
@@ -32,7 +32,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       }
       return names[0][0].toUpperCase();
     }
-    return userType === "super-admin" ? "SA" : userType === "admin" ? "A" : userType === "manager" ? "M" : "T";
+    return userType === "super-admin" ? "SA" : userType === "admin" ? "A" : userType === "manager" ? "M" : userType === "hr" ? "RH" : "T";
   };
 
   const getUserTitle = () => {
@@ -41,6 +41,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       case "admin": return "Coordenador";
       case "manager": return "Gerente";
       case "tech": return "Técnico";
+      case "hr": return "Recursos Humanos";
       default: return "";
     }
   };
@@ -51,6 +52,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       case "admin": return "/admin/profile";
       case "manager": return "/manager/profile";
       case "tech": return "/tech/profile";
+      case "hr": return "/hr/dashboard";
       default: return "/";
     }
   };
@@ -61,6 +63,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       case "admin": return "/admin/settings";
       case "manager": return "/manager/settings";
       case "tech": return "/tech/settings";
+      case "hr": return "/hr/dashboard";
       default: return "/";
     }
   };

@@ -98,6 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           'admin': '/admin/dashboard',
           'manager': '/manager/dashboard',
           'technician': '/tech/dashboard',
+          'hr': '/hr/dashboard',
         };
         
         const redirectPath = roleRedirects[roleData.role as keyof typeof roleRedirects];

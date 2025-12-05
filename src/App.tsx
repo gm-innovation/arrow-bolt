@@ -59,6 +59,15 @@ import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
 import Chat from "./pages/Chat";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 
+// HR Pages
+import HRDashboard from "./pages/hr/Dashboard";
+import HRTechnicians from "./pages/hr/Technicians";
+import HRTimeControl from "./pages/hr/TimeControl";
+import HRAbsences from "./pages/hr/Absences";
+import HROnCall from "./pages/hr/OnCall";
+import HRHolidays from "./pages/hr/Holidays";
+import HRReports from "./pages/hr/Reports";
+
 // Create a new QueryClient instance with proper configuration
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -498,6 +507,88 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['technician']}>
                     <DashboardLayout userType="tech">
                       <SatisfactionSurvey />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* HR Routes */}
+              <Route
+                path="/hr/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <HRDashboard />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/technicians"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <HRTechnicians />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/time-control"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <HRTimeControl />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/absences"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <HRAbsences />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/on-call"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <HROnCall />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/holidays"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <HRHolidays />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/reports"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <HRReports />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/chat"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <Chat />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
