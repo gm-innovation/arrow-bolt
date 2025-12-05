@@ -9,6 +9,7 @@ export type PhotosSectionProps = {
   taskId: string;
   photos: PhotoWithCaption[];
   onUpdatePhotos: (taskId: string, photos: PhotoWithCaption[]) => void;
+  requiredPhotoLabels?: string[];
 };
 
 type PhotoItemProps = {
@@ -73,7 +74,7 @@ const PhotoItem = ({ photo, index, onUpdateDescription, onRemove }: PhotoItemPro
   );
 };
 
-export const PhotosSection = ({ taskId, photos, onUpdatePhotos }: PhotosSectionProps) => {
+export const PhotosSection = ({ taskId, photos, onUpdatePhotos, requiredPhotoLabels = [] }: PhotosSectionProps) => {
   const [customCaption, setCustomCaption] = React.useState("");
 
   const handlePhotoUpload = (caption: string, files: FileList | null) => {
@@ -114,51 +115,33 @@ export const PhotosSection = ({ taskId, photos, onUpdatePhotos }: PhotosSectionP
     onUpdatePhotos(taskId, updatedPhotos);
   };
 
+  // Check if a required photo has been uploaded
+  const hasPhoto = (label: string) => photos.some(p => p.caption === label);
+
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold mb-3">Fotos Padrão</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Foto do Equipamento</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => handlePhotoUpload("Equipamento", e.target.files)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Foto da Placa de Identificação</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => handlePhotoUpload("Placa de Identificação", e.target.files)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Foto do Problema Encontrado</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => handlePhotoUpload("Problema Encontrado", e.target.files)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Foto do Serviço Executado</Label>
-            <Input
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={(e) => handlePhotoUpload("Serviço Executado", e.target.files)}
-            />
+      {requiredPhotoLabels.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Fotos Obrigatórias</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {requiredPhotoLabels.map((label) => (
+              <div key={label} className="space-y-2">
+                <Label className={hasPhoto(label) ? "text-green-600" : "text-destructive"}>
+                  {label} {hasPhoto(label) ? "✓" : "*"}
+                </Label>
+                <Input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => handlePhotoUpload(label, e.target.files)}
+                />
+              </div>
+            ))}
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="border-t pt-6">
+      <div className={requiredPhotoLabels.length > 0 ? "border-t pt-6" : ""}>
         <h3 className="text-lg font-semibold mb-3">Fotos Adicionais</h3>
         <div className="space-y-3">
           <div className="space-y-2">
