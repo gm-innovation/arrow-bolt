@@ -3,7 +3,8 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Ship, Mail } from "lucide-react";
+import { Mail } from "lucide-react";
+import logoDark from "@/assets/logo-dark.png";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -49,9 +50,7 @@ const ForgotPassword = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 pointer-events-none" />
           <CardHeader className="space-y-1 relative">
             <div className="flex items-center justify-center mb-4">
-              <div className="p-3 rounded-full bg-ocean-light/20">
-                <Ship className="h-10 w-10 text-ocean-light" />
-              </div>
+              <img src={logoDark} alt="Arrow" className="h-16 w-auto" />
             </div>
             <CardTitle className="text-2xl text-center font-bold">Recuperar Senha</CardTitle>
             <CardDescription className="text-center">

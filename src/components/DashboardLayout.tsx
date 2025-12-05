@@ -2,7 +2,6 @@ import { ReactNode, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  Ship,
   LayoutDashboard,
   ClipboardList,
   Users,
@@ -20,6 +19,7 @@ import {
   Calculator,
   History,
 } from "lucide-react";
+import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -144,9 +144,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
           userColors[userType]
         )}>
           <div className="flex items-center gap-3">
-            <Ship className="h-8 w-8 text-white" />
+            <img src={iconLight} alt="Arrow" className="h-8 w-8" />
             <div className="flex flex-col">
-              <span className="font-bold text-lg text-white">Naval OS</span>
+              <span className="font-bold text-lg text-white">Arrow</span>
               <span className="text-xs text-white/80">{getUserTitle()}</span>
             </div>
           </div>
@@ -214,10 +214,10 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
             "flex items-center gap-3 p-4 bg-gradient-to-r border-b", 
             userColors[userType]
           )}>
-            <Ship className="h-8 w-8 text-white flex-shrink-0" />
+            <img src={iconLight} alt="Arrow" className="h-8 w-8 flex-shrink-0" />
             {!collapsed && (
               <div className="flex flex-col min-w-0">
-                <span className="font-bold text-lg text-white truncate">Naval OS</span>
+                <span className="font-bold text-lg text-white truncate">Arrow</span>
                 <span className="text-xs text-white/80 truncate">{getUserTitle()}</span>
               </div>
             )}

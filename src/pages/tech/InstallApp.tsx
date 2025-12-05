@@ -47,7 +47,7 @@ const InstallApp = () => {
     if (outcome === 'accepted') {
       toast({
         title: "App instalado!",
-        description: "O Aqua Task Tracker foi adicionado à sua tela inicial",
+        description: "O Arrow foi adicionado à sua tela inicial",
       });
       setIsInstalled(true);
     }
@@ -76,7 +76,7 @@ const InstallApp = () => {
       <div className="text-center space-y-2 mb-8">
         <h1 className="text-3xl md:text-4xl font-bold">Instale o App</h1>
         <p className="text-muted-foreground text-lg">
-          Use o Aqua Task Tracker como um app nativo no seu celular
+          Use o Arrow como um app nativo no seu celular
         </p>
       </div>
 
@@ -88,7 +88,7 @@ const InstallApp = () => {
               <CardTitle className="text-green-600">App Instalado!</CardTitle>
             </div>
             <CardDescription className="text-green-700 dark:text-green-400">
-              O Aqua Task Tracker está instalado no seu dispositivo
+              O Arrow está instalado no seu dispositivo
             </CardDescription>
           </CardHeader>
         </Card>
