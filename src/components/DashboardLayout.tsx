@@ -145,10 +145,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         )}>
           <div className="flex items-center gap-3">
             <img src={iconLight} alt="Arrow" className="h-8 w-8" />
-            <div className="flex flex-col">
-              <span className="font-bold text-lg text-white">Arrow</span>
-              <span className="text-xs text-white/80">{getUserTitle()}</span>
-            </div>
+            <span className="text-xs text-white/80">{getUserTitle()}</span>
           </div>
           <Button
             variant="ghost"
@@ -216,10 +213,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
           )}>
             <img src={iconLight} alt="Arrow" className="h-8 w-8 flex-shrink-0" />
             {!collapsed && (
-              <div className="flex flex-col min-w-0">
-                <span className="font-bold text-lg text-white truncate">Arrow</span>
-                <span className="text-xs text-white/80 truncate">{getUserTitle()}</span>
-              </div>
+              <span className="text-xs text-white/80 truncate">{getUserTitle()}</span>
             )}
             <Button 
               variant="ghost" 
