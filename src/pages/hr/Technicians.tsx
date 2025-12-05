@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, User, Calendar, FileText, AlertTriangle } from 'lucide-react';
+import { Plus, Search, User, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NewTechnicianForm } from '@/components/admin/technicians/NewTechnicianForm';
+import { useToast } from '@/hooks/use-toast';
 
 interface Technician {
   id: string;
@@ -31,10 +32,12 @@ interface Technician {
 
 const Technicians = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
 
   const fetchTechnicians = async () => {
     if (!user) return;
@@ -47,6 +50,7 @@ const Technicians = () => {
         .single();
 
       if (!profile?.company_id) return;
+      setCompanyId(profile.company_id);
 
       const { data, error } = await supabase
         .from('technicians')
@@ -88,6 +92,180 @@ const Technicians = () => {
     return { status: 'valid', label: 'Válido', variant: 'default' as const };
   };
 
+  const generateSecurePassword = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  };
+
+  const handleCreateTechnician = async (
+    data: any, 
+    uploadedFile: File | null, 
+    photoFile: File | null, 
+    certificationFiles: Array<{ file: File; name?: string; issueDate?: string; expiryDate?: string }>
+  ) => {
+    try {
+      if (!companyId) throw new Error("Company not found");
+
+      // Generate password based on option
+      let password = '';
+      if (data.password_option === 'auto_email' || data.password_option === 'reset_link') {
+        password = generateSecurePassword();
+      } else {
+        password = data.password;
+      }
+
+      // Check if user already exists
+      const { data: existingUser } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("email", data.email)
+        .maybeSingle();
+
+      if (existingUser) {
+        toast({
+          title: "Erro",
+          description: "Já existe um usuário com este email",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create user via edge function
+      const { data: createUserResult, error: createUserError } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: data.email,
+          password: password,
+          full_name: data.name,
+          phone: data.phone || null,
+          company_id: companyId,
+          role: 'tech'
+        }
+      });
+
+      if (createUserError) throw createUserError;
+      if (!createUserResult?.user_id) throw new Error('Falha ao criar usuário');
+
+      // Upload photo if provided
+      if (photoFile) {
+        try {
+          const photoExt = photoFile.name.split('.').pop();
+          const photoPath = `${createUserResult.user_id}/avatar.${photoExt}`;
+          
+          const { error: uploadError } = await supabase.storage
+            .from('technician-avatars')
+            .upload(photoPath, photoFile, { upsert: true, contentType: photoFile.type });
+          
+          if (!uploadError) {
+            const { data: { publicUrl } } = supabase.storage
+              .from('technician-avatars')
+              .getPublicUrl(photoPath);
+            
+            await supabase
+              .from('profiles')
+              .update({ avatar_url: publicUrl })
+              .eq('id', createUserResult.user_id);
+          }
+        } catch (photoError) {
+          console.error('Photo upload error:', photoError);
+        }
+      }
+
+      // Get technician_id
+      const { data: technicianData, error: techError } = await supabase
+        .from('technicians')
+        .select('id')
+        .eq('user_id', createUserResult.user_id)
+        .single();
+
+      if (techError) throw techError;
+
+      // Update technician with ASO data
+      await supabase.from("technicians").update({
+        specialty: data.role,
+        cpf: data.cpf || null,
+        rg: data.rg || null,
+        birth_date: data.birth_date || null,
+        gender: data.gender || null,
+        nationality: data.nationality || null,
+        height: data.height ? parseInt(data.height) : null,
+        blood_type: data.blood_type || null,
+        blood_rh_factor: data.blood_rh_factor || null,
+        aso_valid_until: data.aso_valid_until || null,
+        medical_status: data.medical_status || 'pending',
+      }).eq('user_id', createUserResult.user_id);
+
+      // Upload ASO if provided
+      if (uploadedFile && technicianData) {
+        const filePath = `${companyId}/${technicianData.id}/aso/${Date.now()}-${uploadedFile.name}`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('technician-documents')
+          .upload(filePath, uploadedFile);
+
+        if (!uploadError) {
+          await supabase.from('technician_documents').insert({
+            technician_id: technicianData.id,
+            document_type: 'aso',
+            file_name: uploadedFile.name,
+            file_path: filePath,
+            metadata: data.aso_issue_date ? { aso_issue_date: data.aso_issue_date } : null
+          });
+        }
+      }
+
+      // Upload certifications
+      if (certificationFiles.length > 0 && technicianData) {
+        for (const cert of certificationFiles) {
+          const certPath = `${createUserResult.user_id}/certifications/${Date.now()}-${cert.file.name}`;
+          
+          const { error: certError } = await supabase.storage
+            .from('technician-documents')
+            .upload(certPath, cert.file);
+          
+          if (!certError) {
+            await supabase.from('technician_documents').insert({
+              technician_id: technicianData.id,
+              document_type: 'certification',
+              file_name: cert.file.name,
+              file_path: certPath,
+              certificate_name: cert.name,
+              issue_date: cert.issueDate,
+              expiry_date: cert.expiryDate,
+            });
+          }
+        }
+      }
+
+      // Send reset link if option selected
+      if (data.password_option === 'reset_link') {
+        await supabase.auth.resetPasswordForEmail(data.email, {
+          redirectTo: `${window.location.origin}/login`,
+        });
+      }
+
+      setIsDialogOpen(false);
+      fetchTechnicians();
+      
+      const passwordMessage = data.password_option === 'auto_email' 
+        ? `Senha gerada: ${password}. Informe ao técnico.`
+        : data.password_option === 'reset_link'
+        ? 'Link de redefinição de senha enviado para o email.'
+        : 'Senha definida com sucesso.';
+
+      toast({
+        title: "Técnico criado com sucesso",
+        description: `${data.name} foi adicionado. ${passwordMessage}`,
+      });
+    } catch (error: any) {
+      console.error('Error creating technician:', error);
+      toast({
+        title: "Erro ao criar técnico",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -113,10 +291,7 @@ const Technicians = () => {
               <DialogTitle>Cadastrar Novo Técnico</DialogTitle>
             </DialogHeader>
             <NewTechnicianForm 
-              onSubmit={async () => {
-                setIsDialogOpen(false);
-                fetchTechnicians();
-              }}
+              onSubmit={handleCreateTechnician}
               onCancel={() => setIsDialogOpen(false)}
             />
           </DialogContent>
