@@ -70,9 +70,8 @@ const Login = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 pointer-events-none" />
           <CardHeader className="space-y-1 relative">
             <div className="flex items-center justify-center mb-4">
-              <img src={logoDark} alt="Arrow" className="h-16 w-auto" />
+              <img src={logoDark} alt="Arrow" className="h-24 w-auto" />
             </div>
-            <CardTitle className="text-2xl text-center font-bold">Arrow</CardTitle>
             <CardDescription className="text-center">Digite suas credenciais para acessar o sistema</CardDescription>
           </CardHeader>
           <form onSubmit={handleLogin}>
