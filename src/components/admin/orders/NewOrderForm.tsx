@@ -70,6 +70,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
   const [isLoading, setIsLoading] = useState(false);
   const [originalScheduledDate, setOriginalScheduledDate] = useState<string>("");
   const [originalOrderNumber, setOriginalOrderNumber] = useState<string>("");
+  const [taskOrderNumbers, setTaskOrderNumbers] = useState<Record<string, string>>({});
 
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderFormSchema),
@@ -89,6 +90,13 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
       supervisorId: "",
     }
   });
+
+  const handleTaskOrderNumberChange = (taskTypeId: string, orderNum: string) => {
+    setTaskOrderNumbers(prev => ({
+      ...prev,
+      [taskTypeId]: orderNum
+    }));
+  };
 
   const selectedClient = form.watch("clientId");
 
@@ -215,11 +223,22 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         await fetchVessels(orderData.vessels.client_id);
       }
 
-      // Fetch associated tasks
+      // Fetch associated tasks with task_order_number
       const { data: tasksData } = await supabase
         .from("tasks")
-        .select("task_type_id, assigned_to")
+        .select("task_type_id, assigned_to, task_order_number")
         .eq("service_order_id", orderId);
+
+      // Build taskOrderNumbers map from existing tasks
+      if (tasksData) {
+        const orderNumsMap: Record<string, string> = {};
+        tasksData.forEach((task: any) => {
+          if (task.task_type_id && task.task_order_number) {
+            orderNumsMap[task.task_type_id] = task.task_order_number;
+          }
+        });
+        setTaskOrderNumbers(orderNumsMap);
+      }
 
       // Convert serviceDateTime to correct format for datetime-local input
       let formattedServiceDateTime = "";
@@ -405,6 +424,10 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
               title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
               status: "pending" as const,
               assigned_to: techId,
+              // Only set task_order_number if singleReport is false
+              task_order_number: !data.singleReport && taskOrderNumbers[taskTypeId] 
+                ? taskOrderNumbers[taskTypeId] 
+                : null,
             }))
           );
 
@@ -509,6 +532,10 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
               title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
               status: "pending" as const,
               assigned_to: techId,
+              // Only set task_order_number if singleReport is false
+              task_order_number: !data.singleReport && taskOrderNumbers[taskTypeId] 
+                ? taskOrderNumbers[taskTypeId] 
+                : null,
             }))
           );
 
@@ -564,6 +591,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
       });
       setSelectedTechnicians([]);
       setLeadTechId("");
+      setTaskOrderNumbers({});
       onSuccess?.();
     } catch (error: any) {
       toast({
@@ -694,7 +722,12 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
 
         <LocationAccessSection form={form} vesselId={form.watch("vesselId") || null} />
 
-        <ServiceDetails form={form} taskTypes={taskTypes} />
+        <ServiceDetails 
+          form={form} 
+          taskTypes={taskTypes} 
+          taskOrderNumbers={taskOrderNumbers}
+          onTaskOrderNumberChange={handleTaskOrderNumberChange}
+        />
 
         <TechniciansSelection
           technicians={technicians}
