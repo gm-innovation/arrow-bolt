@@ -769,6 +769,17 @@ interface ServiceOrderData {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Validar fotos obrigatórias
+    const report = taskReports[selectedTask];
+    if (!report?.photos || report.photos.length === 0) {
+      toast({
+        title: "Fotos obrigatórias",
+        description: "É necessário adicionar pelo menos uma foto ao relatório antes de enviar.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
       
