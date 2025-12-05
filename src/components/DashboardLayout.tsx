@@ -35,7 +35,7 @@ import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator"
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  userType: "super-admin" | "admin" | "manager" | "tech";
+  userType: "super-admin" | "admin" | "manager" | "tech" | "hr";
   pageTitle?: string;
 }
 
@@ -90,11 +90,22 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Notificações", icon: Bell, path: "/tech/notifications" },
   ];
 
+  const hrMenuItems = [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/hr/dashboard" },
+    { title: "Técnicos", icon: Wrench, path: "/hr/technicians" },
+    { title: "Controle de Ponto", icon: History, path: "/hr/time-control" },
+    { title: "Ausências", icon: Users, path: "/hr/absences" },
+    { title: "Sobreaviso", icon: Bell, path: "/hr/on-call" },
+    { title: "Feriados", icon: ClipboardList, path: "/hr/holidays" },
+    { title: "Relatórios", icon: FileText, path: "/hr/reports" },
+  ];
+
   const menuItems = {
     "super-admin": superAdminMenuItems,
     admin: adminMenuItems,
     manager: managerMenuItems,
     tech: techMenuItems,
+    hr: hrMenuItems,
   }[userType];
 
   const handleLogout = async () => {
@@ -110,7 +121,8 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     "super-admin": "from-purple-600 to-blue-600",
     "admin": "from-blue-600 to-cyan-600",
     "manager": "from-indigo-600 to-purple-600",
-    "tech": "from-cyan-600 to-teal-600"
+    "tech": "from-cyan-600 to-teal-600",
+    "hr": "from-emerald-600 to-teal-600"
   };
 
   const getUserTitle = () => {
@@ -119,6 +131,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       case "admin": return "Coordenador";
       case "manager": return "Gerente";
       case "tech": return "Técnico";
+      case "hr": return "Recursos Humanos";
       default: return "";
     }
   };

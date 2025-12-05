@@ -112,10 +112,13 @@ const Technicians = () => {
             <DialogHeader>
               <DialogTitle>Cadastrar Novo Técnico</DialogTitle>
             </DialogHeader>
-            <NewTechnicianForm onSuccess={() => {
-              setIsDialogOpen(false);
-              fetchTechnicians();
-            }} />
+            <NewTechnicianForm 
+              onSubmit={async () => {
+                setIsDialogOpen(false);
+                fetchTechnicians();
+              }}
+              onCancel={() => setIsDialogOpen(false)}
+            />
           </DialogContent>
         </Dialog>
       </div>
