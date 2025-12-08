@@ -18,6 +18,8 @@ export interface TimeEntry {
   hours_extra: number;
   hours_night: number;
   hours_standby: number;
+  is_travel: boolean;
+  is_overnight: boolean;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -33,10 +35,16 @@ export interface TimeEntry {
     title: string;
     service_order?: {
       order_number: string;
+      vessel?: {
+        name: string;
+      };
     };
   };
   service_order?: {
     order_number: string;
+    vessel?: {
+      name: string;
+    };
   };
 }
 
@@ -78,6 +86,8 @@ export interface UpdateTimeEntryData {
   hours_extra?: number;
   hours_night?: number;
   hours_standby?: number;
+  is_travel?: boolean;
+  is_overnight?: boolean;
   notes?: string;
 }
 
@@ -90,6 +100,8 @@ export interface CreateTimeEntryData {
   hours_extra: number;
   hours_night: number;
   hours_standby: number;
+  is_travel?: boolean;
+  is_overnight?: boolean;
   notes?: string;
 }
 
@@ -120,7 +132,7 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
       const technicianIds = (companyTechnicians || []).map(t => t.id);
       if (technicianIds.length === 0) return [];
 
-      // Build query with filters - now including service_order directly
+      // Build query with filters - now including service_order and vessel
       let query = supabase
         .from('time_entries')
         .select(`
@@ -128,9 +140,9 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
           task:tasks(
             id,
             title,
-            service_order:service_orders(order_number)
+            service_order:service_orders(order_number, vessel:vessels(name))
           ),
-          service_order:service_orders(order_number)
+          service_order:service_orders(order_number, vessel:vessels(name))
         `)
         .in('technician_id', technicianIds)
         .order('check_in_at', { ascending: false, nullsFirst: false });
@@ -274,6 +286,8 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
           hours_extra: data.hours_extra,
           hours_night: data.hours_night,
           hours_standby: data.hours_standby,
+          is_travel: data.is_travel || false,
+          is_overnight: data.is_overnight || false,
           notes: data.notes || null,
           // Legacy fields for compatibility
           entry_date: entryDate,

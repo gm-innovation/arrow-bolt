@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useHRTimeEntries } from '@/hooks/useHRTimeEntries';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +43,8 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
     hours_extra: 0,
     hours_night: 0,
     hours_standby: 0,
+    is_travel: false,
+    is_overnight: false,
     notes: '',
   });
 
@@ -87,6 +90,8 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
         hours_extra: formData.hours_extra,
         hours_night: formData.hours_night,
         hours_standby: formData.hours_standby,
+        is_travel: formData.is_travel,
+        is_overnight: formData.is_overnight,
         notes: formData.notes || undefined,
       });
       onSuccess();
@@ -100,6 +105,8 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
         hours_extra: 0,
         hours_night: 0,
         hours_standby: 0,
+        is_travel: false,
+        is_overnight: false,
         notes: '',
       });
     } finally {
@@ -223,6 +230,25 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
             </div>
             <div className="text-right text-sm text-muted-foreground">
               Total: <span className="font-semibold text-foreground">{totalHours.toFixed(1)}h</span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-6 pt-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="new_is_travel"
+                checked={formData.is_travel}
+                onCheckedChange={(c) => setFormData({ ...formData, is_travel: !!c })}
+              />
+              <Label htmlFor="new_is_travel" className="text-sm cursor-pointer">Viagem</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="new_is_overnight"
+                checked={formData.is_overnight}
+                onCheckedChange={(c) => setFormData({ ...formData, is_overnight: !!c })}
+              />
+              <Label htmlFor="new_is_overnight" className="text-sm cursor-pointer">Pernoite Hotel</Label>
             </div>
           </div>
 
