@@ -127,7 +127,7 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  {technicians.map((t) => (
+                  {technicians.filter(t => t.id).map((t) => (
                     <SelectItem key={t.id} value={t.id}>
                       {t.profiles?.full_name || 'Sem nome'}
                     </SelectItem>
@@ -139,14 +139,14 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
               <Label>OS (opcional)</Label>
               <Select 
                 value={formData.service_order_id} 
-                onValueChange={(v) => setFormData({ ...formData, service_order_id: v })}
+                onValueChange={(v) => setFormData({ ...formData, service_order_id: v === '_none_' ? '' : v })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sem OS</SelectItem>
-                  {serviceOrders.map((so) => (
+                  <SelectItem value="_none_">Sem OS</SelectItem>
+                  {serviceOrders.filter(so => so.id).map((so) => (
                     <SelectItem key={so.id} value={so.id}>
                       {so.order_number}
                     </SelectItem>
