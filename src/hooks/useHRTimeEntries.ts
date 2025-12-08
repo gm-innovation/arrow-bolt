@@ -5,12 +5,20 @@ import { useToast } from '@/hooks/use-toast';
 
 export interface TimeEntry {
   id: string;
-  task_id: string;
+  task_id: string | null;
   technician_id: string;
   entry_type: 'work_normal' | 'work_extra' | 'work_night' | 'standby';
   entry_date: string;
   start_time: string;
   end_time: string;
+  check_in_at: string | null;
+  check_out_at: string | null;
+  service_order_id: string | null;
+  hours_normal: number;
+  hours_extra: number;
+  hours_night: number;
+  hours_standby: number;
+  notes: string | null;
   created_at: string;
   updated_at: string;
   technician?: {
@@ -26,6 +34,9 @@ export interface TimeEntry {
     service_order?: {
       order_number: string;
     };
+  };
+  service_order?: {
+    order_number: string;
   };
 }
 
@@ -47,9 +58,6 @@ export interface TimeAdjustment {
       full_name: string;
     };
   };
-  adjuster?: {
-    full_name: string;
-  };
 }
 
 export interface CreateAdjustmentData {
@@ -60,6 +68,29 @@ export interface CreateAdjustmentData {
   original_check_out?: string;
   adjusted_check_out?: string;
   adjustment_reason: string;
+}
+
+export interface UpdateTimeEntryData {
+  id: string;
+  check_in_at?: string;
+  check_out_at?: string;
+  hours_normal?: number;
+  hours_extra?: number;
+  hours_night?: number;
+  hours_standby?: number;
+  notes?: string;
+}
+
+export interface CreateTimeEntryData {
+  technician_id: string;
+  check_in_at: string;
+  check_out_at: string;
+  service_order_id?: string;
+  hours_normal: number;
+  hours_extra: number;
+  hours_night: number;
+  hours_standby: number;
+  notes?: string;
 }
 
 export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: string; endDate?: string }) => {
@@ -76,30 +107,20 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
         .eq('id', user?.id)
         .single();
 
-      if (!profile?.company_id) {
-        console.log('HR TimeEntries: No company_id found for user');
-        return [];
-      }
+      if (!profile?.company_id) return [];
 
-      // First, get technicians from the company
+      // Get technicians from the company
       const { data: companyTechnicians, error: techError } = await supabase
         .from('technicians')
         .select('id, user_id, company_id, profiles:profiles(full_name)')
         .eq('company_id', profile.company_id);
 
-      if (techError) {
-        console.error('HR TimeEntries: Error fetching technicians', techError);
-        throw techError;
-      }
+      if (techError) throw techError;
 
       const technicianIds = (companyTechnicians || []).map(t => t.id);
-      
-      if (technicianIds.length === 0) {
-        console.log('HR TimeEntries: No technicians found for company');
-        return [];
-      }
+      if (technicianIds.length === 0) return [];
 
-      // Build query with filters
+      // Build query with filters - now including service_order directly
       let query = supabase
         .from('time_entries')
         .select(`
@@ -108,18 +129,19 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
             id,
             title,
             service_order:service_orders(order_number)
-          )
+          ),
+          service_order:service_orders(order_number)
         `)
         .in('technician_id', technicianIds)
-        .order('entry_date', { ascending: false });
+        .order('check_in_at', { ascending: false, nullsFirst: false });
 
-      // Apply date filters at database level
+      // Apply date filters based on check_in_at
       if (filters?.startDate) {
-        query = query.gte('entry_date', filters.startDate);
+        query = query.gte('check_in_at', `${filters.startDate}T00:00:00`);
       }
 
       if (filters?.endDate) {
-        query = query.lte('entry_date', filters.endDate);
+        query = query.lte('check_in_at', `${filters.endDate}T23:59:59`);
       }
 
       if (filters?.technicianId) {
@@ -128,22 +150,15 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
 
       const { data, error } = await query;
 
-      if (error) {
-        console.error('HR TimeEntries: Error fetching time entries', error);
-        throw error;
-      }
-
-      console.log('HR TimeEntries: Found', data?.length || 0, 'entries');
+      if (error) throw error;
 
       // Map technician data to entries
       const technicianMap = new Map(companyTechnicians?.map(t => [t.id, t]));
       
-      const result = (data || []).map((entry: any) => ({
+      return (data || []).map((entry: any) => ({
         ...entry,
         technician: technicianMap.get(entry.technician_id) || null
-      }));
-
-      return result as TimeEntry[];
+      })) as TimeEntry[];
     },
     enabled: !!user,
   });
@@ -184,7 +199,6 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
       return data as TimeAdjustment[];
     },
@@ -223,6 +237,80 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
     },
   });
 
+  const updateTimeEntry = useMutation({
+    mutationFn: async (data: UpdateTimeEntryData) => {
+      const { id, ...updateData } = data;
+      const { error } = await supabase
+        .from('time_entries')
+        .update(updateData)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Registro atualizado com sucesso' });
+      queryClient.invalidateQueries({ queryKey: ['hr-time-entries'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao atualizar registro', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const createTimeEntry = useMutation({
+    mutationFn: async (data: CreateTimeEntryData) => {
+      // Extract date from check_in_at for entry_date
+      const entryDate = data.check_in_at.split('T')[0];
+      const checkInTime = data.check_in_at.split('T')[1]?.slice(0, 5) || '08:00';
+      const checkOutTime = data.check_out_at.split('T')[1]?.slice(0, 5) || '17:00';
+
+      const { error } = await supabase
+        .from('time_entries')
+        .insert({
+          technician_id: data.technician_id,
+          check_in_at: data.check_in_at,
+          check_out_at: data.check_out_at,
+          service_order_id: data.service_order_id || null,
+          hours_normal: data.hours_normal,
+          hours_extra: data.hours_extra,
+          hours_night: data.hours_night,
+          hours_standby: data.hours_standby,
+          notes: data.notes || null,
+          // Legacy fields for compatibility
+          entry_date: entryDate,
+          start_time: checkInTime,
+          end_time: checkOutTime,
+          entry_type: 'work_normal',
+        });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Registro criado com sucesso' });
+      queryClient.invalidateQueries({ queryKey: ['hr-time-entries'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao criar registro', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteTimeEntry = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('time_entries')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Registro excluído com sucesso' });
+      queryClient.invalidateQueries({ queryKey: ['hr-time-entries'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao excluir registro', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     timeEntries: timeEntries || [],
     adjustments: adjustments || [],
@@ -232,15 +320,18 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
       refetchAdjustments();
     },
     createAdjustment,
+    updateTimeEntry,
+    createTimeEntry,
+    deleteTimeEntry,
   };
 };
 
 export const getEntryTypeLabel = (type: TimeEntry['entry_type']) => {
   const labels = {
-    work_normal: 'HN - Hora Normal',
-    work_extra: 'HE - Hora Extra',
-    work_night: 'HN - Hora Noturna',
-    standby: 'Sobreaviso',
+    work_normal: 'HN',
+    work_extra: 'HE',
+    work_night: 'HNot',
+    standby: 'Sob',
   };
   return labels[type] || type;
 };
