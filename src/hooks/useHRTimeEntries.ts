@@ -76,49 +76,72 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
         .eq('id', user?.id)
         .single();
 
-      if (!profile?.company_id) return [];
+      if (!profile?.company_id) {
+        console.log('HR TimeEntries: No company_id found for user');
+        return [];
+      }
 
+      // First, get technicians from the company
+      const { data: companyTechnicians, error: techError } = await supabase
+        .from('technicians')
+        .select('id, user_id, company_id, profiles:profiles(full_name)')
+        .eq('company_id', profile.company_id);
+
+      if (techError) {
+        console.error('HR TimeEntries: Error fetching technicians', techError);
+        throw techError;
+      }
+
+      const technicianIds = (companyTechnicians || []).map(t => t.id);
+      
+      if (technicianIds.length === 0) {
+        console.log('HR TimeEntries: No technicians found for company');
+        return [];
+      }
+
+      // Build query with filters
       let query = supabase
         .from('time_entries')
         .select(`
           *,
-          technician:technicians(
-            id,
-            user_id,
-            company_id,
-            profiles:profiles(full_name)
-          ),
           task:tasks(
             id,
             title,
             service_order:service_orders(order_number)
           )
         `)
+        .in('technician_id', technicianIds)
         .order('entry_date', { ascending: false });
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-
-      // Filter by company
-      const filtered = (data || []).filter(
-        (entry: any) => entry.technician?.company_id === profile.company_id
-      );
-
-      // Apply additional filters
-      let result = filtered;
-
-      if (filters?.technicianId) {
-        result = result.filter((e: any) => e.technician_id === filters.technicianId);
-      }
-
+      // Apply date filters at database level
       if (filters?.startDate) {
-        result = result.filter((e: any) => e.entry_date >= filters.startDate);
+        query = query.gte('entry_date', filters.startDate);
       }
 
       if (filters?.endDate) {
-        result = result.filter((e: any) => e.entry_date <= filters.endDate);
+        query = query.lte('entry_date', filters.endDate);
       }
+
+      if (filters?.technicianId) {
+        query = query.eq('technician_id', filters.technicianId);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('HR TimeEntries: Error fetching time entries', error);
+        throw error;
+      }
+
+      console.log('HR TimeEntries: Found', data?.length || 0, 'entries');
+
+      // Map technician data to entries
+      const technicianMap = new Map(companyTechnicians?.map(t => [t.id, t]));
+      
+      const result = (data || []).map((entry: any) => ({
+        ...entry,
+        technician: technicianMap.get(entry.technician_id) || null
+      }));
 
       return result as TimeEntry[];
     },
