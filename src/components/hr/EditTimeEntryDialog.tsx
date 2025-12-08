@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { TimeEntry, useHRTimeEntries } from '@/hooks/useHRTimeEntries';
 import { format } from 'date-fns';
 
@@ -24,6 +25,8 @@ const EditTimeEntryDialog = ({ open, onOpenChange, entry, onSuccess }: Props) =>
     hours_extra: 0,
     hours_night: 0,
     hours_standby: 0,
+    is_travel: false,
+    is_overnight: false,
     notes: '',
   });
 
@@ -40,6 +43,8 @@ const EditTimeEntryDialog = ({ open, onOpenChange, entry, onSuccess }: Props) =>
         hours_extra: entry.hours_extra || 0,
         hours_night: entry.hours_night || 0,
         hours_standby: entry.hours_standby || 0,
+        is_travel: entry.is_travel || false,
+        is_overnight: entry.is_overnight || false,
         notes: entry.notes || '',
       });
     }
@@ -59,6 +64,8 @@ const EditTimeEntryDialog = ({ open, onOpenChange, entry, onSuccess }: Props) =>
         hours_extra: formData.hours_extra,
         hours_night: formData.hours_night,
         hours_standby: formData.hours_standby,
+        is_travel: formData.is_travel,
+        is_overnight: formData.is_overnight,
         notes: formData.notes || undefined,
       });
       onSuccess();
@@ -141,6 +148,25 @@ const EditTimeEntryDialog = ({ open, onOpenChange, entry, onSuccess }: Props) =>
             </div>
             <div className="text-right text-sm text-muted-foreground">
               Total: <span className="font-semibold text-foreground">{totalHours.toFixed(1)}h</span>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-6 pt-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit_is_travel"
+                checked={formData.is_travel}
+                onCheckedChange={(c) => setFormData({ ...formData, is_travel: !!c })}
+              />
+              <Label htmlFor="edit_is_travel" className="text-sm cursor-pointer">Viagem</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="edit_is_overnight"
+                checked={formData.is_overnight}
+                onCheckedChange={(c) => setFormData({ ...formData, is_overnight: !!c })}
+              />
+              <Label htmlFor="edit_is_overnight" className="text-sm cursor-pointer">Pernoite Hotel</Label>
             </div>
           </div>
 

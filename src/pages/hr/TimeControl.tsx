@@ -5,16 +5,22 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Clock, Search, Download, Edit, Plus, Trash2 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import { Clock, Search, Download, Edit, Plus, Trash2, FileText } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, getDaysInMonth, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useHRTimeEntries, TimeEntry } from '@/hooks/useHRTimeEntries';
+import { useHolidays } from '@/hooks/useHolidays';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import TimeAdjustmentDialog from '@/components/hr/TimeAdjustmentDialog';
 import EditTimeEntryDialog from '@/components/hr/EditTimeEntryDialog';
 import NewTimeEntryDialog from '@/components/hr/NewTimeEntryDialog';
+import TechnicianMonthlyReport from '@/components/hr/TechnicianMonthlyReport';
+import EditDayEntryDialog from '@/components/hr/EditDayEntryDialog';
+import { downloadTechnicianPDF } from '@/components/hr/TechnicianReportPDF';
 import * as XLSX from 'xlsx';
 import {
   AlertDialog,
@@ -45,6 +51,15 @@ const TimeControl = () => {
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState<TimeEntry | null>(null);
   const [deleteEntryId, setDeleteEntryId] = useState<string | null>(null);
+  
+  // For day entry editing
+  const [isDayEditDialogOpen, setIsDayEditDialogOpen] = useState(false);
+  const [selectedDayEdit, setSelectedDayEdit] = useState<{
+    technicianId: string;
+    technicianName: string;
+    day: number;
+    entry?: TimeEntry;
+  } | null>(null);
 
   const monthStart = format(startOfMonth(selectedMonth), 'yyyy-MM-dd');
   const monthEnd = format(endOfMonth(selectedMonth), 'yyyy-MM-dd');
@@ -54,6 +69,8 @@ const TimeControl = () => {
     startDate: monthStart,
     endDate: monthEnd,
   });
+
+  const { holidays } = useHolidays();
 
   useEffect(() => {
     const fetchTechnicians = async () => {
@@ -89,7 +106,6 @@ const TimeControl = () => {
   };
 
   const getOrderNumber = (entry: TimeEntry) => {
-    // Try direct service_order first, then task's service_order
     return entry.service_order?.order_number || entry.task?.service_order?.order_number || '-';
   };
 
@@ -98,7 +114,6 @@ const TimeControl = () => {
     getOrderNumber(entry).toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Calculate totals using new hour fields
   const totals = filteredEntries.reduce((acc, entry) => {
     acc.hours_normal = (acc.hours_normal || 0) + (entry.hours_normal || 0);
     acc.hours_extra = (acc.hours_extra || 0) + (entry.hours_extra || 0);
@@ -126,6 +141,8 @@ const TimeControl = () => {
       'HE': entry.hours_extra || 0,
       'HNot': entry.hours_night || 0,
       'Sob': entry.hours_standby || 0,
+      'Viagem': entry.is_travel ? 'Sim' : 'Não',
+      'Pernoite': entry.is_overnight ? 'Sim' : 'Não',
       'Total': (entry.hours_normal || 0) + (entry.hours_extra || 0) + (entry.hours_night || 0) + (entry.hours_standby || 0),
       'Obs': entry.notes || '',
     }));
@@ -148,6 +165,65 @@ const TimeControl = () => {
     }
   };
 
+  // Calculate totals per technician for reports tab
+  const getTechnicianTotals = (techId: string) => {
+    const techEntries = timeEntries.filter((e) => e.technician_id === techId);
+    const year = selectedMonth.getFullYear();
+    const monthIndex = selectedMonth.getMonth();
+    
+    let bordo = 0;
+    let viagem = 0;
+    let sobreaviso = 0;
+    let noite = 0;
+
+    const daysInMonth = getDaysInMonth(selectedMonth);
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayEntries = techEntries.filter((e) => {
+        const entryDate = e.check_in_at ? new Date(e.check_in_at) : new Date(e.entry_date);
+        return entryDate.getDate() === day && 
+               entryDate.getMonth() === monthIndex && 
+               entryDate.getFullYear() === year;
+      });
+
+      dayEntries.forEach((entry) => {
+        if (entry.service_order_id) bordo = bordo + 1;
+        if (entry.is_travel) viagem = viagem + 1;
+        if ((entry.hours_standby || 0) > 0) sobreaviso = sobreaviso + 1;
+        if (entry.is_overnight) noite = noite + 1;
+      });
+    }
+
+    // Deduplicate per day
+    return {
+      bordo: Math.min(bordo, daysInMonth),
+      viagem: Math.min(viagem, daysInMonth),
+      sobreaviso: Math.min(sobreaviso, daysInMonth),
+      noite: Math.min(noite, daysInMonth),
+    };
+  };
+
+  const handleEditDay = (techId: string, techName: string, day: number, entry?: TimeEntry) => {
+    setSelectedDayEdit({
+      technicianId: techId,
+      technicianName: techName,
+      day,
+      entry,
+    });
+    setIsDayEditDialogOpen(true);
+  };
+
+  const handleExportPDF = async (tech: Technician) => {
+    const techEntries = timeEntries.filter((e) => e.technician_id === tech.id);
+    const holidayDates = holidays.map((h) => new Date(h.holiday_date));
+    
+    await downloadTechnicianPDF(
+      tech.profiles?.full_name || 'Técnico',
+      selectedMonth,
+      techEntries,
+      holidayDates
+    );
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -156,6 +232,8 @@ const TimeControl = () => {
       </div>
     );
   }
+
+  const holidayDates = holidays.map((h) => new Date(h.holiday_date));
 
   return (
     <div className="space-y-6">
@@ -220,6 +298,7 @@ const TimeControl = () => {
       <Tabs defaultValue="entries">
         <TabsList>
           <TabsTrigger value="entries">Registros</TabsTrigger>
+          <TabsTrigger value="reports">Relatórios Individuais</TabsTrigger>
           <TabsTrigger value="adjustments">Histórico de Ajustes</TabsTrigger>
         </TabsList>
 
@@ -326,6 +405,85 @@ const TimeControl = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="reports" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Relatórios Individuais
+                </CardTitle>
+                <Input
+                  type="month"
+                  value={format(selectedMonth, 'yyyy-MM')}
+                  onChange={(e) => setSelectedMonth(new Date(e.target.value + '-01'))}
+                  className="w-[180px]"
+                />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-4">
+                Mês de referência: <span className="font-semibold">{format(selectedMonth, "MMMM 'de' yyyy", { locale: ptBR })}</span>
+              </p>
+              
+              {technicians.length === 0 ? (
+                <p className="text-center text-muted-foreground py-8">
+                  Nenhum técnico encontrado
+                </p>
+              ) : (
+                <Accordion type="multiple" className="space-y-2">
+                  {technicians.map((tech) => {
+                    const techEntries = timeEntries.filter((e) => e.technician_id === tech.id);
+                    const techTotals = getTechnicianTotals(tech.id);
+
+                    return (
+                      <AccordionItem key={tech.id} value={tech.id} className="border rounded-lg px-4">
+                        <AccordionTrigger className="hover:no-underline">
+                          <div className="flex items-center justify-between w-full pr-4">
+                            <span className="font-medium">{tech.profiles?.full_name || 'Sem nome'}</span>
+                            <div className="flex gap-2">
+                              <Badge variant="secondary" className="text-xs">
+                                {techTotals.bordo} bordo
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {techTotals.viagem} viagem
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {techTotals.sobreaviso} sob.
+                              </Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                {techTotals.noite} pernoite
+                              </Badge>
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="pt-2 pb-4">
+                            <TechnicianMonthlyReport
+                              technicianId={tech.id}
+                              technicianName={tech.profiles?.full_name || 'Técnico'}
+                              month={selectedMonth}
+                              entries={techEntries}
+                              holidays={holidayDates}
+                              onEditDay={(day, entry) => handleEditDay(tech.id, tech.profiles?.full_name || 'Técnico', day, entry)}
+                            />
+                            <div className="mt-4 flex justify-end">
+                              <Button onClick={() => handleExportPDF(tech)} variant="outline">
+                                <FileText className="h-4 w-4 mr-2" />
+                                Exportar PDF
+                              </Button>
+                            </div>
+                          </div>
+                        </AccordionContent>
+                      </AccordionItem>
+                    );
+                  })}
+                </Accordion>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         <TabsContent value="adjustments" className="space-y-4">
           <Card>
             <CardHeader>
@@ -409,6 +567,26 @@ const TimeControl = () => {
           refetch();
         }}
       />
+
+      {selectedDayEdit && (
+        <EditDayEntryDialog
+          open={isDayEditDialogOpen}
+          onOpenChange={(open) => {
+            setIsDayEditDialogOpen(open);
+            if (!open) setSelectedDayEdit(null);
+          }}
+          technicianId={selectedDayEdit.technicianId}
+          technicianName={selectedDayEdit.technicianName}
+          day={selectedDayEdit.day}
+          month={selectedMonth}
+          entry={selectedDayEdit.entry}
+          onSuccess={() => {
+            setIsDayEditDialogOpen(false);
+            setSelectedDayEdit(null);
+            refetch();
+          }}
+        />
+      )}
 
       <AlertDialog open={!!deleteEntryId} onOpenChange={() => setDeleteEntryId(null)}>
         <AlertDialogContent>
