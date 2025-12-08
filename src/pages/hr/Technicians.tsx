@@ -319,7 +319,7 @@ const Technicians = () => {
           full_name: data.name,
           phone: data.phone || null,
           company_id: companyId,
-          role: 'tech'
+          role: 'technician'
         }
       });
 
