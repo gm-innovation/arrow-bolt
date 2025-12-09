@@ -1,7 +1,7 @@
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 import { format, getDaysInMonth, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TimeEntry, MeasurementData } from '@/hooks/useHRTimeEntries';
+import { TimeEntry, MeasurementData, VisitData } from '@/hooks/useHRTimeEntries';
 
 const styles = StyleSheet.create({
   page: {
@@ -133,17 +133,21 @@ interface DayData {
 
 interface TechnicianReportPDFProps {
   technicianName: string;
+  technicianId: string;
   month: Date;
   entries: TimeEntry[];
   holidays: Date[];
   measurementData?: MeasurementData;
+  visitsData?: VisitData[];
 }
 
 const processData = (
+  technicianId: string,
   month: Date,
   entries: TimeEntry[],
   holidays: Date[],
-  measurementData?: MeasurementData
+  measurementData?: MeasurementData,
+  visitsData?: VisitData[]
 ): { days: DayData[], totals: { bordo: number; viagem: number; sobreaviso: number; noite: number } } => {
   const daysInMonth = getDaysInMonth(month);
   const year = month.getFullYear();
@@ -161,6 +165,11 @@ const processData = (
              entryDate.getFullYear() === year;
     });
 
+    // Get visits for this technician on this day
+    const dayVisits = (visitsData || []).filter(v => 
+      v.technicianId === technicianId && v.visitDate === dateStr
+    );
+
     const hasHoliday = holidays.some((h) => isSameDay(h, date));
     
     let vesselName: string | null = null;
@@ -170,24 +179,46 @@ const processData = (
     let sobreaviso = 0;
     let noite = 0;
 
+    // First, check time entries
     dayEntries.forEach((entry) => {
-      if (entry.service_order?.vessel?.name) {
-        vesselName = entry.service_order.vessel.name;
-      } else if (entry.task?.service_order?.vessel?.name) {
-        vesselName = entry.task.service_order.vessel.name;
+      if (!vesselName) {
+        if (entry.service_order?.vessel?.name) {
+          vesselName = entry.service_order.vessel.name;
+        } else if (entry.task?.service_order?.vessel?.name) {
+          vesselName = entry.task.service_order.vessel.name;
+        }
       }
       
-      if (entry.service_order?.order_number) {
-        orderNumber = entry.service_order.order_number;
-      } else if (entry.task?.service_order?.order_number) {
-        orderNumber = entry.task.service_order.order_number;
+      if (!orderNumber) {
+        if (entry.service_order?.order_number) {
+          orderNumber = entry.service_order.order_number;
+        } else if (entry.task?.service_order?.order_number) {
+          orderNumber = entry.task.service_order.order_number;
+        }
       }
 
-      if (entry.service_order_id) bordo = 1;
+      // BORDO: has service_order_id OR has task with service_order
+      if (entry.service_order_id || entry.task?.service_order) bordo = 1;
       if (entry.is_travel) viagem = 1;
       if ((entry.hours_standby || 0) > 0) sobreaviso = 1;
       if (entry.is_overnight) noite = 1;
     });
+
+    // Then, check visits data (from visit_technicians)
+    if (dayVisits.length > 0) {
+      const visit = dayVisits[0];
+      
+      // Use visit data if not already set from time_entries
+      if (!vesselName && visit.vesselName) {
+        vesselName = visit.vesselName;
+      }
+      if (!orderNumber && visit.orderNumber) {
+        orderNumber = visit.orderNumber;
+      }
+      
+      // If there's a visit, mark as BORDO
+      bordo = 1;
+    }
 
     // Check measurement data for travel and overnight (from coordinator closing)
     if (measurementData) {
@@ -225,8 +256,8 @@ const processData = (
   return { days, totals };
 };
 
-const TechnicianReportPDFDocument = ({ technicianName, month, entries, holidays, measurementData }: TechnicianReportPDFProps) => {
-  const { days, totals } = processData(month, entries, holidays, measurementData);
+const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entries, holidays, measurementData, visitsData }: TechnicianReportPDFProps) => {
+  const { days, totals } = processData(technicianId, month, entries, holidays, measurementData, visitsData);
 
   return (
     <Document>
@@ -294,18 +325,22 @@ const TechnicianReportPDFDocument = ({ technicianName, month, entries, holidays,
 
 export const generateTechnicianPDF = async (
   technicianName: string,
+  technicianId: string,
   month: Date,
   entries: TimeEntry[],
   holidays: Date[],
-  measurementData?: MeasurementData
+  measurementData?: MeasurementData,
+  visitsData?: VisitData[]
 ): Promise<Blob> => {
   const blob = await pdf(
     <TechnicianReportPDFDocument
       technicianName={technicianName}
+      technicianId={technicianId}
       month={month}
       entries={entries}
       holidays={holidays}
       measurementData={measurementData}
+      visitsData={visitsData}
     />
   ).toBlob();
   return blob;
@@ -313,12 +348,14 @@ export const generateTechnicianPDF = async (
 
 export const downloadTechnicianPDF = async (
   technicianName: string,
+  technicianId: string,
   month: Date,
   entries: TimeEntry[],
   holidays: Date[],
-  measurementData?: MeasurementData
+  measurementData?: MeasurementData,
+  visitsData?: VisitData[]
 ) => {
-  const blob = await generateTechnicianPDF(technicianName, month, entries, holidays, measurementData);
+  const blob = await generateTechnicianPDF(technicianName, technicianId, month, entries, holidays, measurementData, visitsData);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
