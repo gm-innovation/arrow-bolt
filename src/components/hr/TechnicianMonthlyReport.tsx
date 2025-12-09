@@ -93,12 +93,14 @@ const TechnicianMonthlyReport = ({
           }
         }
 
-        // Get coordinator - priority: manual coordinator_name > service_order coordinator
+        // Get coordinator - priority: manual coordinator_name > direct service_order > task.service_order
         if (!coordinatorName) {
           if (entry.coordinator_name) {
             coordinatorName = entry.coordinator_name;
           } else if (entry.service_order?.coordinator?.full_name) {
             coordinatorName = entry.service_order.coordinator.full_name;
+          } else if (entry.task?.service_order?.coordinator?.full_name) {
+            coordinatorName = entry.task.service_order.coordinator.full_name;
           }
         }
         
