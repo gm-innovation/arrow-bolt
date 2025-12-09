@@ -11,6 +11,8 @@ import { Maximize2, Minimize2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useCalendarAbsences, CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
+import { CalendarLegend } from "./CalendarLegend";
 
 export type CalendarServiceOrder = {
   id: string;
@@ -52,7 +54,11 @@ export const ServiceCalendar = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [serviceOrders, setServiceOrders] = useState<CalendarServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
+  const [companyId, setCompanyId] = useState<string | undefined>();
   const { toast } = useToast();
+
+  // Fetch absences and on-calls for the calendar
+  const { absences, onCalls, isLoading: scheduleLoading } = useCalendarAbsences(currentDate, companyId);
 
   useEffect(() => {
     fetchServiceOrders();
@@ -71,6 +77,8 @@ export const ServiceCalendar = ({
         .single();
 
       if (!profile?.company_id) return;
+      
+      setCompanyId(profile.company_id);
 
       const { data: orders, error } = await supabase
         .from("service_orders")
@@ -212,7 +220,7 @@ export const ServiceCalendar = ({
 
   return (
     <div className={cn(
-      "flex flex-col h-full bg-white rounded-lg shadow overflow-visible",
+      "flex flex-col h-full bg-background rounded-lg shadow overflow-visible",
       isFullscreen && "fixed inset-0 z-50 p-6"
     )}>
       <div className="flex items-center justify-between mb-4">
@@ -247,15 +255,36 @@ export const ServiceCalendar = ({
           </Button>
         )}
       </div>
+
+      <CalendarLegend />
       
       {view === "day" && (
-        <DayView date={currentDate} orders={serviceOrders} onEventClick={handleEventClick} />
+        <DayView 
+          date={currentDate} 
+          orders={serviceOrders} 
+          absences={absences}
+          onCalls={onCalls}
+          onEventClick={handleEventClick} 
+        />
       )}
       {view === "week" && (
-        <WeekView date={currentDate} orders={serviceOrders} onEventClick={handleEventClick} />
+        <WeekView 
+          date={currentDate} 
+          orders={serviceOrders} 
+          absences={absences}
+          onCalls={onCalls}
+          onEventClick={handleEventClick} 
+        />
       )}
       {view === "month" && (
-        <MonthView date={currentDate} orders={serviceOrders} isExpanded={isExpanded} onEventClick={handleEventClick} />
+        <MonthView 
+          date={currentDate} 
+          orders={serviceOrders} 
+          absences={absences}
+          onCalls={onCalls}
+          isExpanded={isExpanded} 
+          onEventClick={handleEventClick} 
+        />
       )}
 
       <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
