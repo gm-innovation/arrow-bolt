@@ -3,12 +3,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { X, AlertTriangle, Phone } from "lucide-react";
+import { X, AlertTriangle, Phone, Ship } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useBatchTechnicianAvailability } from "@/hooks/useTechnicianAvailability";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useTechnicianConflicts } from "@/hooks/useTechnicianConflicts";
 
 interface TechniciansSelectionProps {
   technicians: { id: string; profiles?: { full_name: string } }[];
@@ -40,7 +39,10 @@ export const TechniciansSelection = ({
   scheduledDate
 }: TechniciansSelectionProps) => {
   const technicianIds = technicians.map(t => t.id);
-  const { availabilityMap, isLoading } = useBatchTechnicianAvailability(technicianIds, scheduledDate);
+  const { availabilityMap, isLoading: availabilityLoading } = useBatchTechnicianAvailability(technicianIds, scheduledDate);
+  const { conflictsMap, isLoading: conflictsLoading } = useTechnicianConflicts(technicianIds, scheduledDate);
+
+  const isLoading = availabilityLoading || conflictsLoading;
 
   const handleAddTechnician = (techId: string) => {
     if (!selectedTechnicians.includes(techId)) {
@@ -61,28 +63,87 @@ export const TechniciansSelection = ({
     }
   };
 
-  const renderAvailabilityBadge = (techId: string) => {
+  const getTechnicianStatus = (techId: string) => {
     const availability = availabilityMap[techId];
-    if (!availability || isLoading) return null;
+    const conflict = conflictsMap[techId];
 
-    if (!availability.is_available) {
+    // Check for absence first (vacation, sick leave, etc.)
+    if (availability && !availability.is_available) {
+      return {
+        isBlocked: true,
+        type: 'absence',
+        label: statusLabels[availability.status_type] || 'Indisponível',
+        description: availability.status_description
+      };
+    }
+
+    // Check for conflict with other OS
+    if (conflict && conflict.has_conflict) {
+      const orderInfo = conflict.conflict_orders.map(o => `OS ${o.order_number} - ${o.vessel_name}`).join(', ');
+      return {
+        isBlocked: true,
+        type: 'conflict',
+        label: 'Em outra OS',
+        description: `Já escalado para: ${orderInfo}`
+      };
+    }
+
+    // Check if on-call (not blocked, just informative)
+    if (availability?.status_type === 'on_call') {
+      return {
+        isBlocked: false,
+        type: 'on_call',
+        label: 'Sobreaviso',
+        description: 'Disponível para emergências'
+      };
+    }
+
+    return {
+      isBlocked: false,
+      type: 'available',
+      label: 'Disponível',
+      description: ''
+    };
+  };
+
+  const renderAvailabilityBadge = (techId: string) => {
+    const status = getTechnicianStatus(techId);
+
+    if (status.type === 'absence') {
       return (
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge variant="destructive" className="text-xs gap-1">
               <AlertTriangle className="h-3 w-3" />
-              {statusLabels[availability.status_type] || 'Indisponível'}
+              {status.label}
             </Badge>
           </TooltipTrigger>
           <TooltipContent>
             <p className="font-medium">Técnico indisponível</p>
-            <p className="text-xs text-muted-foreground">{availability.status_description}</p>
+            <p className="text-xs text-muted-foreground">{status.description}</p>
           </TooltipContent>
         </Tooltip>
       );
     }
 
-    if (availability.status_type === 'on_call') {
+    if (status.type === 'conflict') {
+      return (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="secondary" className="text-xs gap-1 bg-orange-100 text-orange-800 border-orange-200">
+              <Ship className="h-3 w-3" />
+              {status.label}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="font-medium">Conflito de escala</p>
+            <p className="text-xs text-muted-foreground">{status.description}</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+
+    if (status.type === 'on_call') {
       return (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -102,6 +163,19 @@ export const TechniciansSelection = ({
     return null;
   };
 
+  // Filter available technicians for the dropdown
+  const availableTechnicians = technicians.filter(tech => {
+    if (selectedTechnicians.includes(tech.id)) return false;
+    const status = getTechnicianStatus(tech.id);
+    return !status.isBlocked;
+  });
+
+  const unavailableTechnicians = technicians.filter(tech => {
+    if (selectedTechnicians.includes(tech.id)) return false;
+    const status = getTechnicianStatus(tech.id);
+    return status.isBlocked;
+  });
+
   return (
     <div className="space-y-4">
       <FormLabel>Técnicos</FormLabel>
@@ -111,32 +185,56 @@ export const TechniciansSelection = ({
             <SelectValue placeholder="Selecione os técnicos" />
           </SelectTrigger>
           <SelectContent>
-            {technicians
-              .filter(tech => !selectedTechnicians.includes(tech.id))
-              .map((tech) => {
-                const availability = availabilityMap[tech.id];
-                const isUnavailable = availability && !availability.is_available;
-                
-                return (
-                  <SelectItem 
-                    key={tech.id} 
-                    value={tech.id}
-                    className={isUnavailable ? 'text-destructive' : ''}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span>{tech.profiles?.full_name}</span>
-                      {isUnavailable && (
-                        <AlertTriangle className="h-3 w-3 text-destructive" />
-                      )}
-                      {availability?.status_type === 'on_call' && (
-                        <Phone className="h-3 w-3 text-amber-600" />
-                      )}
-                    </div>
-                  </SelectItem>
-                );
-              })}
+            {/* Available technicians */}
+            {availableTechnicians.map((tech) => {
+              const status = getTechnicianStatus(tech.id);
+              return (
+                <SelectItem 
+                  key={tech.id} 
+                  value={tech.id}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{tech.profiles?.full_name}</span>
+                    {status.type === 'on_call' && (
+                      <Phone className="h-3 w-3 text-amber-600" />
+                    )}
+                  </div>
+                </SelectItem>
+              );
+            })}
+
+            {/* Separator if there are unavailable techs */}
+            {unavailableTechnicians.length > 0 && availableTechnicians.length > 0 && (
+              <div className="px-2 py-1.5 text-xs font-medium text-muted-foreground border-t mt-1 pt-2">
+                Indisponíveis para esta data:
+              </div>
+            )}
+
+            {/* Unavailable technicians (disabled) */}
+            {unavailableTechnicians.map((tech) => {
+              const status = getTechnicianStatus(tech.id);
+              return (
+                <SelectItem 
+                  key={tech.id} 
+                  value={tech.id}
+                  disabled
+                  className="opacity-50"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="line-through">{tech.profiles?.full_name}</span>
+                    <span className="text-xs text-destructive">({status.label})</span>
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
+
+        {scheduledDate && (
+          <p className="text-xs text-muted-foreground">
+            Mostrando disponibilidade para a data selecionada. Técnicos com ausência programada ou já escalados estão indisponíveis.
+          </p>
+        )}
 
         {selectedTechnicians.length > 0 && (
           <div className="space-y-3">
