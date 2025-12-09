@@ -182,13 +182,13 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
             title,
             service_order:service_orders!tasks_service_order_id_fkey(
               order_number, 
-              vessel:vessels(name), 
+              vessel:vessels!service_orders_vessel_id_fkey(name), 
               coordinator:profiles!service_orders_created_by_fkey(full_name)
             )
           ),
           service_order:service_orders!time_entries_service_order_id_fkey(
             order_number, 
-            vessel:vessels(name),
+            vessel:vessels!service_orders_vessel_id_fkey(name),
             coordinator:profiles!service_orders_created_by_fkey(full_name)
           )
         `)
