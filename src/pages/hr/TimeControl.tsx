@@ -10,6 +10,8 @@ import { format, startOfMonth, endOfMonth, getDaysInMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useHRTimeEntries, TimeEntry } from '@/hooks/useHRTimeEntries';
 import { useHolidays } from '@/hooks/useHolidays';
+import { useAbsences } from '@/hooks/useAbsences';
+import { useOnCall } from '@/hooks/useOnCall';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,6 +66,10 @@ const TimeControl = () => {
   });
 
   const { holidays } = useHolidays();
+  
+  // Fetch absences and on-call for the selected month
+  const { absences } = useAbsences({ startDate: monthStart, endDate: monthEnd });
+  const { onCallList } = useOnCall({ startDate: monthStart, endDate: monthEnd });
 
   useEffect(() => {
     const fetchTechnicians = async () => {
@@ -310,6 +316,21 @@ const TimeControl = () => {
               {filteredTechnicians.map((tech) => {
                 const techEntries = timeEntries.filter((e) => e.technician_id === tech.id);
                 const techTotals = getTechnicianTotals(tech.id);
+                
+                // Filter absences and on-call for this technician
+                const techAbsences = absences.filter(a => a.technician_id === tech.id).map(a => ({
+                  id: a.id,
+                  absence_type: a.absence_type,
+                  start_date: a.start_date,
+                  end_date: a.end_date,
+                }));
+                
+                const techOnCall = onCallList.filter(oc => oc.technician_id === tech.id).map(oc => ({
+                  id: oc.id,
+                  on_call_date: oc.on_call_date,
+                  is_weekend: oc.is_weekend,
+                  is_holiday: oc.is_holiday,
+                }));
 
                 return (
                   <AccordionItem key={tech.id} value={tech.id} className="border rounded-lg px-4">
@@ -342,6 +363,8 @@ const TimeControl = () => {
                           holidays={holidayDates}
                           measurementData={measurementData}
                           visitsData={visitsData}
+                          absences={techAbsences}
+                          onCallData={techOnCall}
                           onEditDay={(day, entry) => handleEditDay(tech.id, tech.profiles?.full_name || 'Técnico', day, entry)}
                         />
                         <div className="mt-4 flex justify-end">

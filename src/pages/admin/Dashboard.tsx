@@ -1,5 +1,6 @@
 import { DashboardStats } from "@/components/admin/dashboard/DashboardStats";
 import { DashboardCharts } from "@/components/admin/dashboard/DashboardCharts";
+import TeamAvailabilityCard from "@/components/admin/dashboard/TeamAvailabilityCard";
 import { ServiceCalendar } from "@/components/admin/calendar/ServiceCalendar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,7 +64,12 @@ const AdminDashboard = () => {
             </div>
           </div>
 
-          {!isCalendarExpanded && <DashboardStats />}
+          {!isCalendarExpanded && (
+            <>
+              <DashboardStats />
+              <TeamAvailabilityCard />
+            </>
+          )}
         </>
       )}
       
