@@ -20,6 +20,10 @@ export interface TimeEntry {
   hours_standby: number;
   is_travel: boolean;
   is_overnight: boolean;
+  is_onboard: boolean;
+  is_standby: boolean;
+  vessel_name: string | null;
+  coordinator_name: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -44,6 +48,9 @@ export interface TimeEntry {
     order_number: string;
     vessel?: {
       name: string;
+    };
+    coordinator?: {
+      full_name: string;
     };
   };
 }
@@ -88,6 +95,10 @@ export interface UpdateTimeEntryData {
   hours_standby?: number;
   is_travel?: boolean;
   is_overnight?: boolean;
+  is_onboard?: boolean;
+  is_standby?: boolean;
+  vessel_name?: string;
+  coordinator_name?: string;
   notes?: string;
 }
 
@@ -102,6 +113,10 @@ export interface CreateTimeEntryData {
   hours_standby: number;
   is_travel?: boolean;
   is_overnight?: boolean;
+  is_onboard?: boolean;
+  is_standby?: boolean;
+  vessel_name?: string;
+  coordinator_name?: string;
   notes?: string;
 }
 
@@ -154,7 +169,7 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
       const technicianIds = (companyTechnicians || []).map(t => t.id);
       if (technicianIds.length === 0) return [];
 
-      // Build query with filters - now including service_order and vessel
+      // Build query with filters - now including service_order, vessel and coordinator
       let query = supabase
         .from('time_entries')
         .select(`
@@ -164,7 +179,11 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
             title,
             service_order:service_orders(order_number, vessel:vessels(name))
           ),
-          service_order:service_orders(order_number, vessel:vessels(name))
+          service_order:service_orders(
+            order_number, 
+            vessel:vessels(name),
+            coordinator:profiles!service_orders_created_by_fkey(full_name)
+          )
         `)
         .in('technician_id', technicianIds)
         .order('check_in_at', { ascending: false, nullsFirst: false });
@@ -451,6 +470,10 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
           hours_standby: data.hours_standby,
           is_travel: data.is_travel || false,
           is_overnight: data.is_overnight || false,
+          is_onboard: data.is_onboard || false,
+          is_standby: data.is_standby || false,
+          vessel_name: data.vessel_name || null,
+          coordinator_name: data.coordinator_name || null,
           notes: data.notes || null,
           // Legacy fields for compatibility
           entry_date: entryDate,
