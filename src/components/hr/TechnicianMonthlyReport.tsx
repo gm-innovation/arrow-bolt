@@ -1,11 +1,26 @@
 import { useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Edit } from 'lucide-react';
 import { format, getDaysInMonth, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { TimeEntry, MeasurementData, VisitData } from '@/hooks/useHRTimeEntries';
 import { cn } from '@/lib/utils';
+
+interface AbsenceData {
+  id: string;
+  absence_type: 'vacation' | 'day_off' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
+  start_date: string;
+  end_date: string;
+}
+
+interface OnCallData {
+  id: string;
+  on_call_date: string;
+  is_weekend: boolean;
+  is_holiday: boolean;
+}
 
 interface DayData {
   day: number;
@@ -21,6 +36,8 @@ interface DayData {
   noite: number;
   entryId?: string;
   entry?: TimeEntry;
+  absenceType?: AbsenceData['absence_type'];
+  isOnCall?: boolean;
 }
 
 interface TechnicianMonthlyReportProps {
@@ -31,8 +48,34 @@ interface TechnicianMonthlyReportProps {
   holidays: Date[];
   measurementData?: MeasurementData;
   visitsData?: VisitData[];
+  absences?: AbsenceData[];
+  onCallData?: OnCallData[];
   onEditDay: (day: number, entry?: TimeEntry) => void;
 }
+
+const getAbsenceTypeLabel = (type: AbsenceData['absence_type']) => {
+  const labels = {
+    vacation: 'Férias',
+    day_off: 'Folga',
+    medical_exam: 'Ex. Médico',
+    training: 'Treinamento',
+    sick_leave: 'Atestado',
+    other: 'Outro',
+  };
+  return labels[type] || type;
+};
+
+const getAbsenceBgColor = (type: AbsenceData['absence_type']) => {
+  const colors = {
+    vacation: 'bg-blue-100 dark:bg-blue-900/30',
+    day_off: 'bg-green-100 dark:bg-green-900/30',
+    medical_exam: 'bg-purple-100 dark:bg-purple-900/30',
+    training: 'bg-indigo-100 dark:bg-indigo-900/30',
+    sick_leave: 'bg-red-100 dark:bg-red-900/30',
+    other: 'bg-gray-100 dark:bg-gray-900/30',
+  };
+  return colors[type] || '';
+};
 
 const TechnicianMonthlyReport = ({
   technicianId,
@@ -42,6 +85,8 @@ const TechnicianMonthlyReport = ({
   holidays,
   measurementData,
   visitsData,
+  absences = [],
+  onCallData = [],
   onEditDay,
 }: TechnicianMonthlyReportProps) => {
   const daysData = useMemo(() => {
@@ -68,13 +113,21 @@ const TechnicianMonthlyReport = ({
 
       const hasHoliday = holidays.some((h) => isSameDay(h, date));
       
+      // Check for absence on this day
+      const dayAbsence = absences.find(a => 
+        dateStr >= a.start_date && dateStr <= a.end_date
+      );
+
+      // Check for on-call on this day
+      const dayOnCall = onCallData.find(oc => oc.on_call_date === dateStr);
+      
       // Aggregate data for the day
       let vesselName: string | null = null;
       let coordinatorName: string | null = null;
       let orderNumber: string | null = null;
       let bordo = 0;
       let viagem = 0;
-      let sobreaviso = 0;
+      let sobreaviso = dayOnCall ? 1 : 0; // Auto-fill from on-call data
       let noite = 0;
       let mainEntry: TimeEntry | undefined;
 
@@ -122,7 +175,7 @@ const TechnicianMonthlyReport = ({
           viagem = 1;
         }
 
-        // SOBREAVISO: is_standby flag (checkbox) - NOT hours_standby anymore
+        // SOBREAVISO: is_standby flag (checkbox) OR from on-call data
         if (entry.is_standby) {
           sobreaviso = 1;
         }
@@ -178,11 +231,13 @@ const TechnicianMonthlyReport = ({
         noite,
         entryId: mainEntry?.id,
         entry: mainEntry,
+        absenceType: dayAbsence?.absence_type,
+        isOnCall: !!dayOnCall,
       });
     }
 
     return data;
-  }, [month, entries, holidays, measurementData, visitsData, technicianId]);
+  }, [month, entries, holidays, measurementData, visitsData, technicianId, absences, onCallData]);
 
   const totals = useMemo(() => {
     return daysData.reduce(
@@ -209,6 +264,7 @@ const TechnicianMonthlyReport = ({
             <TableHead className="w-16 text-center">VIAGEM</TableHead>
             <TableHead className="w-16 text-center">SOB.</TableHead>
             <TableHead className="w-16 text-center">NOITE</TableHead>
+            <TableHead className="w-24 text-center">SITUAÇÃO</TableHead>
             <TableHead className="w-12 text-center">AÇÕES</TableHead>
           </TableRow>
         </TableHeader>
@@ -217,9 +273,10 @@ const TechnicianMonthlyReport = ({
             <TableRow
               key={dayData.day}
               className={cn(
-                dayData.isWeekend && 'bg-rose-50 dark:bg-rose-950/20',
-                dayData.isHoliday && 'bg-amber-50 dark:bg-amber-950/20',
-                dayData.viagem > 0 && 'bg-emerald-50 dark:bg-emerald-950/20'
+                dayData.absenceType && getAbsenceBgColor(dayData.absenceType),
+                !dayData.absenceType && dayData.isWeekend && 'bg-rose-50 dark:bg-rose-950/20',
+                !dayData.absenceType && dayData.isHoliday && 'bg-amber-50 dark:bg-amber-950/20',
+                !dayData.absenceType && dayData.viagem > 0 && 'bg-emerald-50 dark:bg-emerald-950/20'
               )}
             >
               <TableCell className="text-center font-medium">
@@ -247,6 +304,17 @@ const TechnicianMonthlyReport = ({
                 {dayData.noite > 0 ? '1' : ''}
               </TableCell>
               <TableCell className="text-center">
+                {dayData.absenceType ? (
+                  <Badge variant="secondary" className="text-xs">
+                    {getAbsenceTypeLabel(dayData.absenceType)}
+                  </Badge>
+                ) : dayData.isOnCall ? (
+                  <Badge variant="outline" className="text-xs bg-orange-100 dark:bg-orange-900/30">
+                    📞 Sobreaviso
+                  </Badge>
+                ) : null}
+              </TableCell>
+              <TableCell className="text-center">
                 <Button
                   size="sm"
                   variant="ghost"
@@ -268,6 +336,7 @@ const TechnicianMonthlyReport = ({
             <TableCell className="text-center">{totals.viagem}</TableCell>
             <TableCell className="text-center">{totals.sobreaviso}</TableCell>
             <TableCell className="text-center">{totals.noite}</TableCell>
+            <TableCell></TableCell>
             <TableCell></TableCell>
           </TableRow>
         </TableBody>

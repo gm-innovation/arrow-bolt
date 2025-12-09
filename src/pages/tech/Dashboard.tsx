@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
+import MyScheduleCard from "@/components/tech/MyScheduleCard";
 
 interface UpcomingTask {
   id: string;
@@ -451,21 +452,25 @@ const TechDashboard = () => {
         </Card>
       </div>
 
-      {/* Completion Rate */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Taxa de Conclusão</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <Progress value={stats.completionRate} className="flex-1 h-3" />
-            <span className="font-bold text-lg">{stats.completionRate.toFixed(0)}%</span>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            Baseado em todas as tarefas atribuídas a você
-          </p>
-        </CardContent>
-      </Card>
+      {/* Completion Rate and My Schedule */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Taxa de Conclusão</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Progress value={stats.completionRate} className="flex-1 h-3" />
+              <span className="font-bold text-lg">{stats.completionRate.toFixed(0)}%</span>
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              Baseado em todas as tarefas atribuídas a você
+            </p>
+          </CardContent>
+        </Card>
+        
+        <MyScheduleCard />
+      </div>
 
       {/* Upcoming Tasks Timeline */}
       <Card>
