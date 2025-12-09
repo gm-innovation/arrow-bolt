@@ -740,7 +740,13 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
           onRemoveTechnician={(techId) => {
             setSelectedTechnicians(selectedTechnicians.filter(id => id !== techId));
           }}
-          scheduledDate={form.watch("scheduledDate") ? new Date(form.watch("scheduledDate")) : undefined}
+          scheduledDate={(() => {
+            const scheduledDate = form.watch("scheduledDate");
+            const serviceDateTime = form.watch("serviceDateTime");
+            if (scheduledDate) return new Date(scheduledDate);
+            if (serviceDateTime) return new Date(serviceDateTime);
+            return undefined;
+          })()}
         />
 
         <Button type="submit" className="w-full" disabled={isLoading}>
