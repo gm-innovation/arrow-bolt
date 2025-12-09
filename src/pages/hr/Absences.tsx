@@ -10,10 +10,12 @@ import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, P
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAbsences, getAbsenceTypeLabel, getAbsenceStatusLabel, Absence } from '@/hooks/useAbsences';
-import { useOnCall } from '@/hooks/useOnCall';
+import { useOnCall, OnCall } from '@/hooks/useOnCall';
 import { Skeleton } from '@/components/ui/skeleton';
 import NewAbsenceDialog from '@/components/hr/NewAbsenceDialog';
 import NewOnCallDialog from '@/components/hr/NewOnCallDialog';
+import EditAbsenceDialog from '@/components/hr/EditAbsenceDialog';
+import EditOnCallDialog from '@/components/hr/EditOnCallDialog';
 import UnifiedScheduleCalendar from '@/components/hr/UnifiedScheduleCalendar';
 import {
   AlertDialog,
@@ -32,6 +34,8 @@ const Absences = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isAbsenceDialogOpen, setIsAbsenceDialogOpen] = useState(false);
   const [isOnCallDialogOpen, setIsOnCallDialogOpen] = useState(false);
+  const [editingAbsence, setEditingAbsence] = useState<Absence | null>(null);
+  const [editingOnCall, setEditingOnCall] = useState<OnCall | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [deleteType, setDeleteType] = useState<'absence' | 'oncall' | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
@@ -353,6 +357,8 @@ const Absences = () => {
             onCallList={onCallList}
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
+            onEditAbsence={setEditingAbsence}
+            onEditOnCall={setEditingOnCall}
           />
         </TabsContent>
       </Tabs>
@@ -371,6 +377,26 @@ const Absences = () => {
         onOpenChange={setIsOnCallDialogOpen}
         onSuccess={() => {
           setIsOnCallDialogOpen(false);
+          refetchOnCall();
+        }}
+      />
+
+      <EditAbsenceDialog
+        absence={editingAbsence}
+        open={!!editingAbsence}
+        onOpenChange={(open) => !open && setEditingAbsence(null)}
+        onSuccess={() => {
+          setEditingAbsence(null);
+          refetchAbsences();
+        }}
+      />
+
+      <EditOnCallDialog
+        onCall={editingOnCall}
+        open={!!editingOnCall}
+        onOpenChange={(open) => !open && setEditingOnCall(null)}
+        onSuccess={() => {
+          setEditingOnCall(null);
           refetchOnCall();
         }}
       />
