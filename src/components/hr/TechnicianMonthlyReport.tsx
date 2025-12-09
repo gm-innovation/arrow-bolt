@@ -13,6 +13,7 @@ interface DayData {
   isWeekend: boolean;
   isHoliday: boolean;
   vesselName: string | null;
+  coordinatorName: string | null;
   orderNumber: string | null;
   bordo: number;
   viagem: number;
@@ -69,6 +70,7 @@ const TechnicianMonthlyReport = ({
       
       // Aggregate data for the day
       let vesselName: string | null = null;
+      let coordinatorName: string | null = null;
       let orderNumber: string | null = null;
       let bordo = 0;
       let viagem = 0;
@@ -80,12 +82,23 @@ const TechnicianMonthlyReport = ({
       dayEntries.forEach((entry) => {
         mainEntry = entry;
         
-        // Get vessel and order - priority: direct service_order > task.service_order
+        // Get vessel - priority: manual vessel_name > direct service_order > task.service_order
         if (!vesselName) {
-          if (entry.service_order?.vessel?.name) {
+          if (entry.vessel_name) {
+            vesselName = entry.vessel_name;
+          } else if (entry.service_order?.vessel?.name) {
             vesselName = entry.service_order.vessel.name;
           } else if (entry.task?.service_order?.vessel?.name) {
             vesselName = entry.task.service_order.vessel.name;
+          }
+        }
+
+        // Get coordinator - priority: manual coordinator_name > service_order coordinator
+        if (!coordinatorName) {
+          if (entry.coordinator_name) {
+            coordinatorName = entry.coordinator_name;
+          } else if (entry.service_order?.coordinator?.full_name) {
+            coordinatorName = entry.service_order.coordinator.full_name;
           }
         }
         
@@ -97,8 +110,8 @@ const TechnicianMonthlyReport = ({
           }
         }
 
-        // BORDO: has service_order_id OR has task with service_order
-        if (entry.service_order_id || entry.task?.service_order) {
+        // BORDO: is_onboard flag OR has service_order_id OR has task with service_order
+        if (entry.is_onboard || entry.service_order_id || entry.task?.service_order) {
           bordo = 1;
         }
 
@@ -107,8 +120,8 @@ const TechnicianMonthlyReport = ({
           viagem = 1;
         }
 
-        // SOBREAVISO: has standby hours
-        if ((entry.hours_standby || 0) > 0) {
+        // SOBREAVISO: is_standby flag (checkbox) - NOT hours_standby anymore
+        if (entry.is_standby) {
           sobreaviso = 1;
         }
 
@@ -155,6 +168,7 @@ const TechnicianMonthlyReport = ({
         isWeekend: isWeekend(date),
         isHoliday: hasHoliday,
         vesselName,
+        coordinatorName,
         orderNumber,
         bordo,
         viagem,
@@ -187,6 +201,7 @@ const TechnicianMonthlyReport = ({
           <TableRow>
             <TableHead className="w-12 text-center">DIA</TableHead>
             <TableHead>BARCO</TableHead>
+            <TableHead>COORDENADOR</TableHead>
             <TableHead className="w-20">OS</TableHead>
             <TableHead className="w-16 text-center">BORDO</TableHead>
             <TableHead className="w-16 text-center">VIAGEM</TableHead>
@@ -210,6 +225,9 @@ const TechnicianMonthlyReport = ({
               </TableCell>
               <TableCell className="text-sm">
                 {dayData.vesselName || ''}
+              </TableCell>
+              <TableCell className="text-sm">
+                {dayData.coordinatorName || ''}
               </TableCell>
               <TableCell className="font-mono text-sm">
                 {dayData.orderNumber || ''}
@@ -241,6 +259,7 @@ const TechnicianMonthlyReport = ({
           {/* Totals row */}
           <TableRow className="bg-muted/50 font-semibold">
             <TableCell className="text-center">TOTAL</TableCell>
+            <TableCell></TableCell>
             <TableCell></TableCell>
             <TableCell></TableCell>
             <TableCell className="text-center">{totals.bordo}</TableCell>

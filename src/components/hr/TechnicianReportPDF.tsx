@@ -6,7 +6,7 @@ import { TimeEntry, MeasurementData, VisitData } from '@/hooks/useHRTimeEntries'
 const styles = StyleSheet.create({
   page: {
     padding: 30,
-    fontSize: 10,
+    fontSize: 9,
     fontFamily: 'Helvetica',
   },
   header: {
@@ -37,7 +37,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#000',
-    minHeight: 20,
+    minHeight: 18,
     alignItems: 'center',
   },
   tableRowWeekend: {
@@ -57,48 +57,53 @@ const styles = StyleSheet.create({
     backgroundColor: '#1f2937',
     color: '#fff',
     fontWeight: 'bold',
-    minHeight: 24,
+    minHeight: 22,
     alignItems: 'center',
   },
   colDay: {
-    width: '8%',
+    width: '6%',
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colVessel: {
-    width: '30%',
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    width: '22%',
+    paddingVertical: 3,
+    paddingHorizontal: 3,
+  },
+  colCoordinator: {
+    width: '22%',
+    paddingVertical: 3,
+    paddingHorizontal: 3,
   },
   colOS: {
-    width: '14%',
+    width: '10%',
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colBordo: {
-    width: '12%',
+    width: '10%',
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colViagem: {
-    width: '12%',
+    width: '10%',
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colSob: {
-    width: '12%',
+    width: '10%',
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colNoite: {
-    width: '12%',
+    width: '10%',
     textAlign: 'center',
-    paddingVertical: 4,
+    paddingVertical: 3,
     paddingHorizontal: 2,
   },
   headerText: {
@@ -124,6 +129,7 @@ interface DayData {
   isWeekend: boolean;
   isHoliday: boolean;
   vesselName: string | null;
+  coordinatorName: string | null;
   orderNumber: string | null;
   bordo: number;
   viagem: number;
@@ -173,6 +179,7 @@ const processData = (
     const hasHoliday = holidays.some((h) => isSameDay(h, date));
     
     let vesselName: string | null = null;
+    let coordinatorName: string | null = null;
     let orderNumber: string | null = null;
     let bordo = 0;
     let viagem = 0;
@@ -181,11 +188,23 @@ const processData = (
 
     // First, check time entries
     dayEntries.forEach((entry) => {
+      // Get vessel - priority: manual vessel_name > direct service_order > task.service_order
       if (!vesselName) {
-        if (entry.service_order?.vessel?.name) {
+        if (entry.vessel_name) {
+          vesselName = entry.vessel_name;
+        } else if (entry.service_order?.vessel?.name) {
           vesselName = entry.service_order.vessel.name;
         } else if (entry.task?.service_order?.vessel?.name) {
           vesselName = entry.task.service_order.vessel.name;
+        }
+      }
+
+      // Get coordinator - priority: manual coordinator_name > service_order coordinator
+      if (!coordinatorName) {
+        if (entry.coordinator_name) {
+          coordinatorName = entry.coordinator_name;
+        } else if (entry.service_order?.coordinator?.full_name) {
+          coordinatorName = entry.service_order.coordinator.full_name;
         }
       }
       
@@ -197,10 +216,13 @@ const processData = (
         }
       }
 
-      // BORDO: has service_order_id OR has task with service_order
-      if (entry.service_order_id || entry.task?.service_order) bordo = 1;
+      // BORDO: is_onboard flag OR has service_order_id OR has task with service_order
+      if (entry.is_onboard || entry.service_order_id || entry.task?.service_order) {
+        bordo = 1;
+      }
+      
       if (entry.is_travel) viagem = 1;
-      if ((entry.hours_standby || 0) > 0) sobreaviso = 1;
+      if (entry.is_standby) sobreaviso = 1;
       if (entry.is_overnight) noite = 1;
     });
 
@@ -235,6 +257,7 @@ const processData = (
       isWeekend: isWeekend(date),
       isHoliday: hasHoliday,
       vesselName,
+      coordinatorName,
       orderNumber,
       bordo,
       viagem,
@@ -275,6 +298,7 @@ const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entr
           <View style={styles.tableHeader}>
             <Text style={[styles.colDay, styles.headerText]}>DIA</Text>
             <Text style={[styles.colVessel, styles.headerText]}>BARCO</Text>
+            <Text style={[styles.colCoordinator, styles.headerText]}>COORDENADOR</Text>
             <Text style={[styles.colOS, styles.headerText]}>OS</Text>
             <Text style={[styles.colBordo, styles.headerText]}>BORDO</Text>
             <Text style={[styles.colViagem, styles.headerText]}>VIAGEM</Text>
@@ -295,6 +319,7 @@ const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entr
             >
               <Text style={styles.colDay}>{dayData.day}</Text>
               <Text style={styles.colVessel}>{dayData.vesselName || ''}</Text>
+              <Text style={styles.colCoordinator}>{dayData.coordinatorName || ''}</Text>
               <Text style={styles.colOS}>{dayData.orderNumber || ''}</Text>
               <Text style={styles.colBordo}>{dayData.bordo > 0 ? '1' : ''}</Text>
               <Text style={styles.colViagem}>{dayData.viagem > 0 ? '1' : ''}</Text>
@@ -307,6 +332,7 @@ const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entr
           <View style={[styles.tableRow, styles.tableRowTotal]}>
             <Text style={[styles.colDay, styles.totalText]}>TOTAL</Text>
             <Text style={styles.colVessel}></Text>
+            <Text style={styles.colCoordinator}></Text>
             <Text style={styles.colOS}></Text>
             <Text style={[styles.colBordo, styles.totalText]}>{totals.bordo}</Text>
             <Text style={[styles.colViagem, styles.totalText]}>{totals.viagem}</Text>

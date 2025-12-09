@@ -17,6 +17,9 @@ interface ServiceOrder {
   vessel?: {
     name: string;
   };
+  coordinator?: {
+    full_name: string;
+  };
 }
 
 interface Props {
@@ -46,8 +49,11 @@ const EditDayEntryDialog = ({
   const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
   const [formData, setFormData] = useState({
     service_order_id: '',
-    hours_standby: 0,
+    vessel_name: '',
+    coordinator_name: '',
+    is_onboard: false,
     is_travel: false,
+    is_standby: false,
     is_overnight: false,
   });
 
@@ -68,7 +74,7 @@ const EditDayEntryDialog = ({
 
       const { data } = await supabase
         .from('service_orders')
-        .select('id, order_number, vessel:vessels(name)')
+        .select('id, order_number, vessel:vessels(name), coordinator:profiles!service_orders_created_by_fkey(full_name)')
         .eq('company_id', profile.company_id)
         .order('created_at', { ascending: false })
         .limit(100);
@@ -85,19 +91,36 @@ const EditDayEntryDialog = ({
     if (entry) {
       setFormData({
         service_order_id: entry.service_order_id || '',
-        hours_standby: entry.hours_standby || 0,
+        vessel_name: entry.vessel_name || entry.service_order?.vessel?.name || '',
+        coordinator_name: entry.coordinator_name || entry.service_order?.coordinator?.full_name || '',
+        is_onboard: entry.is_onboard || false,
         is_travel: entry.is_travel || false,
+        is_standby: entry.is_standby || false,
         is_overnight: entry.is_overnight || false,
       });
     } else {
       setFormData({
         service_order_id: '',
-        hours_standby: 0,
+        vessel_name: '',
+        coordinator_name: '',
+        is_onboard: false,
         is_travel: false,
+        is_standby: false,
         is_overnight: false,
       });
     }
   }, [entry, open]);
+
+  // Auto-fill vessel and coordinator when selecting a service order
+  const handleServiceOrderChange = (value: string) => {
+    const selectedSO = serviceOrders.find((so) => so.id === value);
+    setFormData({
+      ...formData,
+      service_order_id: value === '_none_' ? '' : value,
+      vessel_name: selectedSO?.vessel?.name || formData.vessel_name,
+      coordinator_name: selectedSO?.coordinator?.full_name || formData.coordinator_name,
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -105,16 +128,17 @@ const EditDayEntryDialog = ({
 
     try {
       if (isEditMode && entry) {
-        // Update existing entry
         const updateData: UpdateTimeEntryData = {
           id: entry.id,
-          hours_standby: formData.hours_standby,
+          is_onboard: formData.is_onboard,
           is_travel: formData.is_travel,
+          is_standby: formData.is_standby,
           is_overnight: formData.is_overnight,
+          vessel_name: formData.vessel_name || undefined,
+          coordinator_name: formData.coordinator_name || undefined,
         };
         await updateTimeEntry.mutateAsync(updateData);
       } else {
-        // Create new entry
         const dateStr = format(selectedDate, 'yyyy-MM-dd');
         const createData: CreateTimeEntryData = {
           technician_id: technicianId,
@@ -124,9 +148,13 @@ const EditDayEntryDialog = ({
           hours_normal: formData.service_order_id ? 8 : 0,
           hours_extra: 0,
           hours_night: 0,
-          hours_standby: formData.hours_standby,
+          hours_standby: 0,
+          is_onboard: formData.is_onboard,
           is_travel: formData.is_travel,
+          is_standby: formData.is_standby,
           is_overnight: formData.is_overnight,
+          vessel_name: formData.vessel_name || undefined,
+          coordinator_name: formData.coordinator_name || undefined,
         };
         await createTimeEntry.mutateAsync(createData);
       }
@@ -135,8 +163,6 @@ const EditDayEntryDialog = ({
       setLoading(false);
     }
   };
-
-  const selectedOS = serviceOrders.find((so) => so.id === formData.service_order_id);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -160,9 +186,7 @@ const EditDayEntryDialog = ({
               <Label>Ordem de Serviço</Label>
               <Select
                 value={formData.service_order_id}
-                onValueChange={(v) =>
-                  setFormData({ ...formData, service_order_id: v === '_none_' ? '' : v })
-                }
+                onValueChange={handleServiceOrderChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma OS (opcional)" />
@@ -176,11 +200,6 @@ const EditDayEntryDialog = ({
                   ))}
                 </SelectContent>
               </Select>
-              {selectedOS?.vessel?.name && (
-                <p className="text-xs text-muted-foreground">
-                  Barco: {selectedOS.vessel.name}
-                </p>
-              )}
             </div>
           )}
 
@@ -195,20 +214,35 @@ const EditDayEntryDialog = ({
           )}
 
           <div className="space-y-2">
-            <Label>Horas Sobreaviso</Label>
+            <Label>Nome do Barco</Label>
             <Input
-              type="number"
-              step="0.5"
-              min="0"
-              value={formData.hours_standby}
-              onChange={(e) =>
-                setFormData({ ...formData, hours_standby: parseFloat(e.target.value) || 0 })
-              }
+              value={formData.vessel_name}
+              onChange={(e) => setFormData({ ...formData, vessel_name: e.target.value })}
+              placeholder="Nome do barco"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Nome do Coordenador</Label>
+            <Input
+              value={formData.coordinator_name}
+              onChange={(e) => setFormData({ ...formData, coordinator_name: e.target.value })}
+              placeholder="Nome do coordenador"
             />
           </div>
 
           <div className="space-y-3 rounded-lg border p-4">
             <h4 className="text-sm font-medium">Marcadores do Dia</h4>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_onboard"
+                checked={formData.is_onboard}
+                onCheckedChange={(c) => setFormData({ ...formData, is_onboard: !!c })}
+              />
+              <Label htmlFor="is_onboard" className="text-sm cursor-pointer">
+                Bordo (a bordo do navio)
+              </Label>
+            </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="is_travel"
@@ -217,6 +251,16 @@ const EditDayEntryDialog = ({
               />
               <Label htmlFor="is_travel" className="text-sm cursor-pointer">
                 Viagem (deslocamento)
+              </Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="is_standby"
+                checked={formData.is_standby}
+                onCheckedChange={(c) => setFormData({ ...formData, is_standby: !!c })}
+              />
+              <Label htmlFor="is_standby" className="text-sm cursor-pointer">
+                Sobreaviso
               </Label>
             </div>
             <div className="flex items-center space-x-2">
