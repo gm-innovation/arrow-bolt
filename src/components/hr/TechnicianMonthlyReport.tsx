@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
 import { format, getDaysInMonth, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TimeEntry } from '@/hooks/useHRTimeEntries';
+import { TimeEntry, MeasurementData } from '@/hooks/useHRTimeEntries';
 import { cn } from '@/lib/utils';
 
 interface DayData {
@@ -28,6 +28,7 @@ interface TechnicianMonthlyReportProps {
   month: Date;
   entries: TimeEntry[];
   holidays: Date[];
+  measurementData?: MeasurementData;
   onEditDay: (day: number, entry?: TimeEntry) => void;
 }
 
@@ -37,6 +38,7 @@ const TechnicianMonthlyReport = ({
   month,
   entries,
   holidays,
+  measurementData,
   onEditDay,
 }: TechnicianMonthlyReportProps) => {
   const daysData = useMemo(() => {
@@ -47,6 +49,8 @@ const TechnicianMonthlyReport = ({
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, monthIndex, day);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      
       const dayEntries = entries.filter((e) => {
         const entryDate = e.check_in_at ? new Date(e.check_in_at) : new Date(e.entry_date);
         return entryDate.getDate() === day && 
@@ -86,7 +90,7 @@ const TechnicianMonthlyReport = ({
           bordo = 1;
         }
 
-        // VIAGEM: is_travel flag
+        // VIAGEM: is_travel flag from time_entry
         if (entry.is_travel) {
           viagem = 1;
         }
@@ -96,11 +100,26 @@ const TechnicianMonthlyReport = ({
           sobreaviso = 1;
         }
 
-        // NOITE (pernoite): is_overnight flag
+        // NOITE (pernoite): is_overnight flag from time_entry
         if (entry.is_overnight) {
           noite = 1;
         }
       });
+
+      // Check measurement data for travel and overnight (from coordinator closing)
+      if (measurementData) {
+        // Check if there's travel data for this date from measurements
+        const hasMeasurementTravel = measurementData.travels.some(t => t.date === dateStr);
+        if (hasMeasurementTravel) {
+          viagem = 1;
+        }
+
+        // Check if there's overnight/hospedagem data for this date from measurements
+        const hasMeasurementOvernight = measurementData.overnights.some(o => o.date === dateStr);
+        if (hasMeasurementOvernight) {
+          noite = 1;
+        }
+      }
 
       data.push({
         day,
@@ -119,7 +138,7 @@ const TechnicianMonthlyReport = ({
     }
 
     return data;
-  }, [month, entries, holidays]);
+  }, [month, entries, holidays, measurementData]);
 
   const totals = useMemo(() => {
     return daysData.reduce(

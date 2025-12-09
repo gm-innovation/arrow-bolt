@@ -1,7 +1,7 @@
 import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 import { format, getDaysInMonth, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TimeEntry } from '@/hooks/useHRTimeEntries';
+import { TimeEntry, MeasurementData } from '@/hooks/useHRTimeEntries';
 
 const styles = StyleSheet.create({
   page: {
@@ -136,9 +136,15 @@ interface TechnicianReportPDFProps {
   month: Date;
   entries: TimeEntry[];
   holidays: Date[];
+  measurementData?: MeasurementData;
 }
 
-const processData = (month: Date, entries: TimeEntry[], holidays: Date[]): { days: DayData[], totals: { bordo: number; viagem: number; sobreaviso: number; noite: number } } => {
+const processData = (
+  month: Date,
+  entries: TimeEntry[],
+  holidays: Date[],
+  measurementData?: MeasurementData
+): { days: DayData[], totals: { bordo: number; viagem: number; sobreaviso: number; noite: number } } => {
   const daysInMonth = getDaysInMonth(month);
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
@@ -146,6 +152,8 @@ const processData = (month: Date, entries: TimeEntry[], holidays: Date[]): { day
 
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, monthIndex, day);
+    const dateStr = format(date, 'yyyy-MM-dd');
+    
     const dayEntries = entries.filter((e) => {
       const entryDate = e.check_in_at ? new Date(e.check_in_at) : new Date(e.entry_date);
       return entryDate.getDate() === day && 
@@ -181,6 +189,16 @@ const processData = (month: Date, entries: TimeEntry[], holidays: Date[]): { day
       if (entry.is_overnight) noite = 1;
     });
 
+    // Check measurement data for travel and overnight (from coordinator closing)
+    if (measurementData) {
+      if (measurementData.travels.some(t => t.date === dateStr)) {
+        viagem = 1;
+      }
+      if (measurementData.overnights.some(o => o.date === dateStr)) {
+        noite = 1;
+      }
+    }
+
     days.push({
       day,
       isWeekend: isWeekend(date),
@@ -207,8 +225,8 @@ const processData = (month: Date, entries: TimeEntry[], holidays: Date[]): { day
   return { days, totals };
 };
 
-const TechnicianReportPDFDocument = ({ technicianName, month, entries, holidays }: TechnicianReportPDFProps) => {
-  const { days, totals } = processData(month, entries, holidays);
+const TechnicianReportPDFDocument = ({ technicianName, month, entries, holidays, measurementData }: TechnicianReportPDFProps) => {
+  const { days, totals } = processData(month, entries, holidays, measurementData);
 
   return (
     <Document>
@@ -278,7 +296,8 @@ export const generateTechnicianPDF = async (
   technicianName: string,
   month: Date,
   entries: TimeEntry[],
-  holidays: Date[]
+  holidays: Date[],
+  measurementData?: MeasurementData
 ): Promise<Blob> => {
   const blob = await pdf(
     <TechnicianReportPDFDocument
@@ -286,6 +305,7 @@ export const generateTechnicianPDF = async (
       month={month}
       entries={entries}
       holidays={holidays}
+      measurementData={measurementData}
     />
   ).toBlob();
   return blob;
@@ -295,9 +315,10 @@ export const downloadTechnicianPDF = async (
   technicianName: string,
   month: Date,
   entries: TimeEntry[],
-  holidays: Date[]
+  holidays: Date[],
+  measurementData?: MeasurementData
 ) => {
-  const blob = await generateTechnicianPDF(technicianName, month, entries, holidays);
+  const blob = await generateTechnicianPDF(technicianName, month, entries, holidays, measurementData);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
