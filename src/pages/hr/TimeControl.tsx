@@ -287,7 +287,10 @@ const TimeControl = () => {
               <Input
                 type="month"
                 value={format(selectedMonth, 'yyyy-MM')}
-                onChange={(e) => setSelectedMonth(new Date(e.target.value + '-01'))}
+                onChange={(e) => {
+                  const [year, month] = e.target.value.split('-');
+                  setSelectedMonth(new Date(parseInt(year), parseInt(month) - 1, 15));
+                }}
                 className="w-full md:w-[180px]"
               />
             </div>
