@@ -116,6 +116,24 @@ export const useOnCall = (filters?: { technicianId?: string; startDate?: string;
     },
   });
 
+  const updateOnCall = useMutation({
+    mutationFn: async ({ id, ...data }: Partial<CreateOnCallData> & { id: string }) => {
+      const { error } = await supabase
+        .from('technician_on_call')
+        .update(data)
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Sobreaviso atualizado com sucesso' });
+      queryClient.invalidateQueries({ queryKey: ['on-call'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao atualizar sobreaviso', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const deleteOnCall = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -139,6 +157,7 @@ export const useOnCall = (filters?: { technicianId?: string; startDate?: string;
     isLoading,
     refetch,
     createOnCall,
+    updateOnCall,
     deleteOnCall,
   };
 };

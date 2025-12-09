@@ -11,9 +11,11 @@ interface Props {
   onCallList: OnCall[];
   selectedMonth: Date;
   onMonthChange: (date: Date) => void;
+  onEditAbsence?: (absence: Absence) => void;
+  onEditOnCall?: (onCall: OnCall) => void;
 }
 
-const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthChange }: Props) => {
+const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthChange, onEditAbsence, onEditOnCall }: Props) => {
   const monthStart = startOfMonth(selectedMonth);
   const monthEnd = endOfMonth(selectedMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -150,8 +152,9 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
                     return (
                       <div
                         key={absence.id}
-                        className={`text-[10px] px-1 py-0.5 rounded border truncate flex items-center gap-1 ${getAbsenceColor(absence.absence_type)}`}
-                        title={`${absence.technician?.profiles?.full_name} - ${absence.absence_type}`}
+                        onClick={() => onEditAbsence?.(absence)}
+                        className={`text-[10px] px-1 py-0.5 rounded border truncate flex items-center gap-1 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all ${getAbsenceColor(absence.absence_type)}`}
+                        title={`Clique para editar: ${absence.technician?.profiles?.full_name} - ${absence.absence_type}`}
                       >
                         <Icon className="h-2.5 w-2.5 flex-shrink-0" />
                         <span className="truncate">
@@ -165,8 +168,9 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
                   {dayOnCall.slice(0, 2).map((onCall) => (
                     <div
                       key={onCall.id}
-                      className="text-[10px] px-1 py-0.5 rounded border truncate flex items-center gap-1 bg-orange-100 text-orange-800 border-orange-300"
-                      title={`Sobreaviso: ${onCall.technician?.profiles?.full_name}`}
+                      onClick={() => onEditOnCall?.(onCall)}
+                      className="text-[10px] px-1 py-0.5 rounded border truncate flex items-center gap-1 bg-orange-100 text-orange-800 border-orange-300 cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                      title={`Clique para editar: Sobreaviso - ${onCall.technician?.profiles?.full_name}`}
                     >
                       <Phone className="h-2.5 w-2.5 flex-shrink-0" />
                       <span className="truncate">
