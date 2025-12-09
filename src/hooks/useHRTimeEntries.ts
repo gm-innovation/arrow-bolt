@@ -173,23 +173,24 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
       if (technicianIds.length === 0) return [];
 
       // Build query with filters - now including service_order, vessel and coordinator
+      // Use FK hints for nested relations: task->service_order and service_order->vessel/coordinator
       let query = supabase
         .from('time_entries')
         .select(`
           *,
-          task:tasks(
+          task:tasks!time_entries_task_id_fkey(
             id,
             title,
-            service_order:service_orders(
+            service_order:service_orders!tasks_service_order_id_fkey(
               order_number,
-              vessel:vessels(name),
-              coordinator:profiles(full_name)
+              vessel:vessels!service_orders_vessel_id_fkey(name),
+              coordinator:profiles!service_orders_created_by_fkey(full_name)
             )
           ),
-          service_order:service_orders(
+          service_order:service_orders!time_entries_service_order_id_fkey(
             order_number,
-            vessel:vessels(name),
-            coordinator:profiles(full_name)
+            vessel:vessels!service_orders_vessel_id_fkey(name),
+            coordinator:profiles!service_orders_created_by_fkey(full_name)
           )
         `)
         .in('technician_id', technicianIds)
