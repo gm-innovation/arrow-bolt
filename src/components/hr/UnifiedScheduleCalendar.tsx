@@ -18,17 +18,22 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
   const monthEnd = endOfMonth(selectedMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
+  const parseLocalDate = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   const getAbsencesForDay = (day: Date) => {
     return absences.filter(absence => {
-      const start = new Date(absence.start_date);
-      const end = new Date(absence.end_date);
+      const start = parseLocalDate(absence.start_date);
+      const end = parseLocalDate(absence.end_date);
       return day >= start && day <= end && absence.status !== 'cancelled';
     });
   };
 
   const getOnCallForDay = (day: Date) => {
     return onCallList.filter(onCall => {
-      const onCallDate = new Date(onCall.on_call_date);
+      const onCallDate = parseLocalDate(onCall.on_call_date);
       return isSameDay(day, onCallDate);
     });
   };
