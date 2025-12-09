@@ -180,14 +180,14 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
           task:tasks(
             id,
             title,
-          service_order:service_orders!tasks_service_order_id_fkey(
-              order_number, 
-              vessel:vessels(name), 
+            service_order:service_orders(
+              order_number,
+              vessel:vessels(name),
               coordinator:profiles(full_name)
             )
           ),
-          service_order:service_orders!time_entries_service_order_id_fkey(
-            order_number, 
+          service_order:service_orders(
+            order_number,
             vessel:vessels(name),
             coordinator:profiles(full_name)
           )
