@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
 import { format, getDaysInMonth, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { TimeEntry, MeasurementData } from '@/hooks/useHRTimeEntries';
+import { TimeEntry, MeasurementData, VisitData } from '@/hooks/useHRTimeEntries';
 import { cn } from '@/lib/utils';
 
 interface DayData {
@@ -29,6 +29,7 @@ interface TechnicianMonthlyReportProps {
   entries: TimeEntry[];
   holidays: Date[];
   measurementData?: MeasurementData;
+  visitsData?: VisitData[];
   onEditDay: (day: number, entry?: TimeEntry) => void;
 }
 
@@ -39,6 +40,7 @@ const TechnicianMonthlyReport = ({
   entries,
   holidays,
   measurementData,
+  visitsData,
   onEditDay,
 }: TechnicianMonthlyReportProps) => {
   const daysData = useMemo(() => {
@@ -58,6 +60,11 @@ const TechnicianMonthlyReport = ({
                entryDate.getFullYear() === year;
       });
 
+      // Get visits for this technician on this day
+      const dayVisits = (visitsData || []).filter(v => 
+        v.technicianId === technicianId && v.visitDate === dateStr
+      );
+
       const hasHoliday = holidays.some((h) => isSameDay(h, date));
       
       // Aggregate data for the day
@@ -69,24 +76,29 @@ const TechnicianMonthlyReport = ({
       let noite = 0;
       let mainEntry: TimeEntry | undefined;
 
+      // First, check time entries
       dayEntries.forEach((entry) => {
         mainEntry = entry;
         
-        // Get vessel and order from service_order
-        if (entry.service_order?.vessel?.name) {
-          vesselName = entry.service_order.vessel.name;
-        } else if (entry.task?.service_order?.vessel?.name) {
-          vesselName = entry.task.service_order.vessel.name;
+        // Get vessel and order - priority: direct service_order > task.service_order
+        if (!vesselName) {
+          if (entry.service_order?.vessel?.name) {
+            vesselName = entry.service_order.vessel.name;
+          } else if (entry.task?.service_order?.vessel?.name) {
+            vesselName = entry.task.service_order.vessel.name;
+          }
         }
         
-        if (entry.service_order?.order_number) {
-          orderNumber = entry.service_order.order_number;
-        } else if (entry.task?.service_order?.order_number) {
-          orderNumber = entry.task.service_order.order_number;
+        if (!orderNumber) {
+          if (entry.service_order?.order_number) {
+            orderNumber = entry.service_order.order_number;
+          } else if (entry.task?.service_order?.order_number) {
+            orderNumber = entry.task.service_order.order_number;
+          }
         }
 
-        // BORDO: has service_order_id
-        if (entry.service_order_id) {
+        // BORDO: has service_order_id OR has task with service_order
+        if (entry.service_order_id || entry.task?.service_order) {
           bordo = 1;
         }
 
@@ -105,6 +117,22 @@ const TechnicianMonthlyReport = ({
           noite = 1;
         }
       });
+
+      // Then, check visits data (from visit_technicians)
+      if (dayVisits.length > 0) {
+        const visit = dayVisits[0];
+        
+        // Use visit data if not already set from time_entries
+        if (!vesselName && visit.vesselName) {
+          vesselName = visit.vesselName;
+        }
+        if (!orderNumber && visit.orderNumber) {
+          orderNumber = visit.orderNumber;
+        }
+        
+        // If there's a visit, mark as BORDO
+        bordo = 1;
+      }
 
       // Check measurement data for travel and overnight (from coordinator closing)
       if (measurementData) {
@@ -138,7 +166,7 @@ const TechnicianMonthlyReport = ({
     }
 
     return data;
-  }, [month, entries, holidays, measurementData]);
+  }, [month, entries, holidays, measurementData, visitsData, technicianId]);
 
   const totals = useMemo(() => {
     return daysData.reduce(

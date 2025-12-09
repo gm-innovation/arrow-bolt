@@ -57,7 +57,7 @@ const TimeControl = () => {
   const monthStart = format(startOfMonth(selectedMonth), 'yyyy-MM-dd');
   const monthEnd = format(endOfMonth(selectedMonth), 'yyyy-MM-dd');
 
-  const { timeEntries, measurementData, isLoading, refetch, deleteTimeEntry } = useHRTimeEntries({
+  const { timeEntries, measurementData, visitsData, isLoading, refetch, deleteTimeEntry } = useHRTimeEntries({
     technicianId: selectedTechnician !== 'all' ? selectedTechnician : undefined,
     startDate: monthStart,
     endDate: monthEnd,
@@ -134,6 +134,7 @@ const TimeControl = () => {
   // Calculate totals per technician
   const getTechnicianTotals = (techId: string) => {
     const techEntries = timeEntries.filter((e) => e.technician_id === techId);
+    const techVisits = visitsData.filter((v) => v.technicianId === techId);
     const year = selectedMonth.getFullYear();
     const monthIndex = selectedMonth.getMonth();
     
@@ -143,7 +144,6 @@ const TimeControl = () => {
     let noite = 0;
 
     const daysInMonth = getDaysInMonth(selectedMonth);
-    const processedDays = new Set<number>();
 
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, monthIndex, day);
@@ -156,17 +156,26 @@ const TimeControl = () => {
                entryDate.getFullYear() === year;
       });
 
+      // Check if technician has a visit on this day
+      const hasVisit = techVisits.some(v => v.visitDate === dateStr);
+
       let dayBordo = 0;
       let dayViagem = 0;
       let daySobreaviso = 0;
       let dayNoite = 0;
 
       dayEntries.forEach((entry) => {
-        if (entry.service_order_id) dayBordo = 1;
+        // BORDO: has service_order_id OR has task with service_order
+        if (entry.service_order_id || entry.task?.service_order) dayBordo = 1;
         if (entry.is_travel) dayViagem = 1;
         if ((entry.hours_standby || 0) > 0) daySobreaviso = 1;
         if (entry.is_overnight) dayNoite = 1;
       });
+
+      // If has visit, mark as BORDO
+      if (hasVisit) {
+        dayBordo = 1;
+      }
 
       // Check measurement data for travel and overnight
       if (measurementData) {
@@ -199,14 +208,17 @@ const TimeControl = () => {
 
   const handleExportPDF = async (tech: Technician) => {
     const techEntries = timeEntries.filter((e) => e.technician_id === tech.id);
+    const techVisits = visitsData.filter((v) => v.technicianId === tech.id);
     const holidayDates = holidays.map((h) => new Date(h.holiday_date));
     
     await downloadTechnicianPDF(
       tech.profiles?.full_name || 'Técnico',
+      tech.id,
       selectedMonth,
       techEntries,
       holidayDates,
-      measurementData
+      measurementData,
+      techVisits
     );
   };
 
@@ -326,6 +338,7 @@ const TimeControl = () => {
                           entries={techEntries}
                           holidays={holidayDates}
                           measurementData={measurementData}
+                          visitsData={visitsData}
                           onEditDay={(day, entry) => handleEditDay(tech.id, tech.profiles?.full_name || 'Técnico', day, entry)}
                         />
                         <div className="mt-4 flex justify-end">

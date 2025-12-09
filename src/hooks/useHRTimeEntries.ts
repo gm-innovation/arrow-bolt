@@ -119,6 +119,14 @@ export interface MeasurementData {
   }>;
 }
 
+export interface VisitData {
+  technicianId: string;
+  visitDate: string;
+  vesselName: string | null;
+  orderNumber: string | null;
+  serviceOrderId: string;
+}
+
 export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: string; endDate?: string }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -301,6 +309,77 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
     enabled: !!user,
   });
 
+  // Fetch visit_technicians data to get which days each technician was at a vessel
+  const { data: visitsData, isLoading: loadingVisits, refetch: refetchVisits } = useQuery({
+    queryKey: ['hr-visits-data', filters],
+    queryFn: async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile?.company_id) return [];
+
+      // Get technicians from the company
+      const { data: companyTechnicians } = await supabase
+        .from('technicians')
+        .select('id')
+        .eq('company_id', profile.company_id);
+
+      const technicianIds = (companyTechnicians || []).map(t => t.id);
+      if (technicianIds.length === 0) return [];
+
+      // Build query for visit_technicians
+      let query = supabase
+        .from('visit_technicians')
+        .select(`
+          technician_id,
+          is_lead,
+          visit:service_visits(
+            visit_date,
+            service_order:service_orders(
+              id,
+              order_number,
+              vessel:vessels(name)
+            )
+          )
+        `)
+        .in('technician_id', technicianIds);
+
+      const { data, error } = await query;
+
+      if (error) {
+        console.error('Error fetching visits:', error);
+        return [];
+      }
+
+      // Transform data and filter by date
+      const visits: VisitData[] = [];
+      (data || []).forEach((vt: any) => {
+        if (!vt.visit?.visit_date) return;
+        
+        const visitDate = vt.visit.visit_date;
+        
+        // Apply date filters
+        if (filters?.startDate && visitDate < filters.startDate) return;
+        if (filters?.endDate && visitDate > filters.endDate) return;
+        if (filters?.technicianId && vt.technician_id !== filters.technicianId) return;
+
+        visits.push({
+          technicianId: vt.technician_id,
+          visitDate: visitDate,
+          vesselName: vt.visit.service_order?.vessel?.name || null,
+          orderNumber: vt.visit.service_order?.order_number || null,
+          serviceOrderId: vt.visit.service_order?.id || '',
+        });
+      });
+
+      return visits;
+    },
+    enabled: !!user,
+  });
+
   const createAdjustment = useMutation({
     mutationFn: async (data: CreateAdjustmentData) => {
       const { data: profile } = await supabase
@@ -413,11 +492,13 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
     timeEntries: timeEntries || [],
     adjustments: adjustments || [],
     measurementData: measurementData || { travels: [], overnights: [] },
-    isLoading: loadingEntries || loadingAdjustments || loadingMeasurements,
+    visitsData: visitsData || [],
+    isLoading: loadingEntries || loadingAdjustments || loadingMeasurements || loadingVisits,
     refetch: () => {
       refetchEntries();
       refetchAdjustments();
       refetchMeasurements();
+      refetchVisits();
     },
     createAdjustment,
     updateTimeEntry,
