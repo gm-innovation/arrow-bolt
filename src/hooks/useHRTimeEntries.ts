@@ -105,6 +105,20 @@ export interface CreateTimeEntryData {
   notes?: string;
 }
 
+export interface MeasurementData {
+  travels: Array<{
+    date: string;
+    fromCity: string;
+    toCity: string;
+    serviceOrderId: string;
+  }>;
+  overnights: Array<{
+    date: string;
+    description: string;
+    serviceOrderId: string;
+  }>;
+}
+
 export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: string; endDate?: string }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -213,6 +227,76 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
       const { data, error } = await query;
       if (error) throw error;
       return data as TimeAdjustment[];
+    },
+    enabled: !!user,
+  });
+
+  // Fetch measurement data (travels and overnight expenses) from service order closures
+  const { data: measurementData, isLoading: loadingMeasurements, refetch: refetchMeasurements } = useQuery({
+    queryKey: ['hr-measurement-data', filters],
+    queryFn: async () => {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('company_id')
+        .eq('id', user?.id)
+        .single();
+
+      if (!profile?.company_id) return { travels: [], overnights: [] };
+
+      // Get service orders for the period
+      let soQuery = supabase
+        .from('service_orders')
+        .select('id, scheduled_date')
+        .eq('company_id', profile.company_id);
+
+      if (filters?.startDate) {
+        soQuery = soQuery.gte('scheduled_date', filters.startDate);
+      }
+      if (filters?.endDate) {
+        soQuery = soQuery.lte('scheduled_date', filters.endDate);
+      }
+
+      const { data: serviceOrders } = await soQuery;
+      const soIds = (serviceOrders || []).map(so => so.id);
+
+      if (soIds.length === 0) return { travels: [], overnights: [] };
+
+      // Get measurements for these service orders
+      const { data: measurements } = await supabase
+        .from('measurements')
+        .select('id, service_order_id, service_order:service_orders(scheduled_date)')
+        .in('service_order_id', soIds);
+
+      const measurementIds = (measurements || []).map(m => m.id);
+      if (measurementIds.length === 0) return { travels: [], overnights: [] };
+
+      // Fetch travels and overnight expenses in parallel
+      const [travelsResult, expensesResult] = await Promise.all([
+        supabase
+          .from('measurement_travels')
+          .select('*, measurement:measurements(service_order_id, service_order:service_orders(scheduled_date))')
+          .in('measurement_id', measurementIds),
+        supabase
+          .from('measurement_expenses')
+          .select('*, measurement:measurements(service_order_id, service_order:service_orders(scheduled_date))')
+          .in('measurement_id', measurementIds)
+          .eq('expense_type', 'hospedagem')
+      ]);
+
+      const travels = (travelsResult.data || []).map((t: any) => ({
+        date: t.measurement?.service_order?.scheduled_date || '',
+        fromCity: t.from_city,
+        toCity: t.to_city,
+        serviceOrderId: t.measurement?.service_order_id || '',
+      }));
+
+      const overnights = (expensesResult.data || []).map((e: any) => ({
+        date: e.measurement?.service_order?.scheduled_date || '',
+        description: e.description || 'Hospedagem',
+        serviceOrderId: e.measurement?.service_order_id || '',
+      }));
+
+      return { travels, overnights } as MeasurementData;
     },
     enabled: !!user,
   });
@@ -328,10 +412,12 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
   return {
     timeEntries: timeEntries || [],
     adjustments: adjustments || [],
-    isLoading: loadingEntries || loadingAdjustments,
+    measurementData: measurementData || { travels: [], overnights: [] },
+    isLoading: loadingEntries || loadingAdjustments || loadingMeasurements,
     refetch: () => {
       refetchEntries();
       refetchAdjustments();
+      refetchMeasurements();
     },
     createAdjustment,
     updateTimeEntry,
