@@ -94,8 +94,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Dashboard", icon: LayoutDashboard, path: "/hr/dashboard" },
     { title: "Técnicos", icon: Wrench, path: "/hr/technicians" },
     { title: "Controle de Ponto", icon: History, path: "/hr/time-control" },
-    { title: "Ausências", icon: Users, path: "/hr/absences" },
-    { title: "Sobreaviso", icon: Bell, path: "/hr/on-call" },
+    { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
     { title: "Feriados", icon: ClipboardList, path: "/hr/holidays" },
     { title: "Relatórios", icon: FileText, path: "/hr/reports" },
   ];
