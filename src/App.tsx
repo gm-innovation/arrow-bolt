@@ -555,13 +555,7 @@ const App = () => {
               />
               <Route
                 path="/hr/on-call"
-                element={
-                  <ProtectedRoute allowedRoles={['hr']}>
-                    <DashboardLayout userType="hr">
-                      <HROnCall />
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                }
+                element={<Navigate to="/hr/absences" replace />}
               />
               <Route
                 path="/hr/holidays"
