@@ -42,6 +42,9 @@ export interface TimeEntry {
       vessel?: {
         name: string;
       };
+      coordinator?: {
+        full_name: string;
+      };
     };
   };
   service_order?: {
@@ -177,7 +180,7 @@ export const useHRTimeEntries = (filters?: { technicianId?: string; startDate?: 
           task:tasks(
             id,
             title,
-            service_order:service_orders(order_number, vessel:vessels(name))
+            service_order:service_orders(order_number, vessel:vessels(name), coordinator:profiles!service_orders_created_by_fkey(full_name))
           ),
           service_order:service_orders(
             order_number, 
