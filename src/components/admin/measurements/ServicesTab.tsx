@@ -37,14 +37,16 @@ export const ServicesTab = ({ measurementId, services, disabled }: ServicesTabPr
   });
 
   const onSubmit = (data: z.infer<typeof serviceSchema>) => {
+    const description = data.description?.trim();
+    
     addService.mutate({
       measurement_id: measurementId,
       name: data.name.trim(),
       value: data.value,
-      description: data.description?.trim(),
+      description: description && description.length > 0 ? description : null,
     });
 
-    form.reset();
+    form.reset({ name: '', value: 0, description: '' });
     setIsAdding(false);
   };
 
