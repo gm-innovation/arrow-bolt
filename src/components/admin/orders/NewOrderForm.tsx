@@ -347,9 +347,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         throw new Error("Selecione pelo menos um tipo de tarefa");
       }
 
-      if (selectedTechnicians.length === 0) {
-        throw new Error("Selecione pelo menos um técnico");
-      }
+      // Técnico agora é opcional - permite criar OS de serviço fechado sem técnico
 
       if (isEditing && orderId) {
         // UPDATE existing service order
