@@ -261,7 +261,7 @@ const Technicians = () => {
           full_name: data.name,
           phone: data.phone || null,
           company_id: profileData.company_id,
-          role: 'tech' // será convertido para 'technician' na edge function
+          role: 'technician'
         }
       });
 
