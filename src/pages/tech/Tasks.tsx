@@ -56,6 +56,7 @@ const Tasks = () => {
           description,
           status,
           due_date,
+          service_order_id,
           service_orders:service_order_id (
             id,
             order_number,
@@ -76,6 +77,7 @@ const Tasks = () => {
 
       const formattedTasks: Task[] = data?.map((task: any) => ({
         id: task.id,
+        serviceOrderId: task.service_order_id,
         orderNumber: task.service_orders?.order_number || "N/A",
         vesselName: task.service_orders?.vessels?.name || "N/A",
         description: task.task_types?.name || task.title || task.description,
@@ -193,8 +195,8 @@ const Tasks = () => {
     }
   };
 
-  const handleCreateReport = (taskId: string) => {
-    navigate(`/tech/reports/new?taskId=${taskId}`);
+  const handleCreateReport = (serviceOrderId: string) => {
+    navigate(`/tech/reports/new?serviceOrderId=${serviceOrderId}`);
   };
 
   const handleViewDetails = (taskId: string) => {
@@ -224,8 +226,28 @@ const Tasks = () => {
     }
   };
 
+  // Helper: Check if all tasks of an OS are completed
+  const areAllTasksOfOSCompleted = (serviceOrderId: string | undefined) => {
+    if (!serviceOrderId) return false;
+    const osTasksStatuses = tasks.filter(t => t.serviceOrderId === serviceOrderId);
+    return osTasksStatuses.length > 0 && osTasksStatuses.every(t => t.status === "completed");
+  };
+
+  // Helper: Check if this is the first task of an OS in the list (to show report button only once)
+  const isFirstTaskOfOS = (task: Task, index: number) => {
+    if (!task.serviceOrderId) return true;
+    return tasks.findIndex(t => t.serviceOrderId === task.serviceOrderId) === index;
+  };
+
+  // Helper: Check if report button should show for this task
+  const shouldShowReportButton = (task: Task, index: number) => {
+    return task.status === "completed" && 
+           areAllTasksOfOSCompleted(task.serviceOrderId) && 
+           isFirstTaskOfOS(task, index);
+  };
+
   // Mobile card view for tasks
-  const renderMobileTaskCard = (task: Task) => {
+  const renderMobileTaskCard = (task: Task, index: number) => {
     const statusDisplay = getStatusDisplay(task.status);
     
     return (
@@ -286,12 +308,12 @@ const Tasks = () => {
             </Button>
           )}
           
-          {task.status === "completed" && (
+          {shouldShowReportButton(task, index) && task.serviceOrderId && (
             <Button
               variant="default"
               size="sm"
               className="flex-1"
-              onClick={() => handleCreateReport(task.id)}
+              onClick={() => handleCreateReport(task.serviceOrderId!)}
             >
               Criar Relatório
             </Button>
@@ -382,7 +404,7 @@ const Tasks = () => {
             <>
               {/* Mobile card view */}
               <div className="md:hidden">
-                {tasks.map(renderMobileTaskCard)}
+                {tasks.map((task, index) => renderMobileTaskCard(task, index))}
                 {tasks.length === 0 && (
                   <div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg border-dashed">
                     <Clock className="h-16 w-16 text-muted-foreground mb-4" />
@@ -421,7 +443,7 @@ const Tasks = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      tasks.map((task) => {
+                      tasks.map((task, index) => {
                         const statusDisplay = getStatusDisplay(task.status);
                         return (
                           <TableRow key={task.id}>
@@ -474,11 +496,11 @@ const Tasks = () => {
                                   Finalizar
                                 </Button>
                               )}
-                              {task.status === "completed" && (
+                              {shouldShowReportButton(task, index) && task.serviceOrderId && (
                                 <Button
                                   variant="default"
                                   size="sm"
-                                  onClick={() => handleCreateReport(task.id)}
+                                  onClick={() => handleCreateReport(task.serviceOrderId!)}
                                 >
                                   Criar Relatório
                                 </Button>

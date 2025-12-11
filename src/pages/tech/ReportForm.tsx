@@ -56,9 +56,11 @@ interface ServiceOrderData {
   const { toast } = useToast();
   const { reportId } = useParams();
   const [searchParams] = useSearchParams();
-  const taskId = searchParams.get("taskId");
+  const serviceOrderId = searchParams.get("serviceOrderId");
+  // Keep taskId for backward compatibility
+  const legacyTaskId = searchParams.get("taskId");
 
-  const [selectedTask, setSelectedTask] = useState(taskId || "");
+  const [selectedTask, setSelectedTask] = useState("");
   const [isPDFOpen, setIsPDFOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -67,6 +69,7 @@ interface ServiceOrderData {
   const [taskValidated, setTaskValidated] = useState(false);
   const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({});
   const [requiredPhotoLabels, setRequiredPhotoLabels] = useState<string[]>([]);
+  const [currentServiceOrderId, setCurrentServiceOrderId] = useState<string | null>(null);
 
   // Helper function to upload image to storage
   const uploadImageToStorage = async (file: File, taskId: string, imageIndex: number): Promise<string | null> => {
@@ -129,13 +132,15 @@ interface ServiceOrderData {
     }
   };
 
-  const fetchTaskReports = async () => {
+  const fetchTaskReports = async (osId: string) => {
     try {
-      console.log("Fetching task reports for taskId:", taskId);
+      console.log("Fetching task reports for service order:", osId);
+      
+      // First try to find report by service_order_id in task_id field
       const { data, error } = await supabase
         .from('task_reports')
         .select('*')
-        .eq('task_id', taskId)
+        .eq('task_id', osId)
         .order('updated_at', { ascending: false })
         .limit(1);
 
@@ -150,7 +155,7 @@ interface ServiceOrderData {
         
         const reportsWithRecreatedFiles: Record<string, TaskReport> = {};
         
-        // Normalize to always use taskId as key (fixes legacy "task1" format)
+        // Normalize to always use osId as key
         for (const [_legacyKey, report] of Object.entries(reportData)) {
           // Handle photos - try to load saved images
           const photosWithFiles: PhotoWithCaption[] = [];
@@ -163,14 +168,14 @@ interface ServiceOrderData {
                 if (photoWithFile) {
                   photosWithFiles.push({
                     ...photoWithFile,
-                    description: photo.description // ✅ Preserve description
+                    description: photo.description
                   });
                 } else {
                   // If failed to load from storage, keep the reference
                   photosWithFiles.push({
                     caption: photo.caption,
                     storagePath: photo.storagePath,
-                    description: photo.description // ✅ Preserve description
+                    description: photo.description
                   });
                 }
               } else {
@@ -180,8 +185,8 @@ interface ServiceOrderData {
             }
           }
           
-          // Use taskId as key instead of legacy key (e.g., "task1")
-          reportsWithRecreatedFiles[taskId!] = {
+          // Use osId as key
+          reportsWithRecreatedFiles[osId] = {
             ...report,
             photos: photosWithFiles,
           };
@@ -205,89 +210,73 @@ interface ServiceOrderData {
     }
   };
 
-  const fetchServiceOrderData = async () => {
-    if (!taskId) {
-      console.error("No taskId provided");
-      toast({
-        title: "Erro de validação",
-        description: "ID da tarefa não foi fornecido. Você precisa selecionar uma tarefa para criar o relatório.",
-        variant: "destructive",
-      });
-      navigate('/tech/tasks');
-      return;
-    }
-
-    console.log("Fetching service order data for task:", taskId);
+  const fetchServiceOrderData = async (osId: string) => {
+    console.log("Fetching service order data for OS:", osId);
 
     try {
-      const { data: taskData, error: taskError } = await supabase
+      // Fetch service order data directly
+      const { data: soData, error: soError } = await supabase
+        .from('service_orders')
+        .select(`
+          id,
+          order_number,
+          scheduled_date,
+          service_date_time,
+          location,
+          access,
+          supervisor_id,
+          company_id,
+          vessels:vessel_id (name),
+          clients:client_id (name, contact_person)
+        `)
+        .eq('id', osId)
+        .maybeSingle();
+
+      console.log("Service order data fetched:", soData);
+
+      if (soError) throw soError;
+
+      if (!soData) {
+        console.error("Service order data is null");
+        toast({
+          title: "OS não encontrada",
+          description: "A Ordem de Serviço não foi encontrada no sistema.",
+          variant: "destructive",
+        });
+        navigate('/tech/tasks');
+        return;
+      }
+
+      // Fetch one task from this OS to get task type info for photo labels
+      const { data: taskData } = await supabase
         .from('tasks')
         .select(`
           id,
           title,
           description,
-          task_order_number,
-          service_orders:service_order_id (
-            id,
-            order_number,
-            scheduled_date,
-            service_date_time,
-            location,
-            access,
-            supervisor_id,
-            company_id,
-            vessels:vessel_id (name),
-            clients:client_id (name, contact_person)
-          ),
           task_types:task_type_id (name, photo_labels)
         `)
-        .eq('id', taskId)
+        .eq('service_order_id', osId)
+        .limit(1)
         .maybeSingle();
-
-      console.log("Task data fetched:", taskData);
-      console.log("Task error:", taskError);
-
-      if (taskError) throw taskError;
-
-      if (!taskData) {
-        console.error("Task data is null");
-        toast({
-          title: "Tarefa não encontrada",
-          description: "A tarefa selecionada não foi encontrada no sistema.",
-          variant: "destructive",
-        });
-        navigate('/tech/tasks');
-        return;
-      }
-
-      if (!taskData.service_orders) {
-        console.error("Service order not found for task");
-        toast({
-          title: "OS não encontrada",
-          description: "Esta tarefa não está vinculada a uma Ordem de Serviço.",
-          variant: "destructive",
-        });
-        navigate('/tech/tasks');
-        return;
-      }
 
       // Fetch supervisor if exists
       let supervisorName = 'N/A';
-      if (taskData.service_orders.supervisor_id) {
+      if (soData.supervisor_id) {
         const { data: supervisor } = await supabase
           .from('profiles')
           .select('full_name')
-          .eq('id', taskData.service_orders.supervisor_id)
+          .eq('id', soData.supervisor_id)
           .maybeSingle();
         supervisorName = supervisor?.full_name || 'N/A';
       }
 
       // Fetch visit data - Step 1: Get the most recent visit
-      console.log("Fetching visit for service order:", taskData.service_orders.id);
+      console.log("Fetching visit for service order:", soData.id);
       const { data: visit, error: visitError } = await supabase
         .from('service_visits')
         .select('id, visit_number')
-        .eq('service_order_id', taskData.service_orders.id)
+        .eq('service_order_id', soData.id)
         .order('visit_number', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -335,12 +324,12 @@ interface ServiceOrderData {
 
       // Fetch company data
       let companyData = null;
-      if (taskData.service_orders.company_id) {
-        console.log("Fetching company with ID:", taskData.service_orders.company_id);
+      if (soData.company_id) {
+        console.log("Fetching company with ID:", soData.company_id);
         const { data: company, error: companyError } = await supabase
           .from('companies')
           .select('name, email, phone, address, cnpj, cep, logo_url')
-          .eq('id', taskData.service_orders.company_id)
+          .eq('id', soData.company_id)
           .maybeSingle();
         
         if (companyError) {
@@ -350,11 +339,10 @@ interface ServiceOrderData {
         companyData = company;
       }
 
-      const so = taskData.service_orders as any;
-      // Use task_order_number if available, otherwise fall back to service order's order_number
-      const orderNumber = (taskData as any).task_order_number || so.order_number || taskData.id;
+      const orderNumber = soData.order_number || osId;
+      const so = soData as any;
       
-      const serviceOrderData = {
+      const serviceOrderDataObj = {
         id: orderNumber,
         orderNumber: orderNumber,
         serviceOrderId: so.id,
@@ -377,8 +365,8 @@ interface ServiceOrderData {
           leadTechnician,
           assistants,
         },
-        service: taskData.task_types?.name || taskData.title || taskData.description || 'Serviço não especificado',
-        taskTitle: taskData.title || taskData.task_types?.name || 'Tarefa',
+        service: taskData?.task_types?.name || taskData?.title || taskData?.description || 'Serviço não especificado',
+        taskTitle: taskData?.title || taskData?.task_types?.name || 'Tarefa',
         company: {
           name: companyData?.name?.trim() || 'Empresa não especificada',
           email: companyData?.email?.trim() || '',
@@ -390,16 +378,17 @@ interface ServiceOrderData {
         },
       };
 
-      console.log("Service order data prepared:", serviceOrderData);
-      setServiceOrderData(serviceOrderData);
+      console.log("Service order data prepared:", serviceOrderDataObj);
+      setServiceOrderData(serviceOrderDataObj);
+      setCurrentServiceOrderId(osId);
       
       // Set required photo labels from task type
-      const photoLabels = (taskData.task_types as any)?.photo_labels || [];
+      const photoLabels = (taskData?.task_types as any)?.photo_labels || [];
       setRequiredPhotoLabels(photoLabels);
       console.log("Required photo labels:", photoLabels);
       
       setTaskValidated(true);
-      console.log("Task validated successfully");
+      console.log("Service order validated successfully");
     } catch (error: any) {
       console.error("Error fetching service order data:", error);
       toast({
@@ -413,39 +402,57 @@ interface ServiceOrderData {
 
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true);
-      await fetchServiceOrderData();
+      // Determine OS ID: use serviceOrderId directly or get from legacyTaskId
+      let osId = serviceOrderId;
       
-      // Only fetch task reports if we have a valid taskId
-      if (taskId) {
-        const savedReports = await fetchTaskReports();
-        if (!savedReports) {
-          console.log("No saved reports found, initializing with taskId");
-          // Initialize with actual taskId instead of "task1"
-          setSelectedTask(taskId);
-          setTaskReports({
-            [taskId]: {
-              modelInfo: "",
-              brandInfo: "",
-              serialNumber: "",
-              reportedIssue: "",
-              executedWork: "",
-              result: "",
-              nextVisitWork: "",
-              suppliedMaterial: "",
-              photos: [],
-              timeEntries: [],
-            },
-          });
-        } else {
-          // Set selected task to the taskId if saved reports exist
-          setSelectedTask(taskId);
-        }
+      if (!osId && legacyTaskId) {
+        // Backward compatibility: get service_order_id from task
+        const { data: taskData } = await supabase
+          .from('tasks')
+          .select('service_order_id')
+          .eq('id', legacyTaskId)
+          .single();
+        osId = taskData?.service_order_id || null;
+      }
+
+      if (!osId) {
+        toast({
+          title: "Erro de validação",
+          description: "ID da OS não foi fornecido.",
+          variant: "destructive",
+        });
+        navigate('/tech/tasks');
+        return;
+      }
+
+      setIsLoading(true);
+      await fetchServiceOrderData(osId);
+      
+      const savedReports = await fetchTaskReports(osId);
+      if (!savedReports) {
+        console.log("No saved reports found, initializing with osId");
+        setSelectedTask(osId);
+        setTaskReports({
+          [osId]: {
+            modelInfo: "",
+            brandInfo: "",
+            serialNumber: "",
+            reportedIssue: "",
+            executedWork: "",
+            result: "",
+            nextVisitWork: "",
+            suppliedMaterial: "",
+            photos: [],
+            timeEntries: [],
+          },
+        });
+      } else {
+        setSelectedTask(osId);
       }
       setIsLoading(false);
     };
     loadData();
-  }, [taskId]);
+  }, [serviceOrderId, legacyTaskId]);
 
   const handleAddTimeEntry = (taskId: string) => {
     const newEntry = {
@@ -644,7 +651,7 @@ interface ServiceOrderData {
       // First, save images to storage
       const reportDataWithStoragePaths = await saveImagesToStorage(reportData);
       
-      console.log("Images saved, now saving report data to Supabase:", { taskId, status });
+      console.log("Images saved, now saving report data to Supabase:", { osId: currentServiceOrderId, status });
       
       // Prepare serializable report data - only include storage paths for photos
       const serializableReportData: Record<string, any> = {};
@@ -665,15 +672,15 @@ interface ServiceOrderData {
         };
       }
       
-      // Get visit_id for the task
-      const visitId = await getVisitIdForTask(taskId!);
+      // Get visit_id for the service order
+      const visitId = await getVisitIdForTask(currentServiceOrderId!);
 
-      // Use upsert to prevent duplicates
+      // Use upsert to prevent duplicates - use service order ID as unique key
       const { error } = await supabase
         .from('task_reports')
         .upsert({
-          task_id: taskId,
-          task_uuid: taskId,
+          task_id: currentServiceOrderId,
+          task_uuid: currentServiceOrderId,
           visit_id: visitId,
           status: status,
           report_data: serializableReportData,
@@ -689,7 +696,7 @@ interface ServiceOrderData {
       console.log("Report data saved successfully");
 
       // Sync timeEntries to time_entries table for productivity tracking
-      await syncTimeEntriesToDatabase(reportDataWithStoragePaths, taskId!);
+      await syncTimeEntriesToDatabase(reportDataWithStoragePaths, currentServiceOrderId!);
       
       // Update local state with the storage paths
       setTaskReports(reportDataWithStoragePaths);
@@ -749,7 +756,7 @@ interface ServiceOrderData {
         const { data: existingReports } = await supabase
           .from('task_reports')
           .select('id')
-          .eq('task_id', taskId)
+          .eq('task_id', currentServiceOrderId)
           .eq('status', "draft");
 
         if (existingReports && existingReports.length > 0) {
@@ -880,7 +887,7 @@ interface ServiceOrderData {
   }
 
   // Get current report data
-  const reportData = taskReports[selectedTask] || (taskId ? taskReports[taskId] : null);
+  const reportData = taskReports[selectedTask] || (currentServiceOrderId ? taskReports[currentServiceOrderId] : null);
   
   if (!reportData) {
     return (
