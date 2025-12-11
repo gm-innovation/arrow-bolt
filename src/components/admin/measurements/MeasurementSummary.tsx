@@ -59,7 +59,11 @@ export const MeasurementSummary = ({ measurement }: MeasurementSummaryProps) => 
         </div>
 
         <div className="flex justify-between text-muted-foreground">
-          <span>Impostos ({measurement.tax_percentage}%):</span>
+          <span>
+            {Number(measurement.tax_percentage || 0) === 0 
+              ? 'Impostos (Isento):' 
+              : `Impostos (${measurement.tax_percentage}%):`}
+          </span>
           <span>R$ {Number(measurement.tax_amount || 0).toFixed(2)}</span>
         </div>
 

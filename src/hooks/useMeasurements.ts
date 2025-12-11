@@ -36,7 +36,7 @@ export const useMeasurements = (serviceOrderId?: string) => {
   const createMeasurement = useMutation({
     mutationFn: async (data: {
       service_order_id: string;
-      category: 'CATIVO' | 'LABORATORIO' | 'EXTERNO';
+      category: 'CATIVO' | 'LABORATORIO' | 'EXTERNO' | 'ISENTO';
     }) => {
       // Criar medição (dados de horas serão buscados em tempo real pelo componente)
       const { data: newMeasurement, error } = await supabase
@@ -72,7 +72,7 @@ export const useMeasurements = (serviceOrderId?: string) => {
   const updateCategory = useMutation({
     mutationFn: async (data: {
       id: string;
-      category: 'CATIVO' | 'LABORATORIO' | 'EXTERNO';
+      category: 'CATIVO' | 'LABORATORIO' | 'EXTERNO' | 'ISENTO';
     }) => {
       const { error } = await supabase
         .from('measurements')
