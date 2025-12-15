@@ -25,6 +25,7 @@ const Tasks = () => {
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [existingReports, setExistingReports] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<"list" | "kanban">("list");
 
@@ -92,6 +93,24 @@ const Tasks = () => {
       })) || [];
 
       setTasks(formattedTasks);
+
+      // Fetch existing reports for each unique service order
+      const uniqueServiceOrderIds = [...new Set(formattedTasks.map(t => t.serviceOrderId).filter(Boolean))];
+      
+      if (uniqueServiceOrderIds.length > 0) {
+        const { data: reports } = await supabase
+          .from('task_reports')
+          .select('task_id')
+          .in('task_id', uniqueServiceOrderIds);
+
+        const reportsMap: Record<string, boolean> = {};
+        reports?.forEach(report => {
+          if (report.task_id) {
+            reportsMap[report.task_id] = true;
+          }
+        });
+        setExistingReports(reportsMap);
+      }
     } catch (error: any) {
       toast({
         title: "Erro ao carregar tarefas",
@@ -315,7 +334,7 @@ const Tasks = () => {
               className="flex-1"
               onClick={() => handleCreateReport(task.serviceOrderId!)}
             >
-              Criar Relatório
+              {existingReports[task.serviceOrderId] ? "Editar Relatório" : "Criar Relatório"}
             </Button>
           )}
         </div>
@@ -502,7 +521,7 @@ const Tasks = () => {
                                   size="sm"
                                   onClick={() => handleCreateReport(task.serviceOrderId!)}
                                 >
-                                  Criar Relatório
+                                  {existingReports[task.serviceOrderId] ? "Editar Relatório" : "Criar Relatório"}
                                 </Button>
                               )}
                             </TableCell>
