@@ -644,6 +644,33 @@ interface ServiceOrderData {
     }
   };
 
+  // Function to save report history
+  const saveReportHistory = async (
+    reportId: string,
+    action: 'created' | 'updated' | 'submitted',
+    previousData: Record<string, any> | null,
+    changes: Record<string, any>
+  ) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      await supabase
+        .from('task_report_history')
+        .insert({
+          report_id: reportId,
+          edited_by: user.id,
+          action,
+          previous_data: previousData,
+          changes
+        });
+      
+      console.log("Report history saved:", { reportId, action });
+    } catch (error) {
+      console.error("Error saving report history:", error);
+    }
+  };
+
   const saveReportData = async (reportData: Record<string, TaskReport>, status: "draft" | "submitted") => {
     try {
       console.log("Starting report save process...");
@@ -663,7 +690,7 @@ interface ServiceOrderData {
         const photosData = photos.map(photo => ({
           caption: photo.caption,
           storagePath: photo.storagePath,
-          description: photo.description || "" // ✅ Include description
+          description: photo.description || ""
         }));
         
         serializableReportData[key] = {
@@ -675,8 +702,18 @@ interface ServiceOrderData {
       // Get visit_id for the service order
       const visitId = await getVisitIdForTask(currentServiceOrderId!);
 
+      // Check if report already exists to determine action and get previous data
+      const { data: existingReport } = await supabase
+        .from('task_reports')
+        .select('id, report_data')
+        .eq('task_uuid', currentServiceOrderId)
+        .single();
+
+      const isNewReport = !existingReport;
+      const previousData = existingReport?.report_data as Record<string, any> | null;
+
       // Use upsert to prevent duplicates - use service order ID as unique key
-      const { error } = await supabase
+      const { data: savedReport, error } = await supabase
         .from('task_reports')
         .upsert({
           task_id: currentServiceOrderId,
@@ -687,13 +724,30 @@ interface ServiceOrderData {
           updated_at: new Date().toISOString()
         }, {
           onConflict: 'task_uuid'
-        });
+        })
+        .select('id')
+        .single();
 
       if (error) {
         throw error;
       }
 
       console.log("Report data saved successfully");
+
+      // Save to history
+      if (savedReport?.id) {
+        const historyAction = isNewReport ? 'created' : (status === 'submitted' ? 'submitted' : 'updated');
+        await saveReportHistory(
+          savedReport.id,
+          historyAction,
+          previousData,
+          {
+            status,
+            sections_modified: Object.keys(serializableReportData),
+            timestamp: new Date().toISOString()
+          }
+        );
+      }
 
       // Sync timeEntries to time_entries table for productivity tracking
       await syncTimeEntriesToDatabase(reportDataWithStoragePaths, currentServiceOrderId!);
