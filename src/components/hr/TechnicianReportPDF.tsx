@@ -137,6 +137,20 @@ interface DayData {
   noite: number;
 }
 
+interface AbsenceData {
+  id: string;
+  absence_type: 'vacation' | 'day_off' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
+  start_date: string;
+  end_date: string;
+}
+
+interface OnCallData {
+  id: string;
+  on_call_date: string;
+  is_weekend: boolean;
+  is_holiday: boolean;
+}
+
 interface TechnicianReportPDFProps {
   technicianName: string;
   technicianId: string;
@@ -145,6 +159,8 @@ interface TechnicianReportPDFProps {
   holidays: Date[];
   measurementData?: MeasurementData;
   visitsData?: VisitData[];
+  absences?: AbsenceData[];
+  onCallData?: OnCallData[];
 }
 
 const processData = (
@@ -153,7 +169,9 @@ const processData = (
   entries: TimeEntry[],
   holidays: Date[],
   measurementData?: MeasurementData,
-  visitsData?: VisitData[]
+  visitsData?: VisitData[],
+  absences?: AbsenceData[],
+  onCallData?: OnCallData[]
 ): { days: DayData[], totals: { bordo: number; viagem: number; sobreaviso: number; noite: number } } => {
   const daysInMonth = getDaysInMonth(month);
   const year = month.getFullYear();
@@ -178,12 +196,15 @@ const processData = (
 
     const hasHoliday = holidays.some((h) => isSameDay(h, date));
     
+    // Check for on-call on this day
+    const dayOnCall = (onCallData || []).find(oc => oc.on_call_date === dateStr);
+    
     let vesselName: string | null = null;
     let coordinatorName: string | null = null;
     let orderNumber: string | null = null;
     let bordo = 0;
     let viagem = 0;
-    let sobreaviso = 0;
+    let sobreaviso = dayOnCall ? 1 : 0; // Auto-fill from on-call data
     let noite = 0;
 
     // First, check time entries
@@ -279,8 +300,8 @@ const processData = (
   return { days, totals };
 };
 
-const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entries, holidays, measurementData, visitsData }: TechnicianReportPDFProps) => {
-  const { days, totals } = processData(technicianId, month, entries, holidays, measurementData, visitsData);
+const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entries, holidays, measurementData, visitsData, absences, onCallData }: TechnicianReportPDFProps) => {
+  const { days, totals } = processData(technicianId, month, entries, holidays, measurementData, visitsData, absences, onCallData);
 
   return (
     <Document>
@@ -356,7 +377,9 @@ export const generateTechnicianPDF = async (
   entries: TimeEntry[],
   holidays: Date[],
   measurementData?: MeasurementData,
-  visitsData?: VisitData[]
+  visitsData?: VisitData[],
+  absences?: AbsenceData[],
+  onCallData?: OnCallData[]
 ): Promise<Blob> => {
   const blob = await pdf(
     <TechnicianReportPDFDocument
@@ -367,6 +390,8 @@ export const generateTechnicianPDF = async (
       holidays={holidays}
       measurementData={measurementData}
       visitsData={visitsData}
+      absences={absences}
+      onCallData={onCallData}
     />
   ).toBlob();
   return blob;
@@ -379,9 +404,11 @@ export const downloadTechnicianPDF = async (
   entries: TimeEntry[],
   holidays: Date[],
   measurementData?: MeasurementData,
-  visitsData?: VisitData[]
+  visitsData?: VisitData[],
+  absences?: AbsenceData[],
+  onCallData?: OnCallData[]
 ) => {
-  const blob = await generateTechnicianPDF(technicianName, technicianId, month, entries, holidays, measurementData, visitsData);
+  const blob = await generateTechnicianPDF(technicianName, technicianId, month, entries, holidays, measurementData, visitsData, absences, onCallData);
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
