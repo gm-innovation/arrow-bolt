@@ -19,15 +19,15 @@ import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
 const orderFormSchema = z.object({
   clientId: z.string().min(1, "Cliente é obrigatório"),
   vesselId: z.string().min(1, "Embarcação é obrigatória"),
-  scheduledDate: z.string()
-    .min(1, "Data agendada é obrigatória")
+  requesterId: z.string().optional(),
+  serviceDateTime: z.string()
+    .min(1, "Data e hora do serviço é obrigatória")
     .refine((date) => {
       const selectedDate = new Date(date);
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       return selectedDate >= today;
     }, "Data não pode ser no passado"),
-  serviceDateTime: z.string().optional(),
   plannedLocation: z.string()
     .max(200, "Local deve ter no máximo 200 caracteres")
     .optional(),
@@ -63,6 +63,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
   const [clients, setClients] = useState<any[]>([]);
   const [vessels, setVessels] = useState<any[]>([]);
   const [supervisors, setSupervisors] = useState<any[]>([]);
+  const [requesters, setRequesters] = useState<any[]>([]);
   const [technicians, setTechnicians] = useState<any[]>([]);
   const [selectedTechnicians, setSelectedTechnicians] = useState<string[]>([]);
   const [leadTechId, setLeadTechId] = useState<string>("");
@@ -77,7 +78,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
     defaultValues: {
       clientId: "",
       vesselId: "",
-      scheduledDate: "",
+      requesterId: "",
       serviceDateTime: "",
       plannedLocation: "",
       accessPointId: "",
@@ -85,7 +86,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
       expectedContext: "docked",
       boardingMethod: "gangway",
       taskTypes: [],
-      singleReport: false,
+      singleReport: true,
       description: "",
       supervisorId: "",
     }
@@ -156,6 +157,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         .order("full_name");
 
       setSupervisors(supervisorsData || []);
+      setRequesters(supervisorsData || []); // Same list as supervisors (coordinators)
 
       // Fetch technicians with phone numbers
       const { data: techniciansData } = await supabase
@@ -249,21 +251,21 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
       }
 
       // Save original values for change detection
-      setOriginalScheduledDate(orderData.scheduled_date || "");
+      setOriginalScheduledDate(orderData.scheduled_date || formattedServiceDateTime.split('T')[0] || "");
       setOriginalOrderNumber(orderData.order_number || "");
 
       // Populate form with ALL fields
       form.reset({
         clientId: orderData.vessels?.client_id || "",
         vesselId: orderData.vessel_id || "",
-        scheduledDate: orderData.scheduled_date || "",
-        serviceDateTime: formattedServiceDateTime,
+        requesterId: orderData.created_by || "",
+        serviceDateTime: formattedServiceDateTime || orderData.scheduled_date + "T08:00",
         plannedLocation: orderData.planned_location || orderData.location || "",
         accessPointId: orderData.access_point_id || "",
         accessInstructions: orderData.access_instructions || orderData.access || "",
         expectedContext: orderData.expected_context || "docked",
         boardingMethod: orderData.boarding_method || "gangway",
-        singleReport: orderData.single_report || false,
+        singleReport: orderData.single_report !== false,
         description: orderData.description || "",
         supervisorId: orderData.supervisor_id || "",
         taskTypes: tasksData ? [...new Set(tasksData.map(t => t.task_type_id).filter(Boolean))] : [],
@@ -357,14 +359,14 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             client_id: data.clientId,
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
-            scheduled_date: data.scheduledDate,
+            scheduled_date: data.serviceDateTime ? data.serviceDateTime.split('T')[0] : null,
             service_date_time: data.serviceDateTime || null,
             planned_location: data.plannedLocation?.trim() || null,
             access_point_id: data.accessPointId && data.accessPointId !== 'none' ? data.accessPointId : null,
             access_instructions: data.accessInstructions?.trim() || null,
             expected_context: data.expectedContext || null,
             boarding_method: data.boardingMethod || null,
-            single_report: data.singleReport || false,
+            single_report: data.singleReport !== false,
             description: data.description?.trim() || null,
           })
           .eq("id", orderId);
@@ -437,8 +439,9 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         }
 
         // Send WhatsApp notification if schedule changed
-        if (originalScheduledDate && data.scheduledDate !== originalScheduledDate) {
-          const formattedDate = new Date(data.scheduledDate).toLocaleDateString('pt-BR');
+        const currentDate = data.serviceDateTime ? data.serviceDateTime.split('T')[0] : null;
+        if (originalScheduledDate && currentDate && currentDate !== originalScheduledDate) {
+          const formattedDate = new Date(data.serviceDateTime!).toLocaleDateString('pt-BR');
           
           for (const techId of selectedTechnicians) {
             const tech = technicians.find(t => t.id === techId);
@@ -476,14 +479,14 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             client_id: data.clientId,
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
-            scheduled_date: data.scheduledDate,
+            scheduled_date: data.serviceDateTime ? data.serviceDateTime.split('T')[0] : null,
             service_date_time: data.serviceDateTime || null,
             planned_location: data.plannedLocation?.trim() || null,
             access_point_id: data.accessPointId && data.accessPointId !== 'none' ? data.accessPointId : null,
             access_instructions: data.accessInstructions?.trim() || null,
             expected_context: data.expectedContext || null,
             boarding_method: data.boardingMethod || null,
-            single_report: data.singleReport || false,
+            single_report: data.singleReport !== false,
             description: data.description?.trim() || null,
             status: "pending",
           })
@@ -575,7 +578,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
       form.reset({
         clientId: "",
         vesselId: "",
-        scheduledDate: "",
+        requesterId: "",
         serviceDateTime: "",
         plannedLocation: "",
         accessPointId: "",
@@ -583,7 +586,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         expectedContext: "docked",
         boardingMethod: "gangway",
         taskTypes: [],
-        singleReport: false,
+        singleReport: true,
         description: "",
         supervisorId: "",
       });
@@ -662,12 +665,37 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
 
           <FormField
             control={form.control}
-            name="scheduledDate"
+            name="requesterId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Data Agendada</FormLabel>
+                <FormLabel>Solicitante (Opcional)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o solicitante" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {requesters.map((requester) => (
+                      <SelectItem key={requester.id} value={requester.id}>
+                        {requester.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="serviceDateTime"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Data e Hora do Serviço</FormLabel>
                 <FormControl>
-                  <Input type="date" {...field} />
+                  <Input type="datetime-local" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -718,7 +746,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
           )}
         />
 
-        <LocationAccessSection form={form} vesselId={form.watch("vesselId") || null} />
+        <LocationAccessSection form={form} />
 
         <ServiceDetails 
           form={form} 
@@ -739,9 +767,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             setSelectedTechnicians(selectedTechnicians.filter(id => id !== techId));
           }}
           scheduledDate={(() => {
-            const scheduledDate = form.watch("scheduledDate");
             const serviceDateTime = form.watch("serviceDateTime");
-            if (scheduledDate) return new Date(scheduledDate);
             if (serviceDateTime) return new Date(serviceDateTime);
             return undefined;
           })()}
