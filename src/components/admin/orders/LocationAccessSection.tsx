@@ -4,41 +4,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Ship, Anchor, Navigation, Info, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { MapPin, Ship, Anchor, Navigation } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 import { useAccessPoints, translatePointType } from "@/hooks/useAccessPoints";
-import { useVesselPosition, translateLocationContext, translateNavigationStatus } from "@/hooks/useVesselPosition";
-import { Skeleton } from "@/components/ui/skeleton";
 
 interface LocationAccessSectionProps {
   form: UseFormReturn<any>;
-  vesselId: string | null;
 }
 
-export function LocationAccessSection({ form, vesselId }: LocationAccessSectionProps) {
+export function LocationAccessSection({ form }: LocationAccessSectionProps) {
   const { accessPoints, isLoading: loadingAccessPoints } = useAccessPoints();
-  const { position, isLoading: loadingPosition, source, refresh } = useVesselPosition(vesselId);
-
-  const getContextIcon = (context: string) => {
-    switch (context) {
-      case 'port': return <Anchor className="h-4 w-4" />;
-      case 'bay': return <Anchor className="h-4 w-4" />;
-      case 'offshore': return <Ship className="h-4 w-4" />;
-      case 'at_sea': return <Navigation className="h-4 w-4" />;
-      default: return <MapPin className="h-4 w-4" />;
-    }
-  };
-
-  const getContextColor = (context: string) => {
-    switch (context) {
-      case 'port': return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'bay': return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-      case 'offshore': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'at_sea': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
-      default: return 'bg-muted text-muted-foreground';
-    }
-  };
 
   return (
     <Card>
@@ -49,66 +24,6 @@ export function LocationAccessSection({ form, vesselId }: LocationAccessSectionP
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* AIS Position Info (Read-only) */}
-        {vesselId && (
-          <div className="p-4 bg-muted/50 rounded-lg border">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Ship className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Posição AIS Atual</span>
-                <Badge variant="outline" className="text-xs">
-                  {source === 'ais' ? 'Tempo Real' : source === 'database' ? 'Última Conhecida' : 'Indisponível'}
-                </Badge>
-              </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={refresh}
-                disabled={loadingPosition}
-              >
-                <RefreshCw className={`h-4 w-4 ${loadingPosition ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
-
-            {loadingPosition ? (
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-4 w-48" />
-              </div>
-            ) : position ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <p className="text-muted-foreground text-xs">Status</p>
-                  <div className="flex items-center gap-1">
-                    {getContextIcon(position.location_context)}
-                    <span>{translateLocationContext(position.location_context)}</span>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Nav. Status</p>
-                  <p>{translateNavigationStatus(position.navigation_status)}</p>
-                </div>
-                <div>
-                  <p className="text-muted-foreground text-xs">Velocidade</p>
-                  <p>{position.speed_over_ground?.toFixed(1) || '0'} nós</p>
-                </div>
-                {position.destination && (
-                  <div>
-                    <p className="text-muted-foreground text-xs">Destino</p>
-                    <p className="truncate">{position.destination}</p>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Info className="h-4 w-4" />
-                <span>Posição AIS não disponível para este navio</span>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Planned Location */}
         <FormField
           control={form.control}

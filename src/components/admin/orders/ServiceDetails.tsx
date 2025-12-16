@@ -36,90 +36,46 @@ export const ServiceDetails = ({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="serviceDateTime"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Data e Hora do Serviço</FormLabel>
-              <FormControl>
-                <Input type="datetime-local" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Local</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="Localização da embarcação" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="access"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Acesso</FormLabel>
-              <FormControl>
-                <Input {...field} placeholder="Informações de acesso" />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <div className="space-y-2">
-          <FormLabel>Tipos de Tarefa</FormLabel>
-          <Select onValueChange={handleAddTaskType}>
-            <FormControl>
-              <SelectTrigger>
-                <SelectValue placeholder="Adicionar tipo de tarefa" />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              {taskTypes.map((type) => (
-                <SelectItem 
-                  key={type.id} 
-                  value={type.id}
-                  disabled={selectedTaskTypes.includes(type.id)}
+      <div className="space-y-2">
+        <FormLabel>Tipos de Tarefa</FormLabel>
+        <Select onValueChange={handleAddTaskType}>
+          <FormControl>
+            <SelectTrigger>
+              <SelectValue placeholder="Adicionar tipo de tarefa" />
+            </SelectTrigger>
+          </FormControl>
+          <SelectContent>
+            {taskTypes.map((type) => (
+              <SelectItem 
+                key={type.id} 
+                value={type.id}
+                disabled={selectedTaskTypes.includes(type.id)}
+              >
+                {type.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <div className="flex flex-wrap gap-2 mt-2">
+          {selectedTaskTypes.map((typeId: string) => {
+            const taskType = taskTypes.find(t => t.id === typeId);
+            return (
+              <Badge key={typeId} variant="secondary" className="flex items-center gap-1">
+                {taskType?.name}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4 p-0 hover:bg-transparent"
+                  onClick={() => handleRemoveTaskType(typeId)}
                 >
-                  {type.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="flex flex-wrap gap-2 mt-2">
-            {selectedTaskTypes.map((typeId: string) => {
-              const taskType = taskTypes.find(t => t.id === typeId);
-              return (
-                <Badge key={typeId} variant="secondary" className="flex items-center gap-1">
-                  {taskType?.name}
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-4 w-4 p-0 hover:bg-transparent"
-                    onClick={() => handleRemoveTaskType(typeId)}
-                  >
-                    <X className="h-3 w-3" />
-                  </Button>
-                </Badge>
-              );
-            })}
-          </div>
-          <FormMessage />
+                  <X className="h-3 w-3" />
+                </Button>
+              </Badge>
+            );
+          })}
         </div>
+        <FormMessage />
       </div>
 
       <FormField
@@ -128,16 +84,16 @@ export const ServiceDetails = ({
         render={({ field }) => (
           <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
             <div className="space-y-0.5">
-              <FormLabel className="text-base">Relatório Único</FormLabel>
+              <FormLabel className="text-base">Relatório por Serviço</FormLabel>
               <FormMessage />
               <div className="text-sm text-muted-foreground">
-                Gerar um único relatório para todos os serviços desta OS
+                Gerar um relatório individual para cada serviço desta OS
               </div>
             </div>
             <FormControl>
               <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
+                checked={!field.value}
+                onCheckedChange={(checked) => field.onChange(!checked)}
               />
             </FormControl>
           </FormItem>
