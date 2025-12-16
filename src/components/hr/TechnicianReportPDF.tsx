@@ -209,11 +209,9 @@ const processData = (
     // Check for on-call on this day
     const dayOnCall = (onCallData || []).find(oc => oc.on_call_date === dateStr);
     
-    // Check for absence on this day
+    // Check for absence on this day - compare as strings to avoid timezone issues
     const dayAbsence = (absences || []).find(a => {
-      const startDate = new Date(a.start_date);
-      const endDate = new Date(a.end_date);
-      return date >= startDate && date <= endDate;
+      return dateStr >= a.start_date && dateStr <= a.end_date;
     });
     
     // Map absence type to Portuguese label
