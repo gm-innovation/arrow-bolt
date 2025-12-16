@@ -61,50 +61,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   colDay: {
-    width: '6%',
+    width: '5%',
     textAlign: 'center',
     paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colVessel: {
-    width: '22%',
+    width: '18%',
     paddingVertical: 3,
     paddingHorizontal: 3,
   },
   colCoordinator: {
-    width: '22%',
+    width: '18%',
     paddingVertical: 3,
     paddingHorizontal: 3,
   },
   colOS: {
-    width: '10%',
+    width: '8%',
     textAlign: 'center',
     paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colBordo: {
-    width: '10%',
+    width: '8%',
     textAlign: 'center',
     paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colViagem: {
-    width: '10%',
+    width: '8%',
     textAlign: 'center',
     paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colSob: {
-    width: '10%',
+    width: '7%',
     textAlign: 'center',
     paddingVertical: 3,
     paddingHorizontal: 2,
   },
   colNoite: {
-    width: '10%',
+    width: '8%',
     textAlign: 'center',
     paddingVertical: 3,
     paddingHorizontal: 2,
+  },
+  colObs: {
+    width: '20%',
+    paddingVertical: 3,
+    paddingHorizontal: 3,
+    fontSize: 7,
   },
   headerText: {
     color: '#fff',
@@ -112,6 +118,9 @@ const styles = StyleSheet.create({
   },
   totalText: {
     fontWeight: 'bold',
+  },
+  tableRowAbsence: {
+    backgroundColor: '#dbeafe',
   },
   footer: {
     position: 'absolute',
@@ -135,6 +144,7 @@ interface DayData {
   viagem: number;
   sobreaviso: number;
   noite: number;
+  observation: string | null;
 }
 
 interface AbsenceData {
@@ -199,6 +209,26 @@ const processData = (
     // Check for on-call on this day
     const dayOnCall = (onCallData || []).find(oc => oc.on_call_date === dateStr);
     
+    // Check for absence on this day
+    const dayAbsence = (absences || []).find(a => {
+      const startDate = new Date(a.start_date);
+      const endDate = new Date(a.end_date);
+      return date >= startDate && date <= endDate;
+    });
+    
+    // Map absence type to Portuguese label
+    const getAbsenceLabel = (type: string): string => {
+      const labels: Record<string, string> = {
+        vacation: 'Férias',
+        day_off: 'Folga',
+        medical_exam: 'Exame Médico',
+        training: 'Treinamento',
+        sick_leave: 'Atestado',
+        other: 'Ausência',
+      };
+      return labels[type] || 'Ausência';
+    };
+    
     let vesselName: string | null = null;
     let coordinatorName: string | null = null;
     let orderNumber: string | null = null;
@@ -206,6 +236,7 @@ const processData = (
     let viagem = 0;
     let sobreaviso = dayOnCall ? 1 : 0; // Auto-fill from on-call data
     let noite = 0;
+    let observation: string | null = dayAbsence ? getAbsenceLabel(dayAbsence.absence_type) : null;
 
     // First, check time entries
     dayEntries.forEach((entry) => {
@@ -272,6 +303,13 @@ const processData = (
         noite = 1;
       }
     }
+    
+    // Add sobreaviso to observation if present
+    if (dayOnCall && !observation) {
+      observation = 'Sobreaviso';
+    } else if (dayOnCall && observation) {
+      observation = `${observation} / Sobreaviso`;
+    }
 
     days.push({
       day,
@@ -284,6 +322,7 @@ const processData = (
       viagem,
       sobreaviso,
       noite,
+      observation,
     });
   }
 
@@ -325,6 +364,7 @@ const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entr
             <Text style={[styles.colViagem, styles.headerText]}>VIAGEM</Text>
             <Text style={[styles.colSob, styles.headerText]}>SOB.</Text>
             <Text style={[styles.colNoite, styles.headerText]}>NOITE</Text>
+            <Text style={[styles.colObs, styles.headerText]}>OBS</Text>
           </View>
 
           {/* Data rows */}
@@ -336,6 +376,7 @@ const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entr
                 dayData.isWeekend && styles.tableRowWeekend,
                 dayData.isHoliday && styles.tableRowHoliday,
                 dayData.viagem > 0 && styles.tableRowTravel,
+                dayData.observation && styles.tableRowAbsence,
               ]}
             >
               <Text style={styles.colDay}>{dayData.day}</Text>
@@ -346,6 +387,7 @@ const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entr
               <Text style={styles.colViagem}>{dayData.viagem > 0 ? '1' : ''}</Text>
               <Text style={styles.colSob}>{dayData.sobreaviso > 0 ? '1' : ''}</Text>
               <Text style={styles.colNoite}>{dayData.noite > 0 ? '1' : ''}</Text>
+              <Text style={styles.colObs}>{dayData.observation || ''}</Text>
             </View>
           ))}
 
@@ -359,6 +401,7 @@ const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entr
             <Text style={[styles.colViagem, styles.totalText]}>{totals.viagem}</Text>
             <Text style={[styles.colSob, styles.totalText]}>{totals.sobreaviso}</Text>
             <Text style={[styles.colNoite, styles.totalText]}>{totals.noite}</Text>
+            <Text style={styles.colObs}></Text>
           </View>
         </View>
 
