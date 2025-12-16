@@ -217,6 +217,21 @@ const TimeControl = () => {
     const techVisits = visitsData.filter((v) => v.technicianId === tech.id);
     const holidayDates = holidays.map((h) => new Date(h.holiday_date));
     
+    // Filter absences and on-call for this technician
+    const techAbsences = absences.filter(a => a.technician_id === tech.id).map(a => ({
+      id: a.id,
+      absence_type: a.absence_type,
+      start_date: a.start_date,
+      end_date: a.end_date,
+    }));
+    
+    const techOnCall = onCallList.filter(oc => oc.technician_id === tech.id).map(oc => ({
+      id: oc.id,
+      on_call_date: oc.on_call_date,
+      is_weekend: oc.is_weekend,
+      is_holiday: oc.is_holiday,
+    }));
+    
     await downloadTechnicianPDF(
       tech.profiles?.full_name || 'Técnico',
       tech.id,
@@ -224,7 +239,9 @@ const TimeControl = () => {
       techEntries,
       holidayDates,
       measurementData,
-      techVisits
+      techVisits,
+      techAbsences,
+      techOnCall
     );
   };
 
