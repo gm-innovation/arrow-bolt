@@ -40,6 +40,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { TaskReport } from "@/components/tech/reports/types";
+import { loadPhotosFromStorage, generateReportPdfBlob } from "@/components/tech/reports/ReportPDF";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Report {
@@ -112,6 +113,7 @@ const Reports = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [reportToDelete, setReportToDelete] = useState<Report | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -371,33 +373,55 @@ const Reports = () => {
     }
   };
 
-  const handleDownloadReport = async (pdfPath: string) => {
+  const handleDownloadReport = async (report: Report) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('reports')
-        .download(pdfPath);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
+      setDownloadingId(report.id);
+      
+      // Extract report data and service order data
+      const reportData = extractReportData(report);
+      const serviceOrderData = getServiceOrderData(report);
+      
+      // Load photos from storage
+      const photos = reportData.photos || [];
+      const base64Photos = await loadPhotosFromStorage(photos);
+      
+      // Generate PDF with photos
+      const blob = await generateReportPdfBlob(
+        reportData,
+        report.task_id,
+        serviceOrderData,
+        base64Photos
+      );
+      
+      // Generate filename with proper format
+      const orderNumber = report.task?.service_order?.order_number || 'N-A';
+      const vesselName = report.task?.service_order?.vessel?.name || 'Embarcacao';
+      const date = format(new Date(), 'dd-MM-yyyy', { locale: ptBR });
+      const fileName = `Relatório - OS${orderNumber} - ${vesselName} - ${date}.pdf`;
+      
+      // Download
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = pdfPath.split('/').pop() || 'report.pdf';
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
 
       toast({
-        title: "Download iniciado",
-        description: "O relatório está sendo baixado.",
+        title: "Download concluído",
+        description: "O relatório foi baixado com sucesso.",
       });
     } catch (error: any) {
+      console.error("Erro ao baixar relatório:", error);
       toast({
         title: "Erro ao baixar relatório",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -674,16 +698,19 @@ const Reports = () => {
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {report.pdf_path && (
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDownloadReport(report.pdf_path!)}
-                          title="Baixar"
-                        >
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleDownloadReport(report)}
+                        disabled={downloadingId === report.id}
+                        title="Baixar"
+                      >
+                        {downloadingId === report.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
                           <Download className="h-4 w-4" />
-                        </Button>
-                      )}
+                        )}
+                      </Button>
                       {report.status === "submitted" && (
                         <>
                           <Button
