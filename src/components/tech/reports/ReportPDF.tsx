@@ -239,7 +239,7 @@ const saveImageToStorage = async (file: File, taskId: string, imageIndex: number
 };
 
 // Helper function to get image from storage as base64
-const getImageFromStorage = async (imagePath: string): Promise<string | null> => {
+export const getImageFromStorage = async (imagePath: string): Promise<string | null> => {
   try {
     console.log("Getting image from storage:", imagePath);
     
@@ -283,7 +283,7 @@ const chunkArray = <T,>(array: T[], size: number): T[][] => {
   return chunks;
 };
 
-interface PhotoWithBase64 {
+export interface PhotoWithBase64 {
   index: number;
   base64: string;
   photo: {
@@ -293,6 +293,52 @@ interface PhotoWithBase64 {
     storagePath?: string;
   };
 }
+
+// Exported function to load photos from storage for external use
+export const loadPhotosFromStorage = async (photos: Array<{ caption: string; description?: string; storagePath?: string; file?: File }>): Promise<PhotoWithBase64[]> => {
+  if (!photos || photos.length === 0) {
+    return [];
+  }
+
+  const photosWithBase64: PhotoWithBase64[] = [];
+  
+  for (let i = 0; i < photos.length; i++) {
+    const photo = photos[i];
+    let base64String: string | null = null;
+    
+    if (photo.storagePath) {
+      base64String = await getImageFromStorage(photo.storagePath);
+    }
+    
+    if (base64String) {
+      photosWithBase64.push({
+        index: i,
+        base64: base64String,
+        photo: photo
+      });
+    }
+  }
+  
+  return photosWithBase64;
+};
+
+// Exported function to generate PDF blob
+export const generateReportPdfBlob = async (
+  report: TaskReport,
+  taskId: string,
+  serviceOrder: ReportPDFProps['serviceOrder'],
+  photoBase64Data: PhotoWithBase64[]
+): Promise<Blob> => {
+  const pdfDoc = <ReportPDFContent 
+    report={report} 
+    taskId={taskId} 
+    serviceOrder={serviceOrder} 
+    photoBase64Data={photoBase64Data}
+  />;
+  const asPdf = pdf();
+  asPdf.updateContainer(pdfDoc);
+  return await asPdf.toBlob();
+};
 
 export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data }: ReportPDFProps & { photoBase64Data?: PhotoWithBase64[] }) => {
   // Create flat array with all photos and their base64 data

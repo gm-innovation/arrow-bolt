@@ -14,11 +14,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, FileText, Download, Clock, CheckCircle, XCircle, AlertCircle } from "lucide-react";
+import { Eye, FileText, Download, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { TaskReport } from "@/components/tech/reports/types";
+import { loadPhotosFromStorage, generateReportPdfBlob } from "@/components/tech/reports/ReportPDF";
+import { useToast } from "@/hooks/use-toast";
 
 interface ServiceOrderReportsProps {
   filters?: {
@@ -80,8 +82,10 @@ interface ReportData {
 
 export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [selectedReport, setSelectedReport] = useState<ReportData | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const { data: reports, isLoading } = useQuery({
     queryKey: ['manager-service-reports', user?.id, filters],
@@ -279,24 +283,55 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
     setDialogOpen(true);
   };
 
-  const handleDownloadPdf = async (pdfPath: string) => {
+  const handleDownloadPdf = async (report: ReportData) => {
     try {
-      const { data, error } = await supabase.storage
-        .from('reports')
-        .download(pdfPath);
-
-      if (error) throw error;
-
-      const url = URL.createObjectURL(data);
+      setDownloadingId(report.id);
+      
+      // Extract report data and service order data
+      const reportData = extractReportData(report);
+      const serviceOrderData = getServiceOrderData(report);
+      
+      // Load photos from storage
+      const photos = reportData.photos || [];
+      const base64Photos = await loadPhotosFromStorage(photos);
+      
+      // Generate PDF with photos
+      const blob = await generateReportPdfBlob(
+        reportData,
+        report.task_id,
+        serviceOrderData,
+        base64Photos
+      );
+      
+      // Generate filename with proper format
+      const orderNumber = report.task?.service_order?.order_number || 'N-A';
+      const vesselName = report.task?.service_order?.vessel?.name || 'Embarcacao';
+      const date = format(new Date(), 'dd-MM-yyyy', { locale: ptBR });
+      const fileName = `Relatório - OS${orderNumber} - ${vesselName} - ${date}.pdf`;
+      
+      // Download
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = pdfPath.split('/').pop() || 'relatorio.pdf';
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading PDF:', error);
+
+      toast({
+        title: "Download concluído",
+        description: "O relatório foi baixado com sucesso.",
+      });
+    } catch (error: any) {
+      console.error('Erro ao baixar relatório:', error);
+      toast({
+        title: "Erro ao baixar relatório",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -464,16 +499,19 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        {report.pdf_path && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDownloadPdf(report.pdf_path!)}
-                            title="Baixar PDF"
-                          >
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDownloadPdf(report)}
+                          disabled={downloadingId === report.id}
+                          title="Baixar PDF"
+                        >
+                          {downloadingId === report.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
                             <Download className="w-4 h-4" />
-                          </Button>
-                        )}
+                          )}
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
