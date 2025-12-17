@@ -31,7 +31,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Eye, Download, CheckCircle, XOctagon, Loader2, FileDown, Trash2, Search } from "lucide-react";
+import { Eye, Download, CheckCircle, XOctagon, Loader2, FileDown, Trash2, Search, FileCheck } from "lucide-react";
 import { SemanticSearchDialog } from "@/components/admin/reports/SemanticSearchDialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
@@ -50,6 +50,7 @@ interface Report {
   created_at: string;
   report_data: any; // Changed to any since it's keyed by taskId in the database
   pdf_path: string | null;
+  signed_pdf_path: string | null;
   rejection_reason: string | null;
   task?: {
     assigned_to?: string;
@@ -393,10 +394,15 @@ const Reports = () => {
         base64Photos
       );
       
-      // Generate filename with proper format
+      // Generate filename with proper format - use service date, not today
       const orderNumber = report.task?.service_order?.order_number || 'N-A';
       const vesselName = report.task?.service_order?.vessel?.name || 'Embarcacao';
-      const date = format(new Date(), 'dd-MM-yyyy', { locale: ptBR });
+      const serviceDate = report.task?.service_order?.service_date_time 
+        ? new Date(report.task.service_order.service_date_time)
+        : report.task?.service_order?.scheduled_date 
+          ? new Date(report.task.service_order.scheduled_date)
+          : new Date(report.created_at);
+      const date = format(serviceDate, 'dd-MM-yyyy', { locale: ptBR });
       const fileName = `Relatório - OS${orderNumber} - ${vesselName} - ${date}.pdf`;
       
       // Download
@@ -422,6 +428,33 @@ const Reports = () => {
       });
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleViewSignedReport = async (report: Report) => {
+    if (!report.signed_pdf_path) {
+      toast({
+        title: "Relatório assinado não disponível",
+        description: "O técnico ainda não enviou o relatório assinado.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data } = await supabase.storage
+        .from('reports')
+        .createSignedUrl(report.signed_pdf_path, 3600);
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      }
+    } catch (error: any) {
+      toast({
+        title: "Erro ao abrir relatório assinado",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -669,6 +702,7 @@ const Reports = () => {
                 <TableHead>Embarcação</TableHead>
                 <TableHead>Data de Criação</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Assinado</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
@@ -687,6 +721,21 @@ const Reports = () => {
                   <TableCell>{format(new Date(report.created_at), "dd/MM/yyyy", { locale: ptBR })}</TableCell>
                   <TableCell>
                     <StatusBadge status={report.status} />
+                  </TableCell>
+                  <TableCell>
+                    {report.signed_pdf_path ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-green-600 hover:text-green-700"
+                        onClick={() => handleViewSignedReport(report)}
+                      >
+                        <FileCheck className="h-4 w-4 mr-1" />
+                        Ver
+                      </Button>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">Pendente</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end space-x-2">

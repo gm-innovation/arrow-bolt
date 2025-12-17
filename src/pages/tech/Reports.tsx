@@ -19,12 +19,20 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { FileText, Download, Eye, Filter, Search, Plus, ArrowRight } from "lucide-react";
+import { FileText, Download, Eye, Filter, Search, Plus, ArrowRight, Upload } from "lucide-react";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { TaskReport } from "@/components/tech/reports/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+
+import { SignedReportUpload } from "@/components/tech/reports/SignedReportUpload";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 // Definir uma interface para os relatórios salvos
 interface SavedReport {
@@ -35,6 +43,7 @@ interface SavedReport {
   updated_at: string;
   report_data: Record<string, TaskReport>;
   pdf_path?: string | null;
+  signed_pdf_path?: string | null;
   task_uuid?: string | null;
   approved_at?: string | null;
   approved_by?: string | null;
@@ -74,6 +83,7 @@ const TechReports = () => {
   }[]>([]);
   const [savedReports, setSavedReports] = useState<SavedReport[]>([]);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [signedUploadDialog, setSignedUploadDialog] = useState<SavedReport | null>(null);
 
   useEffect(() => {
     fetchSavedReports();
@@ -412,6 +422,7 @@ const TechReports = () => {
                   <TableHead className="font-semibold">Cliente</TableHead>
                   <TableHead className="font-semibold">Embarcação</TableHead>
                   <TableHead className="font-semibold">Status</TableHead>
+                  <TableHead className="font-semibold">Assinado</TableHead>
                   <TableHead className="font-semibold">Última Atualização</TableHead>
                   <TableHead className="text-right font-semibold">Ações</TableHead>
                 </TableRow>
@@ -437,6 +448,17 @@ const TechReports = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          {report.signed_pdf_path ? (
+                            <Badge className="bg-green-100 text-green-800 border-green-300">
+                              Sim
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-muted-foreground">
+                              Não
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           {new Date(report.updated_at).toLocaleString('pt-BR')}
                         </TableCell>
                         <TableCell className="text-right space-x-2">
@@ -458,6 +480,20 @@ const TechReports = () => {
                             <Eye className="h-4 w-4 mr-2" />
                             PDF
                           </Button>
+                          {report.status === 'submitted' || report.status === 'approved' ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className={report.signed_pdf_path 
+                                ? "border-green-300 text-green-700 hover:bg-green-50" 
+                                : "border-orange-300 text-orange-700 hover:bg-orange-50"
+                              }
+                              onClick={() => setSignedUploadDialog(report)}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              {report.signed_pdf_path ? "Ver Assinado" : "Enviar Assinado"}
+                            </Button>
+                          ) : null}
                         </TableCell>
                       </TableRow>
                     );
@@ -548,6 +584,32 @@ const TechReports = () => {
           taskId={selectedTaskId}
         />
       )}
+
+      {/* Dialog para upload de relatório assinado */}
+      <Dialog open={!!signedUploadDialog} onOpenChange={(open) => !open && setSignedUploadDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              Relatório Assinado - OS{signedUploadDialog?.task?.service_order?.order_number || ''}
+            </DialogTitle>
+          </DialogHeader>
+          {signedUploadDialog && (
+            <SignedReportUpload
+              reportId={signedUploadDialog.id}
+              signedPdfPath={signedUploadDialog.signed_pdf_path || null}
+              orderNumber={signedUploadDialog.task?.service_order?.order_number}
+              vesselName={signedUploadDialog.task?.service_order?.vessel?.name}
+              onUploadComplete={(path) => {
+                // Update local state
+                setSavedReports(prev => prev.map(r => 
+                  r.id === signedUploadDialog.id ? { ...r, signed_pdf_path: path } : r
+                ));
+                setSignedUploadDialog(prev => prev ? { ...prev, signed_pdf_path: path } : null);
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -38,6 +38,7 @@ interface ReportData {
   created_at: string;
   updated_at: string;
   pdf_path: string | null;
+  signed_pdf_path?: string | null;
   approved_at: string | null;
   rejection_reason: string | null;
   visit_id?: string | null;
@@ -303,10 +304,15 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
         base64Photos
       );
       
-      // Generate filename with proper format
+      // Generate filename with proper format - use service date, not today
       const orderNumber = report.task?.service_order?.order_number || 'N-A';
       const vesselName = report.task?.service_order?.vessel?.name || 'Embarcacao';
-      const date = format(new Date(), 'dd-MM-yyyy', { locale: ptBR });
+      const serviceDate = report.task?.service_order?.service_date_time 
+        ? new Date(report.task.service_order.service_date_time)
+        : report.task?.service_order?.scheduled_date 
+          ? new Date(report.task.service_order.scheduled_date)
+          : new Date(report.created_at);
+      const date = format(serviceDate, 'dd-MM-yyyy', { locale: ptBR });
       const fileName = `Relatório - OS${orderNumber} - ${vesselName} - ${date}.pdf`;
       
       // Download
