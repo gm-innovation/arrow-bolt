@@ -6,8 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone } from 'lucide-react';
-import { format, startOfMonth, endOfMonth } from 'date-fns';
+import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone, Edit } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAbsences, getAbsenceTypeLabel, getAbsenceStatusLabel, Absence } from '@/hooks/useAbsences';
 import { useOnCall, OnCall } from '@/hooks/useOnCall';
@@ -227,9 +227,9 @@ const Absences = () => {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                {format(new Date(absence.start_date), "dd/MM/yyyy", { locale: ptBR })}
+                                {format(parseISO(absence.start_date), "dd/MM/yyyy", { locale: ptBR })}
                                 {absence.start_date !== absence.end_date && (
-                                  <> - {format(new Date(absence.end_date), "dd/MM/yyyy", { locale: ptBR })}</>
+                                  <> - {format(parseISO(absence.end_date), "dd/MM/yyyy", { locale: ptBR })}</>
                                 )}
                               </TableCell>
                               <TableCell className="max-w-[200px] truncate">
@@ -241,17 +241,26 @@ const Absences = () => {
                                 </Badge>
                               </TableCell>
                               <TableCell>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    setDeleteId(absence.id);
-                                    setDeleteType('absence');
-                                  }}
-                                  disabled={absence.status === 'completed'}
-                                >
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setEditingAbsence(absence)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      setDeleteId(absence.id);
+                                      setDeleteType('absence');
+                                    }}
+                                    disabled={absence.status === 'completed'}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -313,7 +322,7 @@ const Absences = () => {
                               {onCall.technician?.profiles?.full_name || 'Técnico'}
                             </TableCell>
                             <TableCell>
-                              {format(new Date(onCall.on_call_date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
+                              {format(parseISO(onCall.on_call_date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
                             </TableCell>
                             <TableCell>
                               {onCall.start_time?.slice(0, 5)} - {onCall.end_time?.slice(0, 5)}
@@ -329,16 +338,25 @@ const Absences = () => {
                               {onCall.notes || '-'}
                             </TableCell>
                             <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  setDeleteId(onCall.id);
-                                  setDeleteType('oncall');
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
+                              <div className="flex gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setEditingOnCall(onCall)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setDeleteId(onCall.id);
+                                    setDeleteType('oncall');
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))
