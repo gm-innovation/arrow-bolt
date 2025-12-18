@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Calendar, Plus, Trash2, Repeat } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useHolidays } from '@/hooks/useHolidays';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -35,7 +35,7 @@ const Holidays = () => {
 
   // Group holidays by year
   const groupedHolidays = holidays.reduce((acc, holiday) => {
-    const year = new Date(holiday.holiday_date).getFullYear();
+    const year = parseISO(holiday.holiday_date).getFullYear();
     if (!acc[year]) acc[year] = [];
     acc[year].push(holiday);
     return acc;
@@ -95,7 +95,7 @@ const Holidays = () => {
                       {yearHolidays.map((holiday) => (
                         <TableRow key={holiday.id}>
                           <TableCell>
-                            {format(new Date(holiday.holiday_date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
+                            {format(parseISO(holiday.holiday_date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
                           </TableCell>
                           <TableCell className="font-medium">{holiday.name}</TableCell>
                           <TableCell>

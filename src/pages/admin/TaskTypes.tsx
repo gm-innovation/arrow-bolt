@@ -20,19 +20,33 @@ import { Input } from "@/components/ui/input";
 import { Plus, Eye, Edit } from "lucide-react";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { NewTaskTypeDialog } from "@/components/admin/task-types/NewTaskTypeDialog";
+import { ViewTaskTypeDialog } from "@/components/admin/task-types/ViewTaskTypeDialog";
+import { EditTaskTypeDialog } from "@/components/admin/task-types/EditTaskTypeDialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
+interface TaskType {
+  id: string;
+  name: string;
+  category?: string;
+  description?: string;
+  tools?: string[];
+  steps?: string[];
+  photo_labels?: string[];
+}
+
 const TaskTypes = () => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [taskTypes, setTaskTypes] = useState<any[]>([]);
+  const [taskTypes, setTaskTypes] = useState<TaskType[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [taskName, setTaskName] = useState("");
   const [category, setCategory] = useState("all");
-  const [open, setOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [viewingTaskType, setViewingTaskType] = useState<TaskType | null>(null);
+  const [editingTaskType, setEditingTaskType] = useState<TaskType | null>(null);
 
   useEffect(() => {
     fetchTaskTypes();
@@ -134,7 +148,7 @@ const TaskTypes = () => {
 
       if (error) throw error;
 
-      setOpen(false);
+      setCreateOpen(false);
       fetchTaskTypes();
       fetchCategories();
       
@@ -151,20 +165,6 @@ const TaskTypes = () => {
     }
   };
 
-  const handleViewHistory = (taskTypeId: string) => {
-    toast({
-      title: "Visualizar histórico",
-      description: `Visualizando histórico do tipo de tarefa ${taskTypeId}`,
-    });
-  };
-
-  const handleEdit = (taskTypeId: string) => {
-    toast({
-      title: "Editar tipo de tarefa",
-      description: `Editando tipo de tarefa ${taskTypeId}`,
-    });
-  };
-
   const filteredTaskTypes = taskTypes.filter((taskType) => {
     const matchesName = !taskName || taskName === "" || taskType.name.toLowerCase().includes(taskName.toLowerCase());
     const matchesCategory = category === "all" || taskType.category === category;
@@ -175,7 +175,7 @@ const TaskTypes = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">Tipos de Tarefas</h2>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
@@ -184,7 +184,7 @@ const TaskTypes = () => {
           </DialogTrigger>
           <NewTaskTypeDialog 
             onSubmit={handleCreateTaskType}
-            onCancel={() => setOpen(false)}
+            onCancel={() => setCreateOpen(false)}
           />
         </Dialog>
       </div>
@@ -253,8 +253,10 @@ const TaskTypes = () => {
                   filteredTaskTypes.map((taskType) => (
                     <TableRow key={taskType.id}>
                       <TableCell>{taskType.name}</TableCell>
-                      <TableCell>{taskType.category}</TableCell>
-                      <TableCell>{taskType.description || "-"}</TableCell>
+                      <TableCell>{taskType.category || "-"}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        {taskType.description || "-"}
+                      </TableCell>
                       <TableCell className="text-center">
                         {taskType.tools?.length || 0}
                       </TableCell>
@@ -268,14 +270,14 @@ const TaskTypes = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleViewHistory(taskType.id)}
+                          onClick={() => setViewingTaskType(taskType)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleEdit(taskType.id)}
+                          onClick={() => setEditingTaskType(taskType)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -288,6 +290,23 @@ const TaskTypes = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* View Dialog */}
+      <Dialog open={!!viewingTaskType} onOpenChange={(open) => !open && setViewingTaskType(null)}>
+        <ViewTaskTypeDialog taskType={viewingTaskType} />
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingTaskType} onOpenChange={(open) => !open && setEditingTaskType(null)}>
+        <EditTaskTypeDialog
+          taskType={editingTaskType}
+          onSuccess={() => {
+            setEditingTaskType(null);
+            fetchTaskTypes();
+          }}
+          onCancel={() => setEditingTaskType(null)}
+        />
+      </Dialog>
     </div>
   );
 };
