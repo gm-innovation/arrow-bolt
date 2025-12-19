@@ -627,21 +627,36 @@ const Technicians = () => {
 
       // Upload novo ASO se fornecido
       if (asoFile) {
-        const fileExt = asoFile.name.split('.').pop();
         const fileName = `${Date.now()}-${asoFile.name}`;
-        const filePath = `${selectedTechnician.user_id}/aso/${fileName}`;
+        const filePath = `${profileData.company_id}/${selectedTechnician.id}/aso/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('technician-documents')
           .upload(filePath, asoFile);
 
-        if (!uploadError) {
-          await supabase.from('technician_documents').insert({
+        if (uploadError) {
+          console.error('❌ Erro no upload do ASO:', uploadError);
+          toast({
+            title: "Erro ao salvar ASO",
+            description: `Não foi possível enviar "${asoFile.name}". Tente novamente.`,
+            variant: "destructive",
+          });
+        } else {
+          const { error: insertError } = await supabase.from('technician_documents').insert({
             technician_id: selectedTechnician.id,
             document_type: 'aso',
             file_name: asoFile.name,
             file_path: filePath,
           });
+
+          if (insertError) {
+            console.error('❌ Erro ao salvar ASO no banco:', insertError);
+            toast({
+              title: "Erro ao salvar ASO",
+              description: "Upload feito, mas falhou ao registrar o documento. Tente novamente.",
+              variant: "destructive",
+            });
+          }
         }
       }
 

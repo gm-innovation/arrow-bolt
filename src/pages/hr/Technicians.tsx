@@ -224,42 +224,81 @@ const Technicians = () => {
       // Upload new ASO if provided
       if (uploadedFile) {
         const filePath = `${companyId}/${selectedTechnician.id}/aso/${Date.now()}-${uploadedFile.name}`;
-        
+
         const { error: uploadError } = await supabase.storage
           .from('technician-documents')
           .upload(filePath, uploadedFile);
 
-        if (!uploadError) {
-          await supabase.from('technician_documents').insert({
+        if (uploadError) {
+          console.error('ASO upload error:', uploadError);
+          toast({
+            title: 'Erro ao salvar ASO',
+            description: `Não foi possível enviar "${uploadedFile.name}".`,
+            variant: 'destructive',
+          });
+        } else {
+          const { error: insertError } = await supabase.from('technician_documents').insert({
             technician_id: selectedTechnician.id,
             document_type: 'aso',
             file_name: uploadedFile.name,
             file_path: filePath,
             metadata: data.aso_issue_date ? { aso_issue_date: data.aso_issue_date } : null
           });
+
+          if (insertError) {
+            console.error('ASO insert error:', insertError);
+            toast({
+              title: 'Erro ao salvar ASO',
+              description: 'Upload feito, mas falhou ao registrar o documento.',
+              variant: 'destructive',
+            });
+          }
         }
       }
 
       // Upload new certifications
       if (certificationFiles.length > 0) {
-        for (const cert of certificationFiles) {
-          const certPath = `${selectedTechnician.user_id}/certifications/${Date.now()}-${cert.file.name}`;
-          
+        let saved = 0;
+        let failed = 0;
+
+        for (let i = 0; i < certificationFiles.length; i++) {
+          const cert = certificationFiles[i];
+          const certPath = `${selectedTechnician.user_id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
+
           const { error: certError } = await supabase.storage
             .from('technician-documents')
             .upload(certPath, cert.file);
-          
-          if (!certError) {
-            await supabase.from('technician_documents').insert({
-              technician_id: selectedTechnician.id,
-              document_type: 'certification',
-              file_name: cert.file.name,
-              file_path: certPath,
-              certificate_name: cert.name,
-              issue_date: cert.issueDate,
-              expiry_date: cert.expiryDate,
-            });
+
+          if (certError) {
+            console.error('Certification upload error:', certError);
+            failed++;
+            continue;
           }
+
+          const { error: insertError } = await supabase.from('technician_documents').insert({
+            technician_id: selectedTechnician.id,
+            document_type: 'certification',
+            file_name: cert.file.name,
+            file_path: certPath,
+            certificate_name: cert.name || cert.file.name,
+            issue_date: cert.issueDate,
+            expiry_date: cert.expiryDate,
+          });
+
+          if (insertError) {
+            console.error('Certification insert error:', insertError);
+            failed++;
+          } else {
+            saved++;
+          }
+        }
+
+        if (failed > 0) {
+          toast({
+            title: 'Aviso sobre documentos',
+            description: `${saved} certificado(s) salvo(s), ${failed} falhou(aram).`,
+            variant: 'destructive',
+          });
         }
       }
 
