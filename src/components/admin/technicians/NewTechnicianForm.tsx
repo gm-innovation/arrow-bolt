@@ -220,6 +220,10 @@ export const NewTechnicianForm = ({
     setIsProcessing(true);
     const fileArray = Array.from(files);
     const newFiles = { ...uploadedFiles };
+
+    const pdfCount = fileArray.filter((f) => f.type === 'application/pdf').length;
+    const hasMultiplePdfs = pdfCount > 1;
+
     let asoPdf: File | null = null;
     const certifications: Array<{
       file: File;
@@ -244,34 +248,33 @@ export const NewTechnicianForm = ({
           };
           reader.readAsDataURL(file);
         } else {
-          // Processar como certificação (apenas se NÃO for ASO)
-          if (!fileName.includes('aso')) {
-            const certData = await processCertificate(file);
-            certifications.push({
-              file,
-              name: certData.certificate_name,
-              issueDate: certData.issue_date,
-              expiryDate: certData.expiry_date,
-              isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
-            });
-          }
+          // Processar como certificação
+          const certData = await processCertificate(file);
+          certifications.push({
+            file,
+            name: certData.certificate_name,
+            issueDate: certData.issue_date,
+            expiryDate: certData.expiry_date,
+            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
+          });
         }
       } else if (fileType === 'application/pdf') {
-        // PDF com "aso" no nome OU primeiro PDF = ASO
-        if (fileName.includes('aso') || (!asoPdf && !newFiles.aso)) {
+        // ASO: apenas se o nome indicar explicitamente ("aso") OU se houver apenas 1 PDF na seleção.
+        // Isso evita classificar NRs como ASO quando o usuário faz upload de várias certificações.
+        const isAsoByName = fileName.includes('aso');
+        const shouldTreatAsAso = isAsoByName || (!hasMultiplePdfs && !asoPdf && !newFiles.aso);
+
+        if (shouldTreatAsAso) {
           asoPdf = file;
         } else {
-          // Processar como certificação (apenas se NÃO for ASO)
-          if (!fileName.includes('aso')) {
-            const certData = await processCertificate(file);
-            certifications.push({
-              file,
-              name: certData.certificate_name,
-              issueDate: certData.issue_date,
-              expiryDate: certData.expiry_date,
-              isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
-            });
-          }
+          const certData = await processCertificate(file);
+          certifications.push({
+            file,
+            name: certData.certificate_name,
+            issueDate: certData.issue_date,
+            expiryDate: certData.expiry_date,
+            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
+          });
         }
       }
     }
