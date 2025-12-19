@@ -402,13 +402,16 @@ const Technicians = () => {
 
       // Upload das certificações
       if (certificationFiles.length > 0 && technicianData) {
+        console.log(`📜 Iniciando upload de ${certificationFiles.length} certificação(ões)`);
         let savedCount = 0;
         let failedCount = 0;
         
-        for (const cert of certificationFiles) {
-          const certPath = `${createUserResult.user_id}/certifications/${Date.now()}-${cert.file.name}`;
+        for (let i = 0; i < certificationFiles.length; i++) {
+          const cert = certificationFiles[i];
+          // Usar índice no path para evitar conflitos de timestamp
+          const certPath = `${createUserResult.user_id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
           
-          console.log(`📜 Uploading certification: ${cert.file.name}`);
+          console.log(`📜 [${i + 1}/${certificationFiles.length}] Uploading: ${cert.file.name}`);
           
           const { error: certError } = await supabase.storage
             .from('technician-documents')
@@ -425,7 +428,7 @@ const Technicians = () => {
             document_type: 'certification',
             file_name: cert.file.name,
             file_path: certPath,
-            certificate_name: cert.name,
+            certificate_name: cert.name || cert.file.name,
             issue_date: cert.issueDate,
             expiry_date: cert.expiryDate,
           });
@@ -438,6 +441,8 @@ const Technicians = () => {
             savedCount++;
           }
         }
+        
+        console.log(`📊 Resultado: ${savedCount} salva(s), ${failedCount} falha(s)`);
         
         if (failedCount > 0) {
           toast({
@@ -642,13 +647,16 @@ const Technicians = () => {
 
       // Upload novas certificações
       if (certificationFiles.length > 0) {
+        console.log(`📜 Iniciando upload de ${certificationFiles.length} certificação(ões)`);
         let savedCount = 0;
         let failedCount = 0;
         
-        for (const cert of certificationFiles) {
-          const certPath = `${selectedTechnician.user_id}/certifications/${Date.now()}-${cert.file.name}`;
+        for (let i = 0; i < certificationFiles.length; i++) {
+          const cert = certificationFiles[i];
+          // Usar índice no path para evitar conflitos de timestamp
+          const certPath = `${selectedTechnician.user_id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
           
-          console.log(`📜 Uploading certification: ${cert.file.name}`);
+          console.log(`📜 [${i + 1}/${certificationFiles.length}] Uploading: ${cert.file.name}`);
           
           const { error: certError } = await supabase.storage
             .from('technician-documents')
@@ -665,7 +673,7 @@ const Technicians = () => {
             document_type: 'certification',
             file_name: cert.file.name,
             file_path: certPath,
-            certificate_name: cert.name,
+            certificate_name: cert.name || cert.file.name,
             issue_date: cert.issueDate,
             expiry_date: cert.expiryDate,
           });
@@ -678,6 +686,8 @@ const Technicians = () => {
             savedCount++;
           }
         }
+        
+        console.log(`📊 Resultado: ${savedCount} salva(s), ${failedCount} falha(s)`);
         
         if (failedCount > 0) {
           toast({

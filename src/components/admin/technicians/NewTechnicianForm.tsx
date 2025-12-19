@@ -135,8 +135,11 @@ export const NewTechnicianForm = ({
   });
 
   const processCertificate = async (file: File) => {
+    // Fallback: usar nome do arquivo como nome do certificado
+    const fallbackName = file.name.replace(/\.(pdf|jpg|jpeg|png|webp)$/i, '').replace(/_/g, ' ');
+    
     try {
-      console.log('Processing certificate:', file.name);
+      console.log('📜 Processing certificate:', file.name);
       
       // Convert file to image if PDF
       let imageBase64: string;
@@ -154,7 +157,10 @@ export const NewTechnicianForm = ({
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         
-        if (!context) throw new Error('Could not get canvas context');
+        if (!context) {
+          console.warn(`⚠️ Could not get canvas context for ${file.name}, using fallback`);
+          return { certificate_name: fallbackName };
+        }
         
         canvas.height = viewport.height;
         canvas.width = viewport.width;
@@ -172,7 +178,7 @@ export const NewTechnicianForm = ({
         imageBase64 = base64String.split(',')[1];
       }
 
-      console.log('Calling extract-certificate-data function');
+      console.log('📜 Calling extract-certificate-data function for:', file.name);
       const { data, error } = await supabase.functions.invoke('extract-certificate-data', {
         body: { 
           fileBase64: imageBase64,
@@ -181,15 +187,30 @@ export const NewTechnicianForm = ({
       });
 
       if (error) {
-        console.error('Certificate extraction error:', error);
-        return {};
+        console.error(`❌ Certificate extraction error for ${file.name}:`, error);
+        toast({
+          title: "Aviso",
+          description: `Não foi possível extrair dados de "${file.name}". O certificado será salvo com nome do arquivo.`,
+        });
+        return { certificate_name: fallbackName };
       }
       
-      console.log('Certificate data extracted:', data);
-      return data?.data || {};
+      const extractedData = data?.data || {};
+      console.log('✅ Certificate data extracted:', extractedData);
+      
+      // Garantir que sempre tenha um nome
+      if (!extractedData.certificate_name) {
+        extractedData.certificate_name = fallbackName;
+      }
+      
+      return extractedData;
     } catch (error) {
-      console.error('Certificate extraction error:', error);
-      return {};
+      console.error(`❌ Certificate extraction error for ${file.name}:`, error);
+      toast({
+        title: "Aviso",
+        description: `Erro ao processar "${file.name}". O certificado será salvo com nome do arquivo.`,
+      });
+      return { certificate_name: fallbackName };
     }
   };
 
@@ -334,7 +355,28 @@ export const NewTechnicianForm = ({
       console.log('🚀 Form submit - Data completa:', JSON.stringify(data, null, 2));
       console.log('🚀 Form submit - aso_issue_date:', data.aso_issue_date);
       
-      await onSubmit(data, uploadedFiles.aso || null, uploadedFiles.photo || null, uploadedFiles.certifications);
+      // Log detalhado das certificações
+      console.log('📜 Total de certificações no formulário:', uploadedFiles.certifications.length);
+      uploadedFiles.certifications.forEach((cert, index) => {
+        console.log(`📜 Certificação ${index + 1}:`, {
+          fileName: cert.file?.name,
+          name: cert.name,
+          hasFile: !!cert.file,
+          issueDate: cert.issueDate,
+          expiryDate: cert.expiryDate
+        });
+      });
+      
+      // Filtrar apenas certificações com arquivo válido
+      const validCertifications = uploadedFiles.certifications.filter(cert => cert.file);
+      
+      if (validCertifications.length !== uploadedFiles.certifications.length) {
+        console.warn(`⚠️ ${uploadedFiles.certifications.length - validCertifications.length} certificação(ões) sem arquivo válido foram ignoradas`);
+      }
+      
+      console.log(`✅ Enviando ${validCertifications.length} certificação(ões) válida(s) para salvamento`);
+      
+      await onSubmit(data, uploadedFiles.aso || null, uploadedFiles.photo || null, validCertifications);
       form.reset();
       setUploadedFiles({ certifications: [] });
       setPhotoPreview("");
