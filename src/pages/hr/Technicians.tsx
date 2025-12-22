@@ -5,7 +5,17 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, User, AlertTriangle, Eye, Pencil, Download, FileText } from 'lucide-react';
+import { Plus, Search, User, AlertTriangle, Eye, Pencil, Download, FileText, Trash2 } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, addDays } from 'date-fns';
@@ -65,6 +75,8 @@ const Technicians = () => {
   const [selectedTechnician, setSelectedTechnician] = useState<Technician | null>(null);
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [technicianToDelete, setTechnicianToDelete] = useState<Technician | null>(null);
 
   const fetchTechnicians = async () => {
     if (!user) return;
@@ -133,6 +145,67 @@ const Technicians = () => {
   const handleEditTechnician = (tech: Technician) => {
     setSelectedTechnician(tech);
     setIsEditDialogOpen(true);
+  };
+
+  const handleDeleteClick = (tech: Technician) => {
+    setTechnicianToDelete(tech);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!technicianToDelete) return;
+
+    try {
+      // 1. Buscar e excluir documentos do Storage
+      const { data: documents } = await supabase
+        .from('technician_documents')
+        .select('file_path')
+        .eq('technician_id', technicianToDelete.id);
+
+      if (documents && documents.length > 0) {
+        const paths = documents.map(d => d.file_path);
+        await supabase.storage.from('technician-documents').remove(paths);
+        console.log(`🗑️ ${paths.length} documentos removidos do storage`);
+      }
+
+      // 2. Excluir técnico (documentos cascateiam, históricos ficam NULL)
+      const { error } = await supabase
+        .from('technicians')
+        .delete()
+        .eq('id', technicianToDelete.id);
+
+      if (error) throw error;
+
+      // 3. Excluir usuário via Edge Function
+      const { error: userError } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: technicianToDelete.user_id }
+      });
+
+      if (userError) {
+        console.warn('Aviso: Erro ao excluir usuário:', userError);
+        toast({
+          title: "Técnico excluído",
+          description: `${technicianToDelete.profiles?.full_name} foi removido. Nota: Houve um problema ao remover a conta de acesso.`,
+        });
+      } else {
+        toast({
+          title: "Técnico excluído",
+          description: `${technicianToDelete.profiles?.full_name} foi removido com sucesso.`,
+        });
+      }
+
+      fetchTechnicians();
+    } catch (error: any) {
+      console.error('Erro ao excluir técnico:', error);
+      toast({
+        title: "Erro ao excluir",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setTechnicianToDelete(null);
+    }
   };
 
   const handleDownloadDocument = async (doc: TechnicianDocument) => {
@@ -642,6 +715,14 @@ const Technicians = () => {
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDeleteClick(tech)}
+                            title="Excluir"
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -840,6 +921,40 @@ const Technicians = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Técnico</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div>
+                Tem certeza que deseja excluir <strong>{technicianToDelete?.profiles?.full_name}</strong>?
+                <br /><br />
+                <span className="text-destructive font-medium">Será excluído:</span>
+                <ul className="list-disc list-inside mt-2 text-sm">
+                  <li>Dados cadastrais do técnico</li>
+                  <li>Documentos e certificações</li>
+                  <li>Conta de acesso ao sistema</li>
+                </ul>
+                <br />
+                <span className="text-muted-foreground text-sm">
+                  ℹ️ Históricos de trabalho, relatórios e registros de ponto serão preservados.
+                </span>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
