@@ -259,14 +259,51 @@ export const NewTechnicianForm = ({
           });
         }
       } else if (fileType === 'application/pdf') {
-        // ASO: APENAS se o nome contém "aso" explicitamente
-        // Isso evita classificar NRs/certificações como ASO por engano
-        const isAsoByName = fileName.includes('aso');
+        // LÓGICA INVERSA: Identificar certificações primeiro, resto é ASO
+        // Certificações geralmente contêm: NR, certificado, treinamento, curso
+        const looksLikeCertification = 
+          fileName.includes('nr ') || 
+          fileName.includes('nr-') ||
+          fileName.includes('nr_') ||
+          /\bnr\d+/i.test(fileName) ||  // NR10, NR35, etc
+          fileName.includes('certificad') ||
+          fileName.includes('treinamento') ||
+          fileName.includes('curso') ||
+          fileName.includes('habilitacao') ||
+          fileName.includes('habilitação');
+        
+        // ASO: padrões comuns
+        const looksLikeAso = 
+          fileName.includes('aso') ||
+          fileName.includes('atestado') ||
+          fileName.includes('saude ocupacional') ||
+          fileName.includes('saúde ocupacional') ||
+          fileName.includes('admissional') ||
+          fileName.includes('periodico') ||
+          fileName.includes('periódico') ||
+          fileName.includes('demissional') ||
+          fileName.includes('exame medico') ||
+          fileName.includes('exame médico');
 
-        if (isAsoByName && !asoPdf && !newFiles.aso) {
+        // Decisão: Se parece certificação OU já temos ASO, trata como certificação
+        // Se parece ASO OU não temos ASO ainda e não parece certificação, trata como ASO
+        if (looksLikeCertification) {
+          // É claramente uma certificação
+          const certData = await processCertificate(file);
+          certifications.push({
+            file,
+            name: certData.certificate_name,
+            issueDate: certData.issue_date,
+            expiryDate: certData.expiry_date,
+            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
+          });
+        } else if (!asoPdf && !newFiles.aso) {
+          // Primeiro PDF que não é certificação = ASO
+          // (prioridade para looksLikeAso, mas aceita qualquer um se ainda não tiver ASO)
           asoPdf = file;
+          console.log('📄 Identificado como ASO:', file.name);
         } else {
-          // Qualquer outro PDF é tratado como certificação
+          // Já temos ASO, tratar como certificação
           const certData = await processCertificate(file);
           certifications.push({
             file,
