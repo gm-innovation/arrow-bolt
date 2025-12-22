@@ -223,6 +223,8 @@ export const NewTechnicianForm = ({
 
     let asoPdf: File | null = null;
     let asoData: ClassificationResult['aso_data'] | null = null;
+    let photoProcessedThisBatch = false; // Flag para rastrear se já processamos foto neste lote
+    
     const certifications: Array<{
       file: File;
       name?: string;
@@ -236,8 +238,9 @@ export const NewTechnicianForm = ({
       const fileType = file.type;
 
       if (fileType.startsWith('image/')) {
-        // Primeira imagem é a foto
-        if (!newFiles.photo) {
+        // Primeira imagem deste lote é a foto (permite substituição)
+        if (!photoProcessedThisBatch) {
+          photoProcessedThisBatch = true;
           newFiles.photo = file;
           const reader = new FileReader();
           reader.onloadend = () => {
