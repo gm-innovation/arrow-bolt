@@ -246,21 +246,39 @@ const Technicians = () => {
       // Upload new photo if provided
       if (photoFile) {
         try {
+          // Remover avatar antigo se existir
+          if (selectedTechnician.profiles?.avatar_url) {
+            try {
+              const oldUrl = new URL(selectedTechnician.profiles.avatar_url);
+              const pathMatch = oldUrl.pathname.match(/\/technician-avatars\/(.+?)(?:\?|$)/);
+              if (pathMatch) {
+                const oldPath = decodeURIComponent(pathMatch[1]);
+                console.log('🗑️ Removendo avatar antigo:', oldPath);
+                await supabase.storage.from('technician-avatars').remove([oldPath]);
+              }
+            } catch (e) {
+              console.warn('⚠️ Não foi possível remover avatar antigo:', e);
+            }
+          }
+          
           const photoExt = photoFile.name.split('.').pop();
-          const photoPath = `${selectedTechnician.user_id}/avatar.${photoExt}`;
+          const timestamp = Date.now();
+          const photoPath = `${selectedTechnician.user_id}/avatar-${timestamp}.${photoExt}`;
           
           const { error: uploadError } = await supabase.storage
             .from('technician-avatars')
-            .upload(photoPath, photoFile, { upsert: true, contentType: photoFile.type });
+            .upload(photoPath, photoFile, { upsert: true, contentType: photoFile.type, cacheControl: '0' });
           
           if (!uploadError) {
             const { data: { publicUrl } } = supabase.storage
               .from('technician-avatars')
               .getPublicUrl(photoPath);
             
+            const versionedUrl = `${publicUrl}?v=${timestamp}`;
+            
             await supabase
               .from('profiles')
-              .update({ avatar_url: publicUrl })
+              .update({ avatar_url: versionedUrl })
               .eq('id', selectedTechnician.user_id);
           }
         } catch (photoError) {
@@ -444,20 +462,23 @@ const Technicians = () => {
       if (photoFile) {
         try {
           const photoExt = photoFile.name.split('.').pop();
-          const photoPath = `${createUserResult.user_id}/avatar.${photoExt}`;
+          const timestamp = Date.now();
+          const photoPath = `${createUserResult.user_id}/avatar-${timestamp}.${photoExt}`;
           
           const { error: uploadError } = await supabase.storage
             .from('technician-avatars')
-            .upload(photoPath, photoFile, { upsert: true, contentType: photoFile.type });
+            .upload(photoPath, photoFile, { upsert: true, contentType: photoFile.type, cacheControl: '0' });
           
           if (!uploadError) {
             const { data: { publicUrl } } = supabase.storage
               .from('technician-avatars')
               .getPublicUrl(photoPath);
             
+            const versionedUrl = `${publicUrl}?v=${timestamp}`;
+            
             await supabase
               .from('profiles')
-              .update({ avatar_url: publicUrl })
+              .update({ avatar_url: versionedUrl })
               .eq('id', createUserResult.user_id);
           }
         } catch (photoError) {

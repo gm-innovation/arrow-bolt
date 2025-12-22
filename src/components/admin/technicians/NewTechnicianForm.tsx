@@ -510,7 +510,11 @@ export const NewTechnicianForm = ({
                 type="file"
                 accept=".pdf,image/*"
                 multiple
-                onChange={(e) => handleFilesSelect(e.target.files)}
+                onChange={(e) => {
+                  handleFilesSelect(e.target.files);
+                  // Resetar valor para permitir re-selecionar o mesmo arquivo
+                  e.target.value = '';
+                }}
                 className="cursor-pointer"
               />
               <p className="text-sm text-muted-foreground mt-2">
