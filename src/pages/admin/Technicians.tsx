@@ -848,18 +848,58 @@ const Technicians = () => {
     try {
       if (!selectedTechnician) return;
 
-      // Delete technician record
-      await supabase.from("technicians").delete().eq("id", selectedTechnician.id);
+      // 1. Buscar documentos do técnico no storage
+      const { data: documents } = await supabase
+        .from('technician_documents')
+        .select('file_path')
+        .eq('technician_id', selectedTechnician.id);
+
+      // 2. Excluir documentos do Storage
+      if (documents && documents.length > 0) {
+        const paths = documents.map(d => d.file_path);
+        const { error: storageError } = await supabase.storage
+          .from('technician-documents')
+          .remove(paths);
+        
+        if (storageError) {
+          console.warn('Aviso: Erro ao excluir documentos do storage:', storageError);
+        } else {
+          console.log(`🗑️ ${paths.length} documentos removidos do storage`);
+        }
+      }
+
+      // 3. Excluir registro do técnico (documentos cascateia, históricos ficam com NULL)
+      const { error: techError } = await supabase
+        .from("technicians")
+        .delete()
+        .eq("id", selectedTechnician.id);
+
+      if (techError) throw techError;
+
+      // 4. Excluir o usuário via Edge Function
+      const { error: userError } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: selectedTechnician.user_id }
+      });
+
+      if (userError) {
+        console.warn('Aviso: Erro ao excluir usuário:', userError);
+        toast({
+          title: "Técnico removido",
+          description: `${selectedTechnician.name} foi removido, mas houve um erro ao excluir a conta de usuário.`,
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Técnico removido",
+          description: `${selectedTechnician.name} foi removido. Os históricos de trabalho foram preservados.`,
+        });
+      }
 
       setIsDeleteDialogOpen(false);
       setSelectedTechnician(null);
       fetchTechnicians();
-      
-      toast({
-        title: "Técnico removido",
-        description: `${selectedTechnician.name} foi removido com sucesso.`,
-      });
     } catch (error: any) {
+      console.error('Erro ao remover técnico:', error);
       toast({
         title: "Erro ao remover técnico",
         description: error.message,
@@ -1358,13 +1398,26 @@ const Technicians = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tem certeza que deseja excluir o técnico {selectedTechnician?.name}? Esta ação não pode ser desfeita.
+            <AlertDialogDescription asChild>
+              <div>
+                <p>Tem certeza que deseja excluir o técnico <strong>{selectedTechnician?.name}</strong>?</p>
+                <div className="mt-3">
+                  <span className="text-destructive font-medium">Será excluído:</span>
+                  <ul className="list-disc list-inside mt-2 text-sm">
+                    <li>Dados cadastrais do técnico</li>
+                    <li>Documentos e certificações</li>
+                    <li>Conta de acesso ao sistema</li>
+                  </ul>
+                </div>
+                <p className="text-muted-foreground text-sm mt-3">
+                  ℹ️ Os históricos de trabalho, relatórios e registros de ponto serão preservados para auditoria.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete} className="bg-red-500 hover:bg-red-600">
+            <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
