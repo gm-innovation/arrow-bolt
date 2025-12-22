@@ -20,6 +20,7 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { exportToCSV, formatBooleanForExport } from "@/lib/exportUtils";
 import { Input } from "@/components/ui/input";
+import { sanitizeFileName } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -435,8 +436,9 @@ const Technicians = () => {
         
         for (let i = 0; i < certificationFiles.length; i++) {
           const cert = certificationFiles[i];
-          // Usar padrão consistente: company_id/technician_id/certifications/...
-          const certPath = `${profileData.company_id}/${technicianData.id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
+          // Sanitize file name to avoid "Invalid key" errors in Supabase Storage
+          const sanitizedName = sanitizeFileName(cert.file.name);
+          const certPath = `${profileData.company_id}/${technicianData.id}/certifications/${Date.now()}-${i}-${sanitizedName}`;
           
           console.log(`📜 [${i + 1}/${certificationFiles.length}] Uploading: ${cert.file.name}`);
           
@@ -750,8 +752,9 @@ const Technicians = () => {
             continue;
           }
           
-          // Usar padrão consistente: company_id/technician_id/certifications/...
-          const certPath = `${profileData?.company_id}/${selectedTechnician.id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
+          // Sanitize file name to avoid "Invalid key" errors in Supabase Storage
+          const sanitizedName = sanitizeFileName(cert.file.name);
+          const certPath = `${profileData?.company_id}/${selectedTechnician.id}/certifications/${Date.now()}-${i}-${sanitizedName}`;
           
           console.log(`📜 [${i + 1}/${certificationFiles.length}] Uploading para: ${certPath}`);
           
