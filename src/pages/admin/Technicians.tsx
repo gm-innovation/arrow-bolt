@@ -318,17 +318,19 @@ const Technicians = () => {
           }
           
           const photoExt = photoFile.name.split('.').pop();
-          const photoPath = `${createUserResult.user_id}/avatar.${photoExt}`;
+          const timestamp = Date.now();
+          // Usar caminho único com timestamp para evitar cache
+          const photoPath = `${createUserResult.user_id}/avatar-${timestamp}.${photoExt}`;
           
           console.log('📍 Caminho de upload:', photoPath);
           
-          // Fazer upload no novo bucket technician-avatars
+          // Fazer upload no bucket technician-avatars com cache mínimo
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('technician-avatars')
             .upload(photoPath, photoFile, { 
               upsert: true,
               contentType: photoFile.type,
-              cacheControl: '3600'
+              cacheControl: '0'
             });
           
           if (uploadError) {
@@ -338,18 +340,19 @@ const Technicians = () => {
           
           console.log('✅ Upload bem-sucedido!', uploadData);
           
-          // Obter URL pública do novo bucket
+          // Obter URL pública com query param para cache busting
           const { data: { publicUrl } } = supabase.storage
             .from('technician-avatars')
             .getPublicUrl(photoPath);
           
-          console.log('📎 URL pública gerada:', publicUrl);
+          const versionedUrl = `${publicUrl}?v=${timestamp}`;
+          console.log('📎 URL pública gerada:', versionedUrl);
           
-          // Atualizar avatar no perfil com verificação
+          // Atualizar avatar no perfil
           console.log('💾 Salvando URL no perfil...');
           const { data: updateData, error: updateAvatarError } = await supabase
             .from('profiles')
-            .update({ avatar_url: publicUrl })
+            .update({ avatar_url: versionedUrl })
             .eq('id', createUserResult.user_id)
             .select();
           
@@ -359,24 +362,6 @@ const Technicians = () => {
           }
           
           console.log('✅ Avatar salvo com sucesso!', updateData);
-          
-          // Verificar se realmente foi salvo
-          const { data: verifyData, error: verifyError } = await supabase
-            .from('profiles')
-            .select('avatar_url')
-            .eq('id', createUserResult.user_id)
-            .single();
-          
-          if (verifyError) {
-            console.error('❌ Erro ao verificar avatar:', verifyError);
-          } else {
-            console.log('🔍 Verificação - Avatar no banco:', verifyData.avatar_url);
-            if (verifyData.avatar_url === publicUrl) {
-              console.log('✅ CONFIRMADO: Avatar salvo corretamente!');
-            } else {
-              console.error('⚠️ AVISO: Avatar URL não corresponde!');
-            }
-          }
           
         } catch (photoError) {
           console.error('❌ Erro crítico no processo de foto:', photoError);
@@ -596,18 +581,35 @@ const Technicians = () => {
             throw new Error('Imagem muito grande (máx 5MB)');
           }
           
+          // Remover avatar antigo se existir
+          if (selectedTechnician.avatar_url) {
+            try {
+              const oldUrl = new URL(selectedTechnician.avatar_url);
+              const pathMatch = oldUrl.pathname.match(/\/technician-avatars\/(.+?)(?:\?|$)/);
+              if (pathMatch) {
+                const oldPath = decodeURIComponent(pathMatch[1]);
+                console.log('🗑️ Removendo avatar antigo:', oldPath);
+                await supabase.storage.from('technician-avatars').remove([oldPath]);
+              }
+            } catch (e) {
+              console.warn('⚠️ Não foi possível remover avatar antigo:', e);
+            }
+          }
+          
           const photoExt = photoFile.name.split('.').pop();
-          const photoPath = `${selectedTechnician.user_id}/avatar.${photoExt}`;
+          const timestamp = Date.now();
+          // Usar caminho único com timestamp para evitar cache
+          const photoPath = `${selectedTechnician.user_id}/avatar-${timestamp}.${photoExt}`;
           
           console.log('📍 Caminho de upload:', photoPath);
           
-          // Fazer upload no novo bucket technician-avatars
+          // Fazer upload no bucket technician-avatars com cache mínimo
           const { data: uploadData, error: uploadError } = await supabase.storage
             .from('technician-avatars')
             .upload(photoPath, photoFile, { 
               upsert: true,
               contentType: photoFile.type,
-              cacheControl: '3600'
+              cacheControl: '0'
             });
           
           if (uploadError) {
@@ -617,18 +619,19 @@ const Technicians = () => {
           
           console.log('✅ Upload bem-sucedido!', uploadData);
           
-          // Obter URL pública do novo bucket
+          // Obter URL pública com query param para cache busting
           const { data: { publicUrl } } = supabase.storage
             .from('technician-avatars')
             .getPublicUrl(photoPath);
           
-          console.log('📎 URL pública gerada:', publicUrl);
+          const versionedUrl = `${publicUrl}?v=${timestamp}`;
+          console.log('📎 URL pública gerada:', versionedUrl);
           
-          // Atualizar avatar no perfil com verificação
+          // Atualizar avatar no perfil
           console.log('💾 Atualizando URL no perfil...');
           const { data: updateData, error: updateAvatarError } = await supabase
             .from('profiles')
-            .update({ avatar_url: publicUrl })
+            .update({ avatar_url: versionedUrl })
             .eq('id', selectedTechnician.user_id)
             .select();
           
@@ -638,24 +641,6 @@ const Technicians = () => {
           }
           
           console.log('✅ Avatar atualizado com sucesso!', updateData);
-          
-          // Verificar se realmente foi salvo
-          const { data: verifyData, error: verifyError } = await supabase
-            .from('profiles')
-            .select('avatar_url')
-            .eq('id', selectedTechnician.user_id)
-            .single();
-          
-          if (verifyError) {
-            console.error('❌ Erro ao verificar avatar:', verifyError);
-          } else {
-            console.log('🔍 Verificação - Avatar no banco:', verifyData.avatar_url);
-            if (verifyData.avatar_url === publicUrl) {
-              console.log('✅ CONFIRMADO: Avatar atualizado corretamente!');
-            } else {
-              console.error('⚠️ AVISO: Avatar URL não corresponde!');
-            }
-          }
           
         } catch (photoError) {
           console.error('❌ Erro crítico no processo de foto:', photoError);
