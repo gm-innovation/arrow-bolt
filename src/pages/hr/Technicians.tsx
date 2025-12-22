@@ -16,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { sanitizeFileName } from '@/lib/utils';
 
 interface TechnicianDocument {
   id: string;
@@ -263,8 +264,9 @@ const Technicians = () => {
 
         for (let i = 0; i < certificationFiles.length; i++) {
           const cert = certificationFiles[i];
-          // Usar padrão consistente: company_id/technician_id/certifications/...
-          const certPath = `${companyId}/${selectedTechnician.id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
+          // Sanitize file name to avoid "Invalid key" errors in Supabase Storage
+          const sanitizedName = sanitizeFileName(cert.file.name);
+          const certPath = `${companyId}/${selectedTechnician.id}/certifications/${Date.now()}-${i}-${sanitizedName}`;
 
           const { error: certError } = await supabase.storage
             .from('technician-documents')
@@ -436,8 +438,9 @@ const Technicians = () => {
         
         for (let i = 0; i < certificationFiles.length; i++) {
           const cert = certificationFiles[i];
-          // Usar padrão consistente: company_id/technician_id/certifications/...
-          const certPath = `${companyId}/${technicianData.id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
+          // Sanitize file name to avoid "Invalid key" errors in Supabase Storage
+          const sanitizedName = sanitizeFileName(cert.file.name);
+          const certPath = `${companyId}/${technicianData.id}/certifications/${Date.now()}-${i}-${sanitizedName}`;
           
           const { error: certError } = await supabase.storage
             .from('technician-documents')
