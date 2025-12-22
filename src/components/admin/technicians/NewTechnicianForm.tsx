@@ -259,14 +259,14 @@ export const NewTechnicianForm = ({
           });
         }
       } else if (fileType === 'application/pdf') {
-        // ASO: apenas se o nome indicar explicitamente ("aso") OU se houver apenas 1 PDF na seleção.
-        // Isso evita classificar NRs como ASO quando o usuário faz upload de várias certificações.
+        // ASO: APENAS se o nome contém "aso" explicitamente
+        // Isso evita classificar NRs/certificações como ASO por engano
         const isAsoByName = fileName.includes('aso');
-        const shouldTreatAsAso = isAsoByName || (!hasMultiplePdfs && !asoPdf && !newFiles.aso);
 
-        if (shouldTreatAsAso) {
+        if (isAsoByName && !asoPdf && !newFiles.aso) {
           asoPdf = file;
         } else {
+          // Qualquer outro PDF é tratado como certificação
           const certData = await processCertificate(file);
           certifications.push({
             file,
