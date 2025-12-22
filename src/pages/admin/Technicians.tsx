@@ -529,15 +529,44 @@ const Technicians = () => {
   };
 
   const handleUpdateTechnician = async (data: any, asoFile: File | null, photoFile: File | null, certificationFiles: Array<{file: File; name?: string; issueDate?: string; expiryDate?: string;}>) => {
+    console.log('========================================');
+    console.log('🔧 handleUpdateTechnician INICIADO');
+    console.log('========================================');
+    console.log('📋 Dados recebidos:');
+    console.log('  - data:', data?.name, data?.email);
+    console.log('  - asoFile:', asoFile ? `${asoFile.name} (${(asoFile.size/1024).toFixed(1)}KB)` : 'null');
+    console.log('  - photoFile:', photoFile ? `${photoFile.name} (${(photoFile.size/1024).toFixed(1)}KB)` : 'null');
+    console.log('  - certificationFiles:', certificationFiles?.length || 0, 'arquivo(s)');
+    
+    if (certificationFiles && certificationFiles.length > 0) {
+      certificationFiles.forEach((cert, i) => {
+        console.log(`    [${i+1}] ${cert.file?.name || 'SEM ARQUIVO'} - ${cert.name || 'sem nome'}`);
+        console.log(`        hasFile: ${!!cert.file}, size: ${cert.file ? (cert.file.size/1024).toFixed(1) + 'KB' : 'N/A'}`);
+      });
+    } else {
+      console.log('  ⚠️ Nenhuma certificação recebida!');
+    }
+    
     try {
-      if (!selectedTechnician) return;
+      if (!selectedTechnician) {
+        console.error('❌ selectedTechnician é null!');
+        return;
+      }
+      
+      console.log('👤 Técnico selecionado:', selectedTechnician.name, '- ID:', selectedTechnician.id);
 
       // Obter company_id
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("company_id")
         .eq("id", user?.id)
         .single();
+
+      if (profileError) {
+        console.error('❌ Erro ao buscar company_id:', profileError);
+      }
+      
+      console.log('🏢 Company ID:', profileData?.company_id);
 
       if (!profileData?.company_id) throw new Error("Company not found");
 
@@ -688,58 +717,103 @@ const Technicians = () => {
       }
 
       // Upload novas certificações
-      if (certificationFiles.length > 0) {
-        console.log(`📜 Iniciando upload de ${certificationFiles.length} certificação(ões)`);
+      console.log('========================================');
+      console.log('📜 PROCESSANDO CERTIFICAÇÕES');
+      console.log('========================================');
+      console.log('certificationFiles é:', typeof certificationFiles);
+      console.log('certificationFiles length:', certificationFiles?.length);
+      console.log('certificationFiles valor:', JSON.stringify(certificationFiles?.map(c => ({name: c.file?.name, hasFile: !!c.file})) || []));
+      
+      if (certificationFiles && certificationFiles.length > 0) {
+        toast({
+          title: "Salvando certificações...",
+          description: `Iniciando upload de ${certificationFiles.length} certificação(ões)`,
+        });
+        
         let savedCount = 0;
         let failedCount = 0;
+        const errors: string[] = [];
         
         for (let i = 0; i < certificationFiles.length; i++) {
           const cert = certificationFiles[i];
-          // Usar padrão consistente: company_id/technician_id/certifications/...
-          const certPath = `${profileData?.company_id}/${selectedTechnician.id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
           
-          console.log(`📜 [${i + 1}/${certificationFiles.length}] Uploading: ${cert.file.name}`);
+          console.log(`📜 [${i + 1}/${certificationFiles.length}] Processando certificação:`);
+          console.log('  - file:', cert.file);
+          console.log('  - file.name:', cert.file?.name);
+          console.log('  - file.size:', cert.file?.size);
+          console.log('  - name:', cert.name);
           
-          const { error: certError } = await supabase.storage
-            .from('technician-documents')
-            .upload(certPath, cert.file);
-          
-          if (certError) {
-            console.error(`❌ Erro no upload da certificação ${cert.file.name}:`, certError);
+          if (!cert.file) {
+            console.error(`❌ Certificação ${i + 1} não tem arquivo!`);
+            errors.push(`Certificação ${i + 1}: sem arquivo`);
             failedCount++;
             continue;
           }
           
-          const { error: insertError } = await supabase.from('technician_documents').insert({
-            technician_id: selectedTechnician.id,
-            document_type: 'certification',
-            file_name: cert.file.name,
-            file_path: certPath,
-            certificate_name: cert.name || cert.file.name,
-            issue_date: cert.issueDate,
-            expiry_date: cert.expiryDate,
-          });
+          // Usar padrão consistente: company_id/technician_id/certifications/...
+          const certPath = `${profileData?.company_id}/${selectedTechnician.id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
           
-          if (insertError) {
-            console.error(`❌ Erro ao salvar certificação ${cert.file.name}:`, insertError);
+          console.log(`📜 [${i + 1}/${certificationFiles.length}] Uploading para: ${certPath}`);
+          
+          try {
+            const { data: uploadData, error: certError } = await supabase.storage
+              .from('technician-documents')
+              .upload(certPath, cert.file);
+            
+            if (certError) {
+              console.error(`❌ Erro no upload da certificação ${cert.file.name}:`, certError);
+              console.error('  Detalhes:', JSON.stringify(certError));
+              errors.push(`${cert.file.name}: ${certError.message}`);
+              failedCount++;
+              continue;
+            }
+            
+            console.log(`✅ Upload OK:`, uploadData);
+            
+            const { data: insertData, error: insertError } = await supabase.from('technician_documents').insert({
+              technician_id: selectedTechnician.id,
+              document_type: 'certification',
+              file_name: cert.file.name,
+              file_path: certPath,
+              certificate_name: cert.name || cert.file.name,
+              issue_date: cert.issueDate,
+              expiry_date: cert.expiryDate,
+            }).select();
+            
+            if (insertError) {
+              console.error(`❌ Erro ao salvar certificação no banco ${cert.file.name}:`, insertError);
+              console.error('  Detalhes:', JSON.stringify(insertError));
+              errors.push(`${cert.file.name}: ${insertError.message}`);
+              failedCount++;
+            } else {
+              console.log(`✅ Certificação salva no banco:`, insertData);
+              savedCount++;
+            }
+          } catch (uploadException: any) {
+            console.error(`❌ Exceção durante upload:`, uploadException);
+            errors.push(`${cert.file?.name || 'arquivo'}: ${uploadException.message}`);
             failedCount++;
-          } else {
-            console.log(`✅ Certificação salva: ${cert.name || cert.file.name}`);
-            savedCount++;
           }
         }
         
-        console.log(`📊 Resultado: ${savedCount} salva(s), ${failedCount} falha(s)`);
+        console.log('========================================');
+        console.log(`📊 RESULTADO FINAL: ${savedCount} salva(s), ${failedCount} falha(s)`);
+        console.log('========================================');
         
         if (failedCount > 0) {
           toast({
-            title: "Aviso sobre certificações",
-            description: `${savedCount} certificação(ões) salva(s), ${failedCount} falhou(aram). Tente novamente.`,
+            title: "Erro nas certificações",
+            description: `${savedCount} salva(s), ${failedCount} falha(s): ${errors.slice(0, 2).join('; ')}`,
             variant: "destructive",
           });
         } else if (savedCount > 0) {
-          console.log(`✅ Todas as ${savedCount} certificações foram salvas com sucesso!`);
+          toast({
+            title: "Certificações salvas!",
+            description: `${savedCount} certificação(ões) salva(s) com sucesso.`,
+          });
         }
+      } else {
+        console.log('⚠️ Nenhuma certificação para processar (array vazio ou undefined)');
       }
 
       setIsEditTechnicianOpen(false);

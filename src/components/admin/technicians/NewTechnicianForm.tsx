@@ -306,6 +306,24 @@ export const NewTechnicianForm = ({
     // Adicionar certificações
     newFiles.certifications = [...newFiles.certifications, ...certifications];
 
+    console.log('========================================');
+    console.log('📁 ARQUIVOS PROCESSADOS (handleFilesSelect):');
+    console.log('========================================');
+    console.log('  ASO:', newFiles.aso?.name || 'nenhum');
+    console.log('  Foto:', newFiles.photo?.name || 'nenhuma');
+    console.log('  Certificações:', newFiles.certifications.length);
+    newFiles.certifications.forEach((cert, i) => {
+      console.log(`    [${i+1}] ${cert.file?.name} - hasFile: ${!!cert.file}`);
+    });
+    console.log('========================================');
+
+    if (certifications.length > 0) {
+      toast({
+        title: "Certificações adicionadas",
+        description: `${certifications.length} certificação(ões) pronta(s) para envio.`,
+      });
+    }
+
     setUploadedFiles(newFiles);
     setIsProcessing(false);
   };
@@ -355,35 +373,63 @@ export const NewTechnicianForm = ({
   const handleSubmit = async (data: TechnicianFormValues) => {
     setIsLoading(true);
     try {
-      console.log('🚀 Form submit - Data completa:', JSON.stringify(data, null, 2));
-      console.log('🚀 Form submit - aso_issue_date:', data.aso_issue_date);
+      console.log('========================================');
+      console.log('🚀 FORM SUBMIT INICIADO');
+      console.log('========================================');
+      console.log('📋 Data:', JSON.stringify({ name: data.name, email: data.email, role: data.role }, null, 2));
+      console.log('📁 Estado atual de uploadedFiles:');
+      console.log('  - aso:', uploadedFiles.aso?.name || 'null');
+      console.log('  - photo:', uploadedFiles.photo?.name || 'null');
+      console.log('  - certifications:', uploadedFiles.certifications.length, 'arquivo(s)');
       
       // Log detalhado das certificações
-      console.log('📜 Total de certificações no formulário:', uploadedFiles.certifications.length);
-      uploadedFiles.certifications.forEach((cert, index) => {
-        console.log(`📜 Certificação ${index + 1}:`, {
-          fileName: cert.file?.name,
-          name: cert.name,
-          hasFile: !!cert.file,
-          issueDate: cert.issueDate,
-          expiryDate: cert.expiryDate
+      if (uploadedFiles.certifications.length > 0) {
+        console.log('📜 Detalhes das certificações:');
+        uploadedFiles.certifications.forEach((cert, index) => {
+          console.log(`  [${index + 1}] ${cert.file?.name || 'SEM ARQUIVO'}`);
+          console.log(`      hasFile: ${!!cert.file}`);
+          console.log(`      file type: ${cert.file?.type || 'N/A'}`);
+          console.log(`      file size: ${cert.file ? (cert.file.size/1024).toFixed(1) + 'KB' : 'N/A'}`);
+          console.log(`      name: ${cert.name || 'N/A'}`);
         });
-      });
+      } else {
+        console.log('⚠️ NENHUMA CERTIFICAÇÃO no estado!');
+      }
       
       // Filtrar apenas certificações com arquivo válido
-      const validCertifications = uploadedFiles.certifications.filter(cert => cert.file);
+      const validCertifications = uploadedFiles.certifications.filter(cert => {
+        const isValid = !!cert.file;
+        if (!isValid) {
+          console.warn(`⚠️ Certificação sem arquivo válido ignorada:`, cert);
+        }
+        return isValid;
+      });
       
       if (validCertifications.length !== uploadedFiles.certifications.length) {
         console.warn(`⚠️ ${uploadedFiles.certifications.length - validCertifications.length} certificação(ões) sem arquivo válido foram ignoradas`);
       }
       
-      console.log(`✅ Enviando ${validCertifications.length} certificação(ões) válida(s) para salvamento`);
+      console.log(`✅ Enviando para onSubmit:`);
+      console.log(`  - asoFile: ${uploadedFiles.aso?.name || 'null'}`);
+      console.log(`  - photoFile: ${uploadedFiles.photo?.name || 'null'}`);
+      console.log(`  - certifications: ${validCertifications.length} arquivo(s)`);
+      
+      if (validCertifications.length > 0) {
+        toast({
+          title: "Enviando documentos...",
+          description: `${validCertifications.length} certificação(ões) sendo enviada(s)`,
+        });
+      }
       
       await onSubmit(data, uploadedFiles.aso || null, uploadedFiles.photo || null, validCertifications);
+      
+      console.log('✅ onSubmit completado com sucesso');
+      
       form.reset();
       setUploadedFiles({ certifications: [] });
       setPhotoPreview("");
     } catch (error: any) {
+      console.error('❌ Erro no handleSubmit:', error);
       toast({
         title: "Erro",
         description: error.message || "Erro ao processar formulário",
