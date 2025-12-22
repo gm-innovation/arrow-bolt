@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
-import { Plus, Search, Download, Eye, Pencil, Trash2 } from "lucide-react";
+import { Plus, Search, Download, Eye, Pencil, Trash2, FileText } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -70,6 +70,33 @@ const Technicians = () => {
       return { status: 'expiring', color: 'bg-yellow-500 text-white', label: 'Próximo do vencimento' };
     } else {
       return { status: 'valid', color: 'bg-green-500 text-white', label: 'Válido' };
+    }
+  };
+
+  // Função para download de documentos
+  const handleDownloadDocument = async (doc: any) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('technician-documents')
+        .download(doc.file_path);
+
+      if (error) throw error;
+
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = doc.file_name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error('Error downloading document:', error);
+      toast({
+        title: 'Erro ao baixar documento',
+        description: 'Não foi possível baixar o documento.',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -408,8 +435,8 @@ const Technicians = () => {
         
         for (let i = 0; i < certificationFiles.length; i++) {
           const cert = certificationFiles[i];
-          // Usar índice no path para evitar conflitos de timestamp
-          const certPath = `${createUserResult.user_id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
+          // Usar padrão consistente: company_id/technician_id/certifications/...
+          const certPath = `${profileData.company_id}/${technicianData.id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
           
           console.log(`📜 [${i + 1}/${certificationFiles.length}] Uploading: ${cert.file.name}`);
           
@@ -668,8 +695,8 @@ const Technicians = () => {
         
         for (let i = 0; i < certificationFiles.length; i++) {
           const cert = certificationFiles[i];
-          // Usar índice no path para evitar conflitos de timestamp
-          const certPath = `${selectedTechnician.user_id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
+          // Usar padrão consistente: company_id/technician_id/certifications/...
+          const certPath = `${profileData?.company_id}/${selectedTechnician.id}/certifications/${Date.now()}-${i}-${cert.file.name}`;
           
           console.log(`📜 [${i + 1}/${certificationFiles.length}] Uploading: ${cert.file.name}`);
           
@@ -1074,6 +1101,21 @@ const Technicians = () => {
                         </div>
                       </div>
 
+                      {/* Botão de download do ASO */}
+                      {asoDoc && (
+                        <div className="mt-4">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDownloadDocument(asoDoc)}
+                            className="flex items-center gap-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            Baixar ASO
+                          </Button>
+                        </div>
+                      )}
+
                       {asoMetadata && (
                         <div className="border rounded-lg p-4 bg-muted/30">
                           <p className="text-sm font-semibold mb-3">Dados Extraídos do ASO</p>
@@ -1186,6 +1228,17 @@ const Technicians = () => {
                               <div>
                                 <p className="text-sm font-medium text-muted-foreground">Tipo</p>
                                 <p className="text-base">{doc.document_type}</p>
+                              </div>
+                              <div className="flex items-end">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDownloadDocument(doc)}
+                                  className="flex items-center gap-2"
+                                >
+                                  <Download className="h-4 w-4" />
+                                  Baixar
+                                </Button>
                               </div>
                             </div>
                           </div>
