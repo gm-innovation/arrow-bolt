@@ -11,7 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DocumentUploadZone } from "./DocumentUploadZone";
-import { useDocumentExtraction } from "@/hooks/useDocumentExtraction";
+import { useDocumentClassification, ClassificationResult } from "@/hooks/useDocumentClassification";
 import { Eye, EyeOff, Sparkles, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -107,7 +107,7 @@ export const NewTechnicianForm = ({
     file_path: string;
   }>>(initialData?.documents || []);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { extractFromPDF, isExtracting } = useDocumentExtraction();
+  const { classifyDocument, isClassifying } = useDocumentClassification();
   const { toast } = useToast();
 
   const form = useForm<TechnicianFormValues>({
@@ -221,10 +221,8 @@ export const NewTechnicianForm = ({
     const fileArray = Array.from(files);
     const newFiles = { ...uploadedFiles };
 
-    const pdfCount = fileArray.filter((f) => f.type === 'application/pdf').length;
-    const hasMultiplePdfs = pdfCount > 1;
-
     let asoPdf: File | null = null;
+    let asoData: ClassificationResult['aso_data'] | null = null;
     const certifications: Array<{
       file: File;
       name?: string;
@@ -233,10 +231,9 @@ export const NewTechnicianForm = ({
       isValid?: boolean;
     }> = [];
 
-    // Primeiro, separar arquivos por tipo
+    // Processar arquivos: imagens primeiro (foto), depois documentos (PDF/imagem)
     for (const file of fileArray) {
       const fileType = file.type;
-      const fileName = file.name.toLowerCase();
 
       if (fileType.startsWith('image/')) {
         // Primeira imagem é a foto
@@ -248,95 +245,108 @@ export const NewTechnicianForm = ({
           };
           reader.readAsDataURL(file);
         } else {
-          // Processar como certificação
-          const certData = await processCertificate(file);
-          certifications.push({
-            file,
-            name: certData.certificate_name,
-            issueDate: certData.issue_date,
-            expiryDate: certData.expiry_date,
-            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
-          });
+          // Imagem adicional: classificar pelo conteúdo
+          console.log('🔍 Classificando imagem pelo conteúdo:', file.name);
+          const classification = await classifyDocument(file);
+          
+          if (classification?.document_type === 'aso' && !asoPdf && !newFiles.aso) {
+            // É um ASO
+            asoPdf = file;
+            asoData = classification.aso_data;
+            console.log('✅ Imagem classificada como ASO:', file.name);
+          } else if (classification?.document_type === 'certification' || classification?.document_type === 'unknown') {
+            // É uma certificação ou desconhecido (tratar como certificação)
+            certifications.push({
+              file,
+              name: classification?.certificate_data?.certificate_name || file.name.replace(/\.(pdf|jpg|jpeg|png|webp)$/i, ''),
+              issueDate: classification?.certificate_data?.issue_date,
+              expiryDate: classification?.certificate_data?.expiry_date,
+              isValid: classification?.certificate_data?.expiry_date 
+                ? new Date(classification.certificate_data.expiry_date) >= new Date() 
+                : undefined
+            });
+            console.log('✅ Imagem classificada como certificação:', file.name);
+          }
         }
       } else if (fileType === 'application/pdf') {
-        // LÓGICA INVERSA: Identificar certificações primeiro, resto é ASO
-        // Certificações geralmente contêm: NR, certificado, treinamento, curso
-        const looksLikeCertification = 
-          fileName.includes('nr ') || 
-          fileName.includes('nr-') ||
-          fileName.includes('nr_') ||
-          /\bnr\d+/i.test(fileName) ||  // NR10, NR35, etc
-          fileName.includes('certificad') ||
-          fileName.includes('treinamento') ||
-          fileName.includes('curso') ||
-          fileName.includes('habilitacao') ||
-          fileName.includes('habilitação');
+        // PDF: classificar pelo conteúdo usando IA
+        console.log('🔍 Classificando PDF pelo conteúdo:', file.name);
+        const classification = await classifyDocument(file);
         
-        // ASO: padrões comuns
-        const looksLikeAso = 
-          fileName.includes('aso') ||
-          fileName.includes('atestado') ||
-          fileName.includes('saude ocupacional') ||
-          fileName.includes('saúde ocupacional') ||
-          fileName.includes('admissional') ||
-          fileName.includes('periodico') ||
-          fileName.includes('periódico') ||
-          fileName.includes('demissional') ||
-          fileName.includes('exame medico') ||
-          fileName.includes('exame médico');
-
-        // Decisão: Se parece certificação OU já temos ASO, trata como certificação
-        // Se parece ASO OU não temos ASO ainda e não parece certificação, trata como ASO
-        if (looksLikeCertification) {
-          // É claramente uma certificação
-          const certData = await processCertificate(file);
-          certifications.push({
-            file,
-            name: certData.certificate_name,
-            issueDate: certData.issue_date,
-            expiryDate: certData.expiry_date,
-            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
-          });
-        } else if (!asoPdf && !newFiles.aso) {
-          // Primeiro PDF que não é certificação = ASO
-          // (prioridade para looksLikeAso, mas aceita qualquer um se ainda não tiver ASO)
+        if (classification?.document_type === 'aso' && !asoPdf && !newFiles.aso) {
+          // É um ASO
           asoPdf = file;
-          console.log('📄 Identificado como ASO:', file.name);
-        } else {
-          // Já temos ASO, tratar como certificação
-          const certData = await processCertificate(file);
+          asoData = classification.aso_data;
+          console.log('✅ PDF classificado como ASO:', file.name);
+          
+          toast({
+            title: "ASO identificado",
+            description: `O documento "${file.name}" foi identificado como ASO.`,
+          });
+        } else if (classification?.document_type === 'certification') {
+          // É uma certificação
           certifications.push({
             file,
-            name: certData.certificate_name,
-            issueDate: certData.issue_date,
-            expiryDate: certData.expiry_date,
-            isValid: certData.expiry_date ? new Date(certData.expiry_date) >= new Date() : undefined
+            name: classification.certificate_data?.certificate_name || file.name.replace(/\.pdf$/i, ''),
+            issueDate: classification.certificate_data?.issue_date,
+            expiryDate: classification.certificate_data?.expiry_date,
+            isValid: classification.certificate_data?.expiry_date 
+              ? new Date(classification.certificate_data.expiry_date) >= new Date() 
+              : undefined
           });
+          console.log('✅ PDF classificado como certificação:', file.name);
+        } else if (classification?.document_type === 'unknown') {
+          // Tipo desconhecido: se não temos ASO ainda, assume que é ASO
+          if (!asoPdf && !newFiles.aso) {
+            asoPdf = file;
+            asoData = classification.aso_data;
+            console.log('⚠️ PDF não identificado, assumindo como ASO:', file.name);
+            
+            toast({
+              title: "Documento não identificado",
+              description: `"${file.name}" será tratado como ASO por ser o primeiro documento.`,
+            });
+          } else {
+            // Já temos ASO, tratar como certificação
+            certifications.push({
+              file,
+              name: file.name.replace(/\.pdf$/i, ''),
+              issueDate: undefined,
+              expiryDate: undefined,
+              isValid: undefined
+            });
+            console.log('⚠️ PDF não identificado, tratando como certificação:', file.name);
+          }
         }
       }
     }
 
-    // Processar ASO se encontrado
-    if (asoPdf && !newFiles.aso) {
+    // Preencher formulário com dados do ASO se encontrado
+    if (asoPdf) {
       newFiles.aso = asoPdf;
-      const extractedData = await extractFromPDF(asoPdf);
-      if (extractedData) {
-        if (extractedData.full_name) form.setValue('name', extractedData.full_name);
-        if (extractedData.cpf) form.setValue('cpf', extractedData.cpf);
-        if (extractedData.rg) form.setValue('rg', extractedData.rg);
-        if (extractedData.birth_date) form.setValue('birth_date', extractedData.birth_date);
-        if (extractedData.gender) form.setValue('gender', extractedData.gender);
-        if (extractedData.nationality) form.setValue('nationality', extractedData.nationality);
-        if (extractedData.height) form.setValue('height', extractedData.height.toString());
-        if (extractedData.blood_type) form.setValue('blood_type', extractedData.blood_type);
-        if (extractedData.blood_rh_factor) form.setValue('blood_rh_factor', extractedData.blood_rh_factor);
-        if (extractedData.aso_issue_date) {
-          console.log('📅 Setting aso_issue_date from extracted data:', extractedData.aso_issue_date);
-          form.setValue('aso_issue_date', extractedData.aso_issue_date);
+      
+      if (asoData) {
+        if (asoData.full_name) form.setValue('name', asoData.full_name);
+        if (asoData.cpf) form.setValue('cpf', asoData.cpf);
+        if (asoData.rg) form.setValue('rg', asoData.rg);
+        if (asoData.birth_date) form.setValue('birth_date', asoData.birth_date);
+        if (asoData.gender) form.setValue('gender', asoData.gender);
+        if (asoData.nationality) form.setValue('nationality', asoData.nationality);
+        if (asoData.height) form.setValue('height', asoData.height.toString());
+        if (asoData.blood_type) form.setValue('blood_type', asoData.blood_type);
+        if (asoData.blood_rh_factor) form.setValue('blood_rh_factor', asoData.blood_rh_factor);
+        if (asoData.aso_issue_date) {
+          console.log('📅 Setting aso_issue_date from classification:', asoData.aso_issue_date);
+          form.setValue('aso_issue_date', asoData.aso_issue_date);
         }
-        if (extractedData.aso_valid_until) form.setValue('aso_valid_until', extractedData.aso_valid_until);
-        if (extractedData.medical_status) form.setValue('medical_status', extractedData.medical_status);
-        if (extractedData.function) form.setValue('role', extractedData.function);
+        if (asoData.aso_valid_until) form.setValue('aso_valid_until', asoData.aso_valid_until);
+        if (asoData.medical_status) form.setValue('medical_status', asoData.medical_status);
+        if (asoData.function) form.setValue('role', asoData.function);
+        
+        toast({
+          title: "Dados extraídos com sucesso!",
+          description: "O formulário foi preenchido automaticamente com os dados do ASO.",
+        });
       }
     }
 
@@ -1033,7 +1043,7 @@ export const NewTechnicianForm = ({
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancelar
           </Button>
-          <Button type="submit" disabled={isLoading || isExtracting}>
+          <Button type="submit" disabled={isLoading || isClassifying}>
             {isLoading ? "Processando..." : isEditing ? "Atualizar" : "Criar Técnico e Usuário"}
           </Button>
         </div>
