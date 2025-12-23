@@ -45,6 +45,8 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
     hours_standby: 0,
     is_travel: false,
     is_overnight: false,
+    is_onboard: false,
+    is_standby: false,
     notes: '',
   });
 
@@ -92,6 +94,8 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
         hours_standby: formData.hours_standby,
         is_travel: formData.is_travel,
         is_overnight: formData.is_overnight,
+        is_onboard: formData.is_onboard,
+        is_standby: formData.is_standby,
         notes: formData.notes || undefined,
       });
       onSuccess();
@@ -107,6 +111,8 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
         hours_standby: 0,
         is_travel: false,
         is_overnight: false,
+        is_onboard: false,
+        is_standby: false,
         notes: '',
       });
     } finally {
@@ -233,7 +239,15 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
             </div>
           </div>
 
-          <div className="flex items-center space-x-6 pt-2">
+          <div className="flex items-center flex-wrap gap-4 pt-2">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="new_is_onboard"
+                checked={formData.is_onboard}
+                onCheckedChange={(c) => setFormData({ ...formData, is_onboard: !!c })}
+              />
+              <Label htmlFor="new_is_onboard" className="text-sm cursor-pointer">A Bordo</Label>
+            </div>
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="new_is_travel"
@@ -241,6 +255,14 @@ const NewTimeEntryDialog = ({ open, onOpenChange, technicians, onSuccess }: Prop
                 onCheckedChange={(c) => setFormData({ ...formData, is_travel: !!c })}
               />
               <Label htmlFor="new_is_travel" className="text-sm cursor-pointer">Viagem</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="new_is_standby"
+                checked={formData.is_standby}
+                onCheckedChange={(c) => setFormData({ ...formData, is_standby: !!c })}
+              />
+              <Label htmlFor="new_is_standby" className="text-sm cursor-pointer">Espera</Label>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
