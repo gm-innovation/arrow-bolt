@@ -63,7 +63,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
   const [clients, setClients] = useState<any[]>([]);
   const [vessels, setVessels] = useState<any[]>([]);
   const [supervisors, setSupervisors] = useState<any[]>([]);
-  const [requesters, setRequesters] = useState<any[]>([]);
+  const [clientContacts, setClientContacts] = useState<any[]>([]);
   const [technicians, setTechnicians] = useState<any[]>([]);
   const [selectedTechnicians, setSelectedTechnicians] = useState<string[]>([]);
   const [leadTechId, setLeadTechId] = useState<string>("");
@@ -114,10 +114,13 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
   useEffect(() => {
     if (selectedClient) {
       fetchVessels(selectedClient);
+      fetchClientContacts(selectedClient);
     } else if (!isEditing) {
       // Only clear vessel when creating new order, not when editing
       setVessels([]);
+      setClientContacts([]);
       form.setValue("vesselId", "");
+      form.setValue("requesterId", "");
     }
   }, [selectedClient, isEditing]);
 
@@ -157,7 +160,6 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         .order("full_name");
 
       setSupervisors(supervisorsData || []);
-      setRequesters(supervisorsData || []); // Same list as supervisors (coordinators)
 
       // Fetch technicians with phone numbers
       const { data: techniciansData } = await supabase
@@ -202,6 +204,22 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
     }
   };
 
+  const fetchClientContacts = async (clientId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("client_contacts")
+        .select("id, name, role, is_primary")
+        .eq("client_id", clientId)
+        .order("is_primary", { ascending: false })
+        .order("name");
+
+      if (error) throw error;
+      setClientContacts(data || []);
+    } catch (error: any) {
+      console.error("Error fetching client contacts:", error);
+    }
+  };
+
   const loadOrderData = async () => {
     if (!orderId) return;
 
@@ -220,9 +238,10 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
 
       if (orderError) throw orderError;
 
-      // Fetch vessels for the client BEFORE populating form
+      // Fetch vessels and contacts for the client BEFORE populating form
       if (orderData.vessels?.client_id) {
         await fetchVessels(orderData.vessels.client_id);
+        await fetchClientContacts(orderData.vessels.client_id);
       }
 
       // Fetch associated tasks with task_order_number
@@ -258,7 +277,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
       form.reset({
         clientId: orderData.vessels?.client_id || "",
         vesselId: orderData.vessel_id || "",
-        requesterId: orderData.created_by || "",
+        requesterId: orderData.requester_contact_id || "",
         serviceDateTime: formattedServiceDateTime || orderData.scheduled_date + "T08:00",
         plannedLocation: orderData.planned_location || orderData.location || "",
         accessPointId: orderData.access_point_id || "",
@@ -359,6 +378,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             client_id: data.clientId,
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
+            requester_contact_id: data.requesterId || null,
             scheduled_date: data.serviceDateTime ? data.serviceDateTime.split('T')[0] : null,
             service_date_time: data.serviceDateTime || null,
             planned_location: data.plannedLocation?.trim() || null,
@@ -479,6 +499,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             client_id: data.clientId,
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
+            requester_contact_id: data.requesterId || null,
             scheduled_date: data.serviceDateTime ? data.serviceDateTime.split('T')[0] : null,
             service_date_time: data.serviceDateTime || null,
             planned_location: data.plannedLocation?.trim() || null,
@@ -676,9 +697,9 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {requesters.map((requester) => (
-                      <SelectItem key={requester.id} value={requester.id}>
-                        {requester.full_name}
+                    {clientContacts.map((contact) => (
+                      <SelectItem key={contact.id} value={contact.id}>
+                        {contact.name}{contact.role ? ` (${contact.role})` : ''}{contact.is_primary ? ' ★' : ''}
                       </SelectItem>
                     ))}
                   </SelectContent>
