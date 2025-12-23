@@ -45,6 +45,7 @@ const orderFormSchema = z.object({
     .max(500, "Descrição deve ter no máximo 500 caracteres")
     .optional(),
   supervisorId: z.string().optional(),
+  coordinatorId: z.string().optional(),
 });
 
 type OrderFormData = z.infer<typeof orderFormSchema>;
@@ -89,6 +90,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
       singleReport: true,
       description: "",
       supervisorId: "",
+      coordinatorId: "",
     }
   });
 
@@ -287,6 +289,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         singleReport: orderData.single_report !== false,
         description: orderData.description || "",
         supervisorId: orderData.supervisor_id || "",
+        coordinatorId: orderData.coordinator_id || "",
         taskTypes: tasksData ? [...new Set(tasksData.map(t => t.task_type_id).filter(Boolean))] : [],
       });
 
@@ -378,6 +381,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             client_id: data.clientId,
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
+            coordinator_id: data.coordinatorId || null,
             requester_contact_id: data.requesterId || null,
             scheduled_date: data.serviceDateTime ? data.serviceDateTime.split('T')[0] : null,
             service_date_time: data.serviceDateTime || null,
@@ -499,6 +503,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
             client_id: data.clientId,
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
+            coordinator_id: data.coordinatorId || null,
             requester_contact_id: data.requesterId || null,
             scheduled_date: data.serviceDateTime ? data.serviceDateTime.split('T')[0] : null,
             service_date_time: data.serviceDateTime || null,
@@ -610,6 +615,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         singleReport: true,
         description: "",
         supervisorId: "",
+        coordinatorId: "",
       });
       setSelectedTechnicians([]);
       setLeadTechId("");
@@ -739,6 +745,31 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
                     {supervisors.map((supervisor) => (
                       <SelectItem key={supervisor.id} value={supervisor.id}>
                         {supervisor.full_name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="coordinatorId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Coordenador (Opcional)</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione o coordenador" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {supervisors.map((coordinator) => (
+                      <SelectItem key={coordinator.id} value={coordinator.id}>
+                        {coordinator.full_name}
                       </SelectItem>
                     ))}
                   </SelectContent>
