@@ -1,7 +1,7 @@
 import { useServiceVisits } from '@/hooks/useServiceVisits';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Calendar, Users, FileText } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
@@ -58,9 +58,16 @@ export const VisitHistoryTimeline = ({ serviceOrderId, currentVisitId }: VisitHi
           {/* Timeline line */}
           <div className="absolute left-4 top-3 bottom-3 w-px bg-border" />
 
-          {visits.map((visit, index) => {
-            const isLast = index === visits.length - 1;
+          {visits.map((visit) => {
             const isCurrent = visit.id === currentVisitId;
+
+            const visitDate = new Date(visit.visit_date);
+            const dateLabel = isValid(visitDate)
+              ? format(visitDate, "dd 'de' MMM 'de' yyyy", { locale: ptBR })
+              : 'Data inválida';
+
+            const rawTechs = visit.visit_technicians ?? [];
+            const techsWithName = rawTechs.filter((vt) => vt?.technicians?.profiles?.full_name);
 
             return (
               <div key={visit.id} className="relative pl-10">
@@ -97,20 +104,29 @@ export const VisitHistoryTimeline = ({ serviceOrderId, currentVisitId }: VisitHi
 
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Calendar className="h-3.5 w-3.5" />
-                    {format(new Date(visit.visit_date), "dd 'de' MMM 'de' yyyy", { locale: ptBR })}
+                    {dateLabel}
                   </div>
 
-                  {visit.visit_technicians && visit.visit_technicians.length > 0 && (
+                  {rawTechs.length > 0 && (
                     <div className="flex items-start gap-2 text-sm">
                       <Users className="h-3.5 w-3.5 mt-0.5 text-muted-foreground" />
                       <div className="flex-1 text-muted-foreground">
-                        {visit.visit_technicians.map((vt, idx) => (
-                          <span key={idx} className={vt.is_lead ? 'font-medium' : ''}>
-                            {vt.technicians.profiles.full_name}
-                            {vt.is_lead && ' (Líder)'}
-                            {idx < visit.visit_technicians!.length - 1 && ', '}
-                          </span>
-                        ))}
+                        {techsWithName.length > 0 ? (
+                          techsWithName.map((vt, idx) => {
+                            const fullName = vt?.technicians?.profiles?.full_name;
+                            if (!fullName) return null;
+
+                            return (
+                              <span key={idx} className={vt.is_lead ? 'font-medium' : ''}>
+                                {fullName}
+                                {vt.is_lead && ' (Líder)'}
+                                {idx < techsWithName.length - 1 && ', '}
+                              </span>
+                            );
+                          })
+                        ) : (
+                          <span>Equipe não disponível</span>
+                        )}
                       </div>
                     </div>
                   )}

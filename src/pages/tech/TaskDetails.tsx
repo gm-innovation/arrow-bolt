@@ -4,9 +4,23 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
-import { Calendar, Clock, Loader2, AlertCircle, MapPin, Users, Ship, Building, CheckCircle, Wrench, ListCheck, Camera } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  Loader2,
+  AlertCircle,
+  MapPin,
+  Users,
+  Ship,
+  Building,
+  CheckCircle,
+  Wrench,
+  ListCheck,
+  Camera,
+} from "lucide-react";
 import { NewContinuationVisitButton } from "@/components/tech/NewContinuationVisitButton";
 import { VisitHistoryTimeline } from "@/components/tech/VisitHistoryTimeline";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -591,7 +605,20 @@ const TaskDetails = () => {
         <TabsContent value="historico" className="space-y-4 mt-6">
           <Card>
             <CardContent className="pt-6">
-              <VisitHistoryTimeline serviceOrderId={serviceOrderData.serviceOrderId} />
+              <ErrorBoundary
+                fallback={
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Não foi possível carregar o histórico de visitas.
+                    </p>
+                    <Button variant="outline" onClick={() => window.location.reload()}>
+                      Recarregar
+                    </Button>
+                  </div>
+                }
+              >
+                <VisitHistoryTimeline serviceOrderId={serviceOrderData.serviceOrderId} />
+              </ErrorBoundary>
             </CardContent>
           </Card>
         </TabsContent>
