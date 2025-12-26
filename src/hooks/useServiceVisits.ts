@@ -22,8 +22,8 @@ export interface ServiceVisit {
   visit_technicians?: Array<{
     is_lead: boolean;
     technicians: {
-      profiles: { full_name: string };
-    };
+      profiles: { full_name: string } | null;
+    } | null;
   }>;
 }
 
