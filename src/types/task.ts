@@ -10,6 +10,7 @@ export interface Task {
   status: TaskStatus;
   singleReport?: boolean;
   taskName?: string;
+  taskTypeId?: string; // Added for deduplication when single_report=true
 }
 
 export interface GroupedTask extends Task {
