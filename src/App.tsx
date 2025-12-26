@@ -56,6 +56,8 @@ import TechReports from "./pages/tech/Reports";
 import ReportForm from "./pages/tech/ReportForm";
 import TechNotifications from "./pages/tech/Notifications";
 import TechInstallApp from "./pages/tech/InstallApp";
+import TechProfile from "./pages/tech/Profile";
+import TechSettings from "./pages/tech/Settings";
 import InstallApp from "./pages/InstallApp";
 import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
 import Chat from "./pages/Chat";
@@ -69,6 +71,9 @@ import HRAbsences from "./pages/hr/Absences";
 import HROnCall from "./pages/hr/OnCall";
 import HRHolidays from "./pages/hr/Holidays";
 import HRReports from "./pages/hr/Reports";
+import HRProfile from "./pages/hr/Profile";
+import HRSettings from "./pages/hr/Settings";
+import SuperAdminProfile from "./pages/super-admin/Profile";
 
 // Create a new QueryClient instance with proper configuration
 const queryClient = new QueryClient({
@@ -143,6 +148,16 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['super_admin']}>
                     <DashboardLayout userType="super-admin">
                       <Settings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/super-admin/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <DashboardLayout userType="super-admin">
+                      <SuperAdminProfile />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
@@ -514,6 +529,26 @@ const App = () => {
                 }
               />
               <Route
+                path="/tech/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <TechProfile />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/tech/settings"
+                element={
+                  <ProtectedRoute allowedRoles={['technician']}>
+                    <DashboardLayout userType="tech">
+                      <TechSettings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
                 path="/tech/survey/:taskId"
                 element={
                   <ProtectedRoute allowedRoles={['technician']}>
@@ -585,6 +620,26 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['hr']}>
                     <DashboardLayout userType="hr">
                       <HRReports />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <HRProfile />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/settings"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <HRSettings />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }

@@ -48,11 +48,11 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
 
   const getProfilePath = () => {
     switch (userType) {
-      case "super-admin": return "/super-admin/settings";
+      case "super-admin": return "/super-admin/profile";
       case "admin": return "/admin/profile";
       case "manager": return "/manager/profile";
       case "tech": return "/tech/profile";
-      case "hr": return "/hr/dashboard";
+      case "hr": return "/hr/profile";
       default: return "/";
     }
   };
@@ -63,7 +63,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       case "admin": return "/admin/settings";
       case "manager": return "/manager/settings";
       case "tech": return "/tech/settings";
-      case "hr": return "/hr/dashboard";
+      case "hr": return "/hr/settings";
       default: return "/";
     }
   };
@@ -98,12 +98,10 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
           <User className="mr-2 h-4 w-4" />
           <span>Perfil</span>
         </DropdownMenuItem>
-        {userType !== "tech" && (
-          <DropdownMenuItem onClick={() => navigate(getSettingsPath())}>
-            <Settings className="mr-2 h-4 w-4" />
-            <span>Configurações</span>
-          </DropdownMenuItem>
-        )}
+        <DropdownMenuItem onClick={() => navigate(getSettingsPath())}>
+          <Settings className="mr-2 h-4 w-4" />
+          <span>Configurações</span>
+        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
           <LogOut className="mr-2 h-4 w-4" />
