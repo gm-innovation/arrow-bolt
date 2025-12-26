@@ -15,6 +15,7 @@ import { ServiceDetails } from "./ServiceDetails";
 import { TechniciansSelection } from "./TechniciansSelection";
 import { LocationAccessSection } from "./LocationAccessSection";
 import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
+import { useNotificationService } from "@/hooks/useNotificationService";
 
 const orderFormSchema = z.object({
   clientId: z.string().min(1, "Cliente é obrigatório"),
@@ -61,6 +62,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendTaskAssignmentNotification, sendScheduleChangeNotification } = useWhatsAppNotification();
+  const { notifyTechniciansAboutOrder, notifyCoordinatorAboutOrder, notifyScheduleChange } = useNotificationService();
   const [clients, setClients] = useState<any[]>([]);
   const [vessels, setVessels] = useState<any[]>([]);
   const [supervisors, setSupervisors] = useState<any[]>([]);
@@ -483,6 +485,42 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
           }
         }
 
+        // Send push notifications for schedule change
+        if (originalScheduledDate && currentDate && currentDate !== originalScheduledDate) {
+          // Get user IDs for technicians
+          const { data: techUsersData } = await supabase
+            .from("technicians")
+            .select("user_id")
+            .in("id", selectedTechnicians);
+          
+          const techUserIds = techUsersData?.map(t => t.user_id).filter(Boolean) || [];
+          if (techUserIds.length > 0) {
+            notifyScheduleChange(
+              techUserIds,
+              originalOrderNumber || orderNumber || "",
+              orderId!,
+              new Date(data.serviceDateTime!).toLocaleDateString('pt-BR')
+            ).catch(err => console.error("Schedule change notification failed:", err));
+          }
+        } else {
+          // Notify about general OS update
+          notifyTechniciansAboutOrder(
+            selectedTechnicians,
+            originalOrderNumber || orderNumber || "",
+            orderId!,
+            false
+          ).catch(err => console.error("OS update notification failed:", err));
+        }
+
+        // Notify coordinator/supervisor about the update
+        notifyCoordinatorAboutOrder(
+          data.coordinatorId,
+          data.supervisorId,
+          originalOrderNumber || orderNumber || "",
+          orderId!,
+          false
+        ).catch(err => console.error("Coordinator update notification failed:", err));
+
         toast({
           title: "OS atualizada",
           description: "Ordem de serviço atualizada com sucesso!",
@@ -593,7 +631,24 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
               ).catch(err => console.error("WhatsApp notification failed:", err));
             }
           }
+
+          // Send push notifications to technicians
+          notifyTechniciansAboutOrder(
+            selectedTechnicians,
+            orderNumber!,
+            serviceOrder.id,
+            true
+          ).catch(err => console.error("Push notification failed:", err));
         }
+
+        // Notify coordinator/supervisor about the new OS
+        notifyCoordinatorAboutOrder(
+          data.coordinatorId,
+          data.supervisorId,
+          orderNumber!,
+          serviceOrder.id,
+          true
+        ).catch(err => console.error("Coordinator notification failed:", err));
 
         toast({
           title: "OS criada",

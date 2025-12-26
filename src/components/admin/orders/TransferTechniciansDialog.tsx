@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
+import { useNotificationService } from "@/hooks/useNotificationService";
 
 interface TransferTechniciansDialogProps {
   orderId: string;
@@ -20,6 +21,7 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendTaskAssignmentNotification } = useWhatsAppNotification();
+  const { sendNotification } = useNotificationService();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [tasks, setTasks] = useState<any[]>([]);
@@ -266,6 +268,7 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
       // Send notifications to the new technician
       const newTechProfile = technicians.find(t => t.id === newTechnicianId);
       if (newTechProfile?.profiles?.id) {
+        // Create in-app notification
         const { error: notifError } = await supabase
           .from("notifications")
           .insert({
@@ -277,6 +280,16 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
           });
 
         if (notifError) console.error("Error creating notification:", notifError);
+
+        // Send push notification
+        sendNotification({
+          userId: newTechProfile.profiles.id,
+          title: "Nova(s) Tarefa(s) Atribuída(s)",
+          message: `Você recebeu ${selectedTasks.length} nova(s) tarefa(s) por transferência na OS ${orderNumber}.`,
+          type: "task_assignment",
+          referenceId: orderId,
+          sendPush: true,
+        }).catch(err => console.error("Push notification failed:", err));
 
         // Send WhatsApp notification
         const phoneNumber = newTechProfile.profiles?.phone;

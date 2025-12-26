@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Dialog } from "@/components/ui/dialog";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 import { useForm } from "react-hook-form";
+import { PushNotificationPrompt } from "@/components/notifications/PushNotificationPrompt";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -88,6 +89,8 @@ const AdminDashboard = () => {
       <Dialog open={isNewOrderOpen} onOpenChange={setIsNewOrderOpen}>
         <NewOrderDialog form={form} />
       </Dialog>
+
+      <PushNotificationPrompt />
     </div>
   );
 };

@@ -40,6 +40,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import MyScheduleCard from "@/components/tech/MyScheduleCard";
+import { PushNotificationPrompt } from "@/components/notifications/PushNotificationPrompt";
 
 interface UpcomingTask {
   id: string;
@@ -686,6 +687,8 @@ const TechDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      <PushNotificationPrompt delay={5000} />
     </div>
   );
 };
