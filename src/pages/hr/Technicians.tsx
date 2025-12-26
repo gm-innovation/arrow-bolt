@@ -20,6 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NewTechnicianForm } from '@/components/admin/technicians/NewTechnicianForm';
 import { useToast } from '@/hooks/use-toast';
@@ -705,7 +706,7 @@ const Technicians = () => {
                           {aso.status === 'expired' && <AlertTriangle className="h-4 w-4 text-destructive" />}
                           {tech.aso_valid_until ? (
                             <span className={aso.status === 'expired' ? 'text-destructive' : ''}>
-                              {format(new Date(tech.aso_valid_until), "dd/MM/yyyy", { locale: ptBR })}
+                              {formatLocalDate(tech.aso_valid_until)}
                             </span>
                           ) : (
                             <span className="text-muted-foreground">-</span>
@@ -803,7 +804,7 @@ const Technicians = () => {
                       <span className="text-muted-foreground">Data de Nascimento:</span>
                       <p>
                         {selectedTechnician.birth_date 
-                          ? format(new Date(selectedTechnician.birth_date), "dd/MM/yyyy", { locale: ptBR })
+                          ? formatLocalDate(selectedTechnician.birth_date)
                           : '-'
                         }
                       </p>
@@ -834,7 +835,7 @@ const Technicians = () => {
                       <div className="flex items-center gap-2">
                         {selectedTechnician.aso_valid_until ? (
                           <>
-                            <p>{format(new Date(selectedTechnician.aso_valid_until), "dd/MM/yyyy", { locale: ptBR })}</p>
+                            <p>{formatLocalDate(selectedTechnician.aso_valid_until)}</p>
                             <Badge variant={getAsoStatus(selectedTechnician.aso_valid_until).variant}>
                               {getAsoStatus(selectedTechnician.aso_valid_until).label}
                             </Badge>
@@ -885,7 +886,7 @@ const Technicians = () => {
                               <p className="text-xs text-muted-foreground">
                                 {getDocumentTypeLabel(doc.document_type)}
                                 {doc.expiry_date && (
-                                  <> • Validade: {format(new Date(doc.expiry_date), "dd/MM/yyyy", { locale: ptBR })}</>
+                                  <> • Validade: {formatLocalDate(doc.expiry_date)}</>
                                 )}
                               </p>
                             </div>

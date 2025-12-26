@@ -9,6 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAbsences, getAbsenceTypeLabel } from '@/hooks/useAbsences';
 import { useOnCall } from '@/hooks/useOnCall';
+import { formatLocalDate } from '@/lib/utils';
 
 interface DashboardStats {
   totalTechnicians: number;
@@ -141,7 +142,7 @@ const Dashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{stats.absencesThisWeek}</div>
             <p className="text-xs text-muted-foreground">
-              {format(new Date(weekStart), "dd/MM", { locale: ptBR })} - {format(new Date(weekEnd), "dd/MM", { locale: ptBR })}
+              {formatLocalDate(weekStart, "dd/MM")} - {formatLocalDate(weekEnd, "dd/MM")}
             </p>
           </CardContent>
         </Card>
@@ -178,7 +179,7 @@ const Dashboard = () => {
                     <div>
                       <p className="font-medium">{tech.profiles?.full_name || 'Sem nome'}</p>
                       <p className="text-sm text-muted-foreground">
-                        Vence em: {format(new Date(tech.aso_valid_until), "dd/MM/yyyy", { locale: ptBR })}
+                        Vence em: {formatLocalDate(tech.aso_valid_until)}
                       </p>
                     </div>
                     <Badge variant={new Date(tech.aso_valid_until) < today ? "destructive" : "secondary"}>
@@ -228,7 +229,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                       <Badge variant="outline">
-                        {format(new Date(absence.start_date), "dd/MM")} - {format(new Date(absence.end_date), "dd/MM")}
+                        {formatLocalDate(absence.start_date, "dd/MM")} - {formatLocalDate(absence.end_date, "dd/MM")}
                       </Badge>
                     </div>
                   );

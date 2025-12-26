@@ -14,6 +14,7 @@ import { useMeasurementManHours } from "@/hooks/useMeasurementManHours";
 import { useServiceRates } from "@/hooks/useServiceRates";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 const manHourSchema = z.object({
   entry_date: z.string().min(1, "Data obrigatória"),
@@ -267,7 +268,7 @@ export const ManHoursTab = ({ measurementId, serviceOrderId, manHours, disabled 
               <TableBody>
                 {technicianTimeEntries.map((item) => (
                   <TableRow key={item.id} className="bg-muted/30">
-                    <TableCell>{format(new Date(item.entry_date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{formatLocalDate(item.entry_date)}</TableCell>
                     <TableCell>{item.start_time} - {item.end_time}</TableCell>
                     <TableCell>{hourTypeLabels[item.entry_type as keyof typeof hourTypeLabels] || item.entry_type}</TableCell>
                     <TableCell>
@@ -411,7 +412,7 @@ export const ManHoursTab = ({ measurementId, serviceOrderId, manHours, disabled 
             <TableBody>
               {manHours.map((item) => (
                 <TableRow key={item.id}>
-                  <TableCell>{format(new Date(item.entry_date), 'dd/MM/yyyy')}</TableCell>
+                  <TableCell>{formatLocalDate(item.entry_date)}</TableCell>
                   <TableCell>{item.start_time} - {item.end_time}</TableCell>
                   <TableCell>{hourTypeLabels[item.hour_type as keyof typeof hourTypeLabels]}</TableCell>
                   <TableCell>{workTypeLabels[item.work_type as keyof typeof workTypeLabels]}</TableCell>

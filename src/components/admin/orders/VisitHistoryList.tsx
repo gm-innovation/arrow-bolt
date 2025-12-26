@@ -2,8 +2,7 @@ import { useServiceVisits } from '@/hooks/useServiceVisits';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Calendar, Users, FileText } from 'lucide-react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from '@/lib/utils';
 
 interface VisitHistoryListProps {
   serviceOrderId: string;
@@ -73,7 +72,7 @@ export const VisitHistoryList = ({ serviceOrderId }: VisitHistoryListProps) => {
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Calendar className="h-4 w-4" />
-                  {format(new Date(visit.visit_date), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                  {formatLocalDate(visit.visit_date, "dd 'de' MMMM 'de' yyyy")}
                 </div>
 
                 {visit.visit_technicians && visit.visit_technicians.length > 0 && (

@@ -11,8 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ViewOrderDetailsDialog } from "@/components/admin/orders/ViewOrderDetailsDialog";
 import { Dialog } from "@/components/ui/dialog";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatLocalDate } from "@/lib/utils";
 
 const ServiceOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -133,7 +132,7 @@ const ServiceOrders = () => {
                       <TableCell>{getStatusBadge(order.status)}</TableCell>
                       <TableCell>
                         {order.scheduled_date
-                          ? format(new Date(order.scheduled_date), "dd/MM/yyyy", { locale: ptBR })
+                          ? formatLocalDate(order.scheduled_date)
                           : "-"}
                       </TableCell>
                       <TableCell className="text-right">

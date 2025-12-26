@@ -1,8 +1,39 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+/**
+ * Safely parse a date string (YYYY-MM-DD) without timezone issues.
+ * Adds T00:00:00 to interpret as local time instead of UTC.
+ */
+export function parseLocalDate(dateString: string | null | undefined): Date | null {
+  if (!dateString) return null;
+  
+  // If already has time component, parse directly
+  if (dateString.includes('T')) {
+    return new Date(dateString);
+  }
+  
+  // Add T00:00:00 to interpret as local time
+  return new Date(dateString + 'T00:00:00');
+}
+
+/**
+ * Format a date string (YYYY-MM-DD) to Brazilian format (dd/MM/yyyy)
+ * without timezone issues.
+ */
+export function formatLocalDate(
+  dateString: string | null | undefined, 
+  formatString: string = 'dd/MM/yyyy'
+): string {
+  const date = parseLocalDate(dateString);
+  if (!date || isNaN(date.getTime())) return '-';
+  return format(date, formatString, { locale: ptBR });
 }
 
 /**
