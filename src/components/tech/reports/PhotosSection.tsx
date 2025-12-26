@@ -10,6 +10,7 @@ export type PhotosSectionProps = {
   photos: PhotoWithCaption[];
   onUpdatePhotos: (taskId: string, photos: PhotoWithCaption[]) => void;
   requiredPhotoLabels?: string[];
+  showValidation?: boolean;
 };
 
 type PhotoItemProps = {
@@ -74,8 +75,10 @@ const PhotoItem = ({ photo, index, onUpdateDescription, onRemove }: PhotoItemPro
   );
 };
 
-export const PhotosSection = ({ taskId, photos, onUpdatePhotos, requiredPhotoLabels = [] }: PhotosSectionProps) => {
+export const PhotosSection = ({ taskId, photos, onUpdatePhotos, requiredPhotoLabels = [], showValidation = false }: PhotosSectionProps) => {
   const [customCaption, setCustomCaption] = React.useState("");
+
+  const hasNoPhotos = !photos || photos.length === 0;
 
   const handlePhotoUpload = (caption: string, files: FileList | null) => {
     if (!files) return;
@@ -120,6 +123,14 @@ export const PhotosSection = ({ taskId, photos, onUpdatePhotos, requiredPhotoLab
 
   return (
     <div className="space-y-6">
+      {showValidation && hasNoPhotos && (
+        <div className="p-3 border border-destructive rounded-md bg-destructive/10">
+          <p className="text-sm text-destructive font-medium">
+            É obrigatório adicionar pelo menos 1 foto ao relatório.
+          </p>
+        </div>
+      )}
+      
       {requiredPhotoLabels.length > 0 && (
         <div>
           <h3 className="text-lg font-semibold mb-3">Fotos Obrigatórias</h3>
@@ -142,7 +153,9 @@ export const PhotosSection = ({ taskId, photos, onUpdatePhotos, requiredPhotoLab
       )}
 
       <div className={requiredPhotoLabels.length > 0 ? "border-t pt-6" : ""}>
-        <h3 className="text-lg font-semibold mb-3">Fotos Adicionais</h3>
+        <h3 className="text-lg font-semibold mb-3 flex items-center gap-1">
+          {requiredPhotoLabels.length > 0 ? "Fotos Adicionais" : "Fotos"} <span className="text-destructive">*</span>
+        </h3>
         <div className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor="custom-caption">Legenda da Foto</Label>
