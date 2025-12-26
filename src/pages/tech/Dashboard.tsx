@@ -29,11 +29,9 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow, format, isToday, isTomorrow, parseISO, eachDayOfInterval, subDays } from "date-fns";
+import { format, isToday, isTomorrow, parseISO, eachDayOfInterval, subDays, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -41,6 +39,7 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { DateRange } from "react-day-picker";
 import MyScheduleCard from "@/components/tech/MyScheduleCard";
 import { PushNotificationPrompt } from "@/components/notifications/PushNotificationPrompt";
+import { useTechnicianStats } from "@/hooks/useTechnicianStats";
 
 interface UpcomingTask {
   id: string;
@@ -61,19 +60,8 @@ const TechDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { permission, requestPermission, isSupported } = usePushNotifications();
+  const { stats, loading: statsLoading, technicianId } = useTechnicianStats();
   
-  const [stats, setStats] = useState({
-    assignedTasks: 0,
-    highPriorityTasks: 0,
-    completedThisWeek: 0,
-    completedLastWeek: 0,
-    hoursThisWeek: 0,
-    hoursLastWeek: 0,
-    averageRating: null as number | null,
-    totalRatings: 0,
-    completionRate: 0,
-    avgTaskDuration: 0,
-  });
   const [productivityData, setProductivityData] = useState<any[]>([]);
   const [productivityRange, setProductivityRange] = useState<DateRange>({
     from: subDays(new Date(), 13),
@@ -83,7 +71,6 @@ const TechDashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [upcomingTasks, setUpcomingTasks] = useState<UpcomingTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [technicianId, setTechnicianId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -103,7 +90,7 @@ const TechDashboard = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get technician ID
+      // Get technician ID for upcoming tasks
       const { data: technician } = await supabase
         .from("technicians")
         .select("id")
@@ -130,93 +117,6 @@ const TechDashboard = () => {
 
       setUpcomingTasks((assignedTasks || []) as UpcomingTask[]);
 
-      const { data: allAssignedTasks } = await supabase
-        .from("tasks")
-        .select("priority, status")
-        .eq("assigned_to", technician.id)
-        .in("status", ["pending", "in_progress"]);
-
-      const highPriorityCount = allAssignedTasks?.filter(t => t.priority && t.priority >= 3).length || 0;
-
-      // Date ranges
-      const now = new Date();
-      const weekStart = new Date(now);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-      weekStart.setHours(0, 0, 0, 0);
-
-      const lastWeekStart = new Date(weekStart);
-      lastWeekStart.setDate(lastWeekStart.getDate() - 7);
-
-      const lastWeekEnd = new Date(weekStart);
-      lastWeekEnd.setMilliseconds(-1);
-
-      // Completed tasks this week
-      const { count: completedThisWeek } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact", head: true })
-        .eq("assigned_to", technician.id)
-        .eq("status", "completed")
-        .gte("completed_at", weekStart.toISOString());
-
-      // Completed tasks last week
-      const { count: completedLastWeek } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact", head: true })
-        .eq("assigned_to", technician.id)
-        .eq("status", "completed")
-        .gte("completed_at", lastWeekStart.toISOString())
-        .lt("completed_at", weekStart.toISOString());
-
-      // Total assigned vs completed (for completion rate)
-      const { count: totalAssigned } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact", head: true })
-        .eq("assigned_to", technician.id);
-
-      const { count: totalCompleted } = await supabase
-        .from("tasks")
-        .select("id", { count: "exact", head: true })
-        .eq("assigned_to", technician.id)
-        .eq("status", "completed");
-
-      const completionRate = totalAssigned && totalAssigned > 0
-        ? ((totalCompleted || 0) / totalAssigned) * 100
-        : 0;
-
-      // Fetch hours worked this week
-      const { data: timeEntriesThisWeek } = await supabase
-        .from("time_entries")
-        .select("start_time, end_time")
-        .eq("technician_id", technician.id)
-        .gte("entry_date", weekStart.toISOString().split("T")[0]);
-
-      let hoursThisWeek = 0;
-      timeEntriesThisWeek?.forEach((entry) => {
-        const [startHour, startMin] = entry.start_time.split(":").map(Number);
-        const [endHour, endMin] = entry.end_time.split(":").map(Number);
-        const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
-        hoursThisWeek += hours;
-      });
-
-      // Fetch hours worked last week
-      const { data: timeEntriesLastWeek } = await supabase
-        .from("time_entries")
-        .select("start_time, end_time")
-        .eq("technician_id", technician.id)
-        .gte("entry_date", lastWeekStart.toISOString().split("T")[0])
-        .lt("entry_date", weekStart.toISOString().split("T")[0]);
-
-      let hoursLastWeek = 0;
-      timeEntriesLastWeek?.forEach((entry) => {
-        const [startHour, startMin] = entry.start_time.split(":").map(Number);
-        const [endHour, endMin] = entry.end_time.split(":").map(Number);
-        const hours = (endHour + endMin / 60) - (startHour + startMin / 60);
-        hoursLastWeek += hours;
-      });
-
-      // Save technician ID for productivity data fetch
-      setTechnicianId(technician.id);
-
       // Fetch notifications
       const { data: notificationsData } = await supabase
         .from("notifications")
@@ -227,49 +127,6 @@ const TechDashboard = () => {
 
       const unread = notificationsData?.filter(n => !n.read).length || 0;
 
-      // Calculate average task duration
-      const avgTaskDuration = totalCompleted && totalCompleted > 0 ? hoursThisWeek / (completedThisWeek || 1) : 0;
-
-      // Fetch real average rating from satisfaction surveys
-      // The satisfaction data is stored in task_reports.report_data.satisfaction.rating
-      const { data: taskReportsWithRatings } = await supabase
-        .from("task_reports")
-        .select(`
-          report_data,
-          task:tasks!task_reports_task_uuid_fkey (
-            assigned_to
-          )
-        `)
-        .eq("task.assigned_to", technician.id);
-
-      // Extract ratings from report_data.satisfaction.rating
-      let totalRating = 0;
-      let ratingCount = 0;
-      taskReportsWithRatings?.forEach((report) => {
-        const reportData = report.report_data as Record<string, unknown>;
-        if (reportData?.satisfaction) {
-          const satisfaction = reportData.satisfaction as Record<string, unknown>;
-          if (satisfaction?.rating && typeof satisfaction.rating === 'number') {
-            totalRating += satisfaction.rating;
-            ratingCount++;
-          }
-        }
-      });
-
-      const averageRating = ratingCount > 0 ? totalRating / ratingCount : null;
-
-      setStats({
-        assignedTasks: allAssignedTasks?.length || 0,
-        highPriorityTasks: highPriorityCount,
-        completedThisWeek: completedThisWeek || 0,
-        completedLastWeek: completedLastWeek || 0,
-        hoursThisWeek,
-        hoursLastWeek,
-        averageRating,
-        totalRatings: ratingCount,
-        completionRate,
-        avgTaskDuration,
-      });
       setNotifications(notificationsData || []);
       setUnreadCount(unread);
     } catch (error) {
