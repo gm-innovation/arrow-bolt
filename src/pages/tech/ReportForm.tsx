@@ -52,7 +52,16 @@ interface ServiceOrderData {
   };
 }
 
-  const ReportFormContent = () => {
+interface TaskInfo {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  taskTypeName: string;
+  photoLabels: string[];
+}
+
+const ReportFormContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { reportId } = useParams();
@@ -73,6 +82,8 @@ interface ServiceOrderData {
   const [currentServiceOrderId, setCurrentServiceOrderId] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [isPhotoGalleryOpen, setIsPhotoGalleryOpen] = useState(false);
+  const [allTasks, setAllTasks] = useState<TaskInfo[]>([]);
+  const [taskPhotoLabels, setTaskPhotoLabels] = useState<Record<string, string[]>>({});
 
   // Helper function to upload image to storage
   const uploadImageToStorage = async (file: File, taskId: string, imageIndex: number): Promise<string | null> => {
@@ -135,7 +146,7 @@ interface ServiceOrderData {
     }
   };
 
-  const fetchTaskReports = async (osId: string) => {
+  const fetchTaskReports = async (osId: string, tasksInfo: TaskInfo[]) => {
     try {
       console.log("Fetching task reports for service order:", osId);
       
@@ -158,8 +169,8 @@ interface ServiceOrderData {
         
         const reportsWithRecreatedFiles: Record<string, TaskReport> = {};
         
-        // Normalize to always use osId as key
-        for (const [_legacyKey, report] of Object.entries(reportData)) {
+        // Process saved reports and load photos
+        for (const [taskId, report] of Object.entries(reportData)) {
           // Handle photos - try to load saved images
           const photosWithFiles: PhotoWithCaption[] = [];
           
@@ -188,11 +199,28 @@ interface ServiceOrderData {
             }
           }
           
-          // Use osId as key
-          reportsWithRecreatedFiles[osId] = {
+          reportsWithRecreatedFiles[taskId] = {
             ...report,
             photos: photosWithFiles,
           };
+        }
+        
+        // Ensure all tasks have a report (initialize missing ones)
+        for (const task of tasksInfo) {
+          if (!reportsWithRecreatedFiles[task.id]) {
+            reportsWithRecreatedFiles[task.id] = {
+              modelInfo: "",
+              brandInfo: "",
+              serialNumber: "",
+              reportedIssue: "",
+              executedWork: "",
+              result: "",
+              nextVisitWork: "",
+              suppliedMaterial: "",
+              photos: [],
+              timeEntries: [],
+            };
+          }
         }
         
         setTaskReports(reportsWithRecreatedFiles);
@@ -229,6 +257,7 @@ interface ServiceOrderData {
           access,
           supervisor_id,
           company_id,
+          single_report,
           vessels:vessel_id (name),
           clients:client_id (name, contact_person)
         `)
@@ -250,18 +279,36 @@ interface ServiceOrderData {
         return;
       }
 
-      // Fetch one task from this OS to get task type info for photo labels
-      const { data: taskData } = await supabase
+      // Fetch ALL tasks from this OS
+      const { data: tasksData } = await supabase
         .from('tasks')
         .select(`
           id,
           title,
           description,
+          status,
           task_types:task_type_id (name, photo_labels)
         `)
         .eq('service_order_id', osId)
-        .limit(1)
-        .maybeSingle();
+        .order('created_at', { ascending: true });
+
+      const fetchedTasks: TaskInfo[] = (tasksData || []).map((task: any) => ({
+        id: task.id,
+        title: task.title || task.description || 'Tarefa',
+        description: task.description || '',
+        status: task.status,
+        taskTypeName: task.task_types?.name || task.title || 'Tarefa',
+        photoLabels: task.task_types?.photo_labels || [],
+      }));
+      
+      setAllTasks(fetchedTasks);
+      
+      // Build photo labels map per task
+      const labelsMap: Record<string, string[]> = {};
+      fetchedTasks.forEach(task => {
+        labelsMap[task.id] = task.photoLabels;
+      });
+      setTaskPhotoLabels(labelsMap);
 
       // Fetch supervisor if exists
       let supervisorName = 'N/A';
@@ -368,8 +415,8 @@ interface ServiceOrderData {
           leadTechnician,
           assistants,
         },
-        service: taskData?.task_types?.name || taskData?.title || taskData?.description || 'Serviço não especificado',
-        taskTitle: taskData?.title || taskData?.task_types?.name || 'Tarefa',
+        service: fetchedTasks[0]?.taskTypeName || 'Serviço não especificado',
+        taskTitle: fetchedTasks[0]?.title || fetchedTasks[0]?.taskTypeName || 'Tarefa',
         company: {
           name: companyData?.name?.trim() || 'Empresa não especificada',
           email: companyData?.email?.trim() || '',
@@ -385,10 +432,10 @@ interface ServiceOrderData {
       setServiceOrderData(serviceOrderDataObj);
       setCurrentServiceOrderId(osId);
       
-      // Set required photo labels from task type
-      const photoLabels = (taskData?.task_types as any)?.photo_labels || [];
-      setRequiredPhotoLabels(photoLabels);
-      console.log("Required photo labels:", photoLabels);
+      // Set required photo labels from first task (for backward compatibility)
+      const firstTaskPhotoLabels = fetchedTasks[0]?.photoLabels || [];
+      setRequiredPhotoLabels(firstTaskPhotoLabels);
+      console.log("Required photo labels:", firstTaskPhotoLabels);
       
       setTaskValidated(true);
       console.log("Service order validated successfully");
@@ -430,13 +477,22 @@ interface ServiceOrderData {
 
       setIsLoading(true);
       await fetchServiceOrderData(osId);
+    };
+    loadData();
+  }, [serviceOrderId, legacyTaskId]);
+
+  // Second useEffect to initialize reports after tasks are loaded
+  useEffect(() => {
+    const initializeReports = async () => {
+      if (!currentServiceOrderId || allTasks.length === 0) return;
       
-      const savedReports = await fetchTaskReports(osId);
+      const savedReports = await fetchTaskReports(currentServiceOrderId, allTasks);
       if (!savedReports) {
-        console.log("No saved reports found, initializing with osId");
-        setSelectedTask(osId);
-        setTaskReports({
-          [osId]: {
+        console.log("No saved reports found, initializing for all tasks");
+        // Initialize reports for all tasks
+        const initialReports: Record<string, TaskReport> = {};
+        allTasks.forEach(task => {
+          initialReports[task.id] = {
             modelInfo: "",
             brandInfo: "",
             serialNumber: "",
@@ -447,15 +503,17 @@ interface ServiceOrderData {
             suppliedMaterial: "",
             photos: [],
             timeEntries: [],
-          },
+          };
         });
+        setTaskReports(initialReports);
+        setSelectedTask(allTasks[0].id);
       } else {
-        setSelectedTask(osId);
+        setSelectedTask(Object.keys(savedReports)[0] || allTasks[0].id);
       }
       setIsLoading(false);
     };
-    loadData();
-  }, [serviceOrderId, legacyTaskId]);
+    initializeReports();
+  }, [currentServiceOrderId, allTasks]);
 
   const handleAddTimeEntry = (taskId: string) => {
     const newEntry = {
@@ -843,17 +901,23 @@ interface ServiceOrderData {
     e.preventDefault();
     setShowValidation(true);
     
-    // Validate all task reports
-    const report = taskReports[selectedTask];
-    const validation = validateTaskReport(report, requiredPhotoLabels);
-    
-    if (!validation.isValid) {
-      toast({
-        title: "Campos obrigatórios",
-        description: validation.errors[0] || "Preencha todos os campos obrigatórios antes de enviar.",
-        variant: "destructive",
-      });
-      return;
+    // Validate ALL task reports
+    for (const [taskId, report] of Object.entries(taskReports)) {
+      const taskInfo = allTasks.find(t => t.id === taskId);
+      const taskPhotoLabelsForTask = taskPhotoLabels[taskId] || [];
+      const validation = validateTaskReport(report, taskPhotoLabelsForTask);
+      
+      if (!validation.isValid) {
+        const taskName = taskInfo?.taskTypeName || 'Tarefa';
+        toast({
+          title: `Campos obrigatórios - ${taskName}`,
+          description: validation.errors[0] || "Preencha todos os campos obrigatórios antes de enviar.",
+          variant: "destructive",
+        });
+        // Navigate to the tab with errors
+        setSelectedTask(taskId);
+        return;
+      }
     }
     
     try {
@@ -985,13 +1049,37 @@ interface ServiceOrderData {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <Tabs value={selectedTask} onValueChange={setSelectedTask}>
-          <TabsList>
-            {Object.keys(taskReports).map((taskId) => (
-              <TabsTrigger key={taskId} value={taskId}>
-                {serviceOrderData.taskTitle || 'Tarefa'}
-              </TabsTrigger>
-            ))}
+          <TabsList className="flex-wrap h-auto gap-1">
+            {allTasks.map((task) => {
+              const report = taskReports[task.id];
+              const hasContent = report && (
+                report.modelInfo || report.executedWork || report.photos?.length > 0 || report.timeEntries?.length > 0
+              );
+              const isComplete = report && validateTaskReport(report, taskPhotoLabels[task.id] || []).isValid;
+              
+              return (
+                <TabsTrigger 
+                  key={task.id} 
+                  value={task.id}
+                  className="flex items-center gap-2"
+                >
+                  <span className={`w-2 h-2 rounded-full ${
+                    isComplete ? 'bg-green-500' : hasContent ? 'bg-yellow-500' : 'bg-muted-foreground/30'
+                  }`} />
+                  {task.taskTypeName}
+                </TabsTrigger>
+              );
+            })}
           </TabsList>
+
+          {/* Progress indicator */}
+          {allTasks.length > 1 && (
+            <div className="text-sm text-muted-foreground mt-2">
+              {Object.entries(taskReports).filter(([taskId, report]) => 
+                validateTaskReport(report, taskPhotoLabels[taskId] || []).isValid
+              ).length} de {allTasks.length} tarefas preenchidas
+            </div>
+          )}
 
           {Object.entries(taskReports).map(([taskId, report]) => (
             <TabsContent key={taskId} value={taskId} className="space-y-6">
@@ -1025,14 +1113,14 @@ interface ServiceOrderData {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Fotos</CardTitle>
+                  <CardTitle>Fotos *</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <PhotosSection
                     taskId={taskId}
                     photos={report.photos}
                     onUpdatePhotos={handleUpdatePhotos}
-                    requiredPhotoLabels={requiredPhotoLabels}
+                    requiredPhotoLabels={taskPhotoLabels[taskId] || []}
                     showValidation={showValidation}
                   />
                 </CardContent>
@@ -1040,7 +1128,7 @@ interface ServiceOrderData {
 
               <Card>
                 <CardHeader>
-                  <CardTitle>Horários</CardTitle>
+                  <CardTitle>Horários *</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <TimeEntriesSection

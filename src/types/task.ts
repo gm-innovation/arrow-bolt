@@ -8,4 +8,12 @@ export interface Task {
   description: string;
   scheduledDate: Date;
   status: TaskStatus;
+  singleReport?: boolean;
+  taskName?: string;
+}
+
+export interface GroupedTask extends Task {
+  tasksList: Task[];
+  taskCount: number;
+  groupedDescription: string;
 }
