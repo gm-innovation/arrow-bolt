@@ -11,6 +11,8 @@ import { useForm } from "react-hook-form";
 import ChangePasswordDialog from "@/components/admin/ChangePasswordDialog";
 import { AvatarUpload } from "@/components/ui/AvatarUpload";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
+import { useTechnicianStats } from "@/hooks/useTechnicianStats";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProfileFormData {
   full_name: string;
@@ -23,6 +25,7 @@ const TechProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const { avatarUrl, isUploading, uploadAvatar, deleteAvatar } = useUserAvatar();
+  const { stats, loading: statsLoading } = useTechnicianStats();
 
   const { register, handleSubmit, formState: { errors } } = useForm<ProfileFormData>({
     defaultValues: {
@@ -30,14 +33,6 @@ const TechProfile = () => {
       phone: user?.user_metadata?.phone || "",
     },
   });
-
-  // Stats - simplified to avoid type instantiation issues
-  const stats = {
-    tasksCompleted: 0,
-    reportsSubmitted: 0,
-    hoursWorked: 0,
-  };
-
   const getUserInitials = () => {
     if (user?.user_metadata?.full_name) {
       const names = user.user_metadata.full_name.split(" ");
@@ -182,7 +177,11 @@ const TechProfile = () => {
                 <ClipboardCheck className="h-5 w-5 text-chart-2" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats?.tasksCompleted || 0}</p>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.totalCompleted}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Tarefas Concluídas</p>
               </div>
             </div>
@@ -192,7 +191,11 @@ const TechProfile = () => {
                 <FileText className="h-5 w-5 text-chart-3" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats?.reportsSubmitted || 0}</p>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <p className="text-2xl font-bold">{stats.reportsSubmitted}</p>
+                )}
                 <p className="text-sm text-muted-foreground">Relatórios Enviados</p>
               </div>
             </div>
@@ -202,7 +205,11 @@ const TechProfile = () => {
                 <Clock className="h-5 w-5 text-chart-4" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{stats?.hoursWorked || 0}h</p>
+                {statsLoading ? (
+                  <Skeleton className="h-8 w-16" />
+                ) : (
+                  <p className="text-2xl font-bold">{Math.round(stats.totalHoursWorked)}h</p>
+                )}
                 <p className="text-sm text-muted-foreground">Horas Trabalhadas</p>
               </div>
             </div>
