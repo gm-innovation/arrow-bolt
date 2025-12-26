@@ -14,6 +14,7 @@ import { FileText, Plus } from "lucide-react";
 import { useMeasurements } from "@/hooks/useMeasurements";
 import { Dialog } from "@/components/ui/dialog";
 import { MeasurementDialog } from "../measurements/MeasurementDialog";
+import { formatLocalDate } from "@/lib/utils";
 
 interface ViewOrderDetailsDialogProps {
   orderId: string;
@@ -255,7 +256,7 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                   {orderDetails.service_date_time 
                     ? format(new Date(orderDetails.service_date_time), "dd/MM/yyyy HH:mm")
                     : orderDetails.scheduled_date
-                    ? format(new Date(orderDetails.scheduled_date), "dd/MM/yyyy")
+                    ? formatLocalDate(orderDetails.scheduled_date)
                     : "-"}
                 </dd>
               </div>
@@ -383,7 +384,7 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-sm font-medium">Agendamento</span>
                     <span className="text-xs text-muted-foreground">
-                      {format(new Date(orderDetails.scheduled_date), "dd/MM/yyyy")}
+                      {formatLocalDate(orderDetails.scheduled_date)}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground">

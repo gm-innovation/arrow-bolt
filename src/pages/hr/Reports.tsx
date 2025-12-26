@@ -13,6 +13,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAbsences, getAbsenceTypeLabel } from '@/hooks/useAbsences';
 import * as XLSX from 'xlsx';
+import { formatLocalDate } from '@/lib/utils';
 
 interface Technician {
   id: string;
@@ -170,8 +171,8 @@ const Reports = () => {
         data = absences.map((abs) => ({
           'Técnico': abs.technician?.profiles?.full_name || '',
           'Tipo': getAbsenceTypeLabel(abs.absence_type),
-          'Início': format(new Date(abs.start_date), 'dd/MM/yyyy'),
-          'Fim': format(new Date(abs.end_date), 'dd/MM/yyyy'),
+          'Início': formatLocalDate(abs.start_date),
+          'Fim': formatLocalDate(abs.end_date),
           'Motivo': abs.reason || '',
           'Status': abs.status,
         }));
@@ -182,11 +183,11 @@ const Reports = () => {
         data = getAsoAlerts().map((tech) => ({
           'Técnico': tech.profiles?.full_name || '',
           'Validade ASO': tech.aso_valid_until 
-            ? format(new Date(tech.aso_valid_until), 'dd/MM/yyyy')
+            ? formatLocalDate(tech.aso_valid_until)
             : 'Não informado',
           'Status': !tech.aso_valid_until
             ? 'Não informado'
-            : new Date(tech.aso_valid_until) < new Date()
+            : new Date(tech.aso_valid_until + 'T00:00:00') < new Date()
               ? 'Vencido'
               : 'A vencer',
         }));
@@ -305,7 +306,7 @@ const Reports = () => {
                     </TableCell>
                     <TableCell>{getAbsenceTypeLabel(abs.absence_type)}</TableCell>
                     <TableCell>
-                      {format(new Date(abs.start_date), 'dd/MM/yyyy')} - {format(new Date(abs.end_date), 'dd/MM/yyyy')}
+                      {formatLocalDate(abs.start_date)} - {formatLocalDate(abs.end_date)}
                     </TableCell>
                     <TableCell className="max-w-[200px] truncate">{abs.reason || '-'}</TableCell>
                     <TableCell>
@@ -329,9 +330,9 @@ const Reports = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getAsoAlerts().map((tech) => {
+              {getAsoAlerts().map((tech) => {
                   const today = new Date();
-                  const isExpired = tech.aso_valid_until && new Date(tech.aso_valid_until) < today;
+                  const isExpired = tech.aso_valid_until && new Date(tech.aso_valid_until + 'T00:00:00') < today;
                   const isMissing = !tech.aso_valid_until;
 
                   return (
@@ -341,7 +342,7 @@ const Reports = () => {
                       </TableCell>
                       <TableCell>
                         {tech.aso_valid_until
-                          ? format(new Date(tech.aso_valid_until), 'dd/MM/yyyy')
+                          ? formatLocalDate(tech.aso_valid_until)
                           : '-'}
                       </TableCell>
                       <TableCell>

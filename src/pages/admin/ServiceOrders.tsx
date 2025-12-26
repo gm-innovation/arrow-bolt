@@ -33,6 +33,7 @@ import { MoreHorizontal, Plus, Loader2, Download, FileText, Eye, Pencil, Users, 
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 import { Input } from "@/components/ui/input";
 import { EditOrderDialog } from "@/components/admin/orders/EditOrderDialog";
@@ -296,7 +297,7 @@ const ServiceOrders = () => {
                         </TableCell>
                         <TableCell>{getStatusBadge(order.status)}</TableCell>
                         <TableCell>
-                          {order.scheduledDate ? format(new Date(order.scheduledDate), "dd/MM/yyyy") : "-"}
+                          {order.scheduledDate ? formatLocalDate(order.scheduledDate) : "-"}
                         </TableCell>
                         <TableCell>
                           {format(new Date(order.createdAt), "dd/MM/yyyy")}

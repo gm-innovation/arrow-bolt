@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useMeasurements } from "@/hooks/useMeasurements";
-import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 interface BasicInfoTabProps {
   measurement: any;
@@ -64,14 +64,14 @@ export const BasicInfoTab = ({ measurement, serviceOrderId, disabled }: BasicInf
         <div className="space-y-2">
           <Label>Data Início</Label>
           <div className="text-sm font-medium">
-            {orderData.scheduled_date ? format(new Date(orderData.scheduled_date), 'dd/MM/yyyy') : 'N/A'}
+            {orderData.scheduled_date ? formatLocalDate(orderData.scheduled_date) : 'N/A'}
           </div>
         </div>
 
         <div className="space-y-2">
           <Label>Data Término</Label>
           <div className="text-sm font-medium">
-            {orderData.completed_date ? format(new Date(orderData.completed_date), 'dd/MM/yyyy') : 'N/A'}
+            {orderData.completed_date ? formatLocalDate(orderData.completed_date) : 'N/A'}
           </div>
         </div>
 
