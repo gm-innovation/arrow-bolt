@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Save, Send } from "lucide-react";
+import { FileText, Save, Send, User, Clock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { TimeEntriesSection } from "@/components/tech/reports/TimeEntriesSection";
@@ -84,6 +84,7 @@ const ReportFormContent = () => {
   const [isPhotoGalleryOpen, setIsPhotoGalleryOpen] = useState(false);
   const [allTasks, setAllTasks] = useState<TaskInfo[]>([]);
   const [taskPhotoLabels, setTaskPhotoLabels] = useState<Record<string, string[]>>({});
+  const [lastEditInfo, setLastEditInfo] = useState<{ editorName: string; editedAt: Date } | null>(null);
 
   // Helper function to upload image to storage
   const uploadImageToStorage = async (file: File, taskId: string, imageIndex: number): Promise<string | null> => {
@@ -165,7 +166,24 @@ const ReportFormContent = () => {
 
       if (data && data.length > 0) {
         console.log("Found saved report:", data[0]);
-        const reportData = data[0].report_data as unknown as Record<string, TaskReport>;
+        const savedReport = data[0];
+        const reportData = savedReport.report_data as unknown as Record<string, TaskReport>;
+        
+        // Fetch last edit info from history
+        const { data: historyData } = await supabase
+          .from('task_report_history')
+          .select('edited_by, created_at, profiles:edited_by(full_name)')
+          .eq('report_id', savedReport.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (historyData) {
+          setLastEditInfo({
+            editorName: (historyData.profiles as any)?.full_name || 'Usuário desconhecido',
+            editedAt: new Date(historyData.created_at)
+          });
+        }
         
         const reportsWithRecreatedFiles: Record<string, TaskReport> = {};
         
@@ -886,6 +904,19 @@ const ReportFormContent = () => {
       
       await saveReportData(taskReports, "draft");
       
+      // Update last edit info after save
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('id', currentUser?.id)
+        .single();
+      
+      setLastEditInfo({
+        editorName: profile?.full_name || 'Você',
+        editedAt: new Date()
+      });
+      
       const pdfPath = await generateAndSavePDF(selectedTask, report, "draft");
       
       if (pdfPath) {
@@ -1093,14 +1124,24 @@ const ReportFormContent = () => {
             })}
           </TabsList>
 
-          {/* Progress indicator */}
-          {allTasks.length > 1 && (
-            <div className="text-sm text-muted-foreground mt-2">
-              {Object.entries(taskReports).filter(([taskId, report]) => 
-                validateTaskReport(report, taskPhotoLabels[taskId] || []).isValid
-              ).length} de {allTasks.length} tarefas preenchidas
-            </div>
-          )}
+          {/* Progress indicator and last edit info */}
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mt-2">
+            {allTasks.length > 1 && (
+              <div className="text-sm text-muted-foreground">
+                {Object.entries(taskReports).filter(([taskId, report]) => 
+                  validateTaskReport(report, taskPhotoLabels[taskId] || []).isValid
+                ).length} de {allTasks.length} tarefas preenchidas
+              </div>
+            )}
+            {lastEditInfo && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-md">
+                <User className="h-3 w-3" />
+                <span>Última edição por <strong>{lastEditInfo.editorName}</strong></span>
+                <Clock className="h-3 w-3 ml-1" />
+                <span>{lastEditInfo.editedAt.toLocaleString('pt-BR')}</span>
+              </div>
+            )}
+          </div>
 
           {allTasks.map((task) => {
             const report = taskReports[task.id];

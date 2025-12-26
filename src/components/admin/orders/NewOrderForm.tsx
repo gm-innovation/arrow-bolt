@@ -441,21 +441,36 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
           }
         }
 
-        // Create new tasks - one task per technician per task type
+        // Create new tasks
+        // If singleReport = true: ONE task per type assigned to lead
+        // If singleReport = false: One task per technician per type
         if (formTaskTypes.length > 0 && selectedTechnicians.length > 0) {
-          const tasksToInsert = selectedTechnicians.flatMap(techId => 
-            formTaskTypes.map(taskTypeId => ({
+          let tasksToInsert;
+          
+          if (data.singleReport) {
+            // Single report mode: create only 1 task per type, assigned to lead technician
+            const assignedTo = leadTechId || selectedTechnicians[0];
+            tasksToInsert = formTaskTypes.map(taskTypeId => ({
               service_order_id: orderId,
               task_type_id: taskTypeId,
               title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
               status: "pending" as const,
-              assigned_to: techId,
-              // Only set task_order_number if singleReport is false
-              task_order_number: !data.singleReport && taskOrderNumbers[taskTypeId] 
-                ? taskOrderNumbers[taskTypeId] 
-                : null,
-            }))
-          );
+              assigned_to: assignedTo,
+              task_order_number: null,
+            }));
+          } else {
+            // Multiple reports mode: one task per technician per type
+            tasksToInsert = selectedTechnicians.flatMap(techId => 
+              formTaskTypes.map(taskTypeId => ({
+                service_order_id: orderId,
+                task_type_id: taskTypeId,
+                title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+                status: "pending" as const,
+                assigned_to: techId,
+                task_order_number: taskOrderNumbers[taskTypeId] || null,
+              }))
+            );
+          }
 
           const { error: tasksError } = await supabase
             .from("tasks")
@@ -588,21 +603,36 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
           if (vtError) throw vtError;
         }
 
-        // Create tasks - one task per technician per task type
+        // Create tasks
+        // If singleReport = true: ONE task per type assigned to lead
+        // If singleReport = false: One task per technician per type
         if (formTaskTypes.length > 0 && serviceOrder && selectedTechnicians.length > 0) {
-          const tasksToInsert = selectedTechnicians.flatMap(techId => 
-            formTaskTypes.map(taskTypeId => ({
+          let tasksToInsert;
+          
+          if (data.singleReport) {
+            // Single report mode: create only 1 task per type, assigned to lead technician
+            const assignedTo = leadTechId || selectedTechnicians[0];
+            tasksToInsert = formTaskTypes.map(taskTypeId => ({
               service_order_id: serviceOrder.id,
               task_type_id: taskTypeId,
               title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
               status: "pending" as const,
-              assigned_to: techId,
-              // Only set task_order_number if singleReport is false
-              task_order_number: !data.singleReport && taskOrderNumbers[taskTypeId] 
-                ? taskOrderNumbers[taskTypeId] 
-                : null,
-            }))
-          );
+              assigned_to: assignedTo,
+              task_order_number: null,
+            }));
+          } else {
+            // Multiple reports mode: one task per technician per type
+            tasksToInsert = selectedTechnicians.flatMap(techId => 
+              formTaskTypes.map(taskTypeId => ({
+                service_order_id: serviceOrder.id,
+                task_type_id: taskTypeId,
+                title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+                status: "pending" as const,
+                assigned_to: techId,
+                task_order_number: taskOrderNumbers[taskTypeId] || null,
+              }))
+            );
+          }
 
           const { error: tasksError } = await supabase
             .from("tasks")
