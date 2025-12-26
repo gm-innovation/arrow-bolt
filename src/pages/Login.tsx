@@ -22,20 +22,22 @@ const Login = () => {
     if (authLoading) return;
 
     if (user && userRole) {
-      if (userRole === "super_admin") {
-        navigate("/super-admin/dashboard");
-      } else if (userRole === "admin") {
-        navigate("/admin/dashboard");
-      } else if (userRole === "manager") {
-        navigate("/manager/dashboard");
-      } else if (userRole === "technician") {
-        navigate("/tech/dashboard");
+      const roleRedirects: Record<string, string> = {
+        super_admin: "/super-admin/dashboard",
+        admin: "/admin/dashboard",
+        manager: "/manager/dashboard",
+        technician: "/tech/dashboard",
+        hr: "/hr/dashboard",
+      };
+      
+      const redirectPath = roleRedirects[userRole];
+      if (redirectPath) {
+        navigate(redirectPath);
       }
-    } else if (user && !userRole && !loading) {
-      // Only show error if user is logged in, role is null, AND form is not loading
+    } else if (user && !userRole && !authLoading) {
       setError("Usuário sem permissões. Contate o administrador.");
     }
-  }, [user, userRole, authLoading, navigate, loading]);
+  }, [user, userRole, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
