@@ -1,13 +1,14 @@
 
 import { Document, Page, Text, View, StyleSheet, Image, pdf } from '@react-pdf/renderer';
-import { TaskReport } from './types';
+import { TaskReport, TaskReportWithInfo } from './types';
 import { CompanyHeader } from './pdf/CompanyHeader';
 import { ServiceOrderInfo } from './pdf/ServiceOrderInfo';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Download, Save, Eye } from 'lucide-react';
+import { Download, Save, Eye, Image as ImageIcon } from 'lucide-react';
+import { PhotoGalleryDialog } from './PhotoGalleryDialog';
 
 const styles = StyleSheet.create({
   page: {
@@ -30,6 +31,22 @@ const styles = StyleSheet.create({
     marginTop: 5,
     backgroundColor: '#f0f0f0',
     padding: 6,
+  },
+  taskTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    marginTop: 15,
+    backgroundColor: '#e0e0e0',
+    padding: 8,
+    textAlign: 'center',
+  },
+  taskDivider: {
+    borderTopWidth: 2,
+    borderTopColor: '#333',
+    marginTop: 20,
+    marginBottom: 10,
+    paddingTop: 10,
   },
   label: {
     fontWeight: 'bold',
@@ -168,6 +185,7 @@ interface ReportPDFProps {
     date: Date;
     location: string;
     access: string;
+    vesselName?: string;
     requester: {
       name: string;
       role: string;
@@ -180,6 +198,7 @@ interface ReportPDFProps {
       assistants: string[];
     };
     service: string;
+    taskTitle?: string;
     company: {
       name: string;
       email: string;
@@ -190,6 +209,12 @@ interface ReportPDFProps {
       logoUrl: string;
     };
   };
+}
+
+interface MultiTaskReportPDFProps {
+  tasks: TaskReportWithInfo[];
+  serviceOrder: ReportPDFProps['serviceOrder'];
+  photoBase64Data?: Record<string, PhotoWithBase64[]>;
 }
 
 // Helper function to convert File to base64
@@ -322,7 +347,7 @@ export const loadPhotosFromStorage = async (photos: Array<{ caption: string; des
   return photosWithBase64;
 };
 
-// Exported function to generate PDF blob
+// Exported function to generate PDF blob for single task (backward compatible)
 export const generateReportPdfBlob = async (
   report: TaskReport,
   taskId: string,
@@ -340,6 +365,204 @@ export const generateReportPdfBlob = async (
   return await asPdf.toBlob();
 };
 
+// Exported function to generate PDF blob for multiple tasks
+export const generateMultiTaskReportPdfBlob = async (
+  tasks: TaskReportWithInfo[],
+  serviceOrder: ReportPDFProps['serviceOrder'],
+  photoBase64Data: Record<string, PhotoWithBase64[]>
+): Promise<Blob> => {
+  const pdfDoc = <MultiTaskReportPDFContent 
+    tasks={tasks} 
+    serviceOrder={serviceOrder} 
+    photoBase64Data={photoBase64Data}
+  />;
+  const asPdf = pdf();
+  asPdf.updateContainer(pdfDoc);
+  return await asPdf.toBlob();
+};
+
+// Single task report section component for use in multi-task PDF
+const TaskReportSection = ({ 
+  task, 
+  photoBase64Data,
+  isFirstTask = false 
+}: { 
+  task: TaskReportWithInfo; 
+  photoBase64Data?: PhotoWithBase64[];
+  isFirstTask?: boolean;
+}) => {
+  const { report, taskName, orderNumber } = task;
+  
+  // Chunk photos into rows of 2
+  const photoRows = useMemo(() => {
+    if (!photoBase64Data) return [];
+    return chunkArray(photoBase64Data, 2);
+  }, [photoBase64Data]);
+
+  return (
+    <View style={!isFirstTask ? styles.taskDivider : undefined}>
+      {/* Task Title */}
+      <Text style={styles.taskTitle}>
+        {taskName}{orderNumber ? ` - OS: ${orderNumber}` : ''}
+      </Text>
+
+      {/* Equipment Info */}
+      <View style={styles.infoBox} wrap={false}>
+        <Text style={styles.subSectionTitle}>Informações do Equipamento</Text>
+        <View style={styles.row}>
+          <Text style={styles.fieldLabel}>Modelo:</Text>
+          <Text style={styles.fieldValue}>{report.modelInfo || 'N/A'}</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.fieldLabel}>Marca:</Text>
+          <Text style={styles.fieldValue}>{report.brandInfo || 'N/A'}</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.fieldLabel}>Número de Série:</Text>
+          <Text style={styles.fieldValue}>{report.serialNumber || 'N/A'}</Text>
+        </View>
+      </View>
+      
+      {/* Diagnosis and Service */}
+      <View style={styles.infoBox} wrap={false}>
+        <Text style={styles.subSectionTitle}>Diagnóstico e Serviço</Text>
+        <View style={styles.row}>
+          <Text style={styles.fieldLabel}>Defeito Encontrado:</Text>
+          <Text style={styles.fieldValue}>{report.reportedIssue || 'N/A'}</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.fieldLabel}>Trabalhos Executados:</Text>
+          <Text style={styles.fieldValue}>{report.executedWork || 'N/A'}</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.fieldLabel}>Resultado:</Text>
+          <Text style={styles.fieldValue}>{report.result || 'N/A'}</Text>
+        </View>
+      </View>
+      
+      {/* Next Steps */}
+      <View style={styles.infoBox} wrap={false}>
+        <Text style={styles.subSectionTitle}>Próximos Passos</Text>
+        <View style={styles.row}>
+          <Text style={styles.fieldLabel}>Próximo Atendimento:</Text>
+          <Text style={styles.fieldValue}>{report.nextVisitWork || 'N/A'}</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.fieldLabel}>Material Fornecido:</Text>
+          <Text style={styles.fieldValue}>{report.suppliedMaterial || 'N/A'}</Text>
+        </View>
+      </View>
+
+      {/* Photos Section */}
+      {photoBase64Data && photoBase64Data.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Fotos - {taskName}</Text>
+          <View style={styles.photosGrid}>
+            {photoRows.map((row, rowIndex) => (
+              <View key={rowIndex} style={styles.photoRow} wrap={false}>
+                {row.map(({ photo, index, base64 }) => (
+                  <View key={index} style={styles.photoContainer}>
+                    <Image
+                      src={base64}
+                      style={styles.photo}
+                      cache={false}
+                    />
+                    <Text style={styles.photoCaption}>
+                      {photo.caption}
+                    </Text>
+                    {photo.description && (
+                      <Text style={styles.photoDescription}>
+                        {photo.description}
+                      </Text>
+                    )}
+                  </View>
+                ))}
+                {row.length === 1 && <View style={styles.photoContainer} />}
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+
+// Multi-task PDF Content
+export const MultiTaskReportPDFContent = ({ tasks, serviceOrder, photoBase64Data }: MultiTaskReportPDFProps) => {
+  // Get time entries from first task for header info
+  const firstTaskTimeEntries = tasks[0]?.report.timeEntries || [];
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <CompanyHeader company={serviceOrder.company} />
+        
+        <ServiceOrderInfo
+          orderNumber={serviceOrder.id}
+          date={serviceOrder.date}
+          location={serviceOrder.vesselName || serviceOrder.location}
+          access={serviceOrder.access}
+          requester={serviceOrder.requester}
+          supervisor={serviceOrder.supervisor}
+          team={serviceOrder.team}
+          service={serviceOrder.service}
+          timeEntries={firstTaskTimeEntries}
+        />
+
+        {/* All Tasks */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Relatório Técnico</Text>
+          
+          {tasks.map((task, index) => (
+            <TaskReportSection
+              key={task.taskId}
+              task={task}
+              photoBase64Data={photoBase64Data?.[task.taskId]}
+              isFirstTask={index === 0}
+            />
+          ))}
+        </View>
+
+        {/* Survey Section - Only once at the end */}
+        <View style={styles.surveySection} wrap={false}>
+          <Text style={styles.sectionTitle}>Pesquisa de Satisfação</Text>
+          
+          <View style={styles.surveyQuestion}>
+            <Text>Satisfeito com o serviço prestado?</Text>
+            <Text style={styles.checkbox}> </Text>
+            <Text>Sim</Text>
+            <Text style={styles.checkbox}> </Text>
+            <Text>Não</Text>
+          </View>
+
+          <View style={styles.surveyQuestion}>
+            <Text>Equipe cordial e educada?</Text>
+            <Text style={styles.checkbox}> </Text>
+            <Text>Sim</Text>
+            <Text style={styles.checkbox}> </Text>
+            <Text>Não</Text>
+          </View>
+
+          <Text>Comentários:</Text>
+          <View style={styles.commentsBox} />
+
+          <View style={styles.signatures}>
+            <View style={styles.signatureBox}>
+              <View style={styles.signatureLine} />
+              <Text style={styles.signatureLabel}>Assinatura do Cliente</Text>
+            </View>
+            <View style={styles.signatureBox}>
+              <View style={styles.signatureLine} />
+              <Text style={styles.signatureLabel}>Assinatura do Técnico</Text>
+            </View>
+          </View>
+        </View>
+      </Page>
+    </Document>
+  );
+};
+
+// Single task PDF Content (backward compatible)
 export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data }: ReportPDFProps & { photoBase64Data?: PhotoWithBase64[] }) => {
   // Create flat array with all photos and their base64 data
   const allPhotosWithBase64 = useMemo(() => {
@@ -364,7 +587,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
       <ServiceOrderInfo
         orderNumber={serviceOrder.id}
         date={serviceOrder.date}
-        location={serviceOrder.location}
+        location={serviceOrder.vesselName || serviceOrder.location}
         access={serviceOrder.access}
         requester={serviceOrder.requester}
         supervisor={serviceOrder.supervisor}
@@ -502,6 +725,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [photoBase64Data, setPhotoBase64Data] = useState<PhotoWithBase64[]>([]);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   const convertPhotosToBase64 = async (): Promise<PhotoWithBase64[]> => {
     if (!report.photos || report.photos.length === 0) {
@@ -511,13 +735,6 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
 
     console.log("=== Converting photos to base64 ===");
     console.log("Total photos:", report.photos.length);
-    console.log("Photos data:", report.photos.map((p, i) => ({
-      index: i,
-      caption: p.caption,
-      description: p.description,
-      hasFile: !!p.file,
-      hasStoragePath: !!p.storagePath
-    })));
     
     try {
       const photosWithBase64: PhotoWithBase64[] = [];
@@ -579,11 +796,6 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
       
       console.log("=== Conversion complete ===");
       console.log("Successfully converted:", photosWithBase64.length, "out of", report.photos.length);
-      console.log("Final data:", photosWithBase64.map(p => ({
-        index: p.index,
-        caption: p.photo.caption,
-        description: p.photo.description
-      })));
       
       return photosWithBase64;
     } catch (error) {
@@ -729,7 +941,16 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex gap-2 justify-end">
+      <div className="flex gap-2 justify-end flex-wrap">
+        {report.photos && report.photos.length > 0 && (
+          <Button 
+            variant="outline" 
+            onClick={() => setIsGalleryOpen(true)}
+          >
+            <ImageIcon className="h-4 w-4 mr-2" />
+            Ver Fotos ({report.photos.length})
+          </Button>
+        )}
         <Button 
           variant="outline" 
           onClick={handleOpenInNewTab}
@@ -774,6 +995,14 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
         <div className="flex items-center justify-center h-96 border border-gray-200 rounded">
           <p className="text-muted-foreground">Erro ao carregar o PDF</p>
         </div>
+      )}
+
+      {report.photos && (
+        <PhotoGalleryDialog
+          open={isGalleryOpen}
+          onOpenChange={setIsGalleryOpen}
+          photos={report.photos}
+        />
       )}
     </div>
   );
