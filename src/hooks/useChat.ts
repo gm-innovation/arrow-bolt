@@ -77,14 +77,15 @@ export const useChat = () => {
         (data || []).map(async (item) => {
           const conv = item.conversations as any;
           
-          // Get last message
-          const { data: lastMsg } = await supabase
+          // Get last message - use maybeSingle() to avoid 406 error when no messages exist
+          const { data: lastMsgArr } = await supabase
             .from('messages')
             .select('*')
             .eq('conversation_id', conv.id)
             .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
+            .limit(1);
+          
+          const lastMsg = lastMsgArr?.[0] || null;
 
           // Get unread count
           const lastReadAt = item.last_read_at || '1970-01-01';
