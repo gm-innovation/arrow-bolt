@@ -54,7 +54,8 @@ import TaskDetails from "./pages/tech/TaskDetails";
 import TechReports from "./pages/tech/Reports";
 import ReportForm from "./pages/tech/ReportForm";
 import TechNotifications from "./pages/tech/Notifications";
-import InstallApp from "./pages/tech/InstallApp";
+import TechInstallApp from "./pages/tech/InstallApp";
+import InstallApp from "./pages/InstallApp";
 import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
 import Chat from "./pages/Chat";
 import { OfflineIndicator } from "./components/OfflineIndicator";
@@ -496,7 +497,7 @@ const App = () => {
                 element={
                   <ProtectedRoute allowedRoles={['technician']}>
                     <DashboardLayout userType="tech">
-                      <InstallApp />
+                      <TechInstallApp />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
@@ -629,6 +630,51 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Install App Routes - All roles */}
+              <Route
+                path="/admin/install"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="admin">
+                      <InstallApp />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/manager/install"
+                element={
+                  <ProtectedRoute allowedRoles={['manager']}>
+                    <DashboardLayout userType="manager">
+                      <InstallApp />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/hr/install"
+                element={
+                  <ProtectedRoute allowedRoles={['hr']}>
+                    <DashboardLayout userType="hr">
+                      <InstallApp />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/super-admin/install"
+                element={
+                  <ProtectedRoute allowedRoles={['super_admin']}>
+                    <DashboardLayout userType="super-admin">
+                      <InstallApp />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Public Install Route (no auth required) */}
+              <Route path="/install" element={<InstallApp />} />
 
               {/* Catch all route */}
               <Route path="*" element={<Navigate to="/" replace />} />
