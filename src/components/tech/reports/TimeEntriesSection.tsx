@@ -14,6 +14,7 @@ interface TimeEntriesSectionProps {
   onAddTimeEntry: (taskId: string) => void;
   onRemoveTimeEntry: (taskId: string, entryId: string) => void;
   onUpdateTimeEntry: (taskId: string, entryId: string, field: keyof TimeEntry, value: any) => void;
+  showValidation?: boolean;
 }
 
 const timeTypes = [
@@ -31,9 +32,21 @@ export const TimeEntriesSection = ({
   onAddTimeEntry,
   onRemoveTimeEntry,
   onUpdateTimeEntry,
+  showValidation = false,
 }: TimeEntriesSectionProps) => {
+  const hasNoEntries = !timeEntries || timeEntries.length === 0;
+  const hasInvalidEntry = timeEntries.some((entry) => !entry.startTime || !entry.endTime);
+
   return (
     <div className="space-y-4">
+      {showValidation && hasNoEntries && (
+        <div className="p-3 border border-destructive rounded-md bg-destructive/10">
+          <p className="text-sm text-destructive font-medium">
+            É obrigatório adicionar pelo menos 1 registro de horário.
+          </p>
+        </div>
+      )}
+      
       {timeEntries.map((entry) => (
         <div key={entry.id} className="flex flex-col md:flex-row gap-4 items-end">
           <div className="w-full md:w-auto">
@@ -74,20 +87,22 @@ export const TimeEntriesSection = ({
           </div>
 
           <div className="w-full md:w-auto">
-            <Label>Início</Label>
+            <Label className="flex items-center gap-1">Início <span className="text-destructive">*</span></Label>
             <Input
               type="time"
               value={entry.startTime}
               onChange={(e) => onUpdateTimeEntry(taskId, entry.id, "startTime", e.target.value)}
+              className={showValidation && !entry.startTime ? "border-destructive" : ""}
             />
           </div>
 
           <div className="w-full md:w-auto">
-            <Label>Fim</Label>
+            <Label className="flex items-center gap-1">Fim <span className="text-destructive">*</span></Label>
             <Input
               type="time"
               value={entry.endTime}
               onChange={(e) => onUpdateTimeEntry(taskId, entry.id, "endTime", e.target.value)}
+              className={showValidation && !entry.endTime ? "border-destructive" : ""}
             />
           </div>
 
@@ -104,8 +119,14 @@ export const TimeEntriesSection = ({
       ))}
       <Button type="button" variant="outline" onClick={() => onAddTimeEntry(taskId)}>
         <Plus className="h-4 w-4 mr-2" />
-        Adicionar Horário
+        Adicionar Horário <span className="text-destructive ml-1">*</span>
       </Button>
+      
+      {showValidation && hasInvalidEntry && (
+        <p className="text-xs text-destructive">
+          Preencha os horários de início e fim de todos os registros.
+        </p>
+      )}
     </div>
   );
 };

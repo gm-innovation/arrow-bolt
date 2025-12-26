@@ -83,6 +83,12 @@ export const validateTaskReport = (
   if (!report.result?.trim()) {
     missingFields.push("Resultado");
   }
+  if (!report.nextVisitWork?.trim()) {
+    missingFields.push("Trabalho para Próximo Atendimento");
+  }
+  if (!report.suppliedMaterial?.trim()) {
+    missingFields.push("Material Fornecido");
+  }
 
   // At least one time entry with valid times
   const validTimeEntries = report.timeEntries?.filter(
@@ -92,7 +98,12 @@ export const validateTaskReport = (
     missingFields.push("Pelo menos 1 registro de horário");
   }
 
-  // Required photos
+  // At least one photo is required
+  if (!report.photos || report.photos.length === 0) {
+    missingFields.push("Pelo menos 1 foto");
+  }
+
+  // Required photos by label (if any)
   if (requiredPhotoLabels.length > 0) {
     const missingPhotos = requiredPhotoLabels.filter(
       (label) => !report.photos?.some((photo) => photo.caption === label)

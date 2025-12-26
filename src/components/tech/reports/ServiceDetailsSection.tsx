@@ -92,32 +92,48 @@ export const ServiceDetailsSection = ({
         </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`next-${taskId}`}>Trabalho para o Próximo Atendimento</Label>
+        <Label htmlFor={`next-${taskId}`} className="flex items-center gap-1">
+          Trabalho para o Próximo Atendimento <span className="text-destructive">*</span>
+        </Label>
         <Textarea
           id={`next-${taskId}`}
           value={report.nextVisitWork}
           onChange={(e) => handleTextareaChange("nextVisitWork", e.target.value)}
           maxLength={2000}
           rows={3}
-          placeholder="Se aplicável, descreva trabalhos pendentes para próximo atendimento..."
+          className={showValidation && isFieldEmpty(report.nextVisitWork) ? "border-destructive" : ""}
+          placeholder="Descreva trabalhos pendentes ou digite N/A se não aplicável..."
         />
-        <p className="text-xs text-muted-foreground text-right">
-          {report.nextVisitWork.length}/2000
-        </p>
+        <div className="flex justify-between items-center">
+          {showValidation && isFieldEmpty(report.nextVisitWork) && (
+            <p className="text-xs text-destructive">Campo obrigatório (use N/A se não aplicável)</p>
+          )}
+          <p className="text-xs text-muted-foreground text-right ml-auto">
+            {report.nextVisitWork.length}/2000
+          </p>
+        </div>
       </div>
       <div className="space-y-2">
-        <Label htmlFor={`material-${taskId}`}>Material Fornecido</Label>
+        <Label htmlFor={`material-${taskId}`} className="flex items-center gap-1">
+          Material Fornecido <span className="text-destructive">*</span>
+        </Label>
         <Textarea
           id={`material-${taskId}`}
           value={report.suppliedMaterial}
           onChange={(e) => handleTextareaChange("suppliedMaterial", e.target.value)}
           maxLength={2000}
           rows={3}
-          placeholder="Se aplicável, liste os materiais fornecidos..."
+          className={showValidation && isFieldEmpty(report.suppliedMaterial) ? "border-destructive" : ""}
+          placeholder="Liste os materiais fornecidos ou digite N/A se não aplicável..."
         />
-        <p className="text-xs text-muted-foreground text-right">
-          {report.suppliedMaterial.length}/2000
-        </p>
+        <div className="flex justify-between items-center">
+          {showValidation && isFieldEmpty(report.suppliedMaterial) && (
+            <p className="text-xs text-destructive">Campo obrigatório (use N/A se não aplicável)</p>
+          )}
+          <p className="text-xs text-muted-foreground text-right ml-auto">
+            {report.suppliedMaterial.length}/2000
+          </p>
+        </div>
       </div>
     </div>
   );

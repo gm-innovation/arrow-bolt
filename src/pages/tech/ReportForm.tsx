@@ -1033,6 +1033,7 @@ interface ServiceOrderData {
                     photos={report.photos}
                     onUpdatePhotos={handleUpdatePhotos}
                     requiredPhotoLabels={requiredPhotoLabels}
+                    showValidation={showValidation}
                   />
                 </CardContent>
               </Card>
@@ -1048,6 +1049,7 @@ interface ServiceOrderData {
                     onAddTimeEntry={handleAddTimeEntry}
                     onRemoveTimeEntry={handleRemoveTimeEntry}
                     onUpdateTimeEntry={handleUpdateTimeEntry}
+                    showValidation={showValidation}
                   />
                 </CardContent>
               </Card>
