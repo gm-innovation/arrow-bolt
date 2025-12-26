@@ -7,6 +7,8 @@ export const usePushNotifications = () => {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
+  const [vapidPublicKey, setVapidPublicKey] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const supported = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
@@ -16,11 +18,31 @@ export const usePushNotifications = () => {
       setPermission(Notification.permission);
     }
 
+    // Fetch VAPID public key
+    fetchVapidKey();
+
     // Check if already subscribed
     if (supported && user?.id) {
       checkSubscription();
     }
   }, [user?.id]);
+
+  const fetchVapidKey = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-vapid-key');
+      
+      if (error) {
+        console.error('Error fetching VAPID key:', error);
+        return;
+      }
+      
+      if (data?.publicKey) {
+        setVapidPublicKey(data.publicKey);
+      }
+    } catch (error) {
+      console.error('Error fetching VAPID key:', error);
+    }
+  };
 
   const checkSubscription = async () => {
     try {
@@ -38,6 +60,7 @@ export const usePushNotifications = () => {
       return false;
     }
 
+    setIsLoading(true);
     try {
       const result = await Notification.requestPermission();
       setPermission(result);
@@ -50,12 +73,24 @@ export const usePushNotifications = () => {
     } catch (error) {
       console.error('Error requesting notification permission:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const subscribeToPush = async () => {
     if (!user?.id) return false;
+    if (!vapidPublicKey) {
+      console.error('VAPID public key not available');
+      // Retry fetching
+      await fetchVapidKey();
+      if (!vapidPublicKey) {
+        console.error('Failed to fetch VAPID key');
+        return false;
+      }
+    }
 
+    setIsLoading(true);
     try {
       // Register custom service worker for push
       const registration = await navigator.serviceWorker.register('/sw-custom.js', {
@@ -68,10 +103,7 @@ export const usePushNotifications = () => {
       let subscription = await registration.pushManager.getSubscription();
 
       if (!subscription) {
-        // Create new subscription (using VAPID public key placeholder)
-        // In production, this would come from your server
-        const vapidPublicKey = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDzkrxZJjSgSnfckjBJuBkr3qBUYIHBQFLXYp5Nksh8U';
-        
+        // Create new subscription using fetched VAPID public key
         subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
@@ -103,10 +135,13 @@ export const usePushNotifications = () => {
     } catch (error) {
       console.error('Error subscribing to push:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const unsubscribe = async () => {
+    setIsLoading(true);
     try {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
@@ -128,6 +163,8 @@ export const usePushNotifications = () => {
     } catch (error) {
       console.error('Error unsubscribing:', error);
       return false;
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -165,6 +202,8 @@ export const usePushNotifications = () => {
     permission,
     isSupported,
     isSubscribed,
+    isLoading,
+    vapidConfigured: !!vapidPublicKey,
     requestPermission,
     subscribeToPush,
     unsubscribe,
