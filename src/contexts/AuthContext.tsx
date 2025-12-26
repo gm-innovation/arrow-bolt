@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,9 +22,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Use ref to track initialization and prevent duplicate processing
+  // Use refs to track initialization and prevent duplicate processing
   const initializedRef = useRef(false);
   const fetchingRoleRef = useRef(false);
+  // Track current session token to prevent unnecessary updates
+  const currentTokenRef = useRef<string | null>(null);
 
   const fetchUserRole = useCallback(async (userId: string) => {
     // Prevent duplicate role fetches
@@ -57,8 +59,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        // Only process real auth events after initialization
+        // Only process after initialization
         if (!initializedRef.current) return;
+        
+        // Skip TOKEN_REFRESHED if session hasn't actually changed
+        if (event === 'TOKEN_REFRESHED') {
+          const newToken = currentSession?.access_token ?? null;
+          if (newToken === currentTokenRef.current) {
+            return; // No real change, skip update
+          }
+          currentTokenRef.current = newToken;
+        }
         
         // Only update on actual auth changes
         if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
@@ -80,6 +91,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // THEN check for existing session (initial load)
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
+      // Store initial token
+      currentTokenRef.current = existingSession?.access_token ?? null;
       // Mark as initialized before setting state
       initializedRef.current = true;
       
@@ -96,7 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return () => subscription.unsubscribe();
   }, [fetchUserRole]);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     const { error, data } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -127,9 +140,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     return { error };
-  };
+  }, []);
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -143,43 +156,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       },
     });
     return { error };
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUserRole(null);
-  };
+  }, []);
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = useCallback(async (email: string) => {
     const redirectUrl = `${window.location.origin}/reset-password`;
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,
     });
     return { error };
-  };
+  }, []);
 
-  const updatePassword = async (newPassword: string) => {
+  const updatePassword = useCallback(async (newPassword: string) => {
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
     });
     return { error };
-  };
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    user,
+    session,
+    userRole,
+    loading,
+    signIn,
+    signUp,
+    signOut,
+    resetPassword,
+    updatePassword,
+  }), [user, session, userRole, loading, signIn, signUp, signOut, resetPassword, updatePassword]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        session,
-        userRole,
-        loading,
-        signIn,
-        signUp,
-        signOut,
-        resetPassword,
-        updatePassword,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
