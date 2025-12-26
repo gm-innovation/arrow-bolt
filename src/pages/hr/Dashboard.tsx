@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAbsences, getAbsenceTypeLabel } from '@/hooks/useAbsences';
 import { useOnCall } from '@/hooks/useOnCall';
 import { formatLocalDate } from '@/lib/utils';
+import { PushNotificationPrompt } from '@/components/notifications/PushNotificationPrompt';
 
 interface DashboardStats {
   totalTechnicians: number;
@@ -272,6 +273,8 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <PushNotificationPrompt />
     </div>
   );
 };

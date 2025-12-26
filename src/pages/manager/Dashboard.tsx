@@ -12,6 +12,7 @@ import { ExportReportButton } from "@/components/manager/dashboard/ExportReportB
 import { TechnicianProductivityReport } from "@/components/manager/dashboard/TechnicianProductivityReport";
 import { CoordinatorProductivityReport } from "@/components/manager/dashboard/CoordinatorProductivityReport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PushNotificationPrompt } from "@/components/notifications/PushNotificationPrompt";
 
 interface DashboardFilters {
   startDate?: Date;
@@ -90,6 +91,8 @@ const ManagerDashboard = () => {
           />
         </TabsContent>
       </Tabs>
+
+      <PushNotificationPrompt />
     </div>
   );
 };
