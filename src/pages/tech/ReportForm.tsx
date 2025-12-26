@@ -11,7 +11,8 @@ import { EquipmentInfoSection } from "@/components/tech/reports/EquipmentInfoSec
 import { ServiceDetailsSection } from "@/components/tech/reports/ServiceDetailsSection";
 import { PhotosSection } from "@/components/tech/reports/PhotosSection";
 import { MaterialsSection } from "@/components/tech/reports/MaterialsSection";
-import { TaskReport, TimeEntry, PhotoWithCaption } from "@/components/tech/reports/types";
+import { TaskReport, TimeEntry, PhotoWithCaption, validateTaskReport } from "@/components/tech/reports/types";
+import { PhotoGalleryDialog } from "@/components/tech/reports/PhotoGalleryDialog";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { pdf } from "@react-pdf/renderer";
@@ -70,6 +71,8 @@ interface ServiceOrderData {
   const [taskReports, setTaskReports] = useState<Record<string, TaskReport>>({});
   const [requiredPhotoLabels, setRequiredPhotoLabels] = useState<string[]>([]);
   const [currentServiceOrderId, setCurrentServiceOrderId] = useState<string | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
+  const [isPhotoGalleryOpen, setIsPhotoGalleryOpen] = useState(false);
 
   // Helper function to upload image to storage
   const uploadImageToStorage = async (file: File, taskId: string, imageIndex: number): Promise<string | null> => {
@@ -838,23 +841,19 @@ interface ServiceOrderData {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setShowValidation(true);
     
-    // Validar fotos obrigatórias baseadas no tipo de tarefa
+    // Validate all task reports
     const report = taskReports[selectedTask];
+    const validation = validateTaskReport(report, requiredPhotoLabels);
     
-    if (requiredPhotoLabels.length > 0) {
-      const missingPhotos = requiredPhotoLabels.filter(
-        label => !report?.photos?.some(photo => photo.caption === label)
-      );
-      
-      if (missingPhotos.length > 0) {
-        toast({
-          title: "Fotos obrigatórias",
-          description: `Adicione as seguintes fotos antes de enviar: ${missingPhotos.join(", ")}`,
-          variant: "destructive",
-        });
-        return;
-      }
+    if (!validation.isValid) {
+      toast({
+        title: "Campos obrigatórios",
+        description: validation.errors[0] || "Preencha todos os campos obrigatórios antes de enviar.",
+        variant: "destructive",
+      });
+      return;
     }
     
     try {
@@ -1005,6 +1004,7 @@ interface ServiceOrderData {
                     taskId={taskId}
                     report={report}
                     onUpdateReport={handleUpdateReport}
+                    showValidation={showValidation}
                   />
                 </CardContent>
               </Card>
@@ -1018,6 +1018,7 @@ interface ServiceOrderData {
                     taskId={taskId}
                     report={report}
                     onUpdateReport={handleUpdateReport}
+                    showValidation={showValidation}
                   />
                 </CardContent>
               </Card>

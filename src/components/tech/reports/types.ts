@@ -38,3 +38,77 @@ export interface TimeEntry {
   startTime: string;
   endTime: string;
 }
+
+// Multi-task report structure for PDF
+export interface TaskReportWithInfo {
+  taskId: string;
+  taskName: string;
+  orderNumber?: string;
+  report: TaskReport;
+}
+
+// Validation errors for a task report
+export interface TaskReportValidation {
+  isValid: boolean;
+  errors: string[];
+  missingFields: string[];
+}
+
+// Validate a single task report
+export const validateTaskReport = (
+  report: TaskReport,
+  requiredPhotoLabels: string[] = []
+): TaskReportValidation => {
+  const errors: string[] = [];
+  const missingFields: string[] = [];
+
+  // Required equipment fields
+  if (!report.modelInfo?.trim()) {
+    missingFields.push("Modelo");
+  }
+  if (!report.brandInfo?.trim()) {
+    missingFields.push("Marca");
+  }
+  if (!report.serialNumber?.trim()) {
+    missingFields.push("Número de Série");
+  }
+
+  // Required service details
+  if (!report.reportedIssue?.trim()) {
+    missingFields.push("Defeito Encontrado/Reportado");
+  }
+  if (!report.executedWork?.trim()) {
+    missingFields.push("Trabalhos Executados");
+  }
+  if (!report.result?.trim()) {
+    missingFields.push("Resultado");
+  }
+
+  // At least one time entry with valid times
+  const validTimeEntries = report.timeEntries?.filter(
+    (entry) => entry.startTime && entry.endTime
+  );
+  if (!validTimeEntries || validTimeEntries.length === 0) {
+    missingFields.push("Pelo menos 1 registro de horário");
+  }
+
+  // Required photos
+  if (requiredPhotoLabels.length > 0) {
+    const missingPhotos = requiredPhotoLabels.filter(
+      (label) => !report.photos?.some((photo) => photo.caption === label)
+    );
+    if (missingPhotos.length > 0) {
+      errors.push(`Fotos obrigatórias faltando: ${missingPhotos.join(", ")}`);
+    }
+  }
+
+  if (missingFields.length > 0) {
+    errors.push(`Campos obrigatórios não preenchidos: ${missingFields.join(", ")}`);
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    missingFields,
+  };
+};
