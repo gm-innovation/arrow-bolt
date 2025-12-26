@@ -79,13 +79,15 @@ export const VisitHistoryList = ({ serviceOrderId }: VisitHistoryListProps) => {
                   <div className="flex items-start gap-2 text-sm">
                     <Users className="h-4 w-4 mt-0.5 text-muted-foreground" />
                     <div className="flex-1">
-                      {visit.visit_technicians.map((vt, idx) => (
-                        <span key={idx}>
-                          {vt.technicians.profiles.full_name}
-                          {vt.is_lead && ' (Líder)'}
-                          {idx < visit.visit_technicians!.length - 1 && ', '}
-                        </span>
-                      ))}
+                      {visit.visit_technicians
+                        .filter(vt => vt.technicians?.profiles?.full_name)
+                        .map((vt, idx, arr) => (
+                          <span key={idx}>
+                            {vt.technicians?.profiles?.full_name}
+                            {vt.is_lead && ' (Líder)'}
+                            {idx < arr.length - 1 && ', '}
+                          </span>
+                        ))}
                     </div>
                   </div>
                 )}
