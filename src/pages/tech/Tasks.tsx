@@ -49,7 +49,18 @@ const Tasks = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      // First, get all service_order_ids where this technician is in a visit
+      const { data: visitTechniciansData } = await supabase
+        .from("visit_technicians")
+        .select("visit_id, service_visits!inner(service_order_id)")
+        .eq("technician_id", techData.id);
+
+      const visitServiceOrderIds = visitTechniciansData?.map(
+        (vt: any) => vt.service_visits.service_order_id
+      ) || [];
+
+      // Fetch tasks where technician is assigned OR is part of the visit
+      let query = supabase
         .from("tasks")
         .select(`
           id,
@@ -72,8 +83,16 @@ const Tasks = () => {
             name
           )
         `)
-        .eq("assigned_to", techData.id)
         .order("created_at", { ascending: false });
+
+      // Build OR filter: assigned_to = techId OR service_order_id in visitServiceOrderIds
+      if (visitServiceOrderIds.length > 0) {
+        query = query.or(`assigned_to.eq.${techData.id},service_order_id.in.(${visitServiceOrderIds.join(',')})`);
+      } else {
+        query = query.eq("assigned_to", techData.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
