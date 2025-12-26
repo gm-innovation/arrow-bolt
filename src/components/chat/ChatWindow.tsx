@@ -3,7 +3,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { MessageSquare } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Message } from "@/hooks/useChat";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -91,6 +91,13 @@ export const ChatWindow = ({
                 >
                   {showAvatar ? (
                     <Avatar className="h-8 w-8">
+                      {message.sender?.avatar_url && (
+                        <AvatarImage 
+                          src={message.sender.avatar_url} 
+                          alt={message.sender?.full_name || "User"} 
+                          className="object-cover"
+                        />
+                      )}
                       <AvatarFallback
                         className={cn(
                           "text-xs",

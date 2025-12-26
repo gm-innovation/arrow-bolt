@@ -1,5 +1,5 @@
 import { LogOut, User, Settings } from "lucide-react";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { useUserAvatar } from "@/hooks/useUserAvatar";
 
 interface UserMenuProps {
   userType: "super-admin" | "admin" | "manager" | "tech" | "hr";
@@ -18,6 +19,7 @@ interface UserMenuProps {
 export const UserMenu = ({ userType }: UserMenuProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { avatarUrl } = useUserAvatar();
 
   const handleLogout = async () => {
     await signOut();
@@ -73,6 +75,9 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       <DropdownMenuTrigger asChild>
         <button className="focus:outline-none focus:ring-2 focus:ring-primary rounded-full">
           <Avatar className="h-8 w-8 cursor-pointer">
+            {avatarUrl && (
+              <AvatarImage src={avatarUrl} alt="Avatar" className="object-cover" />
+            )}
             <AvatarFallback className="bg-primary text-primary-foreground font-medium">
               {getUserInitials()}
             </AvatarFallback>
