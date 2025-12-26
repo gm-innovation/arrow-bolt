@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { ViewToggle } from "@/components/tech/tasks/ViewToggle";
 import { TasksKanbanView } from "@/components/tech/tasks/TasksKanbanView";
 import { Ship, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
-import { Task, TaskStatus } from "@/types/task";
+import { Task, TaskStatus, GroupedTask } from "@/types/task";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -63,6 +63,7 @@ const Tasks = () => {
             order_number,
             scheduled_date,
             service_date_time,
+            single_report,
             vessels:vessel_id (
               name
             )
@@ -82,6 +83,7 @@ const Tasks = () => {
         orderNumber: task.service_orders?.order_number || "N/A",
         vesselName: task.service_orders?.vessels?.name || "N/A",
         description: task.task_types?.name || task.title || task.description,
+        taskName: task.task_types?.name || task.title || task.description,
         scheduledDate: task.service_orders?.service_date_time 
           ? new Date(task.service_orders.service_date_time)
           : task.service_orders?.scheduled_date
@@ -90,6 +92,7 @@ const Tasks = () => {
           ? new Date(task.due_date) 
           : new Date(),
         status: task.status as TaskStatus,
+        singleReport: task.service_orders?.single_report || false,
       })) || [];
 
       setTasks(formattedTasks);
@@ -252,89 +255,163 @@ const Tasks = () => {
     return osTasksStatuses.length > 0 && osTasksStatuses.every(t => t.status === "completed");
   };
 
-  // Helper: Check if this is the first task of an OS in the list (to show report button only once)
-  const isFirstTaskOfOS = (task: Task, index: number) => {
-    if (!task.serviceOrderId) return true;
-    return tasks.findIndex(t => t.serviceOrderId === task.serviceOrderId) === index;
+  // Helper: Check if at least one task is in_progress or completed (can start editing report)
+  const canEditReport = (serviceOrderId: string | undefined) => {
+    if (!serviceOrderId) return false;
+    const osTasks = tasks.filter(t => t.serviceOrderId === serviceOrderId);
+    return osTasks.some(t => t.status === "in_progress" || t.status === "completed");
   };
 
-  // Helper: Check if report button should show for this task
-  const shouldShowReportButton = (task: Task, index: number) => {
-    return task.status === "completed" && 
-           areAllTasksOfOSCompleted(task.serviceOrderId) && 
-           isFirstTaskOfOS(task, index);
+  // Group tasks by OS when single_report = true
+  const groupedTasks: GroupedTask[] = useMemo(() => {
+    const groups = new Map<string, GroupedTask>();
+    
+    tasks.forEach(task => {
+      if (task.singleReport && task.serviceOrderId) {
+        // Group tasks with same service order ID
+        const key = task.serviceOrderId;
+        if (!groups.has(key)) {
+          groups.set(key, {
+            ...task,
+            tasksList: [task],
+            taskCount: 1,
+            groupedDescription: task.description || task.taskName || "",
+          });
+        } else {
+          const group = groups.get(key)!;
+          group.tasksList.push(task);
+          group.taskCount++;
+          // Update grouped description to show all task names
+          const taskNames = group.tasksList.map(t => t.taskName || t.description).filter(Boolean);
+          group.groupedDescription = taskNames.join(", ");
+          
+          // Update status: if any is in_progress, show in_progress; if all completed, show completed
+          const allCompleted = group.tasksList.every(t => t.status === "completed");
+          const anyInProgress = group.tasksList.some(t => t.status === "in_progress");
+          if (allCompleted) {
+            group.status = "completed";
+          } else if (anyInProgress) {
+            group.status = "in_progress";
+          } else {
+            group.status = "pending";
+          }
+        }
+      } else {
+        // Non-grouped tasks
+        groups.set(task.id, {
+          ...task,
+          tasksList: [task],
+          taskCount: 1,
+          groupedDescription: task.description || "",
+        });
+      }
+    });
+    
+    return Array.from(groups.values());
+  }, [tasks]);
+
+  // Helper: Check if report button should show for this grouped task
+  const shouldShowReportButton = (groupedTask: GroupedTask) => {
+    // Show report button if at least one task is in_progress or completed
+    return canEditReport(groupedTask.serviceOrderId);
+  };
+  
+  // Get button text based on all tasks completion status
+  const getReportButtonText = (groupedTask: GroupedTask) => {
+    const allCompleted = areAllTasksOfOSCompleted(groupedTask.serviceOrderId);
+    if (existingReports[groupedTask.serviceOrderId!]) {
+      return allCompleted ? "Enviar Relatório" : "Editar Relatório";
+    }
+    return allCompleted ? "Criar Relatório" : "Preencher Relatório";
   };
 
-  // Mobile card view for tasks
-  const renderMobileTaskCard = (task: Task, index: number) => {
-    const statusDisplay = getStatusDisplay(task.status);
+  // Mobile card view for grouped tasks
+  const renderMobileTaskCard = (groupedTask: GroupedTask) => {
+    const statusDisplay = getStatusDisplay(groupedTask.status);
+    const isMultiTask = groupedTask.taskCount > 1;
     
     return (
-      <div key={task.id} className="bg-card rounded-lg border shadow-sm p-4 mb-4">
+      <div key={groupedTask.serviceOrderId || groupedTask.id} className="bg-card rounded-lg border shadow-sm p-4 mb-4">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <div className="font-semibold">OS {task.orderNumber}</div>
+            <div className="font-semibold">OS {groupedTask.orderNumber}</div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
               <Ship className="h-4 w-4" />
-              {task.vesselName}
+              {groupedTask.vesselName}
             </div>
           </div>
-          <Badge variant={statusDisplay.variant}>{statusDisplay.text}</Badge>
+          <div className="flex flex-col items-end gap-1">
+            <Badge variant={statusDisplay.variant}>{statusDisplay.text}</Badge>
+            {isMultiTask && (
+              <span className="text-xs text-muted-foreground">{groupedTask.taskCount} tarefas</span>
+            )}
+          </div>
         </div>
         
-        <p className="text-sm text-foreground mb-3">{task.description}</p>
+        <p className="text-sm text-foreground mb-3">
+          {isMultiTask ? groupedTask.groupedDescription : groupedTask.description}
+        </p>
         
         <div className="flex flex-wrap gap-3 mb-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-1">
             <Calendar className="h-4 w-4" />
-            {format(task.scheduledDate, "dd/MM/yyyy")}
+            {format(groupedTask.scheduledDate, "dd/MM/yyyy")}
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-4 w-4" />
-            {format(task.scheduledDate, "HH:mm")}
+            {format(groupedTask.scheduledDate, "HH:mm")}
           </div>
         </div>
         
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() => handleViewDetails(task.id)}
-          >
-            Detalhes
-          </Button>
-          
-          {(task.status === "waiting" || (task.status as string) === "pending") && (
+          {!isMultiTask && (
             <Button
-              variant="default"
+              variant="outline"
               size="sm"
               className="flex-1"
-              onClick={() => handleStartTask(task.id)}
+              onClick={() => handleViewDetails(groupedTask.id)}
             >
-              Iniciar
+              Detalhes
             </Button>
           )}
           
-          {task.status === "in_progress" && (
-            <Button
-              variant="default"
-              size="sm"
-              className="flex-1"
-              onClick={() => handleFinishTask(task.id)}
-            >
-              Finalizar
-            </Button>
-          )}
+          {/* Show task action buttons for individual tasks within the group */}
+          {groupedTask.tasksList.map(task => (
+            <div key={task.id} className={isMultiTask ? "w-full flex gap-2 items-center border-t pt-2 mt-2" : "contents"}>
+              {isMultiTask && (
+                <span className="text-xs text-muted-foreground flex-1 truncate">{task.taskName}</span>
+              )}
+              {(task.status === "waiting" || (task.status as string) === "pending") && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className={isMultiTask ? "" : "flex-1"}
+                  onClick={() => handleStartTask(task.id)}
+                >
+                  Iniciar
+                </Button>
+              )}
+              {task.status === "in_progress" && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  className={isMultiTask ? "" : "flex-1"}
+                  onClick={() => handleFinishTask(task.id)}
+                >
+                  Finalizar
+                </Button>
+              )}
+            </div>
+          ))}
           
-          {shouldShowReportButton(task, index) && task.serviceOrderId && (
+          {shouldShowReportButton(groupedTask) && groupedTask.serviceOrderId && (
             <Button
               variant="default"
               size="sm"
-              className="flex-1"
-              onClick={() => handleCreateReport(task.serviceOrderId!)}
+              className="flex-1 w-full mt-2"
+              onClick={() => handleCreateReport(groupedTask.serviceOrderId!)}
             >
-              {existingReports[task.serviceOrderId] ? "Editar Relatório" : "Criar Relatório"}
+              {getReportButtonText(groupedTask)}
             </Button>
           )}
         </div>
@@ -423,8 +500,8 @@ const Tasks = () => {
             <>
               {/* Mobile card view */}
               <div className="md:hidden">
-                {tasks.map((task, index) => renderMobileTaskCard(task, index))}
-                {tasks.length === 0 && (
+                {groupedTasks.map((groupedTask) => renderMobileTaskCard(groupedTask))}
+                {groupedTasks.length === 0 && (
                   <div className="flex flex-col items-center justify-center p-12 text-center border rounded-lg border-dashed">
                     <Clock className="h-16 w-16 text-muted-foreground mb-4" />
                     <h3 className="text-lg font-medium">Nenhuma tarefa atribuída</h3>
@@ -449,7 +526,7 @@ const Tasks = () => {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {tasks.length === 0 ? (
+                    {groupedTasks.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={6} className="h-32">
                           <div className="flex flex-col items-center justify-center p-12 text-center">
@@ -462,68 +539,87 @@ const Tasks = () => {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      tasks.map((task, index) => {
-                        const statusDisplay = getStatusDisplay(task.status);
+                      groupedTasks.map((groupedTask) => {
+                        const statusDisplay = getStatusDisplay(groupedTask.status);
+                        const isMultiTask = groupedTask.taskCount > 1;
+                        
                         return (
-                          <TableRow key={task.id}>
-                            <TableCell className="font-medium">{task.orderNumber || task.id}</TableCell>
+                          <TableRow key={groupedTask.serviceOrderId || groupedTask.id}>
+                            <TableCell className="font-medium">{groupedTask.orderNumber || groupedTask.id}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Ship className="h-4 w-4" />
-                                {task.vesselName}
+                                {groupedTask.vesselName}
                               </div>
                             </TableCell>
-                            <TableCell>{task.description}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                <span>{isMultiTask ? groupedTask.groupedDescription : groupedTask.description}</span>
+                                {isMultiTask && (
+                                  <span className="text-xs text-muted-foreground">({groupedTask.taskCount} tarefas)</span>
+                                )}
+                              </div>
+                            </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-4">
                                 <div className="flex items-center gap-2">
                                   <Calendar className="h-4 w-4" />
-                                  {format(task.scheduledDate, "dd/MM/yyyy")}
+                                  {format(groupedTask.scheduledDate, "dd/MM/yyyy")}
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <Clock className="h-4 w-4" />
-                                  {format(task.scheduledDate, "HH:mm")}
+                                  {format(groupedTask.scheduledDate, "HH:mm")}
                                 </div>
                               </div>
                             </TableCell>
                             <TableCell>
                               <Badge variant={statusDisplay.variant}>{statusDisplay.text}</Badge>
                             </TableCell>
-                            <TableCell className="text-right space-x-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleViewDetails(task.id)}
-                              >
-                                Detalhes
-                              </Button>
-                              {(task.status === "waiting" || (task.status as string) === "pending") && (
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => handleStartTask(task.id)}
-                                >
-                                  Iniciar
-                                </Button>
-                              )}
-                              {task.status === "in_progress" && (
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => handleFinishTask(task.id)}
-                                >
-                                  Finalizar
-                                </Button>
-                              )}
-                              {shouldShowReportButton(task, index) && task.serviceOrderId && (
-                                <Button
-                                  variant="default"
-                                  size="sm"
-                                  onClick={() => handleCreateReport(task.serviceOrderId!)}
-                                >
-                                  {existingReports[task.serviceOrderId] ? "Editar Relatório" : "Criar Relatório"}
-                                </Button>
-                              )}
+                            <TableCell className="text-right">
+                              <div className="flex flex-wrap gap-1 justify-end">
+                                {!isMultiTask && (
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleViewDetails(groupedTask.id)}
+                                  >
+                                    Detalhes
+                                  </Button>
+                                )}
+                                {groupedTask.tasksList.map(task => (
+                                  <div key={task.id} className="inline-flex gap-1">
+                                    {(task.status === "waiting" || (task.status as string) === "pending") && (
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={() => handleStartTask(task.id)}
+                                        title={isMultiTask ? task.taskName : undefined}
+                                      >
+                                        {isMultiTask ? `Iniciar` : "Iniciar"}
+                                      </Button>
+                                    )}
+                                    {task.status === "in_progress" && (
+                                      <Button
+                                        variant="default"
+                                        size="sm"
+                                        onClick={() => handleFinishTask(task.id)}
+                                        title={isMultiTask ? task.taskName : undefined}
+                                      >
+                                        {isMultiTask ? `Finalizar` : "Finalizar"}
+                                      </Button>
+                                    )}
+                                  </div>
+                                ))}
+                                {shouldShowReportButton(groupedTask) && groupedTask.serviceOrderId && (
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={() => handleCreateReport(groupedTask.serviceOrderId!)}
+                                  >
+                                    {getReportButtonText(groupedTask)}
+                                  </Button>
+                                )}
+                              </div>
                             </TableCell>
                           </TableRow>
                         );
