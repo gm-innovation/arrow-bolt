@@ -58,6 +58,7 @@ interface TaskInfo {
   description: string;
   status: string;
   taskTypeName: string;
+  taskTypeId: string; // Added for deduplication
   photoLabels: string[];
 }
 
@@ -305,19 +306,42 @@ const ReportFormContent = () => {
           title,
           description,
           status,
+          task_type_id,
           task_types:task_type_id (name, photo_labels)
         `)
         .eq('service_order_id', osId)
         .order('created_at', { ascending: true });
 
-      const fetchedTasks: TaskInfo[] = (tasksData || []).map((task: any) => ({
+      let fetchedTasks: TaskInfo[] = (tasksData || []).map((task: any) => ({
         id: task.id,
         title: task.title || task.description || 'Tarefa',
         description: task.description || '',
         status: task.status,
+        taskTypeId: task.task_type_id || '',
         taskTypeName: task.task_types?.name || task.title || 'Tarefa',
         photoLabels: task.task_types?.photo_labels || [],
       }));
+      
+      // CRITICAL: Deduplicate tasks by task_type_id when single_report=true
+      // This handles legacy data where multiple tasks exist per type
+      const isSingleReport = (soData as any).single_report !== false;
+      if (isSingleReport) {
+        const seenTaskTypes = new Set<string>();
+        const deduplicatedTasks: TaskInfo[] = [];
+        
+        for (const task of fetchedTasks) {
+          if (task.taskTypeId) {
+            if (!seenTaskTypes.has(task.taskTypeId)) {
+              seenTaskTypes.add(task.taskTypeId);
+              deduplicatedTasks.push(task);
+            }
+            // Skip duplicates
+          } else {
+            deduplicatedTasks.push(task);
+          }
+        }
+        fetchedTasks = deduplicatedTasks;
+      }
       
       setAllTasks(fetchedTasks);
       

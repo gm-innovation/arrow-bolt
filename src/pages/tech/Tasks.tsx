@@ -69,6 +69,7 @@ const Tasks = () => {
           status,
           due_date,
           service_order_id,
+          task_type_id,
           service_orders:service_order_id (
             id,
             order_number,
@@ -96,13 +97,14 @@ const Tasks = () => {
 
       if (error) throw error;
 
-      const formattedTasks: Task[] = data?.map((task: any) => ({
+      let formattedTasks: Task[] = data?.map((task: any) => ({
         id: task.id,
         serviceOrderId: task.service_order_id,
         orderNumber: task.service_orders?.order_number || "N/A",
         vesselName: task.service_orders?.vessels?.name || "N/A",
         description: task.task_types?.name || task.title || task.description,
         taskName: task.task_types?.name || task.title || task.description,
+        taskTypeId: task.task_type_id,
         scheduledDate: task.service_orders?.service_date_time 
           ? new Date(task.service_orders.service_date_time)
           : task.service_orders?.scheduled_date
@@ -114,7 +116,25 @@ const Tasks = () => {
         singleReport: task.service_orders?.single_report || false,
       })) || [];
 
-      setTasks(formattedTasks);
+      // CRITICAL: Deduplicate tasks by (serviceOrderId, taskTypeId) when single_report=true
+      // This handles legacy data where multiple tasks exist per type
+      const deduplicatedTasks: Task[] = [];
+      const seenKeys = new Set<string>();
+      
+      for (const task of formattedTasks) {
+        if (task.singleReport && task.serviceOrderId && task.taskTypeId) {
+          const key = `${task.serviceOrderId}_${task.taskTypeId}`;
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key);
+            deduplicatedTasks.push(task);
+          }
+          // Skip duplicates - they exist in DB but we only show one per type
+        } else {
+          deduplicatedTasks.push(task);
+        }
+      }
+
+      setTasks(deduplicatedTasks);
 
       // Fetch existing reports for each unique service order
       const uniqueServiceOrderIds = [...new Set(formattedTasks.map(t => t.serviceOrderId).filter(Boolean))];
