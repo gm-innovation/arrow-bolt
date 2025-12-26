@@ -486,6 +486,19 @@ const ReportFormContent = () => {
     const initializeReports = async () => {
       if (!currentServiceOrderId || allTasks.length === 0) return;
       
+      // Get valid task IDs from allTasks
+      const validTaskIds = new Set(allTasks.map(t => t.id));
+      
+      // Check if we already have reports for all tasks (prevent re-initialization)
+      const hasAllReports = allTasks.every(task => taskReports[task.id]);
+      if (hasAllReports && Object.keys(taskReports).length === allTasks.length) {
+        setIsLoading(false);
+        if (!selectedTask) {
+          setSelectedTask(allTasks[0].id);
+        }
+        return;
+      }
+      
       const savedReports = await fetchTaskReports(currentServiceOrderId, allTasks);
       if (!savedReports) {
         console.log("No saved reports found, initializing for all tasks");
@@ -508,12 +521,20 @@ const ReportFormContent = () => {
         setTaskReports(initialReports);
         setSelectedTask(allTasks[0].id);
       } else {
-        setSelectedTask(Object.keys(savedReports)[0] || allTasks[0].id);
+        // Filter saved reports to only include valid task IDs
+        const filteredReports: Record<string, TaskReport> = {};
+        for (const [taskId, report] of Object.entries(savedReports)) {
+          if (validTaskIds.has(taskId)) {
+            filteredReports[taskId] = report;
+          }
+        }
+        setTaskReports(filteredReports);
+        setSelectedTask(allTasks[0].id);
       }
       setIsLoading(false);
     };
     initializeReports();
-  }, [currentServiceOrderId, allTasks]);
+  }, [currentServiceOrderId, allTasks.length]);
 
   const handleAddTimeEntry = (taskId: string) => {
     const newEntry = {
@@ -1081,68 +1102,73 @@ const ReportFormContent = () => {
             </div>
           )}
 
-          {Object.entries(taskReports).map(([taskId, report]) => (
-            <TabsContent key={taskId} value={taskId} className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Informações do Equipamento</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <EquipmentInfoSection
-                    taskId={taskId}
-                    report={report}
-                    onUpdateReport={handleUpdateReport}
-                    showValidation={showValidation}
-                  />
-                </CardContent>
-              </Card>
+          {allTasks.map((task) => {
+            const report = taskReports[task.id];
+            if (!report) return null;
+            
+            return (
+              <TabsContent key={task.id} value={task.id} className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Informações do Equipamento</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <EquipmentInfoSection
+                      taskId={task.id}
+                      report={report}
+                      onUpdateReport={handleUpdateReport}
+                      showValidation={showValidation}
+                    />
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Detalhes do Serviço</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ServiceDetailsSection
-                    taskId={taskId}
-                    report={report}
-                    onUpdateReport={handleUpdateReport}
-                    showValidation={showValidation}
-                  />
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Detalhes do Serviço</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ServiceDetailsSection
+                      taskId={task.id}
+                      report={report}
+                      onUpdateReport={handleUpdateReport}
+                      showValidation={showValidation}
+                    />
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Fotos *</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PhotosSection
-                    taskId={taskId}
-                    photos={report.photos}
-                    onUpdatePhotos={handleUpdatePhotos}
-                    requiredPhotoLabels={taskPhotoLabels[taskId] || []}
-                    showValidation={showValidation}
-                  />
-                </CardContent>
-              </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Fotos *</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <PhotosSection
+                      taskId={task.id}
+                      photos={report.photos}
+                      onUpdatePhotos={handleUpdatePhotos}
+                      requiredPhotoLabels={taskPhotoLabels[task.id] || []}
+                      showValidation={showValidation}
+                    />
+                  </CardContent>
+                </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Horários *</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <TimeEntriesSection
-                    taskId={taskId}
-                    timeEntries={report.timeEntries}
-                    onAddTimeEntry={handleAddTimeEntry}
-                    onRemoveTimeEntry={handleRemoveTimeEntry}
-                    onUpdateTimeEntry={handleUpdateTimeEntry}
-                    showValidation={showValidation}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
-          ))}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Horários *</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <TimeEntriesSection
+                      taskId={task.id}
+                      timeEntries={report.timeEntries}
+                      onAddTimeEntry={handleAddTimeEntry}
+                      onRemoveTimeEntry={handleRemoveTimeEntry}
+                      onUpdateTimeEntry={handleUpdateTimeEntry}
+                      showValidation={showValidation}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            );
+          })}
         </Tabs>
 
         <div className="flex justify-end space-x-2">
