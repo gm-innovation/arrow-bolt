@@ -4,13 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, BarChart3, Users, ClipboardList } from "lucide-react";
 import { useForm } from "react-hook-form";
 import ChangePasswordDialog from "@/components/admin/ChangePasswordDialog";
 import { useManagerReports } from "@/hooks/useManagerReports";
+import { AvatarUpload } from "@/components/ui/AvatarUpload";
+import { useUserAvatar } from "@/hooks/useUserAvatar";
 
 interface ProfileFormData {
   full_name: string;
@@ -23,6 +24,7 @@ const ManagerProfile = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
   const { metrics } = useManagerReports();
+  const { avatarUrl, isUploading, uploadAvatar, deleteAvatar } = useUserAvatar();
 
   const { register, handleSubmit, formState: { errors } } = useForm<ProfileFormData>({
     defaultValues: {
@@ -55,7 +57,6 @@ const ManagerProfile = () => {
 
       if (profileError) throw profileError;
 
-      // Update auth metadata
       const { error: authError } = await supabase.auth.updateUser({
         data: {
           full_name: data.full_name,
@@ -100,11 +101,14 @@ const ManagerProfile = () => {
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="flex items-center gap-6">
-              <Avatar className="h-20 w-20">
-                <AvatarFallback className="bg-chart-3 text-primary-foreground text-2xl font-medium">
-                  {getUserInitials()}
-                </AvatarFallback>
-              </Avatar>
+              <AvatarUpload
+                avatarUrl={avatarUrl}
+                initials={getUserInitials()}
+                onUpload={uploadAvatar}
+                onDelete={deleteAvatar}
+                isUploading={isUploading}
+                fallbackClassName="bg-chart-3 text-primary-foreground"
+              />
               <div className="flex-1">
                 <h3 className="text-lg font-medium">{user?.user_metadata?.full_name || "Usuário"}</h3>
                 <p className="text-sm text-muted-foreground">Gerente</p>

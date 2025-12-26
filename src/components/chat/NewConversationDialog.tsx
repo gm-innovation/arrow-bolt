@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Search, Users, MessageSquare } from "lucide-react";
 
 interface NewConversationDialogProps {
@@ -166,6 +166,13 @@ export const NewConversationDialog = ({
                       onCheckedChange={() => toggleUser(u.id)}
                     />
                     <Avatar className="h-8 w-8">
+                      {u.avatar_url && (
+                        <AvatarImage 
+                          src={u.avatar_url} 
+                          alt={u.full_name} 
+                          className="object-cover"
+                        />
+                      )}
                       <AvatarFallback className="bg-primary/10 text-primary text-xs">
                         {getInitials(u.full_name)}
                       </AvatarFallback>
