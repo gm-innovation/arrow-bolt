@@ -509,9 +509,6 @@ export const NewTechnicianForm = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <DialogHeader>
-          <DialogTitle>{isEditing ? "Editar Técnico" : "Novo Técnico"}</DialogTitle>
-        </DialogHeader>
 
         {/* Upload section - sempre visível agora */}
         <div className="space-y-4">
