@@ -926,48 +926,67 @@ const Technicians = () => {
                   <h4 className="font-semibold mb-3">Documentos</h4>
                   {selectedTechnician.technician_documents && selectedTechnician.technician_documents.length > 0 ? (
                     <div className="space-y-2">
-                      {selectedTechnician.technician_documents.map((doc) => (
-                        <div
-                          key={doc.id}
-                          className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
-                        >
-                          <div className="flex items-center gap-3">
-                            <FileText className="h-5 w-5 text-muted-foreground" />
-                            <div>
-                              <p className="font-medium text-sm">
-                                {doc.certificate_name || doc.file_name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {getDocumentTypeLabel(doc.document_type)}
-                                {doc.issue_date && (
-                                  <> • Emissão: {formatLocalDate(doc.issue_date)}</>
-                                )}
-                                {doc.expiry_date && (
-                                  <> • Validade: {formatLocalDate(doc.expiry_date)}</>
-                                )}
-                              </p>
+                      {selectedTechnician.technician_documents.map((doc) => {
+                        const getDocumentStatus = (expiryDate?: string) => {
+                          if (!expiryDate) return { label: 'Sem validade', variant: 'secondary' as const };
+                          const date = new Date(expiryDate + 'T00:00:00');
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const thirtyDaysFromNow = addDays(today, 30);
+                          if (date < today) return { label: 'Vencido', variant: 'destructive' as const };
+                          if (date <= thirtyDaysFromNow) return { label: 'A vencer', variant: 'warning' as const };
+                          return { label: 'Válido', variant: 'success' as const };
+                        };
+                        const docStatus = getDocumentStatus(doc.expiry_date);
+                        
+                        return (
+                          <div
+                            key={doc.id}
+                            className="flex items-center justify-between p-3 rounded-lg border bg-muted/50"
+                          >
+                            <div className="flex items-center gap-3">
+                              <FileText className="h-5 w-5 text-muted-foreground" />
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-sm">
+                                    {doc.certificate_name || doc.file_name}
+                                  </p>
+                                  <Badge variant={docStatus.variant} size="sm">
+                                    {docStatus.label}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                  {getDocumentTypeLabel(doc.document_type)}
+                                  {doc.issue_date && (
+                                    <> • Emissão: {formatLocalDate(doc.issue_date)}</>
+                                  )}
+                                  {doc.expiry_date && (
+                                    <> • Validade: {formatLocalDate(doc.expiry_date)}</>
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDownloadDocument(doc)}
+                                title="Baixar"
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteDocumentClick(doc)}
+                                title="Excluir"
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDownloadDocument(doc)}
-                              title="Baixar"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteDocumentClick(doc)}
-                              title="Excluir"
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-sm">Nenhum documento cadastrado</p>
