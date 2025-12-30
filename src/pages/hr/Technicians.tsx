@@ -385,6 +385,8 @@ const Technicians = () => {
             document_type: 'aso',
             file_name: uploadedFile.name,
             file_path: filePath,
+            issue_date: data.aso_issue_date || null,
+            expiry_date: data.aso_valid_until || null,
             metadata: data.aso_issue_date ? { aso_issue_date: data.aso_issue_date } : null
           });
 
@@ -572,6 +574,8 @@ const Technicians = () => {
             document_type: 'aso',
             file_name: uploadedFile.name,
             file_path: filePath,
+            issue_date: data.aso_issue_date || null,
+            expiry_date: data.aso_valid_until || null,
             metadata: data.aso_issue_date ? { aso_issue_date: data.aso_issue_date } : null
           });
         }
