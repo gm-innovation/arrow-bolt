@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -109,6 +109,20 @@ export const NewTechnicianForm = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const { classifyDocument, isClassifying } = useDocumentClassification();
   const { toast } = useToast();
+
+  // Sync existingDocuments when initialData changes (for edit mode)
+  useEffect(() => {
+    if (initialData?.documents) {
+      setExistingDocuments(initialData.documents);
+    }
+  }, [initialData?.documents]);
+
+  // Sync photoPreview when initialData.avatar_url changes
+  useEffect(() => {
+    if (initialData?.avatar_url) {
+      setPhotoPreview(initialData.avatar_url);
+    }
+  }, [initialData?.avatar_url]);
 
   const form = useForm<TechnicianFormValues>({
     resolver: zodResolver(technicianFormSchema),
