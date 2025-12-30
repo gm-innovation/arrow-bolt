@@ -935,6 +935,9 @@ const Technicians = () => {
                               </p>
                               <p className="text-xs text-muted-foreground">
                                 {getDocumentTypeLabel(doc.document_type)}
+                                {doc.issue_date && (
+                                  <> • Emissão: {formatLocalDate(doc.issue_date)}</>
+                                )}
                                 {doc.expiry_date && (
                                   <> • Validade: {formatLocalDate(doc.expiry_date)}</>
                                 )}

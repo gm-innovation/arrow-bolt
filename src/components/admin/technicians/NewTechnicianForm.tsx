@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DocumentUploadZone } from "./DocumentUploadZone";
 import { useDocumentClassification, ClassificationResult } from "@/hooks/useDocumentClassification";
-import { Eye, EyeOff, Sparkles, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Sparkles, CheckCircle2, XCircle, Loader2, FileText, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -123,6 +123,15 @@ export const NewTechnicianForm = ({
       setPhotoPreview(initialData.avatar_url);
     }
   }, [initialData?.avatar_url]);
+
+  // Update existing document metadata
+  const updateExistingDocument = (index: number, field: string, value: string) => {
+    setExistingDocuments(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
 
   const form = useForm<TechnicianFormValues>({
     resolver: zodResolver(technicianFormSchema),
@@ -484,6 +493,27 @@ export const NewTechnicianForm = ({
           description: `${validCertifications.length} certificação(ões) sendo enviada(s)`,
         });
       }
+
+      // Update existing documents metadata in database (edit mode)
+      if (isEditing && existingDocuments.length > 0) {
+        console.log('📝 Atualizando metadados de documentos existentes...');
+        for (const doc of existingDocuments) {
+          const { error } = await supabase
+            .from('technician_documents')
+            .update({
+              certificate_name: doc.certificate_name,
+              issue_date: doc.issue_date || null,
+              expiry_date: doc.expiry_date || null,
+            })
+            .eq('id', doc.id);
+          
+          if (error) {
+            console.error('Erro ao atualizar documento:', error);
+          } else {
+            console.log(`✅ Documento ${doc.certificate_name || doc.file_name} atualizado`);
+          }
+        }
+      }
       
       await onSubmit(data, uploadedFiles.aso || null, uploadedFiles.photo || null, validCertifications);
       
@@ -559,29 +589,63 @@ export const NewTechnicianForm = ({
             </div>
           )}
 
-          {/* Mostrar documentos existentes (modo edição) */}
+          {/* Mostrar documentos existentes (modo edição) - Campos editáveis */}
           {isEditing && existingDocuments.length > 0 && (
-            <div className="space-y-2">
-              <p className="text-sm font-semibold">Documentos Existentes</p>
-              {existingDocuments.map((doc) => (
-                <div key={doc.id} className="flex items-center justify-between p-3 bg-muted rounded border">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {doc.certificate_name || doc.file_name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Tipo: {doc.document_type === 'aso' ? 'ASO' : 'Certificação'}
-                      {doc.expiry_date && ` • Validade: ${new Date(doc.expiry_date).toLocaleDateString('pt-BR')}`}
-                    </p>
+            <div className="space-y-3">
+              <p className="text-sm font-semibold">Documentos Existentes (editáveis)</p>
+              {existingDocuments.map((doc, index) => (
+                <div key={doc.id} className="p-4 bg-muted rounded-lg border space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium">
+                        {doc.document_type === 'aso' ? 'ASO' : 'Certificação'}
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeExistingDocument(doc.id, doc.document_type)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeExistingDocument(doc.id, doc.document_type)}
-                  >
-                    Remover
-                  </Button>
+                  
+                  {/* Nome do Documento - Editável */}
+                  <div className="grid gap-2">
+                    <Label className="text-xs">Nome do Documento</Label>
+                    <Input
+                      value={doc.certificate_name || doc.file_name || ''}
+                      onChange={(e) => updateExistingDocument(index, 'certificate_name', e.target.value)}
+                      placeholder="Nome do certificado"
+                    />
+                  </div>
+                  
+                  {/* Datas lado a lado */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label className="text-xs">Data de Emissão</Label>
+                      <Input
+                        type="date"
+                        value={doc.issue_date || ''}
+                        onChange={(e) => updateExistingDocument(index, 'issue_date', e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label className="text-xs">Data de Validade</Label>
+                      <Input
+                        type="date"
+                        value={doc.expiry_date || ''}
+                        onChange={(e) => updateExistingDocument(index, 'expiry_date', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    Arquivo: {doc.file_name}
+                  </p>
                 </div>
               ))}
             </div>
