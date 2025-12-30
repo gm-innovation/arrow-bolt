@@ -53,6 +53,8 @@ const Technicians = () => {
   const [selectedTechnician, setSelectedTechnician] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [documentToDelete, setDocumentToDelete] = useState<any>(null);
+  const [isDeleteDocDialogOpen, setIsDeleteDocDialogOpen] = useState(false);
 
   useEffect(() => {
     fetchTechnicians();
@@ -98,6 +100,54 @@ const Technicians = () => {
         description: 'Não foi possível baixar o documento.',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleDeleteDocumentClick = (doc: any) => {
+    setDocumentToDelete(doc);
+    setIsDeleteDocDialogOpen(true);
+  };
+
+  const handleConfirmDeleteDocument = async () => {
+    if (!documentToDelete) return;
+
+    try {
+      // Delete from storage
+      if (documentToDelete.file_path) {
+        const { error: storageError } = await supabase.storage
+          .from('technician-documents')
+          .remove([documentToDelete.file_path]);
+        
+        if (storageError) {
+          console.warn('Storage delete warning:', storageError);
+        }
+      }
+
+      // Delete from database
+      const { error } = await supabase
+        .from('technician_documents')
+        .delete()
+        .eq('id', documentToDelete.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Documento excluído',
+        description: 'O documento foi removido com sucesso.',
+      });
+
+      // Refresh data
+      fetchTechnicians();
+    } catch (error: any) {
+      console.error('Error deleting document:', error);
+      toast({
+        title: 'Erro ao excluir documento',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleteDocDialogOpen(false);
+      setDocumentToDelete(null);
     }
   };
 
@@ -1203,9 +1253,9 @@ const Technicians = () => {
                         </div>
                       </div>
 
-                      {/* Botão de download do ASO */}
+                      {/* Botões de download e exclusão do ASO */}
                       {asoDoc && (
-                        <div className="mt-4">
+                        <div className="mt-4 flex gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -1214,6 +1264,15 @@ const Technicians = () => {
                           >
                             <Download className="h-4 w-4" />
                             Baixar ASO
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleDeleteDocumentClick(asoDoc)}
+                            className="flex items-center gap-2 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Excluir
                           </Button>
                         </div>
                       )}
@@ -1331,7 +1390,7 @@ const Technicians = () => {
                                 <p className="text-sm font-medium text-muted-foreground">Tipo</p>
                                 <p className="text-base">{doc.document_type}</p>
                               </div>
-                              <div className="flex items-end">
+                              <div className="flex items-end gap-2">
                                 <Button
                                   variant="outline"
                                   size="sm"
@@ -1340,6 +1399,15 @@ const Technicians = () => {
                                 >
                                   <Download className="h-4 w-4" />
                                   Baixar
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteDocumentClick(doc)}
+                                  className="flex items-center gap-2 text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                  Excluir
                                 </Button>
                               </div>
                             </div>
@@ -1403,6 +1471,29 @@ const Technicians = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleConfirmDelete} className="bg-destructive hover:bg-destructive/90">
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Document Confirmation Dialog */}
+      <AlertDialog open={isDeleteDocDialogOpen} onOpenChange={setIsDeleteDocDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Documento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o documento "{documentToDelete?.certificate_name || documentToDelete?.file_name}"?
+              <br /><br />
+              Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmDeleteDocument}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
