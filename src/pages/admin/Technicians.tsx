@@ -251,7 +251,8 @@ const Technicians = () => {
     file: File,
     technicianId: string,
     companyId: string,
-    asoIssueDate?: string
+    asoIssueDate?: string,
+    asoValidUntil?: string
   ) => {
     console.log('🚀 uploadTechnicianDocuments chamado com asoIssueDate:', asoIssueDate);
     
@@ -272,6 +273,8 @@ const Technicians = () => {
       document_type: 'aso',
       file_name: file.name,
       file_path: filePath,
+      issue_date: asoIssueDate || null,
+      expiry_date: asoValidUntil || null,
       metadata: asoIssueDate ? { aso_issue_date: asoIssueDate } : null
     };
 
@@ -459,7 +462,8 @@ const Technicians = () => {
           uploadedFile, 
           technicianData.id, 
           profileData.company_id,
-          data.aso_issue_date // Passando a data de emissão do ASO
+          data.aso_issue_date,
+          data.aso_valid_until
         );
       }
 
@@ -740,6 +744,8 @@ const Technicians = () => {
             document_type: 'aso',
             file_name: asoFile.name,
             file_path: filePath,
+            issue_date: data.aso_issue_date || null,
+            expiry_date: data.aso_valid_until || null,
           });
 
           if (insertError) {
