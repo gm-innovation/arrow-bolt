@@ -159,7 +159,17 @@ const Technicians = () => {
     if (!technicianToDelete) return;
 
     try {
-      // 1. Buscar e excluir documentos do Storage
+      // 1. PRIMEIRO: Excluir o usuário via Edge Function (enquanto profile ainda existe)
+      const { error: userError } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: technicianToDelete.user_id }
+      });
+
+      if (userError) {
+        console.error('Erro ao excluir usuário:', userError);
+        // Se falhar, ainda tentamos excluir o técnico mas alertamos
+      }
+
+      // 2. Buscar e excluir documentos do Storage
       const { data: documents } = await supabase
         .from('technician_documents')
         .select('file_path')
@@ -171,7 +181,7 @@ const Technicians = () => {
         console.log(`🗑️ ${paths.length} documentos removidos do storage`);
       }
 
-      // 2. Excluir técnico (documentos cascateiam, históricos ficam NULL)
+      // 3. Excluir técnico (documentos cascateiam, históricos ficam NULL)
       const { error } = await supabase
         .from('technicians')
         .delete()
@@ -179,23 +189,12 @@ const Technicians = () => {
 
       if (error) throw error;
 
-      // 3. Excluir usuário via Edge Function
-      const { error: userError } = await supabase.functions.invoke('delete-user', {
-        body: { user_id: technicianToDelete.user_id }
+      toast({
+        title: "Técnico excluído",
+        description: userError 
+          ? `${technicianToDelete.profiles?.full_name} foi removido. Nota: A conta de acesso pode precisar ser removida manualmente.`
+          : `${technicianToDelete.profiles?.full_name} foi removido com sucesso.`,
       });
-
-      if (userError) {
-        console.warn('Aviso: Erro ao excluir usuário:', userError);
-        toast({
-          title: "Técnico excluído",
-          description: `${technicianToDelete.profiles?.full_name} foi removido. Nota: Houve um problema ao remover a conta de acesso.`,
-        });
-      } else {
-        toast({
-          title: "Técnico excluído",
-          description: `${technicianToDelete.profiles?.full_name} foi removido com sucesso.`,
-        });
-      }
 
       fetchTechnicians();
     } catch (error: any) {

@@ -889,13 +889,23 @@ const Technicians = () => {
     try {
       if (!selectedTechnician) return;
 
-      // 1. Buscar documentos do técnico no storage
+      // 1. PRIMEIRO: Excluir o usuário via Edge Function (enquanto profile ainda existe)
+      const { error: userError } = await supabase.functions.invoke('delete-user', {
+        body: { user_id: selectedTechnician.user_id }
+      });
+
+      if (userError) {
+        console.error('Erro ao excluir usuário:', userError);
+        // Se falhar, ainda tentamos excluir o técnico mas alertamos
+      }
+
+      // 2. Buscar documentos do técnico no storage
       const { data: documents } = await supabase
         .from('technician_documents')
         .select('file_path')
         .eq('technician_id', selectedTechnician.id);
 
-      // 2. Excluir documentos do Storage
+      // 3. Excluir documentos do Storage
       if (documents && documents.length > 0) {
         const paths = documents.map(d => d.file_path);
         const { error: storageError } = await supabase.storage
@@ -909,7 +919,7 @@ const Technicians = () => {
         }
       }
 
-      // 3. Excluir registro do técnico (documentos cascateia, históricos ficam com NULL)
+      // 4. Excluir registro do técnico (documentos cascateia, históricos ficam com NULL)
       const { error: techError } = await supabase
         .from("technicians")
         .delete()
@@ -917,24 +927,12 @@ const Technicians = () => {
 
       if (techError) throw techError;
 
-      // 4. Excluir o usuário via Edge Function
-      const { error: userError } = await supabase.functions.invoke('delete-user', {
-        body: { user_id: selectedTechnician.user_id }
+      toast({
+        title: "Técnico removido",
+        description: userError 
+          ? `${selectedTechnician.name} foi removido. Nota: A conta de acesso pode precisar ser removida manualmente.`
+          : `${selectedTechnician.name} foi removido com sucesso.`,
       });
-
-      if (userError) {
-        console.warn('Aviso: Erro ao excluir usuário:', userError);
-        toast({
-          title: "Técnico removido",
-          description: `${selectedTechnician.name} foi removido, mas houve um erro ao excluir a conta de usuário.`,
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Técnico removido",
-          description: `${selectedTechnician.name} foi removido. Os históricos de trabalho foram preservados.`,
-        });
-      }
 
       setIsDeleteDialogOpen(false);
       setSelectedTechnician(null);
