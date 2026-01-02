@@ -157,6 +157,20 @@ export const NewTechnicianForm = ({
     },
   });
 
+  // Limpar autofill incorreto quando "Definir senha temporária" for selecionado
+  const passwordOption = form.watch("password_option");
+  useEffect(() => {
+    if (passwordOption === 'manual') {
+      const currentPhone = form.getValues("phone");
+      // Se o telefone contém @ (email), limpa - é autofill incorreto
+      if (currentPhone && currentPhone.includes('@')) {
+        form.setValue("phone", "");
+      }
+      // Limpa a senha para evitar autofill do navegador
+      form.setValue("password", "");
+    }
+  }, [passwordOption, form]);
+
   const processCertificate = async (file: File) => {
     // Fallback: usar nome do arquivo como nome do certificado
     const fallbackName = file.name.replace(/\.(pdf|jpg|jpeg|png|webp)$/i, '').replace(/_/g, ' ');
@@ -534,11 +548,14 @@ export const NewTechnicianForm = ({
     }
   };
 
-  const passwordOption = form.watch('password_option');
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6" autoComplete="off">
+        {/* Campos ocultos para capturar autofill do navegador */}
+        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }} aria-hidden="true">
+          <input type="text" name="fake_username" tabIndex={-1} autoComplete="username" />
+          <input type="password" name="fake_password" tabIndex={-1} autoComplete="current-password" />
+        </div>
 
         {/* Upload section - sempre visível agora */}
         <div className="space-y-4">
@@ -896,7 +913,14 @@ export const NewTechnicianForm = ({
               <FormItem>
                 <FormLabel>Email *</FormLabel>
                 <FormControl>
-                  <Input {...field} type="email" placeholder="email@empresa.com" autoComplete="email" />
+                  <Input 
+                    {...field} 
+                    type="email" 
+                    placeholder="email@empresa.com" 
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -910,7 +934,14 @@ export const NewTechnicianForm = ({
               <FormItem>
                 <FormLabel>Telefone</FormLabel>
                 <FormControl>
-                  <Input {...field} type="tel" placeholder="(00) 00000-0000" autoComplete="tel" />
+                  <Input 
+                    {...field} 
+                    type="tel" 
+                    inputMode="tel"
+                    placeholder="(00) 00000-0000" 
+                    autoComplete="tel-national"
+                    spellCheck={false}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
