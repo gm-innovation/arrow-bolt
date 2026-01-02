@@ -538,7 +538,7 @@ export const NewTechnicianForm = ({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6" autoComplete="off">
 
         {/* Upload section - sempre visível agora */}
         <div className="space-y-4">
@@ -896,7 +896,7 @@ export const NewTechnicianForm = ({
               <FormItem>
                 <FormLabel>Email *</FormLabel>
                 <FormControl>
-                  <Input {...field} type="email" placeholder="email@empresa.com" />
+                  <Input {...field} type="email" placeholder="email@empresa.com" autoComplete="email" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -910,7 +910,7 @@ export const NewTechnicianForm = ({
               <FormItem>
                 <FormLabel>Telefone</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="(00) 00000-0000" />
+                  <Input {...field} type="tel" placeholder="(00) 00000-0000" autoComplete="tel" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -971,6 +971,7 @@ export const NewTechnicianForm = ({
                           {...field}
                           type={showPassword ? "text" : "password"}
                           placeholder="Mínimo 8 caracteres"
+                          autoComplete="new-password"
                         />
                         <Button
                           type="button"
