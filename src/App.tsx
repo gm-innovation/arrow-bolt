@@ -61,7 +61,6 @@ import TechSettings from "./pages/tech/Settings";
 import InstallApp from "./pages/InstallApp";
 import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
 import Chat from "./pages/Chat";
-import Chat from "./pages/Chat";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 
 // Commercial Pages
