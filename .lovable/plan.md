@@ -181,7 +181,7 @@ Tres novos modulos independentes, cada um com roles dedicadas, suas proprias tab
 1. ~~**Etapa 1 - Infraestrutura:** Criar novas roles, atualizar DashboardLayout, roleRedirect e CorpRoute~~ ✅ CONCLUÍDA
 2. **Etapa 2 - Suprimentos:** Tabelas, paginas, hooks, componentes
 3. ~~**Etapa 3 - Qualidade:** Tabelas, paginas, hooks, componentes (mais complexo por causa de RNC + auditorias)~~ ✅ CONCLUÍDA
-4. **Etapa 4 - Financeiro:** Tabelas, paginas, hooks, componentes + vinculos com Suprimentos e Medicoes
+4. ~~**Etapa 4 - Financeiro:** Tabelas, paginas, hooks, componentes + vinculos com Suprimentos e Medicoes~~ ✅ CONCLUÍDA
 
 Cada etapa pode ser quebrada em sub-tarefas menores para implementacao incremental.
 
