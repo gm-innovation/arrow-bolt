@@ -1,12 +1,19 @@
 import { useRecurrences } from "@/hooks/useRecurrences";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarClock, List, Calendar } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { CalendarClock, List, Calendar, Eye } from "lucide-react";
 import { format, isBefore, startOfDay } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const getStatusBadge = (nextDate: string) => {
   const today = startOfDay(new Date());
@@ -18,9 +25,42 @@ const getStatusBadge = (nextDate: string) => {
 };
 
 const AdminSchedules = () => {
-  const { recurrences, isLoading } = useRecurrences();
+  const { recurrences, isLoading, updateRecurrence } = useRecurrences();
+  const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+
+  // Edit form
+  const [editNextDate, setEditNextDate] = useState("");
+  const [editStatus, setEditStatus] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   const sorted = [...recurrences].sort((a: any, b: any) => new Date(a.next_date).getTime() - new Date(b.next_date).getTime());
+
+  const openSheet = (r: any) => {
+    setSelectedItem(r);
+    setEditNextDate(r.next_date?.split("T")[0] || "");
+    setEditStatus(r.status || "active");
+    setEditNotes(r.notes || "");
+    setEditing(false);
+    setSheetOpen(true);
+  };
+
+  const handleSave = () => {
+    if (!selectedItem) return;
+    updateRecurrence.mutate({
+      id: selectedItem.id,
+      next_date: editNextDate,
+      status: editStatus,
+      notes: editNotes || null,
+    }, {
+      onSuccess: () => {
+        setSheetOpen(false);
+        setSelectedItem(null);
+        setEditing(false);
+      },
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -68,6 +108,9 @@ const AdminSchedules = () => {
                           </p>
                         </div>
                         {getStatusBadge(r.next_date)}
+                        <Button variant="ghost" size="icon" onClick={() => openSheet(r)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -85,6 +128,99 @@ const AdminSchedules = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Detail/Edit Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetContent className="sm:max-w-lg overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Detalhes do Agendamento</SheetTitle>
+          </SheetHeader>
+
+          {selectedItem && (
+            <div className="space-y-6 mt-6">
+              {/* Info Section */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{selectedItem.recurrence_type || selectedItem.periodicity}</Badge>
+                  {getStatusBadge(selectedItem.next_date)}
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Cliente</p>
+                  <p className="font-medium text-foreground">{selectedItem.clients?.name || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Serviço / Produto</p>
+                  <p className="font-medium text-foreground">{selectedItem.crm_products?.name || "—"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Responsável</p>
+                  <p className="font-medium text-foreground">{selectedItem.profiles?.full_name || "—"}</p>
+                </div>
+                {selectedItem.estimated_value && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Valor Estimado</p>
+                    <p className="font-medium text-foreground">R$ {Number(selectedItem.estimated_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</p>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Editable Section */}
+              {!editing ? (
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Próxima Data</p>
+                    <p className="font-medium text-foreground">{format(new Date(selectedItem.next_date), "dd/MM/yyyy")}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <Badge variant="secondary">{selectedItem.status === "active" ? "Ativo" : selectedItem.status === "paused" ? "Pausado" : "Cancelado"}</Badge>
+                  </div>
+                  {selectedItem.notes && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Observações</p>
+                      <p className="text-sm text-foreground">{selectedItem.notes}</p>
+                    </div>
+                  )}
+                  <Button variant="outline" onClick={() => setEditing(true)} className="w-full mt-4">Editar</Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Próxima Data</Label>
+                    <Input type="date" value={editNextDate} onChange={(e) => setEditNextDate(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={editStatus} onValueChange={setEditStatus}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Ativo</SelectItem>
+                        <SelectItem value="paused">Pausado</SelectItem>
+                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Observações</Label>
+                    <Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} rows={3} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {editing && (
+            <SheetFooter className="mt-6">
+              <Button variant="outline" onClick={() => setEditing(false)}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={updateRecurrence.isPending}>
+                {updateRecurrence.isPending ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </SheetFooter>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

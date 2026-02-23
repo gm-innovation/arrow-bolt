@@ -219,5 +219,3 @@ const CommercialBuyers = () => {
 };
 
 export default CommercialBuyers;
-
-export default CommercialBuyers;

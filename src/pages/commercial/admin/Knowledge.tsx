@@ -1,17 +1,44 @@
 import { useKnowledgeBase } from "@/hooks/useKnowledgeBase";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Search, BookOpen, FileText, Globe, Brain, Plus, Upload } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { format } from "date-fns";
+import { toast } from "sonner";
+
+const CATEGORIES = ["produto", "processo", "técnico", "comercial", "suporte", "outro"];
 
 const AdminKnowledge = () => {
-  const { articles: entries = [], documents = [], isLoading } = useKnowledgeBase();
+  const { articles: entries = [], documents = [], isLoading, createArticle, uploadDocument } = useKnowledgeBase();
   const [search, setSearch] = useState("");
+
+  // New Entry Dialog
+  const [entryOpen, setEntryOpen] = useState(false);
+  const [entryTitle, setEntryTitle] = useState("");
+  const [entryContent, setEntryContent] = useState("");
+  const [entryCategory, setEntryCategory] = useState("");
+  const [entryTags, setEntryTags] = useState("");
+  const [entryPublished, setEntryPublished] = useState(false);
+
+  // Upload Dialog
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  // Website Dialog
+  const [websiteOpen, setWebsiteOpen] = useState(false);
+  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [websiteTitle, setWebsiteTitle] = useState("");
+  const [websiteCategory, setWebsiteCategory] = useState("");
 
   const filteredEntries = entries.filter((e: any) =>
     e.title?.toLowerCase().includes(search.toLowerCase()) ||
@@ -25,18 +52,55 @@ const AdminKnowledge = () => {
     { label: "Categorias", value: new Set(entries.map((e: any) => e.category).filter(Boolean)).size, icon: Globe, color: "text-amber-600 bg-amber-50" },
   ];
 
+  const handleCreateEntry = () => {
+    if (!entryTitle || !entryContent) { toast.error("Título e conteúdo são obrigatórios"); return; }
+    const tags = entryTags ? entryTags.split(",").map(t => t.trim()).filter(Boolean) : [];
+    createArticle.mutate({ title: entryTitle, content: entryContent, category: entryCategory || null, tags, published: entryPublished }, {
+      onSuccess: () => {
+        setEntryOpen(false);
+        setEntryTitle(""); setEntryContent(""); setEntryCategory(""); setEntryTags(""); setEntryPublished(false);
+      },
+    });
+  };
+
+  const handleUpload = () => {
+    const file = fileRef.current?.files?.[0];
+    if (!file) { toast.error("Selecione um arquivo"); return; }
+    uploadDocument.mutate({ file, category: uploadCategory || undefined }, {
+      onSuccess: () => { setUploadOpen(false); setUploadCategory(""); if (fileRef.current) fileRef.current.value = ""; },
+    });
+  };
+
+  const handleWebsite = () => {
+    if (!websiteUrl) { toast.error("URL é obrigatória"); return; }
+    // Placeholder: save as knowledge article with URL as content
+    createArticle.mutate({
+      title: websiteTitle || websiteUrl,
+      content: `URL: ${websiteUrl}`,
+      category: websiteCategory || "website",
+      tags: ["website"],
+      published: false,
+    }, {
+      onSuccess: () => {
+        setWebsiteOpen(false);
+        setWebsiteUrl(""); setWebsiteTitle(""); setWebsiteCategory("");
+        toast.success("Website adicionado para processamento");
+      },
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h2 className="text-2xl font-bold text-foreground">Base de Conhecimento</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setWebsiteOpen(true)}>
             <Globe className="h-4 w-4" /> Adicionar Website
           </Button>
-          <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => setUploadOpen(true)}>
             <Upload className="h-4 w-4" /> Upload Documento
           </Button>
-          <Button size="sm" className="gap-2">
+          <Button size="sm" className="gap-2" onClick={() => setEntryOpen(true)}>
             <Plus className="h-4 w-4" /> Nova Entrada
           </Button>
         </div>
@@ -152,6 +216,102 @@ const AdminKnowledge = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* New Entry Dialog */}
+      <Dialog open={entryOpen} onOpenChange={setEntryOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader><DialogTitle>Nova Entrada</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Título *</Label>
+              <Input value={entryTitle} onChange={(e) => setEntryTitle(e.target.value)} placeholder="Título do artigo" />
+            </div>
+            <div className="space-y-2">
+              <Label>Conteúdo *</Label>
+              <Textarea value={entryContent} onChange={(e) => setEntryContent(e.target.value)} placeholder="Conteúdo do artigo..." rows={5} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Categoria</Label>
+                <Select value={entryCategory} onValueChange={setEntryCategory}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tags (separadas por vírgula)</Label>
+                <Input value={entryTags} onChange={(e) => setEntryTags(e.target.value)} placeholder="tag1, tag2" />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={entryPublished} onCheckedChange={setEntryPublished} />
+              <Label>Publicar imediatamente</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEntryOpen(false)}>Cancelar</Button>
+            <Button onClick={handleCreateEntry} disabled={createArticle.isPending}>{createArticle.isPending ? "Criando..." : "Criar Entrada"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Dialog */}
+      <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Upload de Documento</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Arquivo *</Label>
+              <Input ref={fileRef} type="file" accept=".pdf,.doc,.docx,.txt,.xls,.xlsx" />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <Select value={uploadCategory} onValueChange={setUploadCategory}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadOpen(false)}>Cancelar</Button>
+            <Button onClick={handleUpload} disabled={uploadDocument.isPending}>{uploadDocument.isPending ? "Enviando..." : "Enviar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Website Dialog */}
+      <Dialog open={websiteOpen} onOpenChange={setWebsiteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader><DialogTitle>Adicionar Website</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>URL *</Label>
+              <Input value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} placeholder="https://exemplo.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>Título</Label>
+              <Input value={websiteTitle} onChange={(e) => setWebsiteTitle(e.target.value)} placeholder="Nome do website" />
+            </div>
+            <div className="space-y-2">
+              <Label>Categoria</Label>
+              <Select value={websiteCategory} onValueChange={setWebsiteCategory}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {CATEGORIES.map(c => <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWebsiteOpen(false)}>Cancelar</Button>
+            <Button onClick={handleWebsite} disabled={createArticle.isPending}>{createArticle.isPending ? "Adicionando..." : "Adicionar"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
