@@ -39,6 +39,7 @@ const CorpDocuments = () => {
           <TableRow>
             <TableHead>Título</TableHead>
             <TableHead>Tipo</TableHead>
+            <TableHead className="hidden md:table-cell">Departamento</TableHead>
             <TableHead className="hidden md:table-cell">Destinatário</TableHead>
             <TableHead className="hidden md:table-cell">Enviado por</TableHead>
             <TableHead className="hidden lg:table-cell">Data</TableHead>
@@ -55,6 +56,7 @@ const CorpDocuments = () => {
                 </div>
               </TableCell>
               <TableCell><Badge variant="secondary" size="sm">{docTypeLabels[doc.document_type] || doc.document_type}</Badge></TableCell>
+              <TableCell className="hidden md:table-cell">{doc.department?.name || '—'}</TableCell>
               <TableCell className="hidden md:table-cell">{doc.owner?.full_name || '—'}</TableCell>
               <TableCell className="hidden md:table-cell">{doc.uploader?.full_name || '—'}</TableCell>
               <TableCell className="hidden lg:table-cell text-muted-foreground">

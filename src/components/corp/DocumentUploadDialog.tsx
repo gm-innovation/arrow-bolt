@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Upload } from 'lucide-react';
 import { useCorpDocuments } from '@/hooks/useCorpDocuments';
+import { useDepartments } from '@/hooks/useDepartments';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -38,10 +39,12 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
   const [title, setTitle] = useState('');
   const [docType, setDocType] = useState('');
   const [visibility, setVisibility] = useState('private');
+  const [departmentId, setDepartmentId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
   const { uploadDocument } = useCorpDocuments();
+  const { departments } = useDepartments();
 
   const availableTypes = mode === 'hr' ? hrTypes : userTypes;
 
@@ -64,11 +67,13 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
         file_name: file.name,
         file_url: urlData.publicUrl,
         visibility_level: visibility,
+        ...(departmentId ? { department_id: departmentId } : {}),
       }, {
         onSuccess: () => {
           setOpen(false);
           setTitle('');
           setDocType('');
+          setDepartmentId('');
           setFile(null);
         }
       });
@@ -100,6 +105,17 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
               <SelectContent>
                 {availableTypes.map(t => (
                   <SelectItem key={t} value={t}>{docTypeLabels[t]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Departamento (opcional)</Label>
+            <Select value={departmentId} onValueChange={setDepartmentId}>
+              <SelectTrigger><SelectValue placeholder="Selecione o departamento" /></SelectTrigger>
+              <SelectContent>
+                {departments.map((d: any) => (
+                  <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

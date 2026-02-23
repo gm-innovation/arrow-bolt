@@ -15,7 +15,8 @@ export const useCorpDocuments = (filters?: { document_type?: string; owner_user_
         .select(`
           *,
           owner:profiles!corp_documents_owner_user_id_fkey(id, full_name, email),
-          uploader:profiles!corp_documents_uploaded_by_fkey(id, full_name)
+          uploader:profiles!corp_documents_uploaded_by_fkey(id, full_name),
+          department:departments!corp_documents_department_id_fkey(id, name)
         `)
         .order('created_at', { ascending: false });
 
@@ -34,6 +35,7 @@ export const useCorpDocuments = (filters?: { document_type?: string; owner_user_
       company_id: string; owner_user_id: string; document_type: string;
       title: string; file_name: string; file_url: string;
       related_request_id?: string; visibility_level?: string;
+      department_id?: string;
     }) => {
       const { data, error } = await supabase
         .from('corp_documents')
