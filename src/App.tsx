@@ -61,7 +61,16 @@ import TechSettings from "./pages/tech/Settings";
 import InstallApp from "./pages/InstallApp";
 import SatisfactionSurvey from "./pages/tech/SatisfactionSurvey";
 import Chat from "./pages/Chat";
+import Chat from "./pages/Chat";
 import { OfflineIndicator } from "./components/OfflineIndicator";
+
+// Commercial Pages
+import CommercialDashboard from "./pages/commercial/Dashboard";
+import CommercialClients from "./pages/commercial/Clients";
+import CommercialOpportunities from "./pages/commercial/Opportunities";
+import CommercialBuyers from "./pages/commercial/Buyers";
+import CommercialProfile from "./pages/commercial/Profile";
+import CommercialSettings from "./pages/commercial/Settings";
 
 // HR Pages
 import HRDashboard from "./pages/hr/Dashboard";
@@ -655,7 +664,87 @@ const App = () => {
                 }
               />
 
-              {/* Chat Routes - All roles */}
+              {/* Commercial Routes */}
+              <Route
+                path="/commercial/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialDashboard />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/clients"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialClients />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/opportunities"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialOpportunities />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/buyers"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialBuyers />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialProfile />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/settings"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialSettings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/chat"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <Chat />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/install"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <InstallApp />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/admin/chat"
                 element={
