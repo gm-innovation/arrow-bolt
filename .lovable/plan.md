@@ -1,193 +1,277 @@
 
 
-## Plano: Etapa 2 - Paginas Funcionais do Modulo Comercial
+## Plano: Etapa 3 - Refinamentos + Modulos Futuros do CRM Comercial
 
-### Resumo
-
-Implementar as 4 paginas funcionais do modulo comercial com dados reais do banco, incluindo 3 hooks de dados, componentes de dashboard, tabela de clientes expandida, pipeline de oportunidades (Kanban + Lista) e gestao de compradores.
+Dada a extensao do escopo solicitado, este plano esta dividido em **fases incrementais** para manter a qualidade e permitir validacao a cada entrega.
 
 ---
 
-### 1. Hooks de Dados (3 novos arquivos)
+### FASE 3A - Refinamentos Imediatos (prioridade alta)
 
-#### 1.1. `src/hooks/useOpportunities.ts`
-- Busca `crm_opportunities` com joins em `clients(name)`, `crm_buyers(name)`, `profiles(full_name)` via `assigned_to`
-- Filtro por `company_id` do usuario logado
-- Mutations: criar, atualizar (incluindo mudanca de estagio), deletar
-- Usa `useQuery` / `useMutation` do TanStack React Query (padrao do projeto)
+#### 1. Profile Comercial (`src/pages/commercial/Profile.tsx`)
+- Replicar o padrao do `src/pages/admin/Profile.tsx` existente
+- Formulario com: nome completo, email (readonly), telefone
+- Upload de avatar usando `AvatarUpload` + `useUserAvatar`
+- Card de seguranca com botao "Alterar Senha" usando `ChangePasswordDialog`
+- Exibir role "Comercial" abaixo do nome
 
-#### 1.2. `src/hooks/useBuyers.ts`
-- CRUD completo para `crm_buyers`
-- Join com `clients(name)` para exibir o nome do cliente associado
-- Filtro por `company_id`
+#### 2. Settings Comercial (`src/pages/commercial/Settings.tsx`)
+- Replicar padrao do `src/pages/admin/Settings.tsx`
+- Tabs: Notificacoes | Aparencia
+- Tab Notificacoes: toggles para email, push, alertas de oportunidades, alertas de recorrencias
+- Tab Aparencia: placeholder para tema claro/escuro
+- Sem tab WhatsApp (nao aplicavel ao comercial nesta fase)
 
-#### 1.3. `src/hooks/useCommercialStats.ts`
-- KPIs calculados a partir de `crm_opportunities`:
-  - Total do pipeline (soma `estimated_value` onde stage != closed_won/closed_lost)
-  - Oportunidades abertas (count)
-  - Taxa de conversao (closed_won / total fechadas)
-  - Valor fechado no mes (soma estimated_value onde stage = closed_won e closed_at no mes atual)
-- Dados para grafico de funil (count e valor por estagio)
-- Clientes por segmento (count agrupado por `segment` da tabela `clients`)
+#### 3. Filtros Avancados - Ordenacao por Coluna
+- **ClientsTable**: Adicionar headers clicaveis com icone de seta (ArrowUpDown) para ordenar por Nome, Receita, Ultimo Contato
+- **Opportunities (Lista)**: Ordenacao por Titulo, Valor, Probabilidade, Data Prevista
+- **Buyers**: Ordenacao por Nome, Cliente, Influencia
+- Implementar hook utilitario `useSortableTable` com estado (coluna, direcao) e funcao de comparacao
 
----
+#### 4. Melhorias Visuais do Kanban
+- Kanban responsivo: em telas < 768px, colunas empilhadas verticalmente com accordion (Collapsible) por estagio
+- Cards com hover elevado (shadow-md) e transicao suave
+- Indicador visual de drop zone ativo (bg colorido quando arrastando sobre)
+- Scroll horizontal suave com snap points em desktop
+- Empty state por coluna com icone e texto
 
-### 2. Dashboard Comercial (`src/pages/commercial/Dashboard.tsx`)
+#### 5. Melhorias Mobile Gerais
+- Tabelas: ja usam `hidden md:table-cell` (ok)
+- Filtros: garantir que colapsam corretamente em mobile (ja sao flex-col em sm)
+- Dialogs: garantir max-h com scroll interno em telas pequenas
+- Kanban: implementar visao mobile alternativa
 
-#### 2.1. Componentes novos:
-
-**`src/components/commercial/dashboard/CommercialStats.tsx`**
-- 4 cards de KPI usando o mesmo padrao visual do `DashboardStats.tsx` do admin:
-  - Valor do Pipeline (icone DollarSign)
-  - Oportunidades Abertas (icone Target)
-  - Taxa de Conversao (icone TrendingUp)
-  - Valor Fechado no Mes (icone CheckCircle2)
-
-**`src/components/commercial/dashboard/PipelineChart.tsx`**
-- Grafico de barras horizontais (Recharts, ja instalado) mostrando quantidade e valor por estagio
-- Cores distintas por estagio (azul -> verde -> amarelo -> vermelho)
-
-**`src/components/commercial/dashboard/RecentOpportunities.tsx`**
-- Lista das 5 oportunidades mais recentes
-- Mostra titulo, cliente, valor, estagio (badge colorido), prioridade
-- Link para pagina de oportunidades
-
----
-
-### 3. Pagina de Clientes (`src/pages/commercial/Clients.tsx`)
-
-- Tabela completa usando componentes `Table` do shadcn/ui
-- Colunas: Nome, CNPJ, Segmento, Status Comercial, Receita Anual, Ultimo Contato, Acoes
-- Filtros: busca por texto, filtro por segmento (select), filtro por status comercial (select)
-- Badges coloridos para status comercial (prospect=azul, active=verde, inactive=cinza, churned=vermelho)
-- Botao "Novo Cliente" abre dialog com formulario incluindo campos comerciais
-- Botao "Editar" abre dialog de edicao
-- Botao "Ver Oportunidades" navega para oportunidades filtradas por cliente
-- Exportar CSV
-- Formulario de cliente:
-  - Dados basicos: nome, CNPJ, email, telefone, endereco, pessoa de contato
-  - Dados comerciais: segmento (select), status comercial (select), receita anual, fonte/origem (select), notas, ultimo contato (date picker)
-
-**Componentes novos:**
-- `src/components/commercial/clients/ClientsTable.tsx` - Tabela com filtros
-- `src/components/commercial/clients/NewClientDialog.tsx` - Dialog criar/editar cliente
-- `src/components/commercial/clients/ClientCommercialInfo.tsx` - Secao de info comercial no formulario
+**Arquivos a criar:** 0
+**Arquivos a modificar:** 5
+- `src/pages/commercial/Profile.tsx` (reescrever)
+- `src/pages/commercial/Settings.tsx` (reescrever)
+- `src/components/commercial/clients/ClientsTable.tsx` (adicionar ordenacao)
+- `src/components/commercial/opportunities/OpportunityKanban.tsx` (melhorias visuais + mobile)
+- `src/pages/commercial/Opportunities.tsx` (ordenacao na lista)
 
 ---
 
-### 4. Pagina de Oportunidades (`src/pages/commercial/Opportunities.tsx`)
+### FASE 3B - Catalogo de Produtos/Servicos
 
-#### 4.1. Toggle de visualizacao (Kanban / Lista)
-- Botoes para alternar entre visao Kanban e visao Lista
-- Estado salvo localmente
+#### Banco de Dados (migracao)
+Nova tabela `crm_products`:
+| Campo | Tipo |
+|-------|------|
+| id | uuid PK |
+| company_id | uuid FK -> companies |
+| name | text NOT NULL |
+| category | text |
+| type | text (product / service) |
+| is_recurring | boolean default false |
+| reference_value | numeric |
+| description | text |
+| active | boolean default true |
+| created_at, updated_at | timestamptz |
 
-#### 4.2. Visao Kanban
+RLS: commercial e admin podem gerenciar na sua empresa, manager pode visualizar.
 
-**`src/components/commercial/opportunities/OpportunityKanban.tsx`**
-- 6 colunas: Identificada, Qualificada, Proposta, Negociacao, Fechada (Ganha), Fechada (Perdida)
-- Drag-and-drop entre colunas usando `@hello-pangea/dnd` (ja instalado)
-- Cada coluna mostra total de valor e count
-- Header colorido por estagio
+Nova tabela `crm_opportunity_products` (vinculo oportunidade-produto):
+| Campo | Tipo |
+|-------|------|
+| id | uuid PK |
+| opportunity_id | uuid FK -> crm_opportunities |
+| product_id | uuid FK -> crm_products |
+| quantity | integer default 1 |
+| unit_value | numeric |
+| total_value | numeric |
 
-**`src/components/commercial/opportunities/OpportunityCard.tsx`**
-- Card compacto com: titulo, nome do cliente, valor estimado, probabilidade (barra de progresso), prioridade (badge)
-- Click abre detalhes
+#### Frontend
+- Nova pagina `src/pages/commercial/Products.tsx` com tabela, filtros (categoria, tipo, ativo), dialog criar/editar
+- Hook `src/hooks/useProducts.ts`
+- Adicionar rota e item no menu lateral
+- Vincular produtos a oportunidades no dialog de oportunidade
 
-#### 4.3. Visao Lista
-- Tabela com colunas: Titulo, Cliente, Tipo, Valor, Probabilidade, Estagio, Prioridade, Data Prevista, Responsavel
-- Ordenacao por coluna
-- Filtros: busca, estagio, prioridade, tipo
-
-#### 4.4. Dialogs
-
-**`src/components/commercial/opportunities/NewOpportunityDialog.tsx`**
-- Formulario: titulo, cliente (select com busca), comprador (select filtrado por cliente), tipo, estagio, prioridade, valor estimado, probabilidade (slider 0-100), data prevista, descricao, notas
-- Validacao com campos obrigatorios (titulo, cliente, estagio)
-
-**`src/components/commercial/opportunities/EditOpportunityDialog.tsx`**
-- Mesmo formulario preenchido com dados existentes
-- Campo extra: motivo da perda (quando estagio = closed_lost)
-
-**`src/components/commercial/opportunities/OpportunityDetails.tsx`**
-- Sheet/Dialog lateral com todas as informacoes
-- Timeline de atividades (usando `crm_opportunity_activities`)
-- Botao para adicionar atividade (tipo, descricao, data)
-
-**`src/components/commercial/opportunities/ActivityTimeline.tsx`**
-- Lista vertical estilizada de atividades
-- Icones por tipo (telefone, email, reuniao, proposta, nota)
-- Data e autor de cada atividade
+**Arquivos a criar:** 3 (pagina, hook, dialog de produto)
+**Arquivos a modificar:** 3 (App.tsx rotas, DashboardLayout menu, NewOpportunityDialog para vincular produtos)
 
 ---
 
-### 5. Pagina de Compradores (`src/pages/commercial/Buyers.tsx`)
+### FASE 3C - Recorrencias e Agendamentos
 
-**`src/components/commercial/buyers/BuyersList.tsx`**
-- Tabela: Nome, Cargo, Cliente, Email, Telefone, Nivel de Influencia, Acoes
-- Filtro por cliente e por nivel de influencia
-- Badge colorido para nivel (decisor=roxo, influenciador=azul, usuario=cinza)
+#### Banco de Dados (migracao)
+Nova tabela `crm_recurrence_templates`:
+| Campo | Tipo |
+|-------|------|
+| id | uuid PK |
+| company_id | uuid FK |
+| product_id | uuid FK -> crm_products (nullable) |
+| name | text NOT NULL |
+| period_type | text (monthly, quarterly, semiannual, annual) |
+| period_value | integer default 1 |
+| notification_days_before | integer default 30 |
+| description | text |
 
-**`src/components/commercial/buyers/NewBuyerDialog.tsx`**
-- Formulario: nome, cargo, cliente (select), email, telefone, nivel de influencia (select), notas
-- Modo edicao com dados preenchidos
+Nova tabela `crm_client_recurrences`:
+| Campo | Tipo |
+|-------|------|
+| id | uuid PK |
+| company_id | uuid FK |
+| client_id | uuid FK -> clients |
+| template_id | uuid FK -> crm_recurrence_templates (nullable) |
+| product_id | uuid FK -> crm_products (nullable) |
+| assigned_to | uuid FK -> profiles (nullable) |
+| recurrence_type | text |
+| periodicity | text |
+| next_date | date NOT NULL |
+| last_executed_date | date |
+| status | text default 'active' |
+| estimated_value | numeric |
+| notes | text |
+
+#### Frontend
+- Pagina `src/pages/commercial/Recurrences.tsx` com calendario visual (mensal) + lista
+- Componente `RecurrenceCalendar` mostrando proximas datas
+- Dialog para criar/editar recorrencias
+- Hook `useRecurrences.ts`
+
+**Arquivos a criar:** 4 (pagina, hook, calendario, dialog)
+**Arquivos a modificar:** 2 (App.tsx, DashboardLayout)
 
 ---
 
-### 6. Arquivos a Criar (total: 16)
+### FASE 3D - Medicoes de Servicos (integracao)
+
+O modulo de medicoes ja existe no admin. A integracao consiste em:
+
+- Dar acesso de leitura ao role `commercial` nas tabelas de medicoes existentes (RLS)
+- Nova pagina `src/pages/commercial/Measurements.tsx` que reutiliza componentes existentes de `src/components/admin/measurements/`
+- Filtro por cliente comercial
+- Vinculo com oportunidades (campo opcional `opportunity_id` na tabela `measurements`)
+
+**Arquivos a criar:** 1 (pagina)
+**Arquivos a modificar:** 2 (App.tsx, DashboardLayout) + migracao RLS
+
+---
+
+### FASE 3E - Relatorios e Business Intelligence
+
+#### Backend (Edge Functions)
+3 novas edge functions:
+- `generate-executive-dashboard`: Agrega KPIs, gera PDF com recharts server-side ou retorna dados para PDF no client
+- `generate-client-dossier`: Compila dados de um cliente (oportunidades, recorrencias, medicoes, historico) em PDF
+- `generate-sales-forecast`: Analisa pipeline e projeta receita futura
+
+#### Frontend
+- Pagina `src/pages/commercial/Reports.tsx` com 3 tabs (Dashboard Executivo, Dossie do Cliente, Forecast de Vendas)
+- Componentes de visualizacao de cada relatorio
+- Botao "Gerar PDF" usando `@react-pdf/renderer` (ja instalado)
+- Filtros por periodo e cliente
+
+**Arquivos a criar:** 5 (pagina, 3 componentes de relatorio, 1 componente PDF)
+**Edge functions:** 3
+
+---
+
+### FASE 3F - Base de Conhecimento
+
+#### Banco de Dados
+Nova tabela `crm_knowledge_base`:
+| Campo | Tipo |
+|-------|------|
+| id | uuid PK |
+| company_id | uuid FK |
+| product_id | uuid FK -> crm_products (nullable) |
+| category | text |
+| tags | text[] |
+| author_id | uuid FK -> profiles |
+| published | boolean default true |
+| title | text NOT NULL |
+| content | text NOT NULL (markdown) |
+
+Nova tabela `crm_reference_documents`:
+| Campo | Tipo |
+|-------|------|
+| id | uuid PK |
+| knowledge_base_id | uuid FK (nullable) |
+| company_id | uuid FK |
+| file_name | text |
+| file_url | text |
+| file_type | text |
+| category | text |
+
+#### Frontend
+- Pagina `src/pages/commercial/KnowledgeBase.tsx` com busca, filtros por categoria e tags
+- Visualizador de artigos com markdown renderizado
+- Upload de documentos via Supabase Storage
+- Editor de artigos (textarea markdown com preview)
+
+**Arquivos a criar:** 4 (pagina, editor, viewer, hook)
+**Arquivos a modificar:** 2 (App.tsx, DashboardLayout)
+
+---
+
+### FASE 3G - Notificacoes Comerciais
+
+Reutilizar o sistema de notificacoes existente (`notifications`, `NotificationBell`):
+- Criar componente `src/components/commercial/NotificationBell.tsx` baseado no existente
+- Tipos de notificacao comercial: nova oportunidade, oportunidade proxima de vencer, recorrencia proxima, tarefa pendente
+- Edge function `commercial-notifications-check` para verificar e criar alertas automaticamente (cron ou on-demand)
+- Integrar o NotificationBell no header do layout comercial
+
+**Arquivos a criar:** 2 (NotificationBell comercial, edge function)
+**Arquivos a modificar:** 1 (DashboardLayout para integrar bell)
+
+---
+
+### FASE 3H - Painel Administrativo Comercial
+
+Paginas administrativas acessiveis apenas por admin/super_admin dentro do contexto comercial:
+
+- `src/pages/commercial/admin/Services.tsx` - Gestao de servicos (CRUD crm_products tipo service)
+- `src/pages/commercial/admin/Schedules.tsx` - Gestao de agendamentos/templates de recorrencia
+- `src/pages/commercial/admin/Import.tsx` - Importacao de dados via CSV/Excel (clientes, oportunidades)
+- `src/pages/commercial/admin/Logs.tsx` - Logs de integracao e auditoria
+
+Tabela `crm_integration_logs` para logs.
+Utilizar `xlsx` (ja instalado) para importacao.
+
+**Arquivos a criar:** 5 (4 paginas + hook de importacao)
+**Arquivos a modificar:** 2 (App.tsx, DashboardLayout com submenu admin)
+
+---
+
+### Resumo de Prioridade e Dependencias
 
 ```text
-src/hooks/useOpportunities.ts
-src/hooks/useBuyers.ts
-src/hooks/useCommercialStats.ts
-
-src/components/commercial/dashboard/CommercialStats.tsx
-src/components/commercial/dashboard/PipelineChart.tsx
-src/components/commercial/dashboard/RecentOpportunities.tsx
-
-src/components/commercial/clients/ClientsTable.tsx
-src/components/commercial/clients/NewClientDialog.tsx
-src/components/commercial/clients/ClientCommercialInfo.tsx
-
-src/components/commercial/opportunities/OpportunityKanban.tsx
-src/components/commercial/opportunities/OpportunityCard.tsx
-src/components/commercial/opportunities/NewOpportunityDialog.tsx
-src/components/commercial/opportunities/EditOpportunityDialog.tsx
-src/components/commercial/opportunities/OpportunityDetails.tsx
-src/components/commercial/opportunities/ActivityTimeline.tsx
-
-src/components/commercial/buyers/NewBuyerDialog.tsx
+FASE 3A (Refinamentos)         -- sem dependencias, fazer primeiro
+  |
+FASE 3B (Produtos/Servicos)    -- base para Recorrencias e Medicoes
+  |
+FASE 3C (Recorrencias)         -- depende de 3B (usa crm_products)
+  |
+FASE 3D (Medicoes)             -- depende de 3B, reutiliza modulo admin
+  |
+FASE 3E (Relatorios/BI)        -- depende de 3B, 3C, 3D para dados completos
+  |
+FASE 3F (Base Conhecimento)    -- independente, pode ser paralela a 3C-3E
+  |
+FASE 3G (Notificacoes)         -- depende de 3C (alertas de recorrencia)
+  |
+FASE 3H (Painel Admin)         -- depende de 3B-3G para ter o que administrar
 ```
 
-### 7. Arquivos a Modificar (total: 4)
+### Total Estimado
 
-| Arquivo | Alteracao |
-|---------|-----------|
-| `src/pages/commercial/Dashboard.tsx` | Importar e renderizar CommercialStats, PipelineChart, RecentOpportunities |
-| `src/pages/commercial/Clients.tsx` | Implementar pagina completa com ClientsTable e NewClientDialog |
-| `src/pages/commercial/Opportunities.tsx` | Implementar Kanban + Lista com toggle, dialogs |
-| `src/pages/commercial/Buyers.tsx` | Implementar lista com NewBuyerDialog |
-
----
-
-### 8. Padroes Seguidos
-
-- Hooks com `useQuery`/`useMutation` do TanStack (mesmo padrao de `useServiceOrders`)
-- Busca de `company_id` via `profiles` do usuario logado
-- Componentes shadcn/ui existentes (Card, Table, Dialog, Badge, Select, Input, Button, Sheet)
-- Recharts para graficos (ja instalado e usado no admin)
-- `@hello-pangea/dnd` para Kanban (ja instalado)
-- Layout com `DashboardLayout` userType="commercial"
-- Formato brasileiro: datas dd/MM/yyyy, moeda R$, separadores corretos
+| Fase | Arquivos novos | Arquivos modificados | Migracoes |
+|------|---------------|---------------------|-----------|
+| 3A | 0 | 5 | 0 |
+| 3B | 3 | 3 | 1 |
+| 3C | 4 | 2 | 1 |
+| 3D | 1 | 2 | 1 |
+| 3E | 5 + 3 edge fns | 1 | 0 |
+| 3F | 4 | 2 | 1 |
+| 3G | 2 | 1 | 0 |
+| 3H | 5 | 2 | 1 |
+| **Total** | **~27** | **~18** | **5** |
 
 ---
 
-### 9. Ordem de Implementacao
+### Recomendacao
 
-Devido ao volume, sera implementado nesta sequencia dentro de uma mesma iteracao:
-
-1. Hooks (useOpportunities, useBuyers, useCommercialStats)
-2. Dashboard (Stats + Charts + Recent)
-3. Clientes (Table + Dialog)
-4. Oportunidades (Kanban + Lista + Dialogs + Details)
-5. Compradores (List + Dialog)
+Implementar na ordem: **3A -> 3B -> 3C -> 3D -> 3E -> 3F -> 3G -> 3H**, validando cada fase antes de avancar. A Fase 3A pode ser implementada imediatamente pois nao requer migracoes.
 
