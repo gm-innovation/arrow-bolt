@@ -27,6 +27,16 @@ import {
   FileBarChart,
   Inbox,
   MessageSquare,
+  ShieldCheck,
+  DollarSign,
+  AlertTriangle,
+  ClipboardCheck,
+  Search,
+  BarChart3,
+  Receipt,
+  Wallet,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -45,7 +55,7 @@ import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator"
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  userType: "super-admin" | "admin" | "manager" | "tech" | "hr" | "commercial" | "director";
+  userType: "super-admin" | "admin" | "manager" | "tech" | "hr" | "commercial" | "director" | "compras" | "qualidade" | "financeiro";
   pageTitle?: string;
 }
 
@@ -143,6 +153,36 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
+  const comprasMenuItems = [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/supplies/dashboard" },
+    { title: "Solicitações", icon: ShoppingBag, path: "/supplies/requests" },
+    { title: "Configurações", icon: Settings, path: "/supplies/settings" },
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
+    { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
+  ];
+
+  const qualidadeMenuItems = [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/quality/dashboard" },
+    { title: "Não-Conformidades", icon: AlertTriangle, path: "/quality/ncrs" },
+    { title: "Planos de Ação", icon: ClipboardCheck, path: "/quality/action-plans" },
+    { title: "Auditorias", icon: Search, path: "/quality/audits" },
+    { title: "Relatórios", icon: BarChart3, path: "/quality/reports" },
+    { title: "Configurações", icon: Settings, path: "/quality/settings" },
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
+    { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
+  ];
+
+  const financeiroMenuItems = [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/finance/dashboard" },
+    { title: "Contas a Pagar", icon: ArrowUpCircle, path: "/finance/payables" },
+    { title: "Contas a Receber", icon: ArrowDownCircle, path: "/finance/receivables" },
+    { title: "Reembolsos", icon: Receipt, path: "/finance/reimbursements" },
+    { title: "Relatórios", icon: BarChart3, path: "/finance/reports" },
+    { title: "Configurações", icon: Settings, path: "/finance/settings" },
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
+    { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
+  ];
+
   const menuItems = {
     "super-admin": superAdminMenuItems,
     admin: adminMenuItems,
@@ -151,6 +191,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     hr: hrMenuItems,
     commercial: commercialMenuItems,
     director: directorMenuItems,
+    compras: comprasMenuItems,
+    qualidade: qualidadeMenuItems,
+    financeiro: financeiroMenuItems,
   }[userType];
 
   const handleLogout = async () => {
@@ -170,6 +213,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     "hr": "from-emerald-600 to-teal-600",
     "commercial": "from-orange-600 to-amber-600",
     "director": "from-slate-700 to-zinc-600",
+    "compras": "from-amber-600 to-yellow-600",
+    "qualidade": "from-rose-600 to-pink-600",
+    "financeiro": "from-green-600 to-emerald-600",
   };
 
   const getUserTitle = () => {
@@ -181,6 +227,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       case "hr": return "Recursos Humanos";
       case "commercial": return "Comercial";
       case "director": return "Diretoria";
+      case "compras": return "Suprimentos";
+      case "qualidade": return "Qualidade";
+      case "financeiro": return "Financeiro";
       default: return "";
     }
   };

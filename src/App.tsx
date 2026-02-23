@@ -111,6 +111,27 @@ import CorpRequestTypes from "./pages/corp/admin/RequestTypes";
 import CorpAuditLog from "./pages/corp/admin/AuditLog";
 import { CorpRoute, CorpAdminRoute, CorpReportsRoute } from "./components/corp/CorpRoute";
 
+// Supplies Pages
+import SuppliesDashboard from "./pages/supplies/Dashboard";
+import SuppliesRequests from "./pages/supplies/Requests";
+import SuppliesSettings from "./pages/supplies/Settings";
+
+// Quality Pages
+import QualityDashboard from "./pages/quality/Dashboard";
+import QualityNCRs from "./pages/quality/NCRs";
+import QualityActionPlans from "./pages/quality/ActionPlans";
+import QualityAudits from "./pages/quality/Audits";
+import QualityReports from "./pages/quality/Reports";
+import QualitySettings from "./pages/quality/Settings";
+
+// Finance Pages
+import FinanceDashboard from "./pages/finance/Dashboard";
+import FinancePayables from "./pages/finance/Payables";
+import FinanceReceivables from "./pages/finance/Receivables";
+import FinanceReimbursements from "./pages/finance/Reimbursements";
+import FinanceReports from "./pages/finance/Reports";
+import FinanceSettings from "./pages/finance/Settings";
+
 // Create a new QueryClient instance with proper configuration
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -1036,6 +1057,27 @@ const App = () => {
               <Route path="/corp/admin/departments" element={<CorpAdminRoute><CorpDepartments /></CorpAdminRoute>} />
               <Route path="/corp/admin/request-types" element={<CorpAdminRoute><CorpRequestTypes /></CorpAdminRoute>} />
               <Route path="/corp/admin/audit-log" element={<CorpAdminRoute><CorpAuditLog /></CorpAdminRoute>} />
+
+              {/* Supplies Routes */}
+              <Route path="/supplies/dashboard" element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras"><SuppliesDashboard /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/supplies/requests" element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras"><SuppliesRequests /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/supplies/settings" element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras"><SuppliesSettings /></DashboardLayout></ProtectedRoute>} />
+
+              {/* Quality Routes */}
+              <Route path="/quality/dashboard" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityDashboard /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/quality/ncrs" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityNCRs /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/quality/action-plans" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityActionPlans /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/quality/audits" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityAudits /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/quality/reports" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityReports /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/quality/settings" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualitySettings /></DashboardLayout></ProtectedRoute>} />
+
+              {/* Finance Routes */}
+              <Route path="/finance/dashboard" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceDashboard /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/finance/payables" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinancePayables /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/finance/receivables" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceReceivables /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/finance/reimbursements" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceReimbursements /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/finance/reports" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceReports /></DashboardLayout></ProtectedRoute>} />
+              <Route path="/finance/settings" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceSettings /></DashboardLayout></ProtectedRoute>} />
 
               {/* Public Install Route (no auth required) */}
               <Route path="/install" element={<InstallApp />} />

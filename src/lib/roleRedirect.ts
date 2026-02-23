@@ -7,6 +7,9 @@ export const roleRedirects: Record<string, string> = {
   hr: "/hr/dashboard",
   commercial: "/commercial/dashboard",
   director: "/corp/dashboard",
+  compras: "/supplies/dashboard",
+  qualidade: "/quality/dashboard",
+  financeiro: "/finance/dashboard",
 };
 
 export const getRoleRedirectPath = (role: string | null): string | null => {
