@@ -21,11 +21,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 
-const PERIODICITIES = [
-  { value: "monthly", label: "Mensal" },
-  { value: "quarterly", label: "Trimestral" },
-  { value: "semiannual", label: "Semestral" },
-  { value: "annual", label: "Anual" },
+const RECURRENCE_TYPES = [
+  { value: "maintenance", label: "Manutenção" },
+  { value: "renewal", label: "Renovação" },
+  { value: "recurring_service", label: "Serviço Recorrente" },
 ];
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -77,9 +76,10 @@ const Recurrences = () => {
       client_id: form.client_id,
       product_id: form.product_id || null,
       recurrence_type: form.recurrence_type || null,
-      periodicity: form.periodicity || "monthly",
+      periodicity: form.periodicity_months ? `${form.periodicity_months}_months` : form.periodicity || "monthly",
       next_date: format(nextDate, "yyyy-MM-dd"),
       estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
+      advance_notice_days: form.advance_notice_days != null ? Number(form.advance_notice_days) : 30,
       notes: form.notes || null,
       status: form.status || "active",
     };
@@ -195,7 +195,7 @@ const Recurrences = () => {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.clients?.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{r.crm_products?.name || "-"}</TableCell>
-                    <TableCell>{PERIODICITIES.find(p => p.value === r.periodicity)?.label || r.periodicity}</TableCell>
+                    <TableCell>{r.periodicity}</TableCell>
                     <TableCell>
                       {(() => {
                         const now = new Date();
@@ -231,36 +231,49 @@ const Recurrences = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{editing ? "Editar Recorrência" : "Nova Recorrência"}</DialogTitle>
+            <DialogTitle>{editing ? "Editar Recorrência" : "Criar Nova Recorrência"}</DialogTitle>
+            <p className="text-sm text-muted-foreground">Configure uma nova recorrência para manutenções ou renovações.</p>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Cliente *</Label>
-              <Select value={form.client_id || ""} onValueChange={v => set("client_id", v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Produto/Serviço</Label>
-              <Select value={form.product_id || ""} onValueChange={v => set("product_id", v)}>
-                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
-                <SelectContent>
-                  {products.filter((p: any) => p.active).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Periodicidade</Label>
-                <Select value={form.periodicity || "monthly"} onValueChange={v => set("periodicity", v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
+                <Label>Cliente *</Label>
+                <Select value={form.client_id || ""} onValueChange={v => set("client_id", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
-                    {PERIODICITIES.map(p => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+                    {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Produto/Serviço *</Label>
+                <Select value={form.product_id || ""} onValueChange={v => set("product_id", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {products.filter((p: any) => p.active).map((p: any) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tipo de Recorrência</Label>
+                <Select value={form.recurrence_type || ""} onValueChange={v => set("recurrence_type", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {RECURRENCE_TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Periodicidade (meses)</Label>
+                <Input type="number" min={1} value={form.periodicity_months || ""} onChange={e => set("periodicity_months", e.target.value)} placeholder="Ex: 6" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Aviso antecipado (dias)</Label>
+                <Input type="number" min={0} value={form.advance_notice_days ?? 30} onChange={e => set("advance_notice_days", e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
@@ -272,27 +285,25 @@ const Recurrences = () => {
                 </Select>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label>Próxima Data *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left", !nextDate && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {nextDate ? format(nextDate, "dd/MM/yyyy") : "Selecionar data"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={nextDate} onSelect={setNextDate} locale={ptBR} className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
-            </div>
-            <div className="space-y-2">
-              <Label>Valor Estimado (R$)</Label>
-              <Input type="number" value={form.estimated_value || ""} onChange={e => set("estimated_value", e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label>Tipo de Recorrência</Label>
-              <Input value={form.recurrence_type || ""} onChange={e => set("recurrence_type", e.target.value)} placeholder="Ex: Manutenção preventiva" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Próxima Data *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left", !nextDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {nextDate ? format(nextDate, "dd/MM/yyyy") : "Selecionar data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={nextDate} onSelect={setNextDate} locale={ptBR} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2">
+                <Label>Valor Estimado (R$)</Label>
+                <Input type="number" value={form.estimated_value || ""} onChange={e => set("estimated_value", e.target.value)} />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Notas</Label>

@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Slider } from "@/components/ui/slider";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { CalendarIcon } from "lucide-react";
@@ -49,14 +48,12 @@ interface Props {
 export const NewOpportunityDialog = ({ open, onOpenChange, onSave, clients, buyers, initialData, isLoading }: Props) => {
   const isEditing = !!initialData;
   const [form, setForm] = useState<Record<string, any>>({});
-  const [probability, setProbability] = useState([50]);
   const [closeDate, setCloseDate] = useState<Date | undefined>();
 
   useEffect(() => {
     if (open) {
-      const data = initialData || { stage: 'identified', priority: 'medium' };
+      const data = initialData || { stage: 'identified', priority: 'medium', probability: 50 };
       setForm(data);
-      setProbability([data.probability || 50]);
       setCloseDate(data.expected_close_date ? new Date(data.expected_close_date) : undefined);
     }
   }, [open, initialData]);
@@ -69,7 +66,7 @@ export const NewOpportunityDialog = ({ open, onOpenChange, onSave, clients, buye
     if (!form.title || !form.client_id || !form.stage) return;
     onSave({
       ...form,
-      probability: probability[0],
+      probability: form.probability != null ? Number(form.probability) : null,
       estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
       expected_close_date: closeDate ? format(closeDate, 'yyyy-MM-dd') : null,
       closed_at: ['closed_won', 'closed_lost'].includes(form.stage) ? new Date().toISOString() : null,
@@ -80,11 +77,13 @@ export const NewOpportunityDialog = ({ open, onOpenChange, onSave, clients, buye
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isEditing ? 'Editar Oportunidade' : 'Nova Oportunidade'}</DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Oportunidade' : 'Criar Nova Oportunidade'}</DialogTitle>
+          <DialogDescription>Preencha as informações para {isEditing ? 'atualizar a' : 'criar uma nova'} oportunidade.</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
-          <div className="space-y-2 md:col-span-2">
+          {/* Linha 1: Título + Cliente */}
+          <div className="space-y-2">
             <Label>Título *</Label>
             <Input value={form.title || ''} onChange={e => set('title', e.target.value)} />
           </div>
@@ -97,23 +96,11 @@ export const NewOpportunityDialog = ({ open, onOpenChange, onSave, clients, buye
               </SelectContent>
             </Select>
           </div>
+
+          {/* Linha 2: Valor + Estágio + Probabilidade */}
           <div className="space-y-2">
-            <Label>Comprador</Label>
-            <Select value={form.buyer_id || ''} onValueChange={v => set('buyer_id', v)} disabled={!form.client_id}>
-              <SelectTrigger><SelectValue placeholder={filteredBuyers.length ? "Selecione" : "Selecione cliente primeiro"} /></SelectTrigger>
-              <SelectContent>
-                {filteredBuyers.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Tipo</Label>
-            <Select value={form.opportunity_type || ''} onValueChange={v => set('opportunity_type', v)}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                {TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <Label>Valor Estimado (R$)</Label>
+            <Input type="number" value={form.estimated_value || ''} onChange={e => set('estimated_value', e.target.value)} />
           </div>
           <div className="space-y-2">
             <Label>Estágio *</Label>
@@ -121,6 +108,17 @@ export const NewOpportunityDialog = ({ open, onOpenChange, onSave, clients, buye
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 {STAGES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Linha 3: Tipo + Prioridade + Probabilidade */}
+          <div className="space-y-2">
+            <Label>Tipo</Label>
+            <Select value={form.opportunity_type || ''} onValueChange={v => set('opportunity_type', v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {TYPES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -133,16 +131,25 @@ export const NewOpportunityDialog = ({ open, onOpenChange, onSave, clients, buye
               </SelectContent>
             </Select>
           </div>
+
+          {/* Probabilidade + Comprador */}
           <div className="space-y-2">
-            <Label>Valor Estimado (R$)</Label>
-            <Input type="number" value={form.estimated_value || ''} onChange={e => set('estimated_value', e.target.value)} />
+            <Label>Probabilidade (%)</Label>
+            <Input type="number" min={0} max={100} value={form.probability ?? ''} onChange={e => set('probability', e.target.value)} placeholder="0-100" />
           </div>
+          <div className="space-y-2">
+            <Label>Comprador</Label>
+            <Select value={form.buyer_id || ''} onValueChange={v => set('buyer_id', v)} disabled={!form.client_id}>
+              <SelectTrigger><SelectValue placeholder={filteredBuyers.length ? "Selecione" : "Selecione cliente primeiro"} /></SelectTrigger>
+              <SelectContent>
+                {filteredBuyers.map(b => <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Previsão de Fechamento */}
           <div className="space-y-2 md:col-span-2">
-            <Label>Probabilidade: {probability[0]}%</Label>
-            <Slider value={probability} onValueChange={setProbability} max={100} step={5} />
-          </div>
-          <div className="space-y-2">
-            <Label>Data Prevista de Fechamento</Label>
+            <Label>Previsão de Fechamento</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className={cn("w-full justify-start text-left font-normal", !closeDate && "text-muted-foreground")}>
@@ -166,10 +173,6 @@ export const NewOpportunityDialog = ({ open, onOpenChange, onSave, clients, buye
           <div className="space-y-2 md:col-span-2">
             <Label>Descrição</Label>
             <Textarea value={form.description || ''} onChange={e => set('description', e.target.value)} rows={2} />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label>Notas</Label>
-            <Textarea value={form.notes || ''} onChange={e => set('notes', e.target.value)} rows={2} />
           </div>
         </div>
 

@@ -168,22 +168,39 @@ const CommercialTasks = () => {
         <DialogContent className="max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? "Editar Tarefa" : "Nova Tarefa"}</DialogTitle>
+            <p className="text-sm text-muted-foreground">Preencha as informações para {editing ? 'atualizar a' : 'criar uma nova'} tarefa.</p>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Título *</Label>
               <Input value={form.title || ""} onChange={e => set("title", e.target.value)} />
             </div>
-            <div className="space-y-2">
-              <Label>Cliente</Label>
-              <Select value={form.client_id || ""} onValueChange={v => set("client_id", v)}>
-                <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
-                <SelectContent>
-                  {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Cliente (Opcional)</Label>
+                <Select value={form.client_id || ""} onValueChange={v => set("client_id", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    {clients.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Data de Vencimento</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("w-full justify-start text-left", !dueDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dueDate ? format(dueDate, "dd/MM/yyyy") : "Escolha uma data"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar mode="single" selected={dueDate} onSelect={setDueDate} locale={ptBR} className="p-3 pointer-events-auto" />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Prioridade</Label>
                 <Select value={form.priority || "medium"} onValueChange={v => set("priority", v)}>
@@ -202,20 +219,6 @@ const CommercialTasks = () => {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Data de Vencimento</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className={cn("w-full justify-start text-left", !dueDate && "text-muted-foreground")}>
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {dueDate ? format(dueDate, "dd/MM/yyyy") : "Selecionar data"}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar mode="single" selected={dueDate} onSelect={setDueDate} locale={ptBR} className="p-3 pointer-events-auto" />
-                </PopoverContent>
-              </Popover>
             </div>
             <div className="space-y-2">
               <Label>Descrição</Label>
