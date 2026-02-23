@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { ClientsTable } from "@/components/commercial/clients/ClientsTable";
 import { NewClientDialog } from "@/components/commercial/clients/NewClientDialog";
+import { ClientDetailSheet } from "@/components/commercial/clients/ClientDetailSheet";
 import { toast } from "sonner";
 
 const CommercialClients = () => {
@@ -13,6 +14,8 @@ const CommercialClients = () => {
   const queryClient = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<any>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailClient, setDetailClient] = useState<any>(null);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['commercial-clients', user?.id],
@@ -77,7 +80,7 @@ const CommercialClients = () => {
         <Button onClick={handleNew}><Plus className="h-4 w-4 mr-2" /> Novo Cliente</Button>
       </div>
 
-      <ClientsTable clients={clients} isLoading={isLoading} onEdit={handleEdit} />
+      <ClientsTable clients={clients} isLoading={isLoading} onEdit={handleEdit} onRowClick={(c) => { setDetailClient(c); setDetailOpen(true); }} />
 
       <NewClientDialog
         open={dialogOpen}
@@ -85,6 +88,13 @@ const CommercialClients = () => {
         onSave={(data, buyer) => saveMutation.mutate({ formData: data, buyer })}
         initialData={editingClient}
         isLoading={saveMutation.isPending}
+      />
+
+      <ClientDetailSheet
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        client={detailClient}
+        onEdit={handleEdit}
       />
     </div>
   );

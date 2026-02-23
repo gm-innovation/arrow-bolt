@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Pencil, Trash2, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { NewBuyerDialog } from "@/components/commercial/buyers/NewBuyerDialog";
+import { EditBuyerSheet } from "@/components/commercial/buyers/EditBuyerSheet";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 const influenceColors: Record<string, string> = {
@@ -36,6 +37,8 @@ const CommercialBuyers = () => {
   const { user } = useAuth();
   const { buyers, isLoading, createBuyer, updateBuyer, deleteBuyer } = useBuyers();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
+  const [editSheetData, setEditSheetData] = useState<any>(null);
   const [editData, setEditData] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -159,9 +162,9 @@ const CommercialBuyers = () => {
                       </Badge>
                     ) : '—'}
                   </TableCell>
-                  <TableCell className="text-right">
+                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => { setEditData(buyer); setDialogOpen(true); }}>
+                      <Button variant="ghost" size="icon" onClick={() => { setEditSheetData(buyer); setEditSheetOpen(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={() => setDeleteId(buyer.id)}>
@@ -199,8 +202,22 @@ const CommercialBuyers = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <EditBuyerSheet
+        open={editSheetOpen}
+        onOpenChange={setEditSheetOpen}
+        buyer={editSheetData}
+        onSave={(data) => {
+          const { id, ...updates } = data;
+          updateBuyer.mutate({ id, ...updates }, { onSuccess: () => { setEditSheetOpen(false); setEditSheetData(null); } });
+        }}
+        onDelete={(id) => { deleteBuyer.mutate(id); setEditSheetOpen(false); }}
+        isLoading={updateBuyer.isPending}
+      />
     </div>
   );
 };
+
+export default CommercialBuyers;
 
 export default CommercialBuyers;
