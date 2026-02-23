@@ -1,8 +1,169 @@
+import { useState, useMemo } from "react";
+import { useOpportunities, Opportunity } from "@/hooks/useOpportunities";
+import { useBuyers } from "@/hooks/useBuyers";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, LayoutGrid, List, Search } from "lucide-react";
+import { OpportunityKanban } from "@/components/commercial/opportunities/OpportunityKanban";
+import { NewOpportunityDialog } from "@/components/commercial/opportunities/NewOpportunityDialog";
+import { OpportunityDetails } from "@/components/commercial/opportunities/OpportunityDetails";
+import { format } from "date-fns";
+
+const stageLabels: Record<string, string> = {
+  identified: 'Identificada', qualified: 'Qualificada', proposal: 'Proposta',
+  negotiation: 'Negociação', closed_won: 'Ganha', closed_lost: 'Perdida',
+};
+
+const stageColors: Record<string, string> = {
+  identified: 'bg-blue-100 text-blue-800', qualified: 'bg-cyan-100 text-cyan-800',
+  proposal: 'bg-yellow-100 text-yellow-800', negotiation: 'bg-orange-100 text-orange-800',
+  closed_won: 'bg-green-100 text-green-800', closed_lost: 'bg-red-100 text-red-800',
+};
+
+const formatCurrency = (v: number | null) =>
+  v ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : '—';
+
 const CommercialOpportunities = () => {
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const clientFilter = searchParams.get('client') || '';
+  const { opportunities, isLoading, updateOpportunity, createOpportunity } = useOpportunities();
+  const { buyers } = useBuyers();
+  const [view, setView] = useState<'kanban' | 'list'>(() => (localStorage.getItem('opp-view') as any) || 'kanban');
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editData, setEditData] = useState<any>(null);
+  const [detailOpp, setDetailOpp] = useState<Opportunity | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const [stageFilter, setStageFilter] = useState('all');
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ['commercial-clients-select', user?.id],
+    queryFn: async () => {
+      const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user!.id).single();
+      if (!profile?.company_id) return [];
+      const { data } = await supabase.from('clients').select('id, name').eq('company_id', profile.company_id).order('name');
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const setViewMode = (v: 'kanban' | 'list') => { setView(v); localStorage.setItem('opp-view', v); };
+
+  const filtered = useMemo(() => {
+    return opportunities.filter(o => {
+      const matchClient = !clientFilter || o.client_id === clientFilter;
+      const matchSearch = !search || o.title.toLowerCase().includes(search.toLowerCase()) || o.client_name.toLowerCase().includes(search.toLowerCase());
+      const matchStage = stageFilter === 'all' || o.stage === stageFilter;
+      return matchClient && matchSearch && matchStage;
+    });
+  }, [opportunities, clientFilter, search, stageFilter]);
+
+  const handleStageChange = (id: string, stage: string) => {
+    updateOpportunity.mutate({
+      id, stage,
+      closed_at: ['closed_won', 'closed_lost'].includes(stage) ? new Date().toISOString() : null,
+    });
+  };
+
+  const handleCardClick = (opp: Opportunity) => { setDetailOpp(opp); setDetailOpen(true); };
+
+  const handleSave = (data: Record<string, any>) => {
+    if (editData) {
+      updateOpportunity.mutate({ id: editData.id, ...data }, { onSuccess: () => { setDialogOpen(false); setEditData(null); } });
+    } else {
+      createOpportunity.mutate(data, { onSuccess: () => setDialogOpen(false) });
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-foreground">Oportunidades</h2>
-      <p className="text-muted-foreground">Pipeline de vendas — Kanban e lista.</p>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold text-foreground">Oportunidades</h2>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border">
+            <Button variant={view === 'kanban' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('kanban')}>
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+            <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" onClick={() => setViewMode('list')}>
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button onClick={() => { setEditData(null); setDialogOpen(true); }}>
+            <Plus className="h-4 w-4 mr-2" /> Nova
+          </Button>
+        </div>
+      </div>
+
+      {view === 'list' && (
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          </div>
+          <Select value={stageFilter} onValueChange={setStageFilter}>
+            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Estágio" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {Object.entries(stageLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="h-64 bg-muted animate-pulse rounded" />
+      ) : view === 'kanban' ? (
+        <OpportunityKanban opportunities={filtered} onStageChange={handleStageChange} onCardClick={handleCardClick} />
+      ) : (
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Título</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead className="hidden md:table-cell">Valor</TableHead>
+                <TableHead>Estágio</TableHead>
+                <TableHead className="hidden lg:table-cell">Probabilidade</TableHead>
+                <TableHead className="hidden lg:table-cell">Data Prevista</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma oportunidade</TableCell></TableRow>
+              ) : filtered.map(opp => (
+                <TableRow key={opp.id} className="cursor-pointer" onClick={() => handleCardClick(opp)}>
+                  <TableCell className="font-medium">{opp.title}</TableCell>
+                  <TableCell>{opp.client_name}</TableCell>
+                  <TableCell className="hidden md:table-cell">{formatCurrency(opp.estimated_value)}</TableCell>
+                  <TableCell><Badge variant="secondary" className={stageColors[opp.stage]}>{stageLabels[opp.stage]}</Badge></TableCell>
+                  <TableCell className="hidden lg:table-cell">{opp.probability != null ? `${opp.probability}%` : '—'}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{opp.expected_close_date ? format(new Date(opp.expected_close_date), 'dd/MM/yyyy') : '—'}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      <NewOpportunityDialog
+        open={dialogOpen}
+        onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditData(null); }}
+        onSave={handleSave}
+        clients={clients}
+        buyers={buyers.map(b => ({ id: b.id, name: b.name, client_id: b.client_id }))}
+        initialData={editData}
+        isLoading={createOpportunity.isPending || updateOpportunity.isPending}
+      />
+
+      <OpportunityDetails opportunity={detailOpp} open={detailOpen} onOpenChange={setDetailOpen} />
     </div>
   );
 };
