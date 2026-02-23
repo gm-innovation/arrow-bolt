@@ -52,17 +52,19 @@ const CorpRequests = () => {
     (!search || r.title.toLowerCase().includes(search.toLowerCase()))
   );
 
-  // Solicitações recebidas (baseado no role)
+  // Solicitações recebidas: direcionadas ao usuário OU pendentes de aprovação conforme role
   const isAdmin = userRole === 'admin' || userRole === 'super_admin';
   const isHR = userRole === 'hr';
   const isDirector = userRole === 'director';
   const isManager = userRole === 'manager';
 
-  // Encontrar departamento gerenciado pelo usuário
   const managedDepartment = departments.find((d: any) => d.manager_id === user?.id);
 
   const receivedRequests = requests.filter(r => {
-    if (r.requester_id === user?.id) return false; // nunca mostra as próprias
+    if (r.requester_id === user?.id) return false;
+    // Direcionadas ao usuário
+    if ((r as any).target_user_id === user?.id) return true;
+    // Fluxo de aprovação
     if (isAdmin) return true;
     if (isHR) return true;
     if (isDirector) return r.status === 'pending_director';
@@ -71,8 +73,6 @@ const CorpRequests = () => {
     }
     return false;
   }).filter(r => !search || r.title.toLowerCase().includes(search.toLowerCase()));
-
-  const showReceivedTab = isAdmin || isHR || isDirector || isManager;
 
   const renderTable = (data: any[], showRequester: boolean) => (
     <Card>
@@ -159,7 +159,7 @@ const CorpRequests = () => {
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList>
             <TabsTrigger value="mine">Minhas Solicitações</TabsTrigger>
-            {showReceivedTab && <TabsTrigger value="received">Recebidas</TabsTrigger>}
+            <TabsTrigger value="received">Recebidas</TabsTrigger>
           </TabsList>
 
           <TabsContent value="mine">
@@ -171,11 +171,9 @@ const CorpRequests = () => {
             </div>
           </TabsContent>
 
-          {showReceivedTab && (
-            <TabsContent value="received">
-              {renderTable(receivedRequests, true)}
-            </TabsContent>
-          )}
+          <TabsContent value="received">
+            {renderTable(receivedRequests, true)}
+          </TabsContent>
         </Tabs>
       </div>
 

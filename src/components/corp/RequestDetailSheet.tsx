@@ -59,6 +59,12 @@ const RequestDetailSheet = ({ request, open, onOpenChange }: RequestDetailSheetP
               <p className="text-muted-foreground">Solicitante</p>
               <p className="font-medium">{request.requester?.full_name || '—'}</p>
             </div>
+            {request.target && (
+              <div>
+                <p className="text-muted-foreground">Destinatário</p>
+                <p className="font-medium">{request.target.full_name}</p>
+              </div>
+            )}
             <div>
               <p className="text-muted-foreground">Departamento</p>
               <p className="font-medium">{request.department?.name || '—'}</p>
