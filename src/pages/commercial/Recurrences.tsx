@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
+import { EditRecurrenceSheet } from "@/components/commercial/recurrences/EditRecurrenceSheet";
 
 const RECURRENCE_TYPES = [
   { value: "maintenance", label: "Manutenção" },
@@ -41,6 +42,8 @@ const Recurrences = () => {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Record<string, any> | null>(null);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
+  const [editingSheet, setEditingSheet] = useState<Record<string, any> | null>(null);
   const [form, setForm] = useState<Record<string, any>>({});
   const [nextDate, setNextDate] = useState<Date | undefined>();
 
@@ -64,10 +67,14 @@ const Recurrences = () => {
   };
 
   const openEdit = (r: Record<string, any>) => {
-    setEditing(r);
-    setForm(r);
-    setNextDate(r.next_date ? new Date(r.next_date + "T12:00:00") : undefined);
-    setDialogOpen(true);
+    setEditingSheet(r);
+    setEditSheetOpen(true);
+  };
+
+  const handleSheetSave = (data: Record<string, any>) => {
+    const { id, ...payload } = data;
+    updateRecurrence.mutate({ id, ...payload });
+    setEditSheetOpen(false);
   };
 
   const handleSave = () => {
@@ -316,6 +323,17 @@ const Recurrences = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EditRecurrenceSheet
+        open={editSheetOpen}
+        onOpenChange={setEditSheetOpen}
+        recurrence={editingSheet}
+        clients={clients}
+        products={products}
+        onSave={handleSheetSave}
+        onDelete={(id) => { deleteRecurrence.mutate(id); setEditSheetOpen(false); }}
+        isLoading={updateRecurrence.isPending}
+      />
     </div>
   );
 };

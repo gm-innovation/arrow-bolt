@@ -14,6 +14,7 @@ import { Plus, LayoutGrid, List, Search, ArrowUpDown, ArrowUp, ArrowDown } from 
 import { OpportunityKanban } from "@/components/commercial/opportunities/OpportunityKanban";
 import { NewOpportunityDialog } from "@/components/commercial/opportunities/NewOpportunityDialog";
 import { OpportunityDetails } from "@/components/commercial/opportunities/OpportunityDetails";
+import { EditOpportunitySheet } from "@/components/commercial/opportunities/EditOpportunitySheet";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -43,13 +44,15 @@ const CommercialOpportunities = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const clientFilter = searchParams.get('client') || '';
-  const { opportunities, isLoading, updateOpportunity, createOpportunity } = useOpportunities();
+  const { opportunities, isLoading, updateOpportunity, createOpportunity, deleteOpportunity } = useOpportunities();
   const { buyers } = useBuyers();
   const [view, setView] = useState<'kanban' | 'list'>(() => (localStorage.getItem('opp-view') as any) || 'kanban');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editData, setEditData] = useState<any>(null);
   const [detailOpp, setDetailOpp] = useState<Opportunity | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
+  const [editSheetOpen, setEditSheetOpen] = useState(false);
+  const [editSheetOpp, setEditSheetOpp] = useState<Opportunity | null>(null);
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
@@ -106,7 +109,7 @@ const CommercialOpportunities = () => {
     });
   };
 
-  const handleCardClick = (opp: Opportunity) => { setDetailOpp(opp); setDetailOpen(true); };
+  const handleCardClick = (opp: Opportunity) => { setEditSheetOpp(opp); setEditSheetOpen(true); };
 
   const handleSave = (data: Record<string, any>) => {
     if (editData) {
@@ -228,6 +231,19 @@ const CommercialOpportunities = () => {
       />
 
       <OpportunityDetails opportunity={detailOpp} open={detailOpen} onOpenChange={setDetailOpen} />
+
+      <EditOpportunitySheet
+        open={editSheetOpen}
+        onOpenChange={setEditSheetOpen}
+        opportunity={editSheetOpp}
+        clients={clients}
+        onSave={(data) => {
+          const { id, ...updates } = data;
+          updateOpportunity.mutate({ id, ...updates }, { onSuccess: () => { setEditSheetOpen(false); setEditSheetOpp(null); } });
+        }}
+        onDelete={(id) => { deleteOpportunity.mutate(id); setEditSheetOpen(false); }}
+        isLoading={updateOpportunity.isPending}
+      />
     </div>
   );
 };

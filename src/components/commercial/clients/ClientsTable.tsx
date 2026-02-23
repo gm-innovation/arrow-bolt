@@ -45,6 +45,7 @@ interface Props {
   clients: Client[];
   isLoading: boolean;
   onEdit: (client: Client) => void;
+  onRowClick?: (client: Client) => void;
 }
 
 type SortKey = 'name' | 'annual_revenue' | 'last_contact_date';
@@ -55,7 +56,7 @@ const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => {
   return dir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
 };
 
-export const ClientsTable = ({ clients, isLoading, onEdit }: Props) => {
+export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick }: Props) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [segmentFilter, setSegmentFilter] = useState('all');
@@ -172,7 +173,7 @@ export const ClientsTable = ({ clients, isLoading, onEdit }: Props) => {
             </TableHeader>
             <TableBody>
               {filtered.map(client => (
-                <TableRow key={client.id}>
+                <TableRow key={client.id} className={onRowClick ? "cursor-pointer" : ""} onClick={() => onRowClick?.(client)}>
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell className="hidden md:table-cell">{client.cnpj || '—'}</TableCell>
                   <TableCell className="hidden lg:table-cell">{client.segment || '—'}</TableCell>
@@ -187,10 +188,10 @@ export const ClientsTable = ({ clients, isLoading, onEdit }: Props) => {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => onEdit(client)} title="Editar">
+                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(client); }} title="Editar">
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => navigate(`/commercial/opportunities?client=${client.id}`)} title="Ver Oportunidades">
+                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/commercial/opportunities?client=${client.id}`); }} title="Ver Oportunidades">
                         <Eye className="h-4 w-4" />
                       </Button>
                     </div>
