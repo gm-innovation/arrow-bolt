@@ -20,6 +20,11 @@ import {
   History,
   Target,
   ShoppingBag,
+  Package,
+  RefreshCw,
+  BookOpen,
+  Upload,
+  FileBarChart,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -29,6 +34,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { NotificationBell } from "@/components/super-admin/NotificationBell";
 import { NotificationBell as AdminNotificationBell } from "@/components/admin/NotificationBell";
 import { ManagerNotificationBell } from "@/components/manager/NotificationBell";
+import { CommercialNotificationBell } from "@/components/commercial/NotificationBell";
 import { UserMenu } from "@/components/UserMenu";
 import { ChatButton } from "@/components/chat/ChatButton";
 import { useWhatsAppAutoNotifier } from "@/hooks/useWhatsAppAutoNotifier";
@@ -107,6 +113,13 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Clientes", icon: Users, path: "/commercial/clients" },
     { title: "Oportunidades", icon: Target, path: "/commercial/opportunities" },
     { title: "Compradores", icon: ShoppingBag, path: "/commercial/buyers" },
+    { title: "Produtos", icon: Package, path: "/commercial/products" },
+    { title: "Recorrências", icon: RefreshCw, path: "/commercial/recurrences" },
+    { title: "Medições", icon: Calculator, path: "/commercial/measurements" },
+    { title: "Relatórios", icon: FileBarChart, path: "/commercial/reports" },
+    { title: "Conhecimento", icon: BookOpen, path: "/commercial/knowledge-base" },
+    { title: "Importação", icon: Upload, path: "/commercial/import" },
+    { title: "Logs", icon: History, path: "/commercial/logs" },
     { title: "Configurações", icon: Settings, path: "/commercial/settings" },
   ];
 
@@ -338,11 +351,13 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
                 <AdminNotificationBell />
               ) : userType === "manager" ? (
                 <ManagerNotificationBell />
+              ) : userType === "commercial" ? (
+                <CommercialNotificationBell />
               ) : (
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-muted-foreground hover:text-foreground"
                   onClick={() => navigate("/tech/notifications")}
                 >
                   <Bell className="h-5 w-5" />
