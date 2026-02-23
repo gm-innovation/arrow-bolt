@@ -38,7 +38,7 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [docType, setDocType] = useState('');
-  const [visibility, setVisibility] = useState('private');
+  
   const [departmentId, setDepartmentId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -66,7 +66,7 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
         title,
         file_name: file.name,
         file_url: urlData.publicUrl,
-        visibility_level: visibility,
+        visibility_level: 'private',
         ...(departmentId ? { department_id: departmentId } : {}),
       }, {
         onSuccess: () => {
@@ -117,17 +117,6 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
                 {departments.map((d: any) => (
                   <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Visibilidade</Label>
-            <Select value={visibility} onValueChange={setVisibility}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="private">Privado</SelectItem>
-                <SelectItem value="department">Departamento</SelectItem>
-                <SelectItem value="global">Global</SelectItem>
               </SelectContent>
             </Select>
           </div>
