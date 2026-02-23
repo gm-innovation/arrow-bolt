@@ -26,6 +26,7 @@ import {
   Upload,
   FileBarChart,
   Inbox,
+  MessageSquare,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -72,6 +73,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Assinaturas", icon: CreditCard, path: "/super-admin/subscriptions" },
     { title: "Configurações", icon: Settings, path: "/super-admin/settings" },
     { title: "Relatórios", icon: FileText, path: "/super-admin/reports" },
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
@@ -84,6 +86,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Relatórios", icon: FileText, path: "/admin/reports" },
     { title: "Tipos de Tarefas", icon: ClipboardList, path: "/admin/task-types" },
     { title: "Logs de Auditoria", icon: History, path: "/admin/audit-logs" },
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
@@ -93,6 +96,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Ordens de Serviço", icon: ClipboardList, path: "/manager/orders" },
     { title: "Relatórios", icon: FileText, path: "/manager/reports" },
     { title: "Config. Medição", icon: Calculator, path: "/manager/measurement-settings" },
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
@@ -101,6 +105,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Tarefas", icon: ClipboardList, path: "/tech/tasks" },
     { title: "Relatórios", icon: FileText, path: "/tech/reports" },
     { title: "Notificações", icon: Bell, path: "/tech/notifications" },
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
@@ -111,6 +116,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
     { title: "Feriados", icon: ClipboardList, path: "/hr/holidays" },
     { title: "Relatórios", icon: FileText, path: "/hr/reports" },
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
@@ -128,10 +134,12 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Notificações", icon: Bell, path: "/commercial/notifications" },
     { title: "Admin", icon: Settings, path: "/commercial/admin" },
     { title: "Configurações", icon: Settings, path: "/commercial/settings" },
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
   const directorMenuItems = [
+    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
