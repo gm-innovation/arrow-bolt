@@ -1,70 +1,64 @@
 
 
-## Alteracoes no Modulo de Solicitacoes
+## Reformular Solicitacoes para fluxo bidirecional
 
-### 1. Renomear "Requisicoes" para "Solicitacoes"
+### Problema atual
 
-Trocar todas as ocorrencias de "Requisicao/Requisicoes" por "Solicitacao/Solicitacoes" nos textos exibidos ao usuario nos seguintes arquivos:
+O sistema trata "Recebidas" como "solicitacoes pendentes de aprovacao", filtrando por role. Mas o conceito correto e: qualquer pessoa pode enviar uma solicitacao para outra pessoa (ou departamento). A aba "Recebidas" deve mostrar solicitacoes **direcionadas ao usuario**, independentemente do role.
 
-| Arquivo | Alteracoes |
-|---------|-----------|
-| `src/components/corp/CorpLayout.tsx` | Tab label: "Requisicoes" -> "Solicitacoes" |
-| `src/pages/corp/Requests.tsx` | Placeholder de busca, mensagem vazia, titulos de colunas |
-| `src/components/corp/NewRequestDialog.tsx` | Titulo do dialog, botao, placeholder, labels, toasts |
-| `src/components/corp/RequestDetailSheet.tsx` | Textos da timeline |
-| `src/components/corp/ApprovalActions.tsx` | Titulo do dialog de rejeicao |
-| `src/hooks/useCorpRequests.ts` | Mensagens de toast |
-| `src/pages/corp/Dashboard.tsx` | Titulos dos cards e secoes |
+Exemplos:
+- RH solicita documento a um funcionario -> aparece em "Recebidas" do funcionario
+- Funcionario solicita contra-cheque ao RH -> aparece em "Recebidas" do RH
+- Solicitacao de ferias que precisa de aprovacao -> segue o fluxo de aprovacao normalmente
 
-### 2. Tornar o campo "Valor" opcional e contextual
+### 1. Adicionar coluna `target_user_id` na tabela `corp_requests`
 
-Atualmente o formulario de nova solicitacao sempre exibe o campo "Valor (R$)". Solicitacoes podem ser de folga, ferias, documentacao, etc. O campo de valor sera:
-- Mantido, mas com label "Valor (se aplicavel)"
-- Escondido ou exibido com base no tipo selecionado (quando nao ha tipo, permanece visivel como opcional)
+Migracao SQL:
 
-### 3. Separar em 2 abas: "Minhas Solicitacoes" e "Recebidas"
-
-A pagina de Solicitacoes passara a ter 2 abas usando Tabs:
-
-```text
-+--------------------------------------------------+
-| [Minhas Solicitacoes]  [Recebidas]               |
-+--------------------------------------------------+
-| Conteudo da aba ativa                            |
-+--------------------------------------------------+
+```sql
+ALTER TABLE corp_requests ADD COLUMN target_user_id uuid REFERENCES profiles(id);
 ```
 
-**Aba "Minhas Solicitacoes":**
-- Mostra apenas solicitacoes onde `requester_id = user.id`
-- Botao "Nova Solicitacao" aparece aqui
-- Tabela com: Titulo, Status, Prioridade, Departamento, Data
+Essa coluna indica **para quem** a solicitacao e direcionada. Pode ser NULL (solicitacoes gerais sem destinatario especifico, como pedidos de ferias que vao para o fluxo de aprovacao).
 
-**Aba "Recebidas":**
-- Mostra solicitacoes que o usuario pode aprovar/gerenciar:
-  - Gerente: solicitacoes `pending_manager` do seu departamento
-  - Diretor: solicitacoes `pending_director` da empresa
-  - Admin/Super Admin: todas as solicitacoes
-  - HR: todas as solicitacoes (somente leitura)
-  - Usuario comum: aba nao aparece (ou aparece vazia)
-- Tabela com: Titulo, Status, Prioridade, Solicitante, Departamento, Data
+### 2. Atualizar `NewRequestDialog.tsx`
 
-### Detalhes Tecnicos
+Adicionar campo **"Destinatario"** (opcional) no formulario:
+- Um select que lista usuarios da empresa (via `useAllUsers` ou query similar)
+- Quando preenchido, a solicitacao aparece na aba "Recebidas" do destinatario
+- Quando nao preenchido, a solicitacao segue o fluxo de aprovacao normal (gerente/diretoria)
 
-**Arquivo `src/pages/corp/Requests.tsx`:**
-- Adicionar state `activeTab` com valores `'mine'` e `'received'`
-- Usar componente `Tabs` do Radix para as 2 abas
-- Filtrar `requests` por `requester_id === user.id` na aba "Minhas"
-- Na aba "Recebidas", filtrar conforme role do usuario:
-  - Para gerente: buscar `department_id` do departamento que ele gerencia (via `useDepartments`) e filtrar solicitacoes pendentes desse departamento
-  - Para diretor: filtrar `status === 'pending_director'`
-  - Para admin: mostrar todas exceto as proprias
-- O botao "Nova Solicitacao" so aparece na aba "Minhas"
-- Mover o `NewRequestDialog` para dentro do conteudo da aba "Minhas"
+### 3. Reformular logica da aba "Recebidas" em `Requests.tsx`
 
-**Arquivo `src/hooks/useCorpRequests.ts`:**
-- Nenhuma alteracao estrutural necessaria (ja retorna todas as solicitacoes visiveis via RLS)
+**Antes:** Filtrava por role (admin ve tudo, gerente ve pending_manager, etc.)
 
-**Arquivo `src/components/corp/NewRequestDialog.tsx`:**
-- Renomear textos
-- Tornar campo "Valor" opcional com label contextual
+**Depois:** A aba "Recebidas" mostra:
+- Solicitacoes onde `target_user_id === user.id` (direcionadas ao usuario)
+- MAIS solicitacoes pendentes de aprovacao conforme role (gerente, diretor) -- mantendo o fluxo de aprovacao
+
+A aba "Recebidas" sera **sempre visivel** para todos os perfis.
+
+### 4. Atualizar `useCorpRequests.ts`
+
+Incluir `target_user_id` e o perfil do destinatario na query:
+
+```sql
+target:profiles!corp_requests_target_user_id_fkey(id, full_name, email)
+```
+
+Incluir `target_user_id` no tipo `CreateRequestParams`.
+
+### 5. Atualizar `RequestDetailSheet.tsx`
+
+Exibir o campo "Destinatario" nos detalhes da solicitacao quando `target_user_id` estiver preenchido.
+
+### Resumo das alteracoes por arquivo
+
+| Arquivo | Alteracao |
+|---------|----------|
+| Migracao SQL | Adicionar `target_user_id` na tabela |
+| `src/hooks/useCorpRequests.ts` | Incluir target na query e no tipo CreateRequestParams |
+| `src/components/corp/NewRequestDialog.tsx` | Adicionar campo "Destinatario" |
+| `src/pages/corp/Requests.tsx` | Reformular filtro de "Recebidas" (target_user_id OU aprovacao), remover showReceivedTab |
+| `src/components/corp/RequestDetailSheet.tsx` | Exibir destinatario |
 
