@@ -27,7 +27,7 @@ const CommercialClients = () => {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (formData: Record<string, any>) => {
+    mutationFn: async ({ formData, buyer }: { formData: Record<string, any>; buyer?: Record<string, any> | null }) => {
       const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user!.id).single();
       if (!profile?.company_id) throw new Error('Empresa não encontrada');
 
@@ -36,8 +36,19 @@ const CommercialClients = () => {
         const { error } = await supabase.from('clients').update(updates).eq('id', editingClient.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('clients').insert({ ...formData, company_id: profile.company_id });
+        const { data: newClient, error } = await supabase.from('clients').insert({ ...formData, company_id: profile.company_id }).select('id').single();
         if (error) throw error;
+        
+        // Create associated buyer if provided
+        if (buyer && buyer.name?.trim() && newClient) {
+          await supabase.from('crm_buyers').insert({
+            ...buyer,
+            client_id: newClient.id,
+            company_id: profile.company_id,
+            is_primary: true,
+            is_active: true,
+          });
+        }
       }
     },
     onSuccess: () => {
@@ -71,7 +82,7 @@ const CommercialClients = () => {
       <NewClientDialog
         open={dialogOpen}
         onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingClient(null); }}
-        onSave={(data) => saveMutation.mutate(data)}
+        onSave={(data, buyer) => saveMutation.mutate({ formData: data, buyer })}
         initialData={editingClient}
         isLoading={saveMutation.isPending}
       />
