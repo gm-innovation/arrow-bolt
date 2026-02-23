@@ -183,6 +183,7 @@ export function NewUserDialog() {
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="manager">Gerente</SelectItem>
                       <SelectItem value="hr">RH</SelectItem>
+                      <SelectItem value="commercial">Comercial</SelectItem>
                       <SelectItem value="technician">Técnico</SelectItem>
                     </SelectContent>
                   </Select>
