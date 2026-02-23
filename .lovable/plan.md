@@ -1,116 +1,119 @@
 
-## Area Administrativa do Modulo Comercial
+## Modais Faltantes do Modulo Comercial
 
-Baseado nos screenshots de referencia, o modulo comercial precisa de uma area administrativa dedicada com layout e navegacao proprios, separados do CRM principal.
-
----
-
-### Estrutura da Area Admin
-
-A area administrativa tera seu proprio layout de sidebar com as seguintes paginas:
-
-| Pagina | Rota | Descricao |
-|--------|------|-----------|
-| Admin Dashboard | `/commercial/admin` | Painel com KPIs (Usuarios Ativos, Servicos Ativos, Lembretes Pendentes, Em Atraso), Atividades Recentes, Acoes Rapidas, Status do Sistema |
-| Usuarios | `/commercial/admin/users` | Gestao de usuarios do modulo comercial (listar, criar, editar, ativar/desativar) |
-| Servicos | `/commercial/admin/services` | Catalogo de servicos e regras de recorrencia (tabela com Servico, Tipo, Periodicidade, Lead Time, Status) |
-| Agendamentos | `/commercial/admin/schedules` | Visao unificada de agendamentos e lembretes com toggle Lista/Calendario e badges de status (Pendente, Agendado, Atrasado) |
-| Base de Conhecimento | `/commercial/admin/knowledge` | Versao admin da base de conhecimento com KPI cards (Total Entradas, Documentos, Processados, Chunks), 4 tabs (Entradas, Documentos, Websites, Insights IA), e modal rico para nova entrada |
-| Importacao | `/commercial/admin/import` | Ja existente -- sera reaproveitada |
-| Logs Integracao | `/commercial/admin/integration-logs` | Ja existente -- sera reaproveitada |
-| Logs | `/commercial/admin/logs` | Log de auditoria geral do modulo |
+Baseado nos 4 screenshots de referencia, existem 4 componentes que precisam ser criados ou convertidos de Dialog para Sheet (painel lateral), seguindo o padrao visual consistente: header com badges, formulario, e footer com Excluir/Cancelar/Salvar.
 
 ---
 
-### Componentes a Criar
+### 1. Editar Recorrencia (image-354) - Sheet lateral
 
-**1. Layout Admin Comercial** (`src/components/commercial/admin/CommercialAdminLayout.tsx`)
-- Sidebar propria com navegacao das paginas admin
-- Botao "Voltar ao CRM" no topo que redireciona para `/commercial/dashboard`
-- Header "Admin Panel" com avatar e subtitulo "Administracao"
-- Barra de busca global no topo
+**Atualmente:** O edit usa o mesmo Dialog de criacao.
+**Referencia:** Um Sheet lateral com:
+- Header: avatar do cliente + nome + segmento, avatar do produto + nome + tipo
+- Badges: "ativo", valor formatado, proxima data
+- Formulario: Cliente + Produto/Servico (2 colunas), Tipo + Periodicidade + Aviso antecipado (3 colunas), Proxima Data + Valor Estimado (2 colunas), Status full-width, Observacoes full-width
+- Footer: botao "Excluir" (vermelho, alinhado a esquerda), "Cancelar" e "Salvar Alteracoes" (alinhados a direita)
 
-**2. Admin Dashboard** (`src/pages/commercial/admin/Dashboard.tsx`)
-- 4 KPI cards: Usuarios Ativos, Servicos Ativos, Lembretes Pendentes, Em Atraso (com indicadores de variacao)
-- Card "Atividades Recentes" com timeline de eventos (logs do crm_integration_logs)
-- Card "Acoes Rapidas" com links: Gerenciar Usuarios, Configurar Servicos, Ver Agendamentos, Logs de Auditoria
-- Secao "Status do Sistema" com metricas estaticas (Disponibilidade, Tempo de Resposta, Armazenamento, Eventos Hoje)
-
-**3. Usuarios Admin** (`src/pages/commercial/admin/Users.tsx`)
-- Tabela de usuarios filtrados por company_id com role commercial
-- Acoes: criar, editar, ativar/desativar (reutiliza hooks existentes de useAllUsers adaptado ao contexto da empresa)
-
-**4. Servicos e Recorrencias** (`src/pages/commercial/admin/Services.tsx`)
-- Tabela baseada em crm_products com colunas: Servico, Tipo (badge colorido), Periodicidade Padrao, Lead Time (dias), Status, Acoes
-- Busca por nome ou tipo
-- Botao "+ Novo Servico" que reutiliza o dialog de Products com campos extras (periodicidade, lead_time)
-
-**5. Agendamentos e Lembretes** (`src/pages/commercial/admin/Schedules.tsx`)
-- Lista de recorrencias proximas de vencer (dados de crm_client_recurrences)
-- Cada item mostra: tipo + cliente, data de vencimento, responsavel, status (Pendente/Agendado/Atrasado)
-- Toggle Lista/Calendario
-- Botao "Ver" para abrir detalhes
-
-**6. Base de Conhecimento Admin** (`src/pages/commercial/admin/Knowledge.tsx`)
-- Redesign da pagina existente com layout da referencia:
-  - 4 KPI cards no topo (Total de Entradas, Documentos, Processados, Chunks Gerados)
-  - Barra de busca ampla
-  - 4 tabs: Entradas de Conhecimento, Documentos, Websites, Insights da IA
-  - Botoes no header: Adicionar Website, Upload Documento, + Nova Entrada
-  - Modal "Nova Entrada de Conhecimento" com layout 2 colunas (Titulo/Conteudo, Categoria/Tags, Segmento Alvo/Versao, Prioridade/Observacoes, Produto Relacionado)
-
-**7. Logs de Auditoria** (`src/pages/commercial/admin/AuditLogs.tsx`)
-- Timeline de acoes do sistema filtrada pela empresa
+**Acao:** Criar `src/components/commercial/recurrences/EditRecurrenceSheet.tsx` e atualizar `Recurrences.tsx` para abrir o Sheet ao clicar em editar (manter Dialog apenas para criacao).
 
 ---
 
-### Migracao de Banco
+### 2. Dossie do Cliente (image-355) - Sheet lateral
 
-Adicionar coluna `lead_time_days` (integer, default 30) na tabela `crm_products` para suportar o campo "Lead Time" dos servicos.
+**Atualmente:** Nao existe (foi adiado anteriormente).
+**Referencia:** Um Sheet lateral acionado ao clicar na linha do cliente, com:
+- Header: avatar com inicial + nome + CNPJ, botao "Dossie do Cliente"
+- Badges: status (em risco/ativo) + segmento (Grande/Medio/Pequeno)
+- Botoes de acao: "Editar" e "+ Nova Oportunidade"
+- 3 KPI cards: TCV (Total), Ticket Medio, Risco de Churn (com cores e icones)
+- 5 Tabs: Insights de IA, Oportunidades, Compras, Recorrencias, Contatos
+- Conteudo da tab "Insights de IA": Recomendacoes com botoes Ignorar/Relevante
 
----
-
-### Rotas a Adicionar no App.tsx
-
-Novas rotas sob `/commercial/admin/*`:
-- `/commercial/admin` (Dashboard)
-- `/commercial/admin/users`
-- `/commercial/admin/services`
-- `/commercial/admin/schedules`
-- `/commercial/admin/knowledge`
-- `/commercial/admin/import` (reutiliza pagina existente)
-- `/commercial/admin/integration-logs` (reutiliza pagina existente)
-- `/commercial/admin/logs`
-
-Todas protegidas com `allowedRoles={['commercial', 'admin']}`.
+**Acao:** Criar `src/components/commercial/clients/ClientDetailSheet.tsx`. Integrar na pagina `Clients.tsx` -- ao clicar numa linha da tabela, abre o Sheet. Dados de oportunidades, recorrencias e compradores serao buscados com queries sob demanda por client_id.
 
 ---
 
-### Sidebar do CRM Principal
+### 3. Editar Oportunidade (image-356) - Sheet lateral
 
-Adicionar item "Admin" na sidebar do commercial (`DashboardLayout.tsx`) com icone de engrenagem, apontando para `/commercial/admin`.
+**Atualmente:** O click na tabela abre um Sheet de detalhes (`OpportunityDetails.tsx`) que mostra dados readonly + atividades. A edicao usa o Dialog `NewOpportunityDialog`.
+**Referencia:** Um Sheet lateral de edicao com:
+- Header: badges (prioridade + tipo), valor formatado + data de criacao
+- Formulario: Titulo full-width, Cliente + Valor (2 colunas), Estagio + Probabilidade (2 colunas), Tipo + Prioridade (2 colunas), Previsao de Fechamento full-width, Descricao full-width
+- Footer: "Excluir" (vermelho), "Cancelar", "Salvar Alteracoes"
+
+**Acao:** Criar `src/components/commercial/opportunities/EditOpportunitySheet.tsx`. Atualizar `Opportunities.tsx` para abrir o Sheet ao clicar numa oportunidade (substituindo o Sheet de detalhes readonly que sera embutido como tab ou mantido separado). O botao de edit na tabela abrira este Sheet.
 
 ---
+
+### 4. Editar Comprador (image-357) - Sheet lateral
+
+**Atualmente:** A edicao reutiliza o mesmo Dialog de criacao (`NewBuyerDialog`).
+**Referencia:** Um Sheet lateral com:
+- Header: badges (nivel de influencia + empresa)
+- Secao "Informacoes Pessoais": Nome Completo + Cargo (2 colunas), E-mail + Telefone (2 colunas) com icones de email/telefone nos inputs
+- Secao "Configuracoes": Nivel de Influencia (dropdown full-width), checkboxes (ativo + principal)
+- Secao "Observacoes": Notas internas (textarea)
+- Secao "Informacoes do Sistema": Cadastrado em + Inicio do relacionamento (2 colunas, readonly)
+- Footer: "Excluir Comprador" (vermelho), "Cancelar", "Salvar Alteracoes"
+
+**Acao:** Criar `src/components/commercial/buyers/EditBuyerSheet.tsx`. Atualizar `Buyers.tsx` para abrir o Sheet ao clicar no botao de editar (manter `NewBuyerDialog` apenas para criacao).
+
+---
+
+### Resumo de Alteracoes
+
+| Tipo | Arquivo |
+|------|---------|
+| Criar | `src/components/commercial/recurrences/EditRecurrenceSheet.tsx` |
+| Criar | `src/components/commercial/clients/ClientDetailSheet.tsx` |
+| Criar | `src/components/commercial/opportunities/EditOpportunitySheet.tsx` |
+| Criar | `src/components/commercial/buyers/EditBuyerSheet.tsx` |
+| Modificar | `src/pages/commercial/Recurrences.tsx` (integrar EditRecurrenceSheet) |
+| Modificar | `src/pages/commercial/Clients.tsx` (integrar ClientDetailSheet) |
+| Modificar | `src/pages/commercial/Opportunities.tsx` (integrar EditOpportunitySheet) |
+| Modificar | `src/pages/commercial/Buyers.tsx` (integrar EditBuyerSheet) |
+
+---
+
+### Padrao Visual Consistente dos Sheets
+
+Todos os Sheets seguirao o mesmo padrao de layout:
+
+```text
++------------------------------------------+
+| [Titulo]                              X  |
+| [Subtitulo descritivo]                   |
++------------------------------------------+
+| [Avatar] Nome / Info                     |
+| [Badge1] [Badge2] [Badge3]              |
++------------------------------------------+
+|                                          |
+| Formulario com secoes e grid 2 colunas   |
+|                                          |
++------------------------------------------+
+| [Excluir]          [Cancelar] [Salvar]   |
++------------------------------------------+
+```
+
+- Largura: `sm:max-w-lg` (consistente com Sheet existente)
+- Overflow: `overflow-y-auto` para conteudo longo
+- Botao Excluir: variante `destructive` com icone `Trash2`, alinhado a esquerda
+- Botoes Cancelar/Salvar: alinhados a direita
+- Secoes separadas por `Separator` ou titulos `h4` com fonte semibold
 
 ### Detalhes Tecnicos
 
-**CommercialAdminLayout:** Wrapper que substitui o DashboardLayout padrao com sidebar propria. Recebe `children` e renderiza sidebar fixa a esquerda com os menu items admin. O botao "Voltar ao CRM" usa `navigate('/commercial/dashboard')`.
+**ClientDetailSheet:** Queries separadas por tab para evitar carga desnecessaria:
+- Tab "Oportunidades": `crm_opportunities` filtrado por `client_id`
+- Tab "Recorrencias": `crm_client_recurrences` filtrado por `client_id`
+- Tab "Contatos": `crm_buyers` filtrado por `client_id`
+- Tab "Insights de IA": Placeholder com dados mockados (IA sera integrada futuramente)
+- KPIs: TCV = soma dos estimated_value das oportunidades ganhas; Ticket Medio = TCV / count; Risco de Churn = baseado em dias sem contato (last_contact_date)
 
-**Dashboard KPIs:** Queries ao banco:
-- Usuarios Ativos: `profiles` filtrado por `company_id` com role `commercial`
-- Servicos Ativos: `crm_products` com `active = true`
-- Lembretes Pendentes: `crm_client_recurrences` com `next_date` nos proximos 30 dias
-- Em Atraso: `crm_client_recurrences` com `next_date < hoje` e status `active`
-
-**Atividades Recentes:** Query em `crm_integration_logs` ordenado por `created_at DESC`, limite 10.
+**EditOpportunitySheet:** Reutiliza constantes STAGES, TYPES, PRIORITIES do `NewOpportunityDialog`. Ao salvar, chama `updateOpportunity.mutate`. Ao excluir, chama `deleteOpportunity` (precisa ser adicionado ao hook se nao existir).
 
 **Ordem de implementacao:**
-1. Migracao (lead_time_days)
-2. CommercialAdminLayout
-3. Admin Dashboard
-4. Pagina de Usuarios
-5. Pagina de Servicos
-6. Pagina de Agendamentos
-7. Base de Conhecimento Admin
-8. Logs de Auditoria
-9. Rotas no App.tsx + item na sidebar
+1. EditRecurrenceSheet + integracao em Recurrences.tsx
+2. EditBuyerSheet + integracao em Buyers.tsx
+3. EditOpportunitySheet + integracao em Opportunities.tsx
+4. ClientDetailSheet + integracao em Clients.tsx
