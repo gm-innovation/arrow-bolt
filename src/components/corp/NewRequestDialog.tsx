@@ -9,6 +9,7 @@ import { Plus } from 'lucide-react';
 import { useCorpRequests } from '@/hooks/useCorpRequests';
 import { useCorpRequestTypes } from '@/hooks/useCorpRequestTypes';
 import { useDepartments } from '@/hooks/useDepartments';
+import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface NewRequestDialogProps {
@@ -23,9 +24,11 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   const [amount, setAmount] = useState('');
   const [departmentId, setDepartmentId] = useState('');
   const [typeId, setTypeId] = useState('');
+  const [targetUserId, setTargetUserId] = useState('');
   const { createRequest } = useCorpRequests();
   const { requestTypes } = useCorpRequestTypes();
   const { departments } = useDepartments();
+  const { users } = useUsers();
 
   const selectedType = requestTypes.find(t => t.id === typeId);
 
@@ -44,6 +47,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
       amount: amount ? parseFloat(amount) : undefined,
       department_id: departmentId || undefined,
       type_id: typeId || undefined,
+      target_user_id: targetUserId || undefined,
       status: determineStatus(),
     }, {
       onSuccess: () => {
@@ -54,6 +58,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
         setAmount('');
         setDepartmentId('');
         setTypeId('');
+        setTargetUserId('');
       }
     });
   };
@@ -99,6 +104,17 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+          <div>
+            <Label>Destinatário (opcional)</Label>
+            <Select value={targetUserId} onValueChange={setTargetUserId}>
+              <SelectTrigger><SelectValue placeholder="Selecione um destinatário" /></SelectTrigger>
+              <SelectContent>
+                {users.filter(u => u.id !== user?.id).map(u => (
+                  <SelectItem key={u.id} value={u.id}>{u.full_name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>

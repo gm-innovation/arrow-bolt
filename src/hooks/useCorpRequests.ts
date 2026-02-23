@@ -13,6 +13,7 @@ interface CreateRequestParams {
   company_id: string;
   dynamic_data?: any;
   status?: string;
+  target_user_id?: string;
 }
 
 export const useCorpRequests = (filters?: { status?: string; department_id?: string; type_id?: string }) => {
@@ -30,7 +31,8 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
           department:departments(id, name),
           type:corp_request_types(id, name, requires_approval, requires_director_approval, director_threshold_value),
           manager_approver:profiles!corp_requests_manager_approver_id_fkey(id, full_name),
-          director_approver:profiles!corp_requests_director_approver_id_fkey(id, full_name)
+          director_approver:profiles!corp_requests_director_approver_id_fkey(id, full_name),
+          target:profiles!corp_requests_target_user_id_fkey(id, full_name, email)
         `)
         .order('created_at', { ascending: false });
 
