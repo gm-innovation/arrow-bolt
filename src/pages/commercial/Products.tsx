@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -38,7 +38,7 @@ const Products = () => {
   };
 
   const handleSave = () => {
-    if (!form.name) return;
+    if (!form.name || !form.category || !form.type) return;
     const payload = {
       name: form.name,
       category: form.category || null,
@@ -154,16 +154,34 @@ const Products = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{editingProduct ? "Editar Produto" : "Novo Produto"}</DialogTitle>
+            <DialogTitle>{editingProduct ? "Editar Produto/Serviço" : "Novo Produto/Serviço"}</DialogTitle>
+            <DialogDescription>
+              {editingProduct ? "Atualize os detalhes do item" : "Preencha as informações para adicionar um novo item ao catálogo"}
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label>Nome *</Label>
-              <Input value={form.name || ""} onChange={e => set("name", e.target.value)} />
+              <Input value={form.name || ""} onChange={e => set("name", e.target.value)} placeholder="Nome do produto ou serviço" />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Tipo</Label>
+                <Label>Categoria *</Label>
+                <Select value={form.category || ""} onValueChange={v => set("category", v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="manutencao">Manutenção</SelectItem>
+                    <SelectItem value="inspecao">Inspeção</SelectItem>
+                    <SelectItem value="comunicacao">Comunicação</SelectItem>
+                    <SelectItem value="navegacao">Navegação</SelectItem>
+                    <SelectItem value="eletrica">Elétrica</SelectItem>
+                    <SelectItem value="mecanica">Mecânica</SelectItem>
+                    <SelectItem value="outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tipo *</Label>
                 <Select value={form.type || "service"} onValueChange={v => set("type", v)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -172,33 +190,25 @@ const Products = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label>Categoria</Label>
-                <Input value={form.category || ""} onChange={e => set("category", e.target.value)} />
-              </div>
             </div>
             <div className="space-y-2">
               <Label>Valor de Referência (R$)</Label>
-              <Input type="number" value={form.reference_value || ""} onChange={e => set("reference_value", e.target.value)} />
+              <Input type="number" value={form.reference_value || ""} onChange={e => set("reference_value", e.target.value)} placeholder="0,00" />
             </div>
             <div className="space-y-2">
               <Label>Descrição</Label>
-              <Textarea value={form.description || ""} onChange={e => set("description", e.target.value)} rows={3} />
+              <Textarea value={form.description || ""} onChange={e => set("description", e.target.value)} rows={3} placeholder="Descrição do item" />
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Switch checked={form.is_recurring || false} onCheckedChange={v => set("is_recurring", v)} />
-                <Label>Recorrente</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={form.active ?? true} onCheckedChange={v => set("active", v)} />
-                <Label>Ativo</Label>
-              </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={form.active ?? true} onCheckedChange={v => set("active", v)} />
+              <Label>Ativo no catálogo</Label>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.name}>{editingProduct ? "Salvar" : "Criar"}</Button>
+            <Button onClick={handleSave} disabled={!form.name || !form.category || !form.type}>
+              {editingProduct ? "Salvar Alterações" : "Criar Item"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,10 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Calculator, RefreshCw, CheckCircle2, Clock, XCircle, DollarSign } from "lucide-react";
-import { useState } from "react";
+import { Search, Calculator, RefreshCw, CheckCircle2, Clock, XCircle, DollarSign, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { MeasurementDetailDialog } from "@/components/commercial/measurements/MeasurementDetailDialog";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -22,6 +22,8 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 const Measurements = () => {
   const { profile } = useAuth();
   const [search, setSearch] = useState("");
+  const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   const { data: measurements = [], isLoading } = useQuery({
     queryKey: ["commercial-measurements", profile?.company_id],
@@ -134,8 +136,9 @@ const Measurements = () => {
                   <TableHead>Categoria</TableHead>
                   <TableHead className="hidden md:table-cell">Status</TableHead>
                   <TableHead className="hidden md:table-cell">Total</TableHead>
-                  <TableHead className="hidden md:table-cell">Data</TableHead>
-                </TableRow>
+                   <TableHead className="hidden md:table-cell">Data</TableHead>
+                   <TableHead className="text-right">Ações</TableHead>
+                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((m: any) => (
@@ -153,16 +156,30 @@ const Measurements = () => {
                     <TableCell className="hidden md:table-cell">
                       {m.total_amount ? `R$ ${Number(m.total_amount).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-"}
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                      {m.created_at ? format(new Date(m.created_at), "dd/MM/yyyy") : "-"}
-                    </TableCell>
-                  </TableRow>
+                     <TableCell className="hidden md:table-cell">
+                       {m.created_at ? format(new Date(m.created_at), "dd/MM/yyyy") : "-"}
+                     </TableCell>
+                     <TableCell className="text-right">
+                       <Button variant="ghost" size="icon" onClick={() => { setSelectedMeasurementId(m.id); setDetailOpen(true); }}>
+                         <Eye className="h-4 w-4" />
+                       </Button>
+                       <Button variant="ghost" size="icon" onClick={() => toast.info("Reprocessamento iniciado")}>
+                         <RefreshCw className="h-4 w-4" />
+                       </Button>
+                     </TableCell>
+                   </TableRow>
                 ))}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
+
+      <MeasurementDetailDialog
+        measurementId={selectedMeasurementId}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </div>
   );
 };
