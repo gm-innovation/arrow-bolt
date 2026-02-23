@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRecurrences } from "@/hooks/useRecurrences";
 import { useProducts } from "@/hooks/useProducts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,9 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { Plus, Search, Edit, Trash2, CalendarIcon, RefreshCw } from "lucide-react";
+import { Plus, Search, Edit, Trash2, CalendarIcon, RefreshCw, DollarSign, Clock, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { format } from "date-fns";
+import { format, isBefore, addDays, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -96,11 +96,70 @@ const Recurrences = () => {
     r.crm_products?.name?.toLowerCase().includes(search.toLowerCase())
   );
 
+  const kpis = useMemo(() => {
+    const now = new Date();
+    const active = recurrences.filter((r: any) => r.status === "active");
+    const mrr = active.reduce((s: number, r: any) => s + (Number(r.estimated_value) || 0), 0);
+    const next30 = active.filter((r: any) => r.next_date && !isBefore(new Date(r.next_date), now) && isBefore(new Date(r.next_date), addDays(now, 30))).length;
+    const next60 = active.filter((r: any) => r.next_date && !isBefore(new Date(r.next_date), addDays(now, 30)) && isBefore(new Date(r.next_date), addDays(now, 60))).length;
+    const overdue = active.filter((r: any) => r.next_date && isBefore(new Date(r.next_date), now)).length;
+    return { mrr, next30, next60, overdue };
+  }, [recurrences]);
+
+  const formatCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-foreground">Recorrências e Agendamentos</h2>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Nova Recorrência</Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Receita Recorrente</p>
+                <p className="text-2xl font-bold">{formatCurrency(kpis.mrr)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-chart-2" />
+              <div>
+                <p className="text-sm text-muted-foreground">Próximos 30 dias</p>
+                <p className="text-2xl font-bold">{kpis.next30}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 text-chart-3" />
+              <div>
+                <p className="text-sm text-muted-foreground">30–60 dias</p>
+                <p className="text-2xl font-bold">{kpis.next60}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <div>
+                <p className="text-sm text-muted-foreground">Atrasadas</p>
+                <p className="text-2xl font-bold text-destructive">{kpis.overdue}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Card>
@@ -137,7 +196,18 @@ const Recurrences = () => {
                     <TableCell className="font-medium">{r.clients?.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{r.crm_products?.name || "-"}</TableCell>
                     <TableCell>{PERIODICITIES.find(p => p.value === r.periodicity)?.label || r.periodicity}</TableCell>
-                    <TableCell>{r.next_date ? format(new Date(r.next_date + "T12:00:00"), "dd/MM/yyyy") : "-"}</TableCell>
+                    <TableCell>
+                      {(() => {
+                        const now = new Date();
+                        const isOverdue = r.next_date && r.status === "active" && isBefore(new Date(r.next_date), now);
+                        return r.next_date ? (
+                          <span className={cn(isOverdue && "text-destructive font-medium")}>
+                            {format(new Date(r.next_date + "T12:00:00"), "dd/MM/yyyy")}
+                            {isOverdue && ` (${Math.abs(differenceInDays(now, new Date(r.next_date)))}d)`}
+                          </span>
+                        ) : "-";
+                      })()}
+                    </TableCell>
                     <TableCell className="hidden md:table-cell">
                       {r.estimated_value ? `R$ ${Number(r.estimated_value).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "-"}
                     </TableCell>

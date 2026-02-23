@@ -75,6 +75,7 @@ import CommercialRecurrences from "./pages/commercial/Recurrences";
 import CommercialMeasurements from "./pages/commercial/Measurements";
 import CommercialReports from "./pages/commercial/Reports";
 import CommercialKnowledgeBase from "./pages/commercial/KnowledgeBase";
+import CommercialTasks from "./pages/commercial/Tasks";
 import CommercialImport from "./pages/commercial/admin/Import";
 import CommercialLogs from "./pages/commercial/admin/Logs";
 
@@ -697,6 +698,26 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['commercial', 'admin']}>
                     <DashboardLayout userType="commercial">
                       <CommercialOpportunities />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/tasks"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialTasks />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/notifications"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <TechNotifications />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
