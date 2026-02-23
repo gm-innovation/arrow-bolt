@@ -39,8 +39,13 @@ export const useKnowledgeBase = () => {
 
   const createArticle = useMutation({
     mutationFn: async (article: Record<string, any>) => {
-      const { error } = await supabase.from("crm_knowledge_base").insert({
-        ...article,
+      const { target_segment, priority, version, notes, ...rest } = article;
+      const { error } = await supabase.from("crm_knowledge_base" as any).insert({
+        ...rest,
+        target_segment: target_segment || null,
+        priority: priority || null,
+        version: version || null,
+        notes: notes || null,
         company_id: profile?.company_id,
         author_id: profile?.id,
       });
