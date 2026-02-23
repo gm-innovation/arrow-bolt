@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, LayoutGrid, List, Search } from "lucide-react";
+import { Plus, LayoutGrid, List, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { OpportunityKanban } from "@/components/commercial/opportunities/OpportunityKanban";
 import { NewOpportunityDialog } from "@/components/commercial/opportunities/NewOpportunityDialog";
 import { OpportunityDetails } from "@/components/commercial/opportunities/OpportunityDetails";
@@ -30,6 +30,14 @@ const stageColors: Record<string, string> = {
 const formatCurrency = (v: number | null) =>
   v ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v) : '—';
 
+type SortKey = 'title' | 'estimated_value' | 'probability' | 'expected_close_date';
+type SortDir = 'asc' | 'desc';
+
+const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => {
+  if (!active) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+  return dir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+};
+
 const CommercialOpportunities = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
@@ -43,6 +51,17 @@ const CommercialOpportunities = () => {
   const [detailOpen, setDetailOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [stageFilter, setStageFilter] = useState('all');
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const { data: clients = [] } = useQuery({
     queryKey: ['commercial-clients-select', user?.id],
@@ -58,13 +77,26 @@ const CommercialOpportunities = () => {
   const setViewMode = (v: 'kanban' | 'list') => { setView(v); localStorage.setItem('opp-view', v); };
 
   const filtered = useMemo(() => {
-    return opportunities.filter(o => {
+    let result = opportunities.filter(o => {
       const matchClient = !clientFilter || o.client_id === clientFilter;
       const matchSearch = !search || o.title.toLowerCase().includes(search.toLowerCase()) || o.client_name.toLowerCase().includes(search.toLowerCase());
       const matchStage = stageFilter === 'all' || o.stage === stageFilter;
       return matchClient && matchSearch && matchStage;
     });
-  }, [opportunities, clientFilter, search, stageFilter]);
+
+    if (sortKey && view === 'list') {
+      result = [...result].sort((a, b) => {
+        let cmp = 0;
+        if (sortKey === 'title') cmp = a.title.localeCompare(b.title);
+        else if (sortKey === 'estimated_value') cmp = (a.estimated_value || 0) - (b.estimated_value || 0);
+        else if (sortKey === 'probability') cmp = (a.probability || 0) - (b.probability || 0);
+        else if (sortKey === 'expected_close_date') cmp = (a.expected_close_date || '').localeCompare(b.expected_close_date || '');
+        return sortDir === 'desc' ? -cmp : cmp;
+      });
+    }
+
+    return result;
+  }, [opportunities, clientFilter, search, stageFilter, sortKey, sortDir, view]);
 
   const handleStageChange = (id: string, stage: string) => {
     updateOpportunity.mutate({
@@ -127,12 +159,28 @@ const CommercialOpportunities = () => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Título</TableHead>
+                <TableHead>
+                  <button className="flex items-center font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('title')}>
+                    Título <SortIcon active={sortKey === 'title'} dir={sortDir} />
+                  </button>
+                </TableHead>
                 <TableHead>Cliente</TableHead>
-                <TableHead className="hidden md:table-cell">Valor</TableHead>
+                <TableHead className="hidden md:table-cell">
+                  <button className="flex items-center font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('estimated_value')}>
+                    Valor <SortIcon active={sortKey === 'estimated_value'} dir={sortDir} />
+                  </button>
+                </TableHead>
                 <TableHead>Estágio</TableHead>
-                <TableHead className="hidden lg:table-cell">Probabilidade</TableHead>
-                <TableHead className="hidden lg:table-cell">Data Prevista</TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  <button className="flex items-center font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('probability')}>
+                    Probabilidade <SortIcon active={sortKey === 'probability'} dir={sortDir} />
+                  </button>
+                </TableHead>
+                <TableHead className="hidden lg:table-cell">
+                  <button className="flex items-center font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('expected_close_date')}>
+                    Data Prevista <SortIcon active={sortKey === 'expected_close_date'} dir={sortDir} />
+                  </button>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
