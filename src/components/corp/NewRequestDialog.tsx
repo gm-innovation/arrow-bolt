@@ -61,20 +61,20 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2"><Plus className="h-4 w-4" /> Nova Requisição</Button>
+        <Button className="gap-2"><Plus className="h-4 w-4" /> Nova Solicitação</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nova Requisição</DialogTitle>
+          <DialogTitle>Nova Solicitação</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div>
             <Label>Título *</Label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da requisição" />
+            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Título da solicitação" />
           </div>
           <div>
             <Label>Descrição</Label>
-            <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Descreva a requisição..." />
+            <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Descreva a solicitação..." />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -114,7 +114,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
               </Select>
             </div>
             <div>
-              <Label>Valor (R$)</Label>
+              <Label>Valor (se aplicável)</Label>
               <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0,00" />
             </div>
           </div>
@@ -132,7 +132,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={handleSubmit} disabled={!title.trim() || createRequest.isPending}>
-              {createRequest.isPending ? 'Criando...' : 'Criar Requisição'}
+              {createRequest.isPending ? 'Criando...' : 'Criar Solicitação'}
             </Button>
           </div>
         </div>

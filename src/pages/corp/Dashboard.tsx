@@ -23,7 +23,7 @@ const CorpDashboard = () => {
   const isManager = userRole === 'manager';
 
   const cards = [
-    { title: 'Total de Requisições', value: stats?.total || 0, icon: ClipboardList, color: 'text-blue-600' },
+    { title: 'Total de Solicitações', value: stats?.total || 0, icon: ClipboardList, color: 'text-blue-600' },
     { title: 'Pendentes (Gerente)', value: stats?.pending_manager || 0, icon: Clock, color: 'text-amber-600' },
     { title: 'Pendentes (Diretoria)', value: stats?.pending_director || 0, icon: AlertTriangle, color: 'text-orange-600' },
     { title: 'Aprovadas', value: stats?.approved || 0, icon: CheckCircle2, color: 'text-green-600' },
@@ -56,12 +56,12 @@ const CorpDashboard = () => {
           {/* Recent Requests */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Requisições Recentes</CardTitle>
+              <CardTitle className="text-base">Solicitações Recentes</CardTitle>
               <Button variant="ghost" size="sm" onClick={() => navigate('/corp/requests')}>Ver todas</Button>
             </CardHeader>
             <CardContent className="space-y-3">
               {recentRequests.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma requisição ainda.</p>
+                <p className="text-sm text-muted-foreground">Nenhuma solicitação ainda.</p>
               ) : (
                 recentRequests.map((req: any) => (
                   <div key={req.id} className="flex items-center justify-between p-2 rounded hover:bg-muted/50 cursor-pointer" onClick={() => navigate('/corp/requests')}>

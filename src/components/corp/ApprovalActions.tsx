@@ -60,7 +60,7 @@ const ApprovalActions = ({ request }: ApprovalActionsProps) => {
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Rejeitar Requisição</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Rejeitar Solicitação</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <Textarea value={reason} onChange={e => setReason(e.target.value)} placeholder="Motivo da rejeição..." />
             <div className="flex justify-end gap-2">

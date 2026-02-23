@@ -21,7 +21,7 @@ const CorpLayout = ({ children }: CorpLayoutProps) => {
 
   const tabs = [
     { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/corp/dashboard' },
-    { value: 'requests', label: 'Requisições', icon: ClipboardList, path: '/corp/requests' },
+    { value: 'requests', label: 'Solicitações', icon: ClipboardList, path: '/corp/requests' },
     { value: 'documents', label: 'Documentos', icon: FileText, path: '/corp/documents' },
     { value: 'feed', label: 'Feed', icon: MessageSquare, path: '/corp/feed' },
     ...(canViewReports ? [{ value: 'reports', label: 'Relatórios', icon: BarChart3, path: '/corp/reports' }] : []),

@@ -58,10 +58,10 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
       queryClient.invalidateQueries({ queryKey: ['corp-dashboard'] });
-      toast({ title: 'Requisição criada com sucesso' });
+      toast({ title: 'Solicitação criada com sucesso' });
     },
     onError: (error: any) => {
-      toast({ title: 'Erro ao criar requisição', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao criar solicitação', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -74,10 +74,10 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
       queryClient.invalidateQueries({ queryKey: ['corp-dashboard'] });
-      toast({ title: 'Requisição atualizada' });
+      toast({ title: 'Solicitação atualizada' });
     },
     onError: (error: any) => {
-      toast({ title: 'Erro ao atualizar requisição', description: error.message, variant: 'destructive' });
+      toast({ title: 'Erro ao atualizar solicitação', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -95,7 +95,7 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
       queryClient.invalidateQueries({ queryKey: ['corp-dashboard'] });
-      toast({ title: 'Requisição aprovada' });
+      toast({ title: 'Solicitação aprovada' });
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao aprovar', description: error.message, variant: 'destructive' });
@@ -115,7 +115,7 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
       queryClient.invalidateQueries({ queryKey: ['corp-dashboard'] });
-      toast({ title: 'Requisição aprovada pela diretoria' });
+      toast({ title: 'Solicitação aprovada pela diretoria' });
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao aprovar', description: error.message, variant: 'destructive' });
@@ -134,7 +134,7 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
       queryClient.invalidateQueries({ queryKey: ['corp-dashboard'] });
-      toast({ title: 'Requisição rejeitada' });
+      toast({ title: 'Solicitação rejeitada' });
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao rejeitar', description: error.message, variant: 'destructive' });
