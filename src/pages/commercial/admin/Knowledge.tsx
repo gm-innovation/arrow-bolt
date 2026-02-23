@@ -1,4 +1,5 @@
 import { useKnowledgeBase } from "@/hooks/useKnowledgeBase";
+import { useProducts } from "@/hooks/useProducts";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -10,15 +11,18 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Search, BookOpen, FileText, Globe, Brain, Plus, Upload } from "lucide-react";
+import { Search, BookOpen, FileText, Globe, Brain, Plus, Upload, X } from "lucide-react";
 import { useState, useRef } from "react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
 const CATEGORIES = ["produto", "processo", "técnico", "comercial", "suporte", "outro"];
+const SEGMENTS = ["todos", "pequeno", "médio", "grande"];
+const PRIORITIES = ["alta", "média", "baixa"];
 
 const AdminKnowledge = () => {
   const { articles: entries = [], documents = [], isLoading, createArticle, uploadDocument } = useKnowledgeBase();
+  const { products = [] } = useProducts();
   const [search, setSearch] = useState("");
 
   // New Entry Dialog
@@ -26,8 +30,13 @@ const AdminKnowledge = () => {
   const [entryTitle, setEntryTitle] = useState("");
   const [entryContent, setEntryContent] = useState("");
   const [entryCategory, setEntryCategory] = useState("");
-  const [entryTags, setEntryTags] = useState("");
-  const [entryPublished, setEntryPublished] = useState(false);
+  const [entrySegment, setEntrySegment] = useState("todos");
+  const [entryPriority, setEntryPriority] = useState("média");
+  const [entryProductId, setEntryProductId] = useState("");
+  const [entryTagInput, setEntryTagInput] = useState("");
+  const [entryTags, setEntryTags] = useState<string[]>([]);
+  const [entryVersion, setEntryVersion] = useState("1.0");
+  const [entryNotes, setEntryNotes] = useState("");
 
   // Upload Dialog
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -52,17 +61,41 @@ const AdminKnowledge = () => {
     { label: "Categorias", value: new Set(entries.map((e: any) => e.category).filter(Boolean)).size, icon: Globe, color: "text-amber-600 bg-amber-50" },
   ];
 
-  const handleCreateEntry = () => {
-    if (!entryTitle || !entryContent) { toast.error("Título e conteúdo são obrigatórios"); return; }
-    const tags = entryTags ? entryTags.split(",").map(t => t.trim()).filter(Boolean) : [];
-    createArticle.mutate({ title: entryTitle, content: entryContent, category: entryCategory || null, tags, published: entryPublished }, {
-      onSuccess: () => {
-        setEntryOpen(false);
-        setEntryTitle(""); setEntryContent(""); setEntryCategory(""); setEntryTags(""); setEntryPublished(false);
-      },
-    });
+  const addTag = () => {
+    const tag = entryTagInput.trim();
+    if (tag && !entryTags.includes(tag)) {
+      setEntryTags([...entryTags, tag]);
+      setEntryTagInput("");
+    }
   };
 
+  const removeTag = (tag: string) => {
+    setEntryTags(entryTags.filter(t => t !== tag));
+  };
+
+  const resetEntryForm = () => {
+    setEntryTitle(""); setEntryContent(""); setEntryCategory(""); setEntrySegment("todos");
+    setEntryPriority("média"); setEntryProductId(""); setEntryTagInput(""); setEntryTags([]);
+    setEntryVersion("1.0"); setEntryNotes("");
+  };
+
+  const handleCreateEntry = () => {
+    if (!entryTitle || !entryContent) { toast.error("Título e conteúdo são obrigatórios"); return; }
+    createArticle.mutate({
+      title: entryTitle,
+      content: entryContent,
+      category: entryCategory || null,
+      tags: entryTags,
+      published: true,
+      product_id: entryProductId || null,
+      target_segment: entrySegment,
+      priority: entryPriority,
+      version: entryVersion || null,
+      notes: entryNotes || null,
+    }, {
+      onSuccess: () => { setEntryOpen(false); resetEntryForm(); },
+    });
+  };
   const handleUpload = () => {
     const file = fileRef.current?.files?.[0];
     if (!file) { toast.error("Selecione um arquivo"); return; }
@@ -219,20 +252,17 @@ const AdminKnowledge = () => {
 
       {/* New Entry Dialog */}
       <Dialog open={entryOpen} onOpenChange={setEntryOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader><DialogTitle>Nova Entrada</DialogTitle></DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Título *</Label>
-              <Input value={entryTitle} onChange={(e) => setEntryTitle(e.target.value)} placeholder="Título do artigo" />
-            </div>
-            <div className="space-y-2">
-              <Label>Conteúdo *</Label>
-              <Textarea value={entryContent} onChange={(e) => setEntryContent(e.target.value)} placeholder="Conteúdo do artigo..." rows={5} />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Nova Entrada de Conhecimento</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-2">
+            {/* Left Column */}
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Categoria</Label>
+                <Label>Título *</Label>
+                <Input value={entryTitle} onChange={(e) => setEntryTitle(e.target.value)} placeholder="Título do artigo" />
+              </div>
+              <div className="space-y-2">
+                <Label>Categoria *</Label>
                 <Select value={entryCategory} onValueChange={setEntryCategory}>
                   <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                   <SelectContent>
@@ -241,13 +271,73 @@ const AdminKnowledge = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Tags (separadas por vírgula)</Label>
-                <Input value={entryTags} onChange={(e) => setEntryTags(e.target.value)} placeholder="tag1, tag2" />
+                <Label>Segmento Alvo</Label>
+                <Select value={entrySegment} onValueChange={setEntrySegment}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SEGMENTS.map(s => <SelectItem key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Prioridade</Label>
+                <Select value={entryPriority} onValueChange={setEntryPriority}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PRIORITIES.map(p => <SelectItem key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Produto Relacionado</Label>
+                <Select value={entryProductId} onValueChange={setEntryProductId}>
+                  <SelectTrigger><SelectValue placeholder="Opcional" /></SelectTrigger>
+                  <SelectContent>
+                    {(products as any[]).filter((p: any) => p.active).map((p: any) => (
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <Switch checked={entryPublished} onCheckedChange={setEntryPublished} />
-              <Label>Publicar imediatamente</Label>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Conteúdo *</Label>
+                <Textarea value={entryContent} onChange={(e) => setEntryContent(e.target.value)} placeholder="Conteúdo do artigo..." rows={8} className="font-mono text-sm" />
+              </div>
+              <div className="space-y-2">
+                <Label>Tags</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={entryTagInput}
+                    onChange={(e) => setEntryTagInput(e.target.value)}
+                    placeholder="Adicionar tag"
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
+                    className="flex-1"
+                  />
+                  <Button type="button" variant="outline" size="icon" onClick={addTag}><Plus className="h-4 w-4" /></Button>
+                </div>
+                {entryTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {entryTags.map(tag => (
+                      <Badge key={tag} variant="secondary" className="gap-1">
+                        {tag}
+                        <button type="button" onClick={() => removeTag(tag)} className="ml-0.5 hover:text-destructive"><X className="h-3 w-3" /></button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Versão</Label>
+                <Input value={entryVersion} onChange={(e) => setEntryVersion(e.target.value)} placeholder="1.0" />
+              </div>
+              <div className="space-y-2">
+                <Label>Observações</Label>
+                <Textarea value={entryNotes} onChange={(e) => setEntryNotes(e.target.value)} placeholder="Notas adicionais..." rows={3} />
+              </div>
             </div>
           </div>
           <DialogFooter>
