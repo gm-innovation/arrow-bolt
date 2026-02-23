@@ -120,8 +120,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Relatórios", icon: FileBarChart, path: "/commercial/reports" },
     { title: "Conhecimento", icon: BookOpen, path: "/commercial/knowledge-base" },
     { title: "Notificações", icon: Bell, path: "/commercial/notifications" },
-    { title: "Importação", icon: Upload, path: "/commercial/import" },
-    { title: "Logs", icon: History, path: "/commercial/logs" },
+    { title: "Admin", icon: Settings, path: "/commercial/admin" },
     { title: "Configurações", icon: Settings, path: "/commercial/settings" },
   ];
 

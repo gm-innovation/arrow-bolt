@@ -79,6 +79,15 @@ import CommercialTasks from "./pages/commercial/Tasks";
 import CommercialImport from "./pages/commercial/admin/Import";
 import CommercialLogs from "./pages/commercial/admin/Logs";
 
+// Commercial Admin Pages
+import CommercialAdminLayout from "./components/commercial/admin/CommercialAdminLayout";
+import CommercialAdminDashboard from "./pages/commercial/admin/Dashboard";
+import CommercialAdminUsers from "./pages/commercial/admin/Users";
+import CommercialAdminServices from "./pages/commercial/admin/Services";
+import CommercialAdminSchedules from "./pages/commercial/admin/Schedules";
+import CommercialAdminKnowledge from "./pages/commercial/admin/Knowledge";
+import CommercialAdminAuditLogs from "./pages/commercial/admin/AuditLogs";
+
 // HR Pages
 import HRDashboard from "./pages/hr/Dashboard";
 import HRTechnicians from "./pages/hr/Technicians";
@@ -822,6 +831,88 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+              {/* Commercial Admin Routes */}
+              <Route
+                path="/commercial/admin"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <CommercialAdminLayout>
+                      <CommercialAdminDashboard />
+                    </CommercialAdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/admin/users"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <CommercialAdminLayout>
+                      <CommercialAdminUsers />
+                    </CommercialAdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/admin/services"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <CommercialAdminLayout>
+                      <CommercialAdminServices />
+                    </CommercialAdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/admin/schedules"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <CommercialAdminLayout>
+                      <CommercialAdminSchedules />
+                    </CommercialAdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/admin/knowledge"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <CommercialAdminLayout>
+                      <CommercialAdminKnowledge />
+                    </CommercialAdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/admin/import"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <CommercialAdminLayout>
+                      <CommercialImport />
+                    </CommercialAdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/admin/integration-logs"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <CommercialAdminLayout>
+                      <CommercialLogs />
+                    </CommercialAdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/admin/logs"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <CommercialAdminLayout>
+                      <CommercialAdminAuditLogs />
+                    </CommercialAdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+
               <Route
                 path="/commercial/chat"
                 element={
