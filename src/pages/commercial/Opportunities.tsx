@@ -15,6 +15,7 @@ import { OpportunityKanban } from "@/components/commercial/opportunities/Opportu
 import { NewOpportunityDialog } from "@/components/commercial/opportunities/NewOpportunityDialog";
 import { OpportunityDetails } from "@/components/commercial/opportunities/OpportunityDetails";
 import { format } from "date-fns";
+import { Card, CardContent } from "@/components/ui/card";
 
 const stageLabels: Record<string, string> = {
   identified: 'Identificada', qualified: 'Qualificada', proposal: 'Proposta',
