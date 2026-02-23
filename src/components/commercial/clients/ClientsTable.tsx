@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Eye, Search, Download } from "lucide-react";
+import { Pencil, Eye, Search, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
@@ -47,11 +47,30 @@ interface Props {
   onEdit: (client: Client) => void;
 }
 
+type SortKey = 'name' | 'annual_revenue' | 'last_contact_date';
+type SortDir = 'asc' | 'desc';
+
+const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => {
+  if (!active) return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+  return dir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+};
+
 export const ClientsTable = ({ clients, isLoading, onEdit }: Props) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [segmentFilter, setSegmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDir('asc');
+    }
+  };
 
   const segments = useMemo(() => {
     const unique = new Set(clients.map(c => c.segment).filter(Boolean));
@@ -59,13 +78,29 @@ export const ClientsTable = ({ clients, isLoading, onEdit }: Props) => {
   }, [clients]);
 
   const filtered = useMemo(() => {
-    return clients.filter(c => {
+    let result = clients.filter(c => {
       const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.cnpj || '').includes(search);
       const matchSegment = segmentFilter === 'all' || c.segment === segmentFilter;
       const matchStatus = statusFilter === 'all' || c.commercial_status === statusFilter;
       return matchSearch && matchSegment && matchStatus;
     });
-  }, [clients, search, segmentFilter, statusFilter]);
+
+    if (sortKey) {
+      result = [...result].sort((a, b) => {
+        let cmp = 0;
+        if (sortKey === 'name') {
+          cmp = a.name.localeCompare(b.name);
+        } else if (sortKey === 'annual_revenue') {
+          cmp = (a.annual_revenue || 0) - (b.annual_revenue || 0);
+        } else if (sortKey === 'last_contact_date') {
+          cmp = (a.last_contact_date || '').localeCompare(b.last_contact_date || '');
+        }
+        return sortDir === 'desc' ? -cmp : cmp;
+      });
+    }
+
+    return result;
+  }, [clients, search, segmentFilter, statusFilter, sortKey, sortDir]);
 
   const exportCSV = () => {
     const headers = ['Nome', 'CNPJ', 'Segmento', 'Status', 'Receita Anual', 'Email', 'Telefone'];
@@ -114,12 +149,24 @@ export const ClientsTable = ({ clients, isLoading, onEdit }: Props) => {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Nome</TableHead>
+                <TableHead>
+                  <button className="flex items-center font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('name')}>
+                    Nome <SortIcon active={sortKey === 'name'} dir={sortDir} />
+                  </button>
+                </TableHead>
                 <TableHead className="hidden md:table-cell">CNPJ</TableHead>
                 <TableHead className="hidden lg:table-cell">Segmento</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="hidden lg:table-cell text-right">Receita Anual</TableHead>
-                <TableHead className="hidden md:table-cell">Último Contato</TableHead>
+                <TableHead className="hidden lg:table-cell text-right">
+                  <button className="flex items-center ml-auto font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('annual_revenue')}>
+                    Receita Anual <SortIcon active={sortKey === 'annual_revenue'} dir={sortDir} />
+                  </button>
+                </TableHead>
+                <TableHead className="hidden md:table-cell">
+                  <button className="flex items-center font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('last_contact_date')}>
+                    Último Contato <SortIcon active={sortKey === 'last_contact_date'} dir={sortDir} />
+                  </button>
+                </TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
