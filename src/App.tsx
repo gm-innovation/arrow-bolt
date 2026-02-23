@@ -71,6 +71,13 @@ import CommercialOpportunities from "./pages/commercial/Opportunities";
 import CommercialBuyers from "./pages/commercial/Buyers";
 import CommercialProfile from "./pages/commercial/Profile";
 import CommercialSettings from "./pages/commercial/Settings";
+import CommercialProducts from "./pages/commercial/Products";
+import CommercialRecurrences from "./pages/commercial/Recurrences";
+import CommercialMeasurements from "./pages/commercial/Measurements";
+import CommercialReports from "./pages/commercial/Reports";
+import CommercialKnowledgeBase from "./pages/commercial/KnowledgeBase";
+import CommercialImport from "./pages/commercial/admin/Import";
+import CommercialLogs from "./pages/commercial/admin/Logs";
 
 // HR Pages
 import HRDashboard from "./pages/hr/Dashboard";
@@ -721,6 +728,76 @@ const App = () => {
                   <ProtectedRoute allowedRoles={['commercial', 'admin']}>
                     <DashboardLayout userType="commercial">
                       <CommercialSettings />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/products"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialProducts />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/recurrences"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialRecurrences />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/measurements"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialMeasurements />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/reports"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialReports />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/knowledge-base"
+                element={
+                  <ProtectedRoute allowedRoles={['commercial', 'admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialKnowledgeBase />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/import"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialImport />
+                    </DashboardLayout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/commercial/logs"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <DashboardLayout userType="commercial">
+                      <CommercialLogs />
                     </DashboardLayout>
                   </ProtectedRoute>
                 }
