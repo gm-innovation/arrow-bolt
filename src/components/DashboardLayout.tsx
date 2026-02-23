@@ -18,6 +18,8 @@ import {
   Wrench,
   Calculator,
   History,
+  Target,
+  ShoppingBag,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -35,7 +37,7 @@ import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator"
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  userType: "super-admin" | "admin" | "manager" | "tech" | "hr";
+  userType: "super-admin" | "admin" | "manager" | "tech" | "hr" | "commercial";
   pageTitle?: string;
 }
 
@@ -100,12 +102,21 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Relatórios", icon: FileText, path: "/hr/reports" },
   ];
 
+  const commercialMenuItems = [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/commercial/dashboard" },
+    { title: "Clientes", icon: Users, path: "/commercial/clients" },
+    { title: "Oportunidades", icon: Target, path: "/commercial/opportunities" },
+    { title: "Compradores", icon: ShoppingBag, path: "/commercial/buyers" },
+    { title: "Configurações", icon: Settings, path: "/commercial/settings" },
+  ];
+
   const menuItems = {
     "super-admin": superAdminMenuItems,
     admin: adminMenuItems,
     manager: managerMenuItems,
     tech: techMenuItems,
     hr: hrMenuItems,
+    commercial: commercialMenuItems,
   }[userType];
 
   const handleLogout = async () => {
@@ -122,7 +133,8 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     "admin": "from-blue-600 to-cyan-600",
     "manager": "from-indigo-600 to-purple-600",
     "tech": "from-cyan-600 to-teal-600",
-    "hr": "from-emerald-600 to-teal-600"
+    "hr": "from-emerald-600 to-teal-600",
+    "commercial": "from-orange-600 to-amber-600"
   };
 
   const getUserTitle = () => {
@@ -132,6 +144,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       case "manager": return "Gerente";
       case "tech": return "Técnico";
       case "hr": return "Recursos Humanos";
+      case "commercial": return "Comercial";
       default: return "";
     }
   };
