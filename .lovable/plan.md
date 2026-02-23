@@ -1,214 +1,193 @@
 
 
-## Plano: Modulo CRM Comercial - Fase 1 (Clientes + Oportunidades)
+## Plano: Etapa 2 - Paginas Funcionais do Modulo Comercial
 
-### Visao Geral
+### Resumo
 
-Criar um novo modulo acessivel por um novo role `commercial` e tambem por `admin`, integrado ao sistema existente, com foco em gestao de clientes expandida e pipeline de oportunidades de vendas.
-
----
-
-### 1. Banco de Dados (Migracao)
-
-#### 1.1. Novo role
-
-```sql
-ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'commercial';
-```
-
-#### 1.2. Expandir tabela `clients` (campos comerciais)
-
-Adicionar campos na tabela existente:
-
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| `segment` | text | Segmento de mercado (Oil & Gas, Naval, etc.) |
-| `commercial_status` | text | Status comercial (prospect, active, inactive, churned) |
-| `annual_revenue` | numeric | Receita anual estimada |
-| `source` | text | Origem do lead (indicacao, site, evento, etc.) |
-| `notes` | text | Observacoes comerciais |
-| `last_contact_date` | date | Data do ultimo contato |
-
-#### 1.3. Tabela `crm_buyers` (compradores/contatos comerciais)
-
-Separada dos `client_contacts` operacionais, focada em decisores comerciais:
-
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| `id` | uuid PK | |
-| `client_id` | uuid FK -> clients | |
-| `company_id` | uuid FK -> companies | |
-| `name` | text NOT NULL | Nome do comprador |
-| `role` | text | Cargo (Diretor, Gerente de Compras, etc.) |
-| `email` | text | |
-| `phone` | text | |
-| `influence_level` | text | Nivel de influencia (decisor, influenciador, usuario) |
-| `notes` | text | Observacoes |
-| `created_at`, `updated_at` | timestamptz | |
-
-#### 1.4. Tabela `crm_opportunities` (pipeline de vendas)
-
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| `id` | uuid PK | |
-| `company_id` | uuid FK -> companies | |
-| `client_id` | uuid FK -> clients | |
-| `buyer_id` | uuid FK -> crm_buyers (nullable) | Comprador principal |
-| `assigned_to` | uuid FK -> profiles (nullable) | Responsavel |
-| `title` | text NOT NULL | Titulo da oportunidade |
-| `description` | text | |
-| `opportunity_type` | text | Tipo (new_business, renewal, upsell, cross_sell) |
-| `stage` | text NOT NULL | Estagio (identified, qualified, proposal, negotiation, closed_won, closed_lost) |
-| `priority` | text | Prioridade (low, medium, high, urgent) |
-| `estimated_value` | numeric | Valor estimado |
-| `probability` | integer | Probabilidade de fechamento (0-100%) |
-| `expected_close_date` | date | Data prevista de fechamento |
-| `closed_at` | timestamptz | Data real de fechamento |
-| `loss_reason` | text | Motivo da perda (quando perdida) |
-| `notes` | text | |
-| `created_by` | uuid FK -> profiles (nullable) | |
-| `created_at`, `updated_at` | timestamptz | |
-
-#### 1.5. Tabela `crm_opportunity_activities` (historico de interacoes)
-
-| Campo | Tipo | Descricao |
-|-------|------|-----------|
-| `id` | uuid PK | |
-| `opportunity_id` | uuid FK -> crm_opportunities | |
-| `user_id` | uuid FK -> profiles (nullable) | Quem realizou |
-| `activity_type` | text | Tipo (call, email, meeting, proposal_sent, note) |
-| `description` | text | Detalhes |
-| `activity_date` | timestamptz | |
-| `created_at` | timestamptz | |
-
-#### 1.6. Politicas RLS
-
-- Commercial e Admin podem gerenciar dados CRM da sua empresa
-- Manager pode visualizar dados CRM da sua empresa
-- Super Admin pode gerenciar tudo
+Implementar as 4 paginas funcionais do modulo comercial com dados reais do banco, incluindo 3 hooks de dados, componentes de dashboard, tabela de clientes expandida, pipeline de oportunidades (Kanban + Lista) e gestao de compradores.
 
 ---
 
-### 2. Frontend - Estrutura de Arquivos
+### 1. Hooks de Dados (3 novos arquivos)
 
-#### 2.1. Novas pastas e arquivos
+#### 1.1. `src/hooks/useOpportunities.ts`
+- Busca `crm_opportunities` com joins em `clients(name)`, `crm_buyers(name)`, `profiles(full_name)` via `assigned_to`
+- Filtro por `company_id` do usuario logado
+- Mutations: criar, atualizar (incluindo mudanca de estagio), deletar
+- Usa `useQuery` / `useMutation` do TanStack React Query (padrao do projeto)
+
+#### 1.2. `src/hooks/useBuyers.ts`
+- CRUD completo para `crm_buyers`
+- Join com `clients(name)` para exibir o nome do cliente associado
+- Filtro por `company_id`
+
+#### 1.3. `src/hooks/useCommercialStats.ts`
+- KPIs calculados a partir de `crm_opportunities`:
+  - Total do pipeline (soma `estimated_value` onde stage != closed_won/closed_lost)
+  - Oportunidades abertas (count)
+  - Taxa de conversao (closed_won / total fechadas)
+  - Valor fechado no mes (soma estimated_value onde stage = closed_won e closed_at no mes atual)
+- Dados para grafico de funil (count e valor por estagio)
+- Clientes por segmento (count agrupado por `segment` da tabela `clients`)
+
+---
+
+### 2. Dashboard Comercial (`src/pages/commercial/Dashboard.tsx`)
+
+#### 2.1. Componentes novos:
+
+**`src/components/commercial/dashboard/CommercialStats.tsx`**
+- 4 cards de KPI usando o mesmo padrao visual do `DashboardStats.tsx` do admin:
+  - Valor do Pipeline (icone DollarSign)
+  - Oportunidades Abertas (icone Target)
+  - Taxa de Conversao (icone TrendingUp)
+  - Valor Fechado no Mes (icone CheckCircle2)
+
+**`src/components/commercial/dashboard/PipelineChart.tsx`**
+- Grafico de barras horizontais (Recharts, ja instalado) mostrando quantidade e valor por estagio
+- Cores distintas por estagio (azul -> verde -> amarelo -> vermelho)
+
+**`src/components/commercial/dashboard/RecentOpportunities.tsx`**
+- Lista das 5 oportunidades mais recentes
+- Mostra titulo, cliente, valor, estagio (badge colorido), prioridade
+- Link para pagina de oportunidades
+
+---
+
+### 3. Pagina de Clientes (`src/pages/commercial/Clients.tsx`)
+
+- Tabela completa usando componentes `Table` do shadcn/ui
+- Colunas: Nome, CNPJ, Segmento, Status Comercial, Receita Anual, Ultimo Contato, Acoes
+- Filtros: busca por texto, filtro por segmento (select), filtro por status comercial (select)
+- Badges coloridos para status comercial (prospect=azul, active=verde, inactive=cinza, churned=vermelho)
+- Botao "Novo Cliente" abre dialog com formulario incluindo campos comerciais
+- Botao "Editar" abre dialog de edicao
+- Botao "Ver Oportunidades" navega para oportunidades filtradas por cliente
+- Exportar CSV
+- Formulario de cliente:
+  - Dados basicos: nome, CNPJ, email, telefone, endereco, pessoa de contato
+  - Dados comerciais: segmento (select), status comercial (select), receita anual, fonte/origem (select), notas, ultimo contato (date picker)
+
+**Componentes novos:**
+- `src/components/commercial/clients/ClientsTable.tsx` - Tabela com filtros
+- `src/components/commercial/clients/NewClientDialog.tsx` - Dialog criar/editar cliente
+- `src/components/commercial/clients/ClientCommercialInfo.tsx` - Secao de info comercial no formulario
+
+---
+
+### 4. Pagina de Oportunidades (`src/pages/commercial/Opportunities.tsx`)
+
+#### 4.1. Toggle de visualizacao (Kanban / Lista)
+- Botoes para alternar entre visao Kanban e visao Lista
+- Estado salvo localmente
+
+#### 4.2. Visao Kanban
+
+**`src/components/commercial/opportunities/OpportunityKanban.tsx`**
+- 6 colunas: Identificada, Qualificada, Proposta, Negociacao, Fechada (Ganha), Fechada (Perdida)
+- Drag-and-drop entre colunas usando `@hello-pangea/dnd` (ja instalado)
+- Cada coluna mostra total de valor e count
+- Header colorido por estagio
+
+**`src/components/commercial/opportunities/OpportunityCard.tsx`**
+- Card compacto com: titulo, nome do cliente, valor estimado, probabilidade (barra de progresso), prioridade (badge)
+- Click abre detalhes
+
+#### 4.3. Visao Lista
+- Tabela com colunas: Titulo, Cliente, Tipo, Valor, Probabilidade, Estagio, Prioridade, Data Prevista, Responsavel
+- Ordenacao por coluna
+- Filtros: busca, estagio, prioridade, tipo
+
+#### 4.4. Dialogs
+
+**`src/components/commercial/opportunities/NewOpportunityDialog.tsx`**
+- Formulario: titulo, cliente (select com busca), comprador (select filtrado por cliente), tipo, estagio, prioridade, valor estimado, probabilidade (slider 0-100), data prevista, descricao, notas
+- Validacao com campos obrigatorios (titulo, cliente, estagio)
+
+**`src/components/commercial/opportunities/EditOpportunityDialog.tsx`**
+- Mesmo formulario preenchido com dados existentes
+- Campo extra: motivo da perda (quando estagio = closed_lost)
+
+**`src/components/commercial/opportunities/OpportunityDetails.tsx`**
+- Sheet/Dialog lateral com todas as informacoes
+- Timeline de atividades (usando `crm_opportunity_activities`)
+- Botao para adicionar atividade (tipo, descricao, data)
+
+**`src/components/commercial/opportunities/ActivityTimeline.tsx`**
+- Lista vertical estilizada de atividades
+- Icones por tipo (telefone, email, reuniao, proposta, nota)
+- Data e autor de cada atividade
+
+---
+
+### 5. Pagina de Compradores (`src/pages/commercial/Buyers.tsx`)
+
+**`src/components/commercial/buyers/BuyersList.tsx`**
+- Tabela: Nome, Cargo, Cliente, Email, Telefone, Nivel de Influencia, Acoes
+- Filtro por cliente e por nivel de influencia
+- Badge colorido para nivel (decisor=roxo, influenciador=azul, usuario=cinza)
+
+**`src/components/commercial/buyers/NewBuyerDialog.tsx`**
+- Formulario: nome, cargo, cliente (select), email, telefone, nivel de influencia (select), notas
+- Modo edicao com dados preenchidos
+
+---
+
+### 6. Arquivos a Criar (total: 16)
 
 ```text
-src/pages/commercial/
-  Dashboard.tsx          -- Dashboard com KPIs e pipeline visual
-  Clients.tsx            -- Gestao de clientes (expandida com dados comerciais)
-  Opportunities.tsx      -- Pipeline de oportunidades (Kanban + lista)
-  Buyers.tsx             -- Gestao de compradores/decisores
-  Profile.tsx            -- Perfil do usuario
-  Settings.tsx           -- Configuracoes
+src/hooks/useOpportunities.ts
+src/hooks/useBuyers.ts
+src/hooks/useCommercialStats.ts
 
-src/components/commercial/
-  dashboard/
-    CommercialStats.tsx        -- Cards de KPI (valor pipeline, taxa conversao, etc.)
-    PipelineChart.tsx          -- Grafico de funil/pipeline
-    RecentOpportunities.tsx    -- Lista de oportunidades recentes
-  clients/
-    ClientCommercialInfo.tsx   -- Informacoes comerciais do cliente
-    ClientsTable.tsx           -- Tabela de clientes com filtros
-  opportunities/
-    OpportunityKanban.tsx      -- Visao Kanban do pipeline
-    OpportunityCard.tsx        -- Card de oportunidade no Kanban
-    NewOpportunityDialog.tsx   -- Modal de nova oportunidade
-    EditOpportunityDialog.tsx  -- Modal de edicao
-    OpportunityDetails.tsx     -- Detalhes + historico de atividades
-    ActivityTimeline.tsx       -- Timeline de atividades da oportunidade
-  buyers/
-    BuyersList.tsx             -- Lista de compradores
-    NewBuyerDialog.tsx         -- Modal novo comprador
+src/components/commercial/dashboard/CommercialStats.tsx
+src/components/commercial/dashboard/PipelineChart.tsx
+src/components/commercial/dashboard/RecentOpportunities.tsx
 
-src/hooks/
-  useOpportunities.ts    -- CRUD de oportunidades
-  useBuyers.ts           -- CRUD de compradores
-  useCommercialStats.ts  -- KPIs do dashboard comercial
+src/components/commercial/clients/ClientsTable.tsx
+src/components/commercial/clients/NewClientDialog.tsx
+src/components/commercial/clients/ClientCommercialInfo.tsx
+
+src/components/commercial/opportunities/OpportunityKanban.tsx
+src/components/commercial/opportunities/OpportunityCard.tsx
+src/components/commercial/opportunities/NewOpportunityDialog.tsx
+src/components/commercial/opportunities/EditOpportunityDialog.tsx
+src/components/commercial/opportunities/OpportunityDetails.tsx
+src/components/commercial/opportunities/ActivityTimeline.tsx
+
+src/components/commercial/buyers/NewBuyerDialog.tsx
 ```
 
-#### 2.2. Alteracoes em arquivos existentes
+### 7. Arquivos a Modificar (total: 4)
 
 | Arquivo | Alteracao |
 |---------|-----------|
-| `src/lib/roleRedirect.ts` | Adicionar `commercial: "/commercial/dashboard"` |
-| `src/components/DashboardLayout.tsx` | Adicionar `commercialMenuItems` e userType "commercial" |
-| `src/components/ProtectedRoute.tsx` | Ja funciona (usa allowedRoles dinamico) |
-| `src/App.tsx` | Adicionar rotas `/commercial/*` com ProtectedRoute para `['commercial', 'admin']` |
-| `supabase/functions/create-user/index.ts` | Suportar role 'commercial' na criacao |
+| `src/pages/commercial/Dashboard.tsx` | Importar e renderizar CommercialStats, PipelineChart, RecentOpportunities |
+| `src/pages/commercial/Clients.tsx` | Implementar pagina completa com ClientsTable e NewClientDialog |
+| `src/pages/commercial/Opportunities.tsx` | Implementar Kanban + Lista com toggle, dialogs |
+| `src/pages/commercial/Buyers.tsx` | Implementar lista com NewBuyerDialog |
 
 ---
 
-### 3. Detalhamento das Paginas
+### 8. Padroes Seguidos
 
-#### 3.1. Dashboard Comercial
-- **KPIs**: Total pipeline, oportunidades abertas, taxa de conversao, valor fechado no mes
-- **Grafico de funil**: Quantidade e valor por estagio
-- **Oportunidades recentes**: Lista com status e valor
-- **Clientes por segmento**: Distribuicao em grafico
-
-#### 3.2. Clientes (expandido)
-- Reutiliza a tabela `clients` existente
-- Adiciona campos comerciais (segmento, status, receita, fonte, ultimo contato)
-- Filtros por segmento e status comercial
-- Link rapido para oportunidades do cliente
-- Vinculo com compradores
-
-#### 3.3. Oportunidades (Pipeline)
-- **Visao Kanban**: Arrastar oportunidades entre estagios (usando `@hello-pangea/dnd` ja instalado)
-- **Visao Lista**: Tabela com filtros e ordenacao
-- **Detalhes**: Informacoes completas + timeline de atividades
-- **Estagios**: Identificada -> Qualificada -> Proposta -> Negociacao -> Fechada (Ganha/Perdida)
-
-#### 3.4. Compradores
-- Lista de decisores por cliente
-- Nivel de influencia (Decisor, Influenciador, Usuario)
-- Vinculo com oportunidades
+- Hooks com `useQuery`/`useMutation` do TanStack (mesmo padrao de `useServiceOrders`)
+- Busca de `company_id` via `profiles` do usuario logado
+- Componentes shadcn/ui existentes (Card, Table, Dialog, Badge, Select, Input, Button, Sheet)
+- Recharts para graficos (ja instalado e usado no admin)
+- `@hello-pangea/dnd` para Kanban (ja instalado)
+- Layout com `DashboardLayout` userType="commercial"
+- Formato brasileiro: datas dd/MM/yyyy, moeda R$, separadores corretos
 
 ---
 
-### 4. Menu Lateral (Sidebar)
+### 9. Ordem de Implementacao
 
-```text
-Commercial Menu:
-  - Dashboard
-  - Clientes
-  - Oportunidades
-  - Compradores
-  - Configuracoes
-```
+Devido ao volume, sera implementado nesta sequencia dentro de uma mesma iteracao:
 
-Cor do gradiente: `from-orange-600 to-amber-600` (distingue das demais areas)
-
----
-
-### 5. Ordem de Implementacao
-
-Devido ao tamanho, a implementacao sera dividida em etapas sequenciais:
-
-**Etapa 1** - Infraestrutura base:
-- Migracao do banco (role, tabelas, RLS)
-- Rotas, layout, sidebar, redirect
-
-**Etapa 2** - Paginas funcionais:
-- Dashboard com KPIs
-- Pagina de Clientes (expandida)
-- Pagina de Oportunidades (Kanban + lista)
-- Pagina de Compradores
-- Hooks de dados
-
-**Etapa 3** - Refinamentos:
-- Timeline de atividades
-- Drag-and-drop no Kanban
-- Filtros avancados
-- Profile e Settings
-
----
-
-### 6. Integracao com o Sistema Existente
-
-- **Clientes**: Os mesmos clientes do modulo operacional (admin) sao visiveis no CRM, mas com dados comerciais adicionais
-- **Service Orders**: No futuro, oportunidades fechadas podem gerar ordens de servico automaticamente
-- **Notificacoes**: O sistema de notificacoes existente sera reutilizado para alertas comerciais
-- **Chat**: O chat existente funcionara para usuarios commercial
+1. Hooks (useOpportunities, useBuyers, useCommercialStats)
+2. Dashboard (Stats + Charts + Recent)
+3. Clientes (Table + Dialog)
+4. Oportunidades (Kanban + Lista + Dialogs + Details)
+5. Compradores (List + Dialog)
 
