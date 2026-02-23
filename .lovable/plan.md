@@ -1,35 +1,16 @@
 
 
-## Adicionar campo "Departamento" ao modal de Enviar Documento
+## Remover campo "Visibilidade" do modal de Enviar Documento
 
 ### Contexto
 
-O modal de upload de documentos atualmente nao permite selecionar um departamento de destino. Documentos como atestados medicos devem ir para o RH, comprovantes de reembolso para o financeiro, etc.
+O campo "Visibilidade" (Privado / Departamento / Global) no modal de upload de documentos nao faz sentido para o usuario. A visibilidade ja e controlada internamente pelas regras de acesso (RLS e logica do sistema).
 
-### Alteracoes
+### Alteracao
 
-#### 1. Migracao SQL
+**Arquivo:** `src/components/corp/DocumentUploadDialog.tsx`
 
-Adicionar coluna `department_id` na tabela `corp_documents`:
-
-```sql
-ALTER TABLE corp_documents ADD COLUMN department_id uuid REFERENCES departments(id);
-```
-
-#### 2. Atualizar `DocumentUploadDialog.tsx`
-
-- Importar `useDepartments` hook
-- Adicionar state `departmentId`
-- Adicionar campo Select "Departamento (opcional)" no formulario, listando os departamentos da empresa
-- Incluir `department_id` no payload do `uploadDocument.mutate`
-- Resetar `departmentId` no `onSuccess`
-
-#### 3. Atualizar `useCorpDocuments.ts`
-
-- Adicionar `department_id?: string` no tipo do `mutationFn` do `uploadDocument`
-- Incluir `department:departments(id, name)` no select da query principal
-
-#### 4. Atualizar `Documents.tsx`
-
-- Exibir o nome do departamento na tabela (coluna "Departamento")
+- Remover o state `visibility` e seu valor padrao `'private'`
+- Remover o bloco do Select de "Visibilidade" do formulario (label + select com opcoes Privado/Departamento/Global)
+- No payload do `uploadDocument.mutate`, remover `visibility_level: visibility` ou definir um valor fixo padrao (`'private'`)
 
