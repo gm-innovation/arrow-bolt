@@ -6,6 +6,7 @@ export const roleRedirects: Record<string, string> = {
   technician: "/tech/dashboard",
   hr: "/hr/dashboard",
   commercial: "/commercial/dashboard",
+  director: "/corp/dashboard",
 };
 
 export const getRoleRedirectPath = (role: string | null): string | null => {
