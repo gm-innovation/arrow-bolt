@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -5,10 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, Calculator } from "lucide-react";
+import { Search, Calculator, RefreshCw, CheckCircle2, Clock, XCircle, DollarSign } from "lucide-react";
 import { useState } from "react";
 import { format } from "date-fns";
+import { toast } from "sonner";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -41,9 +44,71 @@ const Measurements = () => {
       orderNum.toLowerCase().includes(search.toLowerCase());
   });
 
+  const kpis = useMemo(() => {
+    const total = measurements.length;
+    const finalized = measurements.filter((m: any) => m.status === "finalized").length;
+    const inProgress = measurements.filter((m: any) => m.status === "in_progress" || m.status === "draft").length;
+    const totalValue = measurements.reduce((s: number, m: any) => s + (Number(m.total_amount) || 0), 0);
+    return { total, finalized, inProgress, totalValue };
+  }, [measurements]);
+
+  const formatCurrency = (v: number) => new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-foreground">Medições de Serviços</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-foreground">Medições de Serviços</h2>
+        <Button variant="outline" onClick={() => toast.info("Sincronização iniciada")}>
+          <RefreshCw className="h-4 w-4 mr-2" />Sincronizar
+        </Button>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Calculator className="h-5 w-5 text-primary" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total</p>
+                <p className="text-2xl font-bold">{kpis.total}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-chart-2" />
+              <div>
+                <p className="text-sm text-muted-foreground">Finalizadas</p>
+                <p className="text-2xl font-bold">{kpis.finalized}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-chart-3" />
+              <div>
+                <p className="text-sm text-muted-foreground">Em Andamento</p>
+                <p className="text-2xl font-bold">{kpis.inProgress}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5 text-chart-4" />
+              <div>
+                <p className="text-sm text-muted-foreground">Valor Total</p>
+                <p className="text-2xl font-bold">{formatCurrency(kpis.totalValue)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card>
         <CardHeader>

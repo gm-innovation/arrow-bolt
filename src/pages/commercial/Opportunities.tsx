@@ -115,6 +115,14 @@ const CommercialOpportunities = () => {
     }
   };
 
+  // KPI calculations
+  const openOpps = opportunities.filter(o => !["closed_won", "closed_lost"].includes(o.stage));
+  const totalValue = openOpps.reduce((s, o) => s + (o.estimated_value || 0), 0);
+  const avgAge = openOpps.length > 0
+    ? Math.round(openOpps.reduce((s, o) => s + Math.floor((Date.now() - new Date(o.created_at || Date.now()).getTime()) / 86400000), 0) / openOpps.length)
+    : 0;
+  const activeStages = new Set(openOpps.map(o => o.stage)).size;
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -132,6 +140,13 @@ const CommercialOpportunities = () => {
             <Plus className="h-4 w-4 mr-2" /> Nova
           </Button>
         </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Total de Oportunidades</p><p className="text-2xl font-bold">{openOpps.length}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Valor Total</p><p className="text-2xl font-bold">{formatCurrency(totalValue)}</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Idade Média</p><p className="text-2xl font-bold">{avgAge} dias</p></CardContent></Card>
+        <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Estágios Ativos</p><p className="text-2xl font-bold">{activeStages}</p></CardContent></Card>
       </div>
 
       {view === 'list' && (
