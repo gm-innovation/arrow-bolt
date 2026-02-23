@@ -100,6 +100,17 @@ import HRProfile from "./pages/hr/Profile";
 import HRSettings from "./pages/hr/Settings";
 import SuperAdminProfile from "./pages/super-admin/Profile";
 
+// Corp Pages
+import CorpDashboard from "./pages/corp/Dashboard";
+import CorpRequests from "./pages/corp/Requests";
+import CorpDocuments from "./pages/corp/Documents";
+import CorpFeed from "./pages/corp/Feed";
+import CorpReports from "./pages/corp/Reports";
+import CorpDepartments from "./pages/corp/admin/Departments";
+import CorpRequestTypes from "./pages/corp/admin/RequestTypes";
+import CorpAuditLog from "./pages/corp/admin/AuditLog";
+import { CorpRoute, CorpAdminRoute, CorpReportsRoute } from "./components/corp/CorpRoute";
+
 // Create a new QueryClient instance with proper configuration
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -1015,6 +1026,16 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+
+              {/* Corp Routes - accessible by all authenticated roles */}
+              <Route path="/corp/dashboard" element={<CorpRoute><CorpDashboard /></CorpRoute>} />
+              <Route path="/corp/requests" element={<CorpRoute><CorpRequests /></CorpRoute>} />
+              <Route path="/corp/documents" element={<CorpRoute><CorpDocuments /></CorpRoute>} />
+              <Route path="/corp/feed" element={<CorpRoute><CorpFeed /></CorpRoute>} />
+              <Route path="/corp/reports" element={<CorpReportsRoute><CorpReports /></CorpReportsRoute>} />
+              <Route path="/corp/admin/departments" element={<CorpAdminRoute><CorpDepartments /></CorpAdminRoute>} />
+              <Route path="/corp/admin/request-types" element={<CorpAdminRoute><CorpRequestTypes /></CorpAdminRoute>} />
+              <Route path="/corp/admin/audit-log" element={<CorpAdminRoute><CorpAuditLog /></CorpAdminRoute>} />
 
               {/* Public Install Route (no auth required) */}
               <Route path="/install" element={<InstallApp />} />

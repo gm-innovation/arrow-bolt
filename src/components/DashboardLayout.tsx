@@ -25,6 +25,7 @@ import {
   BookOpen,
   Upload,
   FileBarChart,
+  Inbox,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -43,7 +44,7 @@ import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator"
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  userType: "super-admin" | "admin" | "manager" | "tech" | "hr" | "commercial";
+  userType: "super-admin" | "admin" | "manager" | "tech" | "hr" | "commercial" | "director";
   pageTitle?: string;
 }
 
@@ -71,6 +72,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Assinaturas", icon: CreditCard, path: "/super-admin/subscriptions" },
     { title: "Configurações", icon: Settings, path: "/super-admin/settings" },
     { title: "Relatórios", icon: FileText, path: "/super-admin/reports" },
+    { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
   const adminMenuItems = [
@@ -82,6 +84,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Relatórios", icon: FileText, path: "/admin/reports" },
     { title: "Tipos de Tarefas", icon: ClipboardList, path: "/admin/task-types" },
     { title: "Logs de Auditoria", icon: History, path: "/admin/audit-logs" },
+    { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
   const managerMenuItems = [
@@ -90,6 +93,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Ordens de Serviço", icon: ClipboardList, path: "/manager/orders" },
     { title: "Relatórios", icon: FileText, path: "/manager/reports" },
     { title: "Config. Medição", icon: Calculator, path: "/manager/measurement-settings" },
+    { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
   const techMenuItems = [
@@ -97,6 +101,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Tarefas", icon: ClipboardList, path: "/tech/tasks" },
     { title: "Relatórios", icon: FileText, path: "/tech/reports" },
     { title: "Notificações", icon: Bell, path: "/tech/notifications" },
+    { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
   const hrMenuItems = [
@@ -106,6 +111,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
     { title: "Feriados", icon: ClipboardList, path: "/hr/holidays" },
     { title: "Relatórios", icon: FileText, path: "/hr/reports" },
+    { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
   const commercialMenuItems = [
@@ -122,6 +128,11 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Notificações", icon: Bell, path: "/commercial/notifications" },
     { title: "Admin", icon: Settings, path: "/commercial/admin" },
     { title: "Configurações", icon: Settings, path: "/commercial/settings" },
+    { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
+  ];
+
+  const directorMenuItems = [
+    { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
 
   const menuItems = {
@@ -131,6 +142,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     tech: techMenuItems,
     hr: hrMenuItems,
     commercial: commercialMenuItems,
+    director: directorMenuItems,
   }[userType];
 
   const handleLogout = async () => {
@@ -148,7 +160,8 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     "manager": "from-indigo-600 to-purple-600",
     "tech": "from-cyan-600 to-teal-600",
     "hr": "from-emerald-600 to-teal-600",
-    "commercial": "from-orange-600 to-amber-600"
+    "commercial": "from-orange-600 to-amber-600",
+    "director": "from-slate-700 to-zinc-600",
   };
 
   const getUserTitle = () => {
@@ -159,6 +172,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       case "tech": return "Técnico";
       case "hr": return "Recursos Humanos";
       case "commercial": return "Comercial";
+      case "director": return "Diretoria";
       default: return "";
     }
   };
@@ -192,7 +206,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
                 variant="ghost"
                 className={cn(
                   "w-full justify-start gap-3 h-10",
-                  location.pathname === item.path 
+                  (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/')))
                     ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
                     : "text-gray-600 hover:bg-gray-100"
                 )}
@@ -264,7 +278,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
                     className={cn(
                       "w-full transition-all duration-200",
                       collapsed ? "h-10 px-2 justify-center" : "h-10 justify-start gap-3",
-                      location.pathname === item.path 
+                      (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/')))
                         ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
                         : "text-gray-600 hover:bg-gray-100"
                     )}
