@@ -184,7 +184,11 @@ export function NewUserDialog() {
                       <SelectItem value="manager">Gerente</SelectItem>
                       <SelectItem value="hr">RH</SelectItem>
                       <SelectItem value="commercial">Comercial</SelectItem>
+                      <SelectItem value="director">Diretor</SelectItem>
                       <SelectItem value="technician">Técnico</SelectItem>
+                      <SelectItem value="compras">Suprimentos</SelectItem>
+                      <SelectItem value="qualidade">Qualidade</SelectItem>
+                      <SelectItem value="financeiro">Financeiro</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
