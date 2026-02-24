@@ -101,6 +101,16 @@ const Users = () => {
         return "RH";
       case "technician":
         return "Técnico";
+      case "commercial":
+        return "Comercial";
+      case "director":
+        return "Diretor";
+      case "compras":
+        return "Suprimentos";
+      case "qualidade":
+        return "Qualidade";
+      case "financeiro":
+        return "Financeiro";
       default:
         return "Sem função";
     }
@@ -143,6 +153,11 @@ const Users = () => {
               <SelectItem value="manager">Gerente</SelectItem>
               <SelectItem value="hr">RH</SelectItem>
               <SelectItem value="technician">Técnico</SelectItem>
+              <SelectItem value="commercial">Comercial</SelectItem>
+              <SelectItem value="director">Diretor</SelectItem>
+              <SelectItem value="compras">Suprimentos</SelectItem>
+              <SelectItem value="qualidade">Qualidade</SelectItem>
+              <SelectItem value="financeiro">Financeiro</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -178,7 +178,14 @@ const Users = () => {
               <SelectItem value="all-roles">Todas</SelectItem>
               <SelectItem value="super_admin">Super Admin</SelectItem>
               <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="manager">Gerente</SelectItem>
+              <SelectItem value="hr">RH</SelectItem>
+              <SelectItem value="commercial">Comercial</SelectItem>
+              <SelectItem value="director">Diretor</SelectItem>
               <SelectItem value="technician">Técnico</SelectItem>
+              <SelectItem value="compras">Suprimentos</SelectItem>
+              <SelectItem value="qualidade">Qualidade</SelectItem>
+              <SelectItem value="financeiro">Financeiro</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -228,7 +235,14 @@ const Users = () => {
                   <TableCell>
                     {user.role === "admin" ? "Administrador" : 
                      user.role === "technician" ? "Técnico" : 
-                     user.role === "super_admin" ? "Super Admin" : "-"}
+                     user.role === "super_admin" ? "Super Admin" :
+                     user.role === "manager" ? "Gerente" :
+                     user.role === "hr" ? "RH" :
+                     user.role === "commercial" ? "Comercial" :
+                     user.role === "director" ? "Diretor" :
+                     user.role === "compras" ? "Suprimentos" :
+                     user.role === "qualidade" ? "Qualidade" :
+                     user.role === "financeiro" ? "Financeiro" : "-"}
                   </TableCell>
                   <TableCell>
                     <div
