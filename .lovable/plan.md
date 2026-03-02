@@ -1,43 +1,38 @@
 
 
-## Melhorias no Modal de Nova Solicitação
+## Popular Departamentos e Membros no Banco
 
-### Problemas identificados
-1. Cards visuais pouco atrativos — trocar por uma lista/select simples e limpo
-2. Falta categoria "Reembolso"
-3. Documentos não incluem "Contra-cheque" nas opções
-4. Usuários não aparecem no select de destinatário — o `useUsers` funciona mas o select pode ter problema de renderização ou os dados não carregam corretamente
-5. Usuários devem filtrar por departamento selecionado — mas `profiles` não tem `department_id` no schema atual
-6. Produtos: só permite 1 item — precisa de lista dinâmica (adicionar/remover itens)
-7. Documentos: só permite 1 tipo — precisa de lista dinâmica também
+### Situação atual
+- Tabela `departments`: **vazia**
+- Tabela `department_members`: **vazia**
+- Existem `corp_groups` com role_based já configurados (Administradores, Técnicos, RH, Gerentes, Comercial, Financeiro, Qualidade, Suprimentos)
+- Existem 24 usuários com roles definidas na empresa `09a110b9-9f11-4b8d-a691-8b69f5f40a4e`
+
+### Plano
+
+1. **Seed de departamentos** — Inserir departamentos espelhando os grupos role-based existentes: Administração, Técnico, Recursos Humanos, Gerência, Comercial, Financeiro, Qualidade, Suprimentos.
+
+2. **Seed de department_members** — Vincular cada usuário ao departamento correspondente à sua role (`user_roles.role` → departamento).
+
+3. **Trigger automático** — Criar trigger `AFTER INSERT ON user_roles` que automaticamente insere o usuário no departamento correspondente, garantindo que novos usuários sejam vinculados sem intervenção manual.
+
+4. **Corrigir `NewRequestDialog.tsx`** — Além das correções já pendentes (valor opcional, link em produtos, documentos), garantir que o select de destinatário funcione com os dados agora populados.
+
+### Mapeamento role → departamento
+
+```text
+admin        → Administração
+technician   → Técnico
+hr           → Recursos Humanos
+manager      → Gerência
+commercial   → Comercial
+financeiro   → Financeiro
+qualidade    → Qualidade
+compras      → Suprimentos
+```
 
 ### Alterações
 
-1. **Migração SQL** — Adicionar tabela `department_members` para vincular usuários a departamentos. Adicionar categoria `reimbursement` nos tipos padrão (seed para empresas existentes + trigger atualizado).
-
-2. **`src/components/corp/NewRequestDialog.tsx`** — Refatoração completa:
-   - **Step 1**: Trocar grid de cards por um `Select` dropdown com ícone ao lado de cada opção, mais limpo e funcional
-   - **Step 2 — Produtos**: Permitir lista de itens (nome, quantidade, valor unitário) com botão "Adicionar Item" e "Remover". Calcular valor total automaticamente.
-   - **Step 2 — Documentos**: Permitir lista de documentos solicitados (tipo + observação) com botão "Adicionar Documento". Incluir "Contra-cheque" na lista de tipos.
-   - **Step 2 — Reembolso** (nova categoria): Campos para descrição da despesa, valor, data, comprovante (campo de texto por ora).
-   - **Destinatário filtrado por departamento**: Ao selecionar um departamento, buscar membros daquele departamento via `department_members` e exibir apenas eles no select de destinatário.
-   - Corrigir a lógica de exibição do select de usuários para garantir que os dados apareçam.
-
-3. **Migração SQL para seed** — Atualizar o trigger `auto_create_corp_request_types_for_company` para incluir "Reembolso" (`category: 'reimbursement'`). Inserir para empresas existentes.
-
-4. **Constantes** — Adicionar `reimbursement` nos mapas de ícones e labels (`categoryIcons`, `categoryLabels`).
-
-### Detalhes técnicos
-
-Tabela `department_members`:
-```text
-department_members
-├── id (uuid, PK)
-├── department_id (FK → departments)
-├── user_id (FK → profiles)
-├── created_at
-└── UNIQUE(department_id, user_id)
-```
-
-Lista dinâmica de itens (produtos/documentos): estado local com array de objetos, renderizado com `.map()` e botões de adicionar/remover. Os dados são salvos no `dynamic_data` como arrays JSON.
+- **Migração SQL**: Trigger `auto_assign_department_on_role` + seed dos 8 departamentos + seed dos membros baseado em `user_roles`
+- **`NewRequestDialog.tsx`**: Aplicar todas as correções pendentes (valor opcional, campo link em produtos, unificar contra-cheque/holerite, remover informe de rendimentos)
 
