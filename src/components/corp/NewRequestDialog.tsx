@@ -38,6 +38,7 @@ interface ProductItem {
   name: string;
   quantity: string;
   unit_value: string;
+  link: string;
 }
 
 interface DocumentItem {
@@ -50,9 +51,7 @@ const DOCUMENT_TYPE_OPTIONS = [
   { value: 'atestado', label: 'Atestado' },
   { value: 'certidao', label: 'Certidão' },
   { value: 'contrato', label: 'Contrato' },
-  { value: 'contra_cheque', label: 'Contra-cheque' },
-  { value: 'holerite', label: 'Holerite' },
-  { value: 'informe_rendimentos', label: 'Informe de Rendimentos' },
+  { value: 'contra_cheque', label: 'Contra-cheque / Holerite' },
   { value: 'outro', label: 'Outro' },
 ];
 
@@ -68,7 +67,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   const [dynamicData, setDynamicData] = useState<Record<string, any>>({});
 
   // Multi-item states
-  const [productItems, setProductItems] = useState<ProductItem[]>([{ name: '', quantity: '1', unit_value: '' }]);
+  const [productItems, setProductItems] = useState<ProductItem[]>([{ name: '', quantity: '1', unit_value: '', link: '' }]);
   const [documentItems, setDocumentItems] = useState<DocumentItem[]>([{ type: '', observation: '' }]);
 
   const { createRequest } = useCorpRequests();
@@ -105,7 +104,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
     setDepartmentId('');
     setTargetUserId('');
     setDynamicData({});
-    setProductItems([{ name: '', quantity: '1', unit_value: '' }]);
+    setProductItems([{ name: '', quantity: '1', unit_value: '', link: '' }]);
     setDocumentItems([{ type: '', observation: '' }]);
   };
 
@@ -161,7 +160,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   };
 
   // Product items handlers
-  const addProductItem = () => setProductItems(prev => [...prev, { name: '', quantity: '1', unit_value: '' }]);
+  const addProductItem = () => setProductItems(prev => [...prev, { name: '', quantity: '1', unit_value: '', link: '' }]);
   const removeProductItem = (idx: number) => setProductItems(prev => prev.filter((_, i) => i !== idx));
   const updateProductItem = (idx: number, field: keyof ProductItem, value: string) => {
     setProductItems(prev => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item));
@@ -189,24 +188,30 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
               </Button>
             </div>
             {productItems.map((item, idx) => (
-              <div key={idx} className="flex items-end gap-2 p-3 rounded-lg border bg-muted/30">
-                <div className="flex-1">
-                  <Label className="text-xs">Produto</Label>
-                  <Input value={item.name} onChange={e => updateProductItem(idx, 'name', e.target.value)} placeholder="Nome do produto" />
+              <div key={idx} className="space-y-2 p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <Label className="text-xs">Produto</Label>
+                    <Input value={item.name} onChange={e => updateProductItem(idx, 'name', e.target.value)} placeholder="Nome do produto" />
+                  </div>
+                  <div className="w-20">
+                    <Label className="text-xs">Qtd</Label>
+                    <Input type="number" value={item.quantity} onChange={e => updateProductItem(idx, 'quantity', e.target.value)} min="1" />
+                  </div>
+                  <div className="w-28">
+                    <Label className="text-xs">Valor Unit.</Label>
+                    <Input type="number" value={item.unit_value} onChange={e => updateProductItem(idx, 'unit_value', e.target.value)} placeholder="Opcional" />
+                  </div>
+                  {productItems.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-destructive" onClick={() => removeProductItem(idx)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-                <div className="w-20">
-                  <Label className="text-xs">Qtd</Label>
-                  <Input type="number" value={item.quantity} onChange={e => updateProductItem(idx, 'quantity', e.target.value)} min="1" />
+                <div>
+                  <Label className="text-xs">Link (opcional)</Label>
+                  <Input value={item.link} onChange={e => updateProductItem(idx, 'link', e.target.value)} placeholder="https://..." type="url" />
                 </div>
-                <div className="w-28">
-                  <Label className="text-xs">Valor Unit.</Label>
-                  <Input type="number" value={item.unit_value} onChange={e => updateProductItem(idx, 'unit_value', e.target.value)} placeholder="0,00" />
-                </div>
-                {productItems.length > 1 && (
-                  <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-destructive" onClick={() => removeProductItem(idx)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
               </div>
             ))}
             {productTotal > 0 && (
@@ -448,7 +453,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
 
               {showAmount && (
                 <div>
-                  <Label>Valor (R$)</Label>
+                  <Label>Valor (R$) - opcional</Label>
                   <Input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0,00" />
                 </div>
               )}
