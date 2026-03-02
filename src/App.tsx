@@ -171,121 +171,132 @@ const App = () => {
           <AuthProvider>
             <SidebarProvider>
               <ErrorBoundary fallback={<ErrorFallback />}>
-                <Suspense fallback={<LoadingFallback />}>
-                  <Routes>
-                    <Route path="/" element={<AuthLanding />} />
-                    <Route path="/login" element={<Login />} />
-                    <Route path="/signup" element={<Signup />} />
-                    <Route path="/forgot-password" element={<ForgotPassword />} />
-                    <Route path="/reset-password" element={<ResetPassword />} />
-                  
-                  {/* Super Admin Routes */}
-                  <Route path="/super-admin/dashboard" element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin"><SuperAdminDashboard /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/super-admin/companies" element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin"><Companies /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/super-admin/users" element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin"><SuperAdminUsers /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/super-admin/subscriptions" element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin"><Subscriptions /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/super-admin/settings" element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin"><Settings /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/super-admin/profile" element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin"><SuperAdminProfile /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/super-admin/reports" element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin"><SuperAdminReports /></DashboardLayout></ProtectedRoute>} />
-                  
-                  {/* Manager Routes */}
-                  <Route path="/manager/dashboard" element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager"><ManagerDashboard /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/manager/coordinators" element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager"><ManagerCoordinators /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/manager/orders" element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager"><ManagerServiceOrders /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/manager/reports" element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager"><ManagerReports /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/manager/profile" element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager"><ManagerProfile /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/manager/settings" element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager"><ManagerSettings /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/manager/measurement-settings" element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager"><MeasurementSettings /></DashboardLayout></ProtectedRoute>} />
+                <Routes>
+                  {/* Auth routes - keep Suspense with spinner */}
+                  <Route path="/" element={<AuthLanding />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password" element={<ResetPassword />} />
+                  <Route path="/install" element={<InstallApp />} />
 
-                  {/* Admin Routes */}
-                  <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><AdminDashboard /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/orders" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><ServiceOrders /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/calendar" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><ServiceCalendar /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><AdminReports /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/transfers" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><ServiceTransfers /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/history" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><ServiceHistory /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/vessels" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><VesselHistory /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/task-types" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><TaskTypes /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><AdminUsers /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/users/new" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><NewUser /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/users/:userId" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><EditUser /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/clients" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><Clients /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/technicians" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><Technicians /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/profile" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><AdminProfile /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/settings" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><AdminSettings /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/measurement-settings" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><MeasurementSettings /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/checklists" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><Checklists /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/technician-locations" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><TechnicianLocations /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/audit-logs" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><AuditLogs /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/admin/reservations" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><TechnicianReservations /></DashboardLayout></ProtectedRoute>} />
-                  
-                  {/* Tech Routes */}
-                  <Route path="/tech/dashboard" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><TechDashboard /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/tasks" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><TechTasks /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/tasks/:taskId" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><TaskDetails /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/reports" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><TechReports /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/reports/new" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><ReportForm /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/reports/:reportId/edit" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><ReportForm /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/notifications" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><TechNotifications /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/install" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><TechInstallApp /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/profile" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><TechProfile /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/settings" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><TechSettings /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/survey/:taskId" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><SatisfactionSurvey /></DashboardLayout></ProtectedRoute>} />
+                  {/* Super Admin - nested layout route */}
+                  <Route element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin" /></ProtectedRoute>}>
+                    <Route path="/super-admin/dashboard" element={<SuperAdminDashboard />} />
+                    <Route path="/super-admin/companies" element={<Companies />} />
+                    <Route path="/super-admin/users" element={<SuperAdminUsers />} />
+                    <Route path="/super-admin/subscriptions" element={<Subscriptions />} />
+                    <Route path="/super-admin/settings" element={<Settings />} />
+                    <Route path="/super-admin/profile" element={<SuperAdminProfile />} />
+                    <Route path="/super-admin/reports" element={<SuperAdminReports />} />
+                    <Route path="/super-admin/chat" element={<Chat />} />
+                    <Route path="/super-admin/install" element={<InstallApp />} />
+                  </Route>
 
-                  {/* HR Routes */}
-                  <Route path="/hr/dashboard" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><HRDashboard /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/hr/technicians" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><HRTechnicians /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/hr/time-control" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><HRTimeControl /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/hr/absences" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><HRAbsences /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/hr/on-call" element={<Navigate to="/hr/absences" replace />} />
-                  <Route path="/hr/holidays" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><HRHolidays /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/hr/reports" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><HRReports /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/hr/profile" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><HRProfile /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/hr/settings" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><HRSettings /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/hr/chat" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><Chat /></DashboardLayout></ProtectedRoute>} />
+                  {/* Manager - nested layout route */}
+                  <Route element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager" /></ProtectedRoute>}>
+                    <Route path="/manager/dashboard" element={<ManagerDashboard />} />
+                    <Route path="/manager/coordinators" element={<ManagerCoordinators />} />
+                    <Route path="/manager/orders" element={<ManagerServiceOrders />} />
+                    <Route path="/manager/reports" element={<ManagerReports />} />
+                    <Route path="/manager/profile" element={<ManagerProfile />} />
+                    <Route path="/manager/settings" element={<ManagerSettings />} />
+                    <Route path="/manager/measurement-settings" element={<MeasurementSettings />} />
+                    <Route path="/manager/chat" element={<Chat />} />
+                    <Route path="/manager/install" element={<InstallApp />} />
+                  </Route>
 
-                  {/* Commercial Routes */}
-                  <Route path="/commercial/dashboard" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialDashboard /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/clients" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialClients /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/opportunities" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialOpportunities /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/tasks" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialTasks /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/notifications" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><TechNotifications /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/buyers" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialBuyers /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/profile" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialProfile /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/settings" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialSettings /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/products" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialProducts /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/recurrences" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialRecurrences /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/measurements" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialMeasurements /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/reports" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialReports /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/knowledge-base" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><CommercialKnowledgeBase /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/import" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="commercial"><CommercialImport /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/logs" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="commercial"><CommercialLogs /></DashboardLayout></ProtectedRoute>} />
+                  {/* Admin - nested layout route */}
+                  <Route element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin" /></ProtectedRoute>}>
+                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                    <Route path="/admin/orders" element={<ServiceOrders />} />
+                    <Route path="/admin/calendar" element={<ServiceCalendar />} />
+                    <Route path="/admin/reports" element={<AdminReports />} />
+                    <Route path="/admin/transfers" element={<ServiceTransfers />} />
+                    <Route path="/admin/history" element={<ServiceHistory />} />
+                    <Route path="/admin/vessels" element={<VesselHistory />} />
+                    <Route path="/admin/task-types" element={<TaskTypes />} />
+                    <Route path="/admin/users" element={<AdminUsers />} />
+                    <Route path="/admin/users/new" element={<NewUser />} />
+                    <Route path="/admin/users/:userId" element={<EditUser />} />
+                    <Route path="/admin/clients" element={<Clients />} />
+                    <Route path="/admin/technicians" element={<Technicians />} />
+                    <Route path="/admin/profile" element={<AdminProfile />} />
+                    <Route path="/admin/settings" element={<AdminSettings />} />
+                    <Route path="/admin/measurement-settings" element={<MeasurementSettings />} />
+                    <Route path="/admin/checklists" element={<Checklists />} />
+                    <Route path="/admin/technician-locations" element={<TechnicianLocations />} />
+                    <Route path="/admin/audit-logs" element={<AuditLogs />} />
+                    <Route path="/admin/reservations" element={<TechnicianReservations />} />
+                    <Route path="/admin/chat" element={<Chat />} />
+                    <Route path="/admin/install" element={<InstallApp />} />
+                  </Route>
 
-                  {/* Commercial Admin Routes */}
-                  <Route path="/commercial/admin" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><CommercialAdminLayout><CommercialAdminDashboard /></CommercialAdminLayout></ProtectedRoute>} />
-                  <Route path="/commercial/admin/users" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><CommercialAdminLayout><CommercialAdminUsers /></CommercialAdminLayout></ProtectedRoute>} />
-                  <Route path="/commercial/admin/services" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><CommercialAdminLayout><CommercialAdminServices /></CommercialAdminLayout></ProtectedRoute>} />
-                  <Route path="/commercial/admin/schedules" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><CommercialAdminLayout><CommercialAdminSchedules /></CommercialAdminLayout></ProtectedRoute>} />
-                  <Route path="/commercial/admin/knowledge" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><CommercialAdminLayout><CommercialAdminKnowledge /></CommercialAdminLayout></ProtectedRoute>} />
-                  <Route path="/commercial/admin/import" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><CommercialAdminLayout><CommercialImport /></CommercialAdminLayout></ProtectedRoute>} />
-                  <Route path="/commercial/admin/integration-logs" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><CommercialAdminLayout><CommercialLogs /></CommercialAdminLayout></ProtectedRoute>} />
-                  <Route path="/commercial/admin/logs" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><CommercialAdminLayout><CommercialAdminAuditLogs /></CommercialAdminLayout></ProtectedRoute>} />
-                  <Route path="/commercial/chat" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><Chat /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/commercial/install" element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial"><InstallApp /></DashboardLayout></ProtectedRoute>} />
+                  {/* Tech - nested layout route */}
+                  <Route element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech" /></ProtectedRoute>}>
+                    <Route path="/tech/dashboard" element={<TechDashboard />} />
+                    <Route path="/tech/tasks" element={<TechTasks />} />
+                    <Route path="/tech/tasks/:taskId" element={<TaskDetails />} />
+                    <Route path="/tech/reports" element={<TechReports />} />
+                    <Route path="/tech/reports/new" element={<ReportForm />} />
+                    <Route path="/tech/reports/:reportId/edit" element={<ReportForm />} />
+                    <Route path="/tech/notifications" element={<TechNotifications />} />
+                    <Route path="/tech/install" element={<TechInstallApp />} />
+                    <Route path="/tech/profile" element={<TechProfile />} />
+                    <Route path="/tech/settings" element={<TechSettings />} />
+                    <Route path="/tech/survey/:taskId" element={<SatisfactionSurvey />} />
+                    <Route path="/tech/chat" element={<Chat />} />
+                  </Route>
 
-                  {/* Chat Routes */}
-                  <Route path="/admin/chat" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><Chat /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/manager/chat" element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager"><Chat /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/tech/chat" element={<ProtectedRoute allowedRoles={['technician']}><DashboardLayout userType="tech"><Chat /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/super-admin/chat" element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin"><Chat /></DashboardLayout></ProtectedRoute>} />
+                  {/* HR - nested layout route */}
+                  <Route element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr" /></ProtectedRoute>}>
+                    <Route path="/hr/dashboard" element={<HRDashboard />} />
+                    <Route path="/hr/technicians" element={<HRTechnicians />} />
+                    <Route path="/hr/time-control" element={<HRTimeControl />} />
+                    <Route path="/hr/absences" element={<HRAbsences />} />
+                    <Route path="/hr/on-call" element={<Navigate to="/hr/absences" replace />} />
+                    <Route path="/hr/holidays" element={<HRHolidays />} />
+                    <Route path="/hr/reports" element={<HRReports />} />
+                    <Route path="/hr/profile" element={<HRProfile />} />
+                    <Route path="/hr/settings" element={<HRSettings />} />
+                    <Route path="/hr/chat" element={<Chat />} />
+                    <Route path="/hr/install" element={<InstallApp />} />
+                  </Route>
 
-                  {/* Install App Routes */}
-                  <Route path="/admin/install" element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin"><InstallApp /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/manager/install" element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager"><InstallApp /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/hr/install" element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr"><InstallApp /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/super-admin/install" element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin"><InstallApp /></DashboardLayout></ProtectedRoute>} />
+                  {/* Commercial - nested layout route */}
+                  <Route element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial" /></ProtectedRoute>}>
+                    <Route path="/commercial/dashboard" element={<CommercialDashboard />} />
+                    <Route path="/commercial/clients" element={<CommercialClients />} />
+                    <Route path="/commercial/opportunities" element={<CommercialOpportunities />} />
+                    <Route path="/commercial/tasks" element={<CommercialTasks />} />
+                    <Route path="/commercial/notifications" element={<TechNotifications />} />
+                    <Route path="/commercial/buyers" element={<CommercialBuyers />} />
+                    <Route path="/commercial/profile" element={<CommercialProfile />} />
+                    <Route path="/commercial/settings" element={<CommercialSettings />} />
+                    <Route path="/commercial/products" element={<CommercialProducts />} />
+                    <Route path="/commercial/recurrences" element={<CommercialRecurrences />} />
+                    <Route path="/commercial/measurements" element={<CommercialMeasurements />} />
+                    <Route path="/commercial/reports" element={<CommercialReports />} />
+                    <Route path="/commercial/knowledge-base" element={<CommercialKnowledgeBase />} />
+                    <Route path="/commercial/import" element={<CommercialImport />} />
+                    <Route path="/commercial/logs" element={<CommercialLogs />} />
+                    <Route path="/commercial/chat" element={<Chat />} />
+                    <Route path="/commercial/install" element={<InstallApp />} />
+                  </Route>
 
-                  {/* Corp Routes */}
+                  {/* Commercial Admin Routes - separate layout */}
+                  <Route element={<ProtectedRoute allowedRoles={['commercial', 'admin']} />}>
+                    <Route path="/commercial/admin" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminDashboard /></CommercialAdminLayout></Suspense>} />
+                    <Route path="/commercial/admin/users" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminUsers /></CommercialAdminLayout></Suspense>} />
+                    <Route path="/commercial/admin/services" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminServices /></CommercialAdminLayout></Suspense>} />
+                    <Route path="/commercial/admin/schedules" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminSchedules /></CommercialAdminLayout></Suspense>} />
+                    <Route path="/commercial/admin/knowledge" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminKnowledge /></CommercialAdminLayout></Suspense>} />
+                    <Route path="/commercial/admin/import" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialImport /></CommercialAdminLayout></Suspense>} />
+                    <Route path="/commercial/admin/integration-logs" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialLogs /></CommercialAdminLayout></Suspense>} />
+                    <Route path="/commercial/admin/logs" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminAuditLogs /></CommercialAdminLayout></Suspense>} />
+                  </Route>
+
+                  {/* Corp Routes - dynamic userType based on role */}
                   <Route path="/corp/dashboard" element={<CorpRoute><CorpDashboard /></CorpRoute>} />
                   <Route path="/corp/requests" element={<CorpRoute><CorpRequests /></CorpRoute>} />
                   <Route path="/corp/documents" element={<CorpRoute><CorpDocuments /></CorpRoute>} />
@@ -295,34 +306,36 @@ const App = () => {
                   <Route path="/corp/admin/request-types" element={<CorpAdminRoute><CorpRequestTypes /></CorpAdminRoute>} />
                   <Route path="/corp/admin/audit-log" element={<CorpAdminRoute><CorpAuditLog /></CorpAdminRoute>} />
 
-                  {/* Supplies Routes */}
-                  <Route path="/supplies/dashboard" element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras"><SuppliesDashboard /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/supplies/requests" element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras"><SuppliesRequests /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/supplies/settings" element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras"><SuppliesSettings /></DashboardLayout></ProtectedRoute>} />
+                  {/* Supplies - nested layout route */}
+                  <Route element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras" /></ProtectedRoute>}>
+                    <Route path="/supplies/dashboard" element={<SuppliesDashboard />} />
+                    <Route path="/supplies/requests" element={<SuppliesRequests />} />
+                    <Route path="/supplies/settings" element={<SuppliesSettings />} />
+                  </Route>
 
-                  {/* Quality Routes */}
-                  <Route path="/quality/dashboard" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityDashboard /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/quality/ncrs" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityNCRs /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/quality/action-plans" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityActionPlans /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/quality/audits" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityAudits /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/quality/reports" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualityReports /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/quality/settings" element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade"><QualitySettings /></DashboardLayout></ProtectedRoute>} />
+                  {/* Quality - nested layout route */}
+                  <Route element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade" /></ProtectedRoute>}>
+                    <Route path="/quality/dashboard" element={<QualityDashboard />} />
+                    <Route path="/quality/ncrs" element={<QualityNCRs />} />
+                    <Route path="/quality/action-plans" element={<QualityActionPlans />} />
+                    <Route path="/quality/audits" element={<QualityAudits />} />
+                    <Route path="/quality/reports" element={<QualityReports />} />
+                    <Route path="/quality/settings" element={<QualitySettings />} />
+                  </Route>
 
-                  {/* Finance Routes */}
-                  <Route path="/finance/dashboard" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceDashboard /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/finance/payables" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinancePayables /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/finance/receivables" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceReceivables /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/finance/reimbursements" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceReimbursements /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/finance/reports" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceReports /></DashboardLayout></ProtectedRoute>} />
-                  <Route path="/finance/settings" element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro"><FinanceSettings /></DashboardLayout></ProtectedRoute>} />
-
-                  {/* Public Install Route */}
-                  <Route path="/install" element={<InstallApp />} />
+                  {/* Finance - nested layout route */}
+                  <Route element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro" /></ProtectedRoute>}>
+                    <Route path="/finance/dashboard" element={<FinanceDashboard />} />
+                    <Route path="/finance/payables" element={<FinancePayables />} />
+                    <Route path="/finance/receivables" element={<FinanceReceivables />} />
+                    <Route path="/finance/reimbursements" element={<FinanceReimbursements />} />
+                    <Route path="/finance/reports" element={<FinanceReports />} />
+                    <Route path="/finance/settings" element={<FinanceSettings />} />
+                  </Route>
 
                   {/* Catch all */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-                </Suspense>
               </ErrorBoundary>
               <OfflineIndicator />
             </SidebarProvider>
