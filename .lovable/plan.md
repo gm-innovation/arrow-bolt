@@ -1,32 +1,26 @@
 
 
-## Substituir Relatórios Corp por métricas relevantes ao RH
+## Tres mudancas necessarias
 
-O "Resumo Financeiro" será removido e os relatórios serão reestruturados com dados operacionais que fazem sentido para o RH.
+### 1. AwardBadgeDialog — Remover tipos de tempo de empresa + adicionar seletor de icone
 
-### Novo layout da página `src/pages/corp/Reports.tsx`
+No `AwardBadgeDialog.tsx`:
+- Remover `tenure_1y`, `tenure_5y`, `tenure_10y` do `BADGE_TYPES` (serao automaticos)
+- Manter apenas: Meta Alcancada, Projeto Finalizado, Curso Finalizado, Personalizada
+- Quando `badgeType === 'custom'`, exibir grid de emojis para o usuario escolher o icone (ex: ⭐🏆🎯🚀💎🔥👑✨💡🎖️🥇🏅🎉💪🌟)
+- Adicionar estado `customIcon` e usar no insert
 
-**Linha 1 — Cards de resumo (grid 4 colunas)**:
-- Total de Solicitações
-- Pendentes (gerente + diretoria)
-- Aprovadas
-- Rejeitadas
+### 2. Aniversarios de Empresa — Card na sidebar direita
 
-**Linha 2 — Gráficos (grid 2 colunas)**:
-- **Distribuição por Status** (PieChart) — manter, já existe
-- **Requisições por Departamento** (BarChart) — manter, já existe
+No `FeedRightSidebar.tsx`:
+- Adicionar query para buscar profiles com `hire_date` onde mes/dia de `hire_date` cai no mes atual
+- Calcular anos de empresa para cada um
+- Renderizar card "Aniversarios de Empresa" com icone 🎖️, mostrando nome + "X anos" entre o card de Badges e o de Aniversariantes
 
-**Linha 3 — Gráficos adicionais (grid 2 colunas)**:
-- **Solicitações por Categoria** (PieChart) — agrupar por `request_type.category` (produto, documento, reembolso, folga, etc.)
-- **Taxa de Aprovação por Departamento** (BarChart horizontal) — aprovadas vs total por departamento
+### 3. Aniversarios de Empresa — Card no feed central (hoje)
 
-### Dados necessários
-- Ajustar `useCorpDashboard` para incluir `request_type_id` no select e fazer join com `corp_request_types` para obter `category`
-- Ou criar os cálculos diretamente no componente de Reports com uma query dedicada
-
-### Resumo das mudanças
-- Remover card "Resumo Financeiro" (volume aprovado em R$, taxa de aprovação financeira)
-- Adicionar cards de resumo operacional no topo
-- Adicionar gráfico de solicitações por categoria
-- Adicionar gráfico de taxa de aprovação por departamento
+No `Feed.tsx` / novo componente `FeedWorkAnniversaryCard.tsx`:
+- Similar ao `FeedBirthdayCard`, filtrar profiles cujo `hire_date` cai hoje (mes+dia)
+- Exibir card destacado: "🎖️ Aniversario de Empresa!" com nome e anos
+- Posicionar no feed logo apos o card de aniversariantes do dia
 
