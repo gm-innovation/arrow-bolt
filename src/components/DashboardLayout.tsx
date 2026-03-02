@@ -471,7 +471,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
           {/* Footer */}
           <div className="border-t border-border bg-background py-4 px-4 md:px-6">
             <p className="text-center text-sm text-muted-foreground">
-              © 2025 Arrow. Todos os direitos reservados.
+              © {new Date().getFullYear()} Arrow. Todos os direitos reservados.
             </p>
           </div>
         </div>
