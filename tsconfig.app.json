@@ -23,7 +23,8 @@
 
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "dexie": ["./src/types/dexie.d.ts"]
     }
   },
   "include": ["src"]
