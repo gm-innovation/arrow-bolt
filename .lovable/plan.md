@@ -1,26 +1,50 @@
 
 
-## Grupos: Entrar pela Direita + Acessar pela Esquerda
+## Correções no Sistema de Grupos
 
-### Problema Atual
-- Sidebar direita lista apenas "Grupos Populares" (top 5) sem ação — usuário não consegue entrar em nenhum grupo.
-- Sidebar esquerda lista nomes dos grupos que participa, mas não são clicáveis.
+### Problema 1: Página interna do grupo inexistente
+Ao clicar em um grupo (na sidebar esquerda ou na página de grupos), o usuário é redirecionado para `/corp/groups` que é apenas uma listagem. Não existe uma página de detalhe do grupo com feed/membros.
 
-### Solução
+### Problema 2: Entrada automática sem aprovação
+Atualmente, ao clicar "Entrar", o usuário é inserido diretamente na tabela `corp_group_members`. Deveria haver um fluxo de solicitação com aprovação por admin/HR.
 
-**1. `src/components/corp/FeedRightSidebar.tsx`** — Listar TODOS os grupos com botão "Entrar"/"Sair"
-- Substituir query manual `feed-popular-groups` por `useCorpGroups(companyId)` 
-- Listar todos os grupos da empresa dentro de `ScrollArea`
-- Para cada grupo: nome, badge de membros, e botão "Entrar" (se não é membro) ou "Sair" (se é membro)
-- Grupos `role_based`: badge "Automático", sem botão de ação (membership gerida pelo trigger)
-- Invalidar `my-corp-groups` ao entrar/sair para atualizar sidebar esquerda
+---
 
-**2. `src/components/corp/FeedProfileSidebar.tsx`** — Tornar grupos clicáveis
-- Ao clicar em um grupo que o usuário participa, navegar para `/corp/groups` (página de grupos) onde pode ver detalhes e membros
-- Usar `useNavigate` do react-router-dom para navegação
-- Cada badge de grupo vira um link/botão clicável com hover visual
+### Alterações
 
-### Segurança
-- RLS já permite: SELECT para mesma empresa, INSERT com `user_id = auth.uid()`, DELETE com `user_id = auth.uid()`
-- Nenhuma alteração de banco necessária
+**1. Banco de dados — Nova tabela `corp_group_join_requests`**
+- Campos: `id`, `group_id`, `user_id`, `status` (pending/approved/rejected), `requested_at`, `reviewed_by`, `reviewed_at`
+- RLS: usuário pode inserir request com seu `user_id`, admin/HR podem atualizar status
+- Trigger: ao aprovar, inserir automaticamente em `corp_group_members`
+
+**2. Nova página `/corp/groups/:id` — Detalhe do Grupo**
+- Criar `src/pages/corp/GroupDetail.tsx`
+- Mostra nome, descrição, lista de membros com avatar
+- Se o usuário é membro: mostra feed/conteúdo do grupo (inicialmente lista de membros)
+- Se não é membro: mostra botão "Solicitar Entrada"
+- Rota no `App.tsx`: `/corp/groups/:id`
+
+**3. Atualizar `useCorpGroups.ts`**
+- Substituir `joinGroup` por `requestJoin` que insere em `corp_group_join_requests` com status `pending`
+- Adicionar query de `pendingRequests` para admins/HR visualizarem
+- Adicionar mutations `approveRequest` e `rejectRequest`
+
+**4. Atualizar `FeedRightSidebar.tsx`**
+- Botão "Entrar" vira "Solicitar" para grupos custom
+- Mostrar badge "Pendente" se já existe solicitação pendente
+- Clicar no nome do grupo navega para `/corp/groups/:id`
+
+**5. Atualizar `FeedProfileSidebar.tsx`**
+- Clicar no badge do grupo navega para `/corp/groups/:id` (buscar group_id na query)
+
+**6. Atualizar `CorpLayout.tsx`**
+- Manter aba "Grupos" apontando para `/corp/groups` (listagem geral)
+
+**7. Atualizar `Groups.tsx`**
+- Cards clicáveis navegam para `/corp/groups/:id`
+- Botão "Entrar" vira "Solicitar" e cria request pendente
+- Para admin/HR: mostrar badge com contagem de solicitações pendentes por grupo
+
+**8. Painel de aprovação (dentro de GroupDetail)**
+- Admin/HR veem lista de solicitações pendentes com botões Aprovar/Rejeitar
 
