@@ -1,38 +1,47 @@
 
 
-## Adicionar Mídia ao Feed Corporativo
+## Substituir Post Type por Sistema de Menções (@)
 
-### Banco de Dados
+### O que muda
 
-**1. Storage bucket** `corp-feed-media` (público) para armazenar fotos, vídeos, áudios e arquivos, com RLS permitindo upload por autenticados e leitura pública.
+1. **Remover** o seletor de tipo de post (Geral/Comunicado/Atualização) do `FeedCreatePost` e o badge de tipo do `FeedPostCard`.
 
-**2. Tabela `corp_feed_attachments`**:
-- `id` (uuid PK), `post_id` (FK → corp_feed_posts), `file_url` (text), `file_name` (text), `file_type` (text — image/video/audio/file), `file_size` (bigint), `mime_type` (text), `created_at`
-- RLS: leitura para autenticados, inserção/deleção pelo autor do post
+2. **Criar tabela `corp_feed_mentions`** (migração SQL):
+   - `id`, `post_id` (FK → corp_feed_posts), `mention_type` (enum: 'role' | 'user'), `mention_value` (text — role slug ou user_id), `display_name` (text), `created_at`
+   - RLS: leitura para autenticados, inserção pelo autor do post
 
-### Hook `useCorpFeed.ts`
+3. **Criar componente `FeedMentionInput.tsx`**:
+   - Textarea customizada que detecta digitação de `@` e abre um popover/dropdown com:
+     - **Grupos (roles)**: Técnicos, Administradores, RH, Gerentes, Comercial, Qualidade, Suprimentos, Financeiro
+     - **Usuários individuais**: busca por nome nos profiles da mesma empresa
+   - Ao selecionar, insere `@NomeDoGrupo` ou `@NomeDoUsuário` no texto com formatação destacada
+   - Retorna lista de menções estruturadas (tipo + valor) junto com o conteúdo
 
-- Adicionar mutation `uploadAttachments` que faz upload dos arquivos para o bucket e insere registros na tabela `corp_feed_attachments`
-- Atualizar query de posts para incluir `corp_feed_attachments(*)` no select
-- Atualizar `createPost` para aceitar arquivos e chamar upload após criação do post
+4. **Atualizar `FeedCreatePost.tsx`**:
+   - Substituir `Textarea` + `Select` pelo novo `FeedMentionInput`
+   - Ao publicar, salvar as menções na tabela `corp_feed_mentions`
+   - Remover estado `postType`
 
-### Componente `FeedCreatePost.tsx`
+5. **Atualizar `FeedPostCard.tsx`**:
+   - Remover badge de tipo de post
+   - Renderizar menções no conteúdo com destaque visual (badges coloridos inline para `@Grupo` e `@Pessoa`)
+   - Se o post tem menções de grupo, mostrar um indicador sutil (ex: "Direcionado a @Técnicos")
 
-- Adicionar barra de ações com botões: Foto (📷), Vídeo (🎥), Áudio (🎤), Arquivo (📎)
-- Cada botão abre um `<input type="file">` com accept filtrado (image/*, video/*, audio/*, *)
-- Preview dos anexos selecionados antes de publicar: thumbnails para imagens, ícones para outros tipos
-- Botão X para remover anexo antes de publicar
-- Permitir múltiplos anexos por post
+6. **Atualizar `useCorpFeed.ts`**:
+   - Incluir `corp_feed_mentions` no select dos posts
+   - Atualizar `createPost` para aceitar e salvar menções
+   - Buscar profiles e roles para o autocomplete de menções
 
-### Componente `FeedPostCard.tsx`
+### Mapeamento de roles para nomes de exibição
+- `technician` → Técnicos
+- `admin` → Administradores
+- `hr` → RH
+- `manager` → Gerentes
+- `compras` → Suprimentos
+- `qualidade` → Qualidade
+- `financeiro` → Financeiro
+- `super_admin` → Super Admin
 
-- Renderizar anexos do post:
-  - **Imagens**: grid responsivo com preview clicável
-  - **Vídeos**: player `<video>` nativo com controles
-  - **Áudios**: player `<audio>` nativo com controles
-  - **Arquivos**: card com ícone + nome + tamanho + botão download
-
-### Componente novo: `FeedMediaPreview.tsx`
-
-Componente reutilizável que recebe a lista de attachments e renderiza o layout adequado (grid de imagens, players de mídia, cards de arquivo).
+### Resultado
+Posts sem categorização fixa. Em vez disso, o autor pode mencionar grupos e pessoas com `@`, destacando visualmente para quem o post é direcionado, sem restringir a visibilidade.
 
