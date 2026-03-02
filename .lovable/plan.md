@@ -1,38 +1,27 @@
 
 
-## Popular Departamentos e Membros no Banco
+## Problema: Destinatários não aparecem no select
 
-### Situação atual
-- Tabela `departments`: **vazia**
-- Tabela `department_members`: **vazia**
-- Existem `corp_groups` com role_based já configurados (Administradores, Técnicos, RH, Gerentes, Comercial, Financeiro, Qualidade, Suprimentos)
-- Existem 24 usuários com roles definidas na empresa `09a110b9-9f11-4b8d-a691-8b69f5f40a4e`
+### Causa raiz
+A tabela `profiles` possui políticas RLS restritivas. O usuário logado tem role `commercial`, e as políticas de SELECT em `profiles` só permitem:
+- Ver o próprio perfil
+- Admins, HR e Managers veem todos da empresa
+- Técnicos veem colegas de OS
 
-### Plano
+Resultado: o join `profiles!department_members_user_id_fkey` retorna `null` para todos os membros, e o filtro `m.profile &&` descarta todos.
 
-1. **Seed de departamentos** — Inserir departamentos espelhando os grupos role-based existentes: Administração, Técnico, Recursos Humanos, Gerência, Comercial, Financeiro, Qualidade, Suprimentos.
+### Solução
 
-2. **Seed de department_members** — Vincular cada usuário ao departamento correspondente à sua role (`user_roles.role` → departamento).
+1. **Migração SQL** — Adicionar uma política RLS em `profiles` que permita qualquer usuário autenticado da mesma empresa visualizar `id`, `full_name` e `email` de outros perfis. Alternativamente, criar uma política mais específica:
+   ```sql
+   CREATE POLICY "Users can view profiles in their company"
+   ON profiles FOR SELECT TO authenticated
+   USING (company_id = user_company_id(auth.uid()));
+   ```
+   Isso é seguro pois só expõe perfis da mesma empresa, e as outras roles (admin, hr, manager) já têm essa mesma permissão — a nova política apenas estende para todos os roles.
 
-3. **Trigger automático** — Criar trigger `AFTER INSERT ON user_roles` que automaticamente insere o usuário no departamento correspondente, garantindo que novos usuários sejam vinculados sem intervenção manual.
+2. **Limpeza** — As políticas redundantes existentes (admin, hr, manager que fazem `company_id = user_company_id(auth.uid())`) podem ser removidas, pois a nova política as cobre. Mas para segurança, mantê-las não causa problema — RLS é PERMISSIVE (OR).
 
-4. **Corrigir `NewRequestDialog.tsx`** — Além das correções já pendentes (valor opcional, link em produtos, documentos), garantir que o select de destinatário funcione com os dados agora populados.
-
-### Mapeamento role → departamento
-
-```text
-admin        → Administração
-technician   → Técnico
-hr           → Recursos Humanos
-manager      → Gerência
-commercial   → Comercial
-financeiro   → Financeiro
-qualidade    → Qualidade
-compras      → Suprimentos
-```
-
-### Alterações
-
-- **Migração SQL**: Trigger `auto_assign_department_on_role` + seed dos 8 departamentos + seed dos membros baseado em `user_roles`
-- **`NewRequestDialog.tsx`**: Aplicar todas as correções pendentes (valor opcional, campo link em produtos, unificar contra-cheque/holerite, remover informe de rendimentos)
+### Resultado esperado
+Ao selecionar um departamento no modal, os membros aparecerão corretamente no select de destinatário, pois o join com `profiles` retornará os dados.
 
