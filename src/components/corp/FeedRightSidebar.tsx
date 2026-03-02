@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCorpGroups } from '@/hooks/useCorpGroups';
 import { useNavigate } from 'react-router-dom';
+import FeedKudosCard from './FeedKudosCard';
 
 interface FeedRightSidebarProps {
   companyId: string;
@@ -20,7 +21,6 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
   const navigate = useNavigate();
   const { groups, isLoading: groupsLoading, myPendingRequests, requestJoin, cancelRequest, leaveGroup } = useCorpGroups(companyId);
 
-  // Birthdays this month
   const { data: birthdays = [] } = useQuery({
     queryKey: ['feed-birthdays', companyId],
     queryFn: async () => {
@@ -42,7 +42,6 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
     enabled: !!companyId,
   });
 
-  // New hires (last 30 days)
   const { data: newHires = [] } = useQuery({
     queryKey: ['feed-new-hires', companyId],
     queryFn: async () => {
@@ -78,6 +77,9 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
 
   return (
     <div className="space-y-4 sticky top-4">
+      {/* Kudos */}
+      <FeedKudosCard companyId={companyId} />
+
       {/* Birthdays */}
       <Card>
         <CardHeader className="pb-2 px-4 pt-4">
@@ -130,9 +132,7 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium truncate">{p.full_name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      Desde {format(new Date(p.hire_date), "dd/MM/yy")}
-                    </p>
+                    <p className="text-[10px] text-muted-foreground">Desde {format(new Date(p.hire_date), "dd/MM/yy")}</p>
                   </div>
                   <span className="text-sm">👋</span>
                 </div>
@@ -142,7 +142,7 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
         </Card>
       )}
 
-      {/* All groups with request/leave */}
+      {/* Groups */}
       <Card>
         <CardHeader className="pb-2 px-4 pt-4">
           <CardTitle className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
@@ -163,10 +163,7 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
                   const isPending = myPendingRequests.includes(g.id);
                   return (
                     <div key={g.id} className="flex items-center justify-between gap-2">
-                      <div
-                        className="min-w-0 flex-1 cursor-pointer hover:underline"
-                        onClick={() => navigate(`/corp/groups/${g.id}`)}
-                      >
+                      <div className="min-w-0 flex-1 cursor-pointer hover:underline" onClick={() => navigate(`/corp/groups/${g.id}`)}>
                         <p className="text-xs font-medium truncate">{g.name}</p>
                         <div className="flex items-center gap-1 mt-0.5">
                           <Badge variant="secondary" className="text-[9px] h-4 shrink-0">
@@ -174,37 +171,24 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
                           </Badge>
                           {isRoleBased && (
                             <Badge variant="outline" className="text-[9px] h-4 shrink-0 gap-0.5">
-                              <Lock className="h-2 w-2" />
-                              Auto
+                              <Lock className="h-2 w-2" />Auto
                             </Badge>
                           )}
                         </div>
                       </div>
                       {!isRoleBased && (
                         g.is_member ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-[10px] text-destructive hover:text-destructive"
-                            onClick={() => handleLeave(g.id)}
-                            disabled={leaveGroup.isPending}
-                          >
-                            <LogOut className="h-3 w-3 mr-1" />
-                            Sair
+                          <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-destructive hover:text-destructive"
+                            onClick={() => handleLeave(g.id)} disabled={leaveGroup.isPending}>
+                            <LogOut className="h-3 w-3 mr-1" />Sair
                           </Button>
                         ) : isPending ? (
                           <Badge variant="outline" className="text-[9px] h-6 gap-0.5">
-                            <Clock className="h-2.5 w-2.5" />
-                            Pendente
+                            <Clock className="h-2.5 w-2.5" />Pendente
                           </Badge>
                         ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 px-2 text-[10px]"
-                            onClick={() => handleRequestJoin(g.id)}
-                            disabled={requestJoin.isPending}
-                          >
+                          <Button variant="outline" size="sm" className="h-7 px-2 text-[10px]"
+                            onClick={() => handleRequestJoin(g.id)} disabled={requestJoin.isPending}>
                             Solicitar
                           </Button>
                         )
