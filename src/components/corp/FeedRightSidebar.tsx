@@ -1,17 +1,23 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Cake, UserPlus, Users } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Cake, LogIn, LogOut, UserPlus, Users, Lock } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format, isThisMonth } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useCorpGroups } from '@/hooks/useCorpGroups';
 
 interface FeedRightSidebarProps {
   companyId: string;
 }
 
 const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
+  const queryClient = useQueryClient();
+  const { groups, isLoading: groupsLoading, joinGroup, leaveGroup } = useCorpGroups(companyId);
+
   // Birthdays this month
   const { data: birthdays = [] } = useQuery({
     queryKey: ['feed-birthdays', companyId],
@@ -53,25 +59,20 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
     enabled: !!companyId,
   });
 
-  // Popular groups
-  const { data: popularGroups = [] } = useQuery({
-    queryKey: ['feed-popular-groups', companyId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('corp_groups')
-        .select('id, name, corp_group_members(id)')
-        .eq('company_id', companyId)
-        .order('name');
-      return (data || [])
-        .map((g: any) => ({ ...g, member_count: g.corp_group_members?.length || 0 }))
-        .sort((a: any, b: any) => b.member_count - a.member_count)
-        .slice(0, 5);
-    },
-    enabled: !!companyId,
-  });
-
   const getInitials = (name?: string) =>
     name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
+
+  const handleJoin = (groupId: string) => {
+    joinGroup.mutate(groupId, {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-corp-groups'] }),
+    });
+  };
+
+  const handleLeave = (groupId: string) => {
+    leaveGroup.mutate(groupId, {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-corp-groups'] }),
+    });
+  };
 
   return (
     <div className="space-y-4 sticky top-4">
@@ -139,29 +140,73 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
         </Card>
       )}
 
-      {/* Popular groups */}
-      {popularGroups.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2 px-4 pt-4">
-            <CardTitle className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
-              <Users className="h-3.5 w-3.5 text-primary" />
-              Grupos Populares
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-4 pb-4 pt-0">
-            <div className="space-y-2">
-              {popularGroups.map((g: any) => (
-                <div key={g.id} className="flex items-center justify-between">
-                  <p className="text-xs font-medium truncate">{g.name}</p>
-                  <Badge variant="secondary" className="text-[9px] h-4 shrink-0">
-                    {g.member_count} {g.member_count === 1 ? 'membro' : 'membros'}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+      {/* All groups with join/leave */}
+      <Card>
+        <CardHeader className="pb-2 px-4 pt-4">
+          <CardTitle className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+            <Users className="h-3.5 w-3.5 text-primary" />
+            Grupos da Empresa
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4 pt-0">
+          {groupsLoading ? (
+            <p className="text-xs text-muted-foreground">Carregando...</p>
+          ) : groups.length === 0 ? (
+            <p className="text-xs text-muted-foreground">Nenhum grupo disponível</p>
+          ) : (
+            <ScrollArea className="max-h-[300px]">
+              <div className="space-y-2.5">
+                {groups.map((g: any) => {
+                  const isRoleBased = g.group_type === 'role_based';
+                  return (
+                    <div key={g.id} className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-medium truncate">{g.name}</p>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <Badge variant="secondary" className="text-[9px] h-4 shrink-0">
+                            {g.member_count} {g.member_count === 1 ? 'membro' : 'membros'}
+                          </Badge>
+                          {isRoleBased && (
+                            <Badge variant="outline" className="text-[9px] h-4 shrink-0 gap-0.5">
+                              <Lock className="h-2 w-2" />
+                              Auto
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      {!isRoleBased && (
+                        g.is_member ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-[10px] text-destructive hover:text-destructive"
+                            onClick={() => handleLeave(g.id)}
+                            disabled={leaveGroup.isPending}
+                          >
+                            <LogOut className="h-3 w-3 mr-1" />
+                            Sair
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-[10px]"
+                            onClick={() => handleJoin(g.id)}
+                            disabled={joinGroup.isPending}
+                          >
+                            <LogIn className="h-3 w-3 mr-1" />
+                            Entrar
+                          </Button>
+                        )
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </ScrollArea>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };
