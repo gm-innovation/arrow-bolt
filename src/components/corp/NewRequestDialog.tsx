@@ -52,7 +52,6 @@ interface DocumentItem {
 
 const DOCUMENT_TYPE_OPTIONS = [
   { value: 'declaracao', label: 'Declaração' },
-  { value: 'atestado', label: 'Atestado' },
   { value: 'certidao', label: 'Certidão' },
   { value: 'contrato', label: 'Contrato' },
   { value: 'contra_cheque', label: 'Contra-cheque / Holerite' },
@@ -304,12 +303,6 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
                     </Button>
                   )}
                 </div>
-                <FileUploadSection
-                  files={documentFiles[idx] || []}
-                  onFilesChange={(files) => setDocumentFiles(prev => ({ ...prev, [idx]: files }))}
-                  label="Anexar documento (atestado, certificado, etc.)"
-                  multiple={false}
-                />
               </div>
             ))}
           </div>
@@ -338,26 +331,36 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
 
       case 'time_off':
         return (
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label>Tipo</Label>
-              <Select value={dynamicData.time_off_type || ''} onValueChange={v => updateDynamic('time_off_type', v)}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="folga">Folga</SelectItem>
-                  <SelectItem value="ferias">Férias</SelectItem>
-                  <SelectItem value="abono">Abono</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label>Tipo</Label>
+                <Select value={dynamicData.time_off_type || ''} onValueChange={v => updateDynamic('time_off_type', v)}>
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="folga">Folga</SelectItem>
+                    <SelectItem value="ferias">Férias</SelectItem>
+                    <SelectItem value="abono">Abono</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Data Início</Label>
+                <Input type="date" value={dynamicData.start_date || ''} onChange={e => updateDynamic('start_date', e.target.value)} />
+              </div>
+              <div>
+                <Label>Data Fim</Label>
+                <Input type="date" value={dynamicData.end_date || ''} onChange={e => updateDynamic('end_date', e.target.value)} />
+              </div>
             </div>
-            <div>
-              <Label>Data Início</Label>
-              <Input type="date" value={dynamicData.start_date || ''} onChange={e => updateDynamic('start_date', e.target.value)} />
-            </div>
-            <div>
-              <Label>Data Fim</Label>
-              <Input type="date" value={dynamicData.end_date || ''} onChange={e => updateDynamic('end_date', e.target.value)} />
-            </div>
+            {dynamicData.time_off_type === 'abono' && (
+              <FileUploadSection
+                files={receiptFiles}
+                onFilesChange={setReceiptFiles}
+                label="Anexar comprovante (atestado médico, etc.)"
+                accept="image/*,.pdf"
+              />
+            )}
           </div>
         );
 
