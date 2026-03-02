@@ -8,6 +8,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCorpFeed } from '@/hooks/useCorpFeed';
 import FeedCommentSection from './FeedCommentSection';
+import FeedMediaPreview from './FeedMediaPreview';
 import { cn } from '@/lib/utils';
 
 const postTypeMap: Record<string, { label: string; variant: 'default' | 'secondary' }> = {
@@ -62,6 +63,10 @@ const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
       <CardContent className="px-4 pb-3 space-y-3">
         {post.title && <p className="font-semibold text-sm">{post.title}</p>}
         <p className="text-sm whitespace-pre-wrap">{post.content}</p>
+
+        {post.attachments?.length > 0 && (
+          <FeedMediaPreview attachments={post.attachments} />
+        )}
 
         {/* Action bar */}
         <div className="flex items-center gap-1 pt-1 border-t border-border">
