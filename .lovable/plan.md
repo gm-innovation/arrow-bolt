@@ -1,14 +1,23 @@
 
 
-## Problema
+## Corrigir título do header nas rotas Corp
 
-As rotas Corp (`/corp/feed`, `/corp/requests`, etc.) usam `CorpRoute` que passa os children diretamente para `DashboardLayout`. Como os children são componentes lazy, eles suspendem sem um `Suspense` boundary, causando o erro: *"A component suspended while responding to synchronous input"*.
+**Problema:** Ao clicar em "Solicitações Corp" no sidebar, o header mostra "Dashboard" (gerado automaticamente do path `/corp/dashboard`). Isso confunde o usuário.
 
-As rotas nested (quality, admin, etc.) funcionam porque o `DashboardLayout` renderiza `<Suspense><Outlet /></Suspense>` quando não recebe children. Mas as rotas Corp passam children explicitamente, então o `Suspense` do Outlet nunca é usado.
+**Solução:** Passar `pageTitle` para o `DashboardLayout` dentro do `CorpRoute`, usando um título fixo que represente o módulo corporativo.
 
-## Solução
+**Alteração em `src/components/corp/CorpRoute.tsx`:**
+- Adicionar prop `pageTitle` opcional ao `CorpRoute`, `CorpAdminRoute` e `CorpReportsRoute`
+- Passar `pageTitle` para `DashboardLayout`
 
-**`src/components/corp/CorpRoute.tsx`** — Envolver `{children}` em `<Suspense fallback={<ContentSkeleton />}>` dentro do `DashboardLayout`, para todas as 3 variantes (`CorpRoute`, `CorpAdminRoute`, `CorpReportsRoute`).
+**Alteração em `src/App.tsx`:**
+- Nas rotas corp, passar o `pageTitle` adequado:
+  - `/corp/dashboard` → `pageTitle="Solicitações Corp"`
+  - `/corp/requests` → `pageTitle="Solicitações Corp"`
+  - `/corp/documents` → `pageTitle="Documentos Corp"`
+  - `/corp/feed` → `pageTitle="Feed"`
+  - `/corp/reports` → `pageTitle="Relatórios Corp"`
+  - Rotas admin corp → `pageTitle="Admin Corp"`
 
-Isso garante que os componentes lazy tenham um boundary de Suspense e o skeleton apareça na área de conteúdo enquanto carregam, sem quebrar a página.
+Isso garante que o título no header sempre reflita o contexto correto, sem confundir com o "Dashboard" do módulo principal do usuário.
 
