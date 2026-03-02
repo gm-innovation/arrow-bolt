@@ -1,27 +1,37 @@
 
 
-## Problema: Destinatários não aparecem no select
+## Anexos de Arquivos no Modal de Nova Solicitação
 
-### Causa raiz
-A tabela `profiles` possui políticas RLS restritivas. O usuário logado tem role `commercial`, e as políticas de SELECT em `profiles` só permitem:
-- Ver o próprio perfil
-- Admins, HR e Managers veem todos da empresa
-- Técnicos veem colegas de OS
+### Contexto
+A infraestrutura já existe: tabela `corp_request_attachments`, bucket `corp-documents` (privado), e políticas RLS configuradas. Falta apenas a interface de upload e a lógica de envio.
 
-Resultado: o join `profiles!department_members_user_id_fkey` retorna `null` para todos os membros, e o filtro `m.profile &&` descarta todos.
+### Dinâmica proposta
 
-### Solução
+**Upload genérico por categoria:**
+- **Reembolso**: Seção "Comprovante" com upload de foto/arquivo (substituir o campo texto "referência" por um upload real + campo texto opcional para nº da nota)
+- **Documento**: Cada item de documento pode ter um arquivo anexo (ex: atestado médico escaneado, certificado em PDF)
+- **Geral/Outros**: Seção opcional "Anexos" para qualquer tipo de solicitação
 
-1. **Migração SQL** — Adicionar uma política RLS em `profiles` que permita qualquer usuário autenticado da mesma empresa visualizar `id`, `full_name` e `email` de outros perfis. Alternativamente, criar uma política mais específica:
-   ```sql
-   CREATE POLICY "Users can view profiles in their company"
-   ON profiles FOR SELECT TO authenticated
-   USING (company_id = user_company_id(auth.uid()));
-   ```
-   Isso é seguro pois só expõe perfis da mesma empresa, e as outras roles (admin, hr, manager) já têm essa mesma permissão — a nova política apenas estende para todos os roles.
+**Fluxo técnico:**
+1. Usuário seleciona arquivos localmente (estado local com `File[]`)
+2. Preview dos arquivos selecionados (nome, tamanho, botão remover)
+3. Ao clicar "Criar Solicitação":
+   - Cria a solicitação (obtém o `request_id`)
+   - Faz upload dos arquivos para `corp-documents/{company_id}/requests/{request_id}/`
+   - Gera URL assinada (bucket é privado)
+   - Insere registros em `corp_request_attachments`
 
-2. **Limpeza** — As políticas redundantes existentes (admin, hr, manager que fazem `company_id = user_company_id(auth.uid())`) podem ser removidas, pois a nova política as cobre. Mas para segurança, mantê-las não causa problema — RLS é PERMISSIVE (OR).
+### Alterações
 
-### Resultado esperado
-Ao selecionar um departamento no modal, os membros aparecerão corretamente no select de destinatário, pois o join com `profiles` retornará os dados.
+1. **`src/components/corp/NewRequestDialog.tsx`**:
+   - Adicionar estado `attachedFiles: File[]`
+   - Seção de upload com `<input type="file" multiple accept="image/*,.pdf,.doc,.docx" />`
+   - Preview dos arquivos com ícone, nome, tamanho e botão remover
+   - Para **Reembolso**: Upload aparece na seção de comprovante (label "Foto do comprovante / recibo")
+   - Para **Documento**: Upload aparece em cada item de documento (label "Anexar documento")
+   - Para **todas as categorias**: Seção "Anexos (opcional)" no final do formulário
+   - No `handleSubmit`: após criar a request, fazer upload e inserir em `corp_request_attachments`
+   - Sanitizar nomes de arquivo antes do upload (padrão existente no projeto)
+
+2. **Sem migração SQL necessária** — tabela e bucket já existem.
 
