@@ -1,14 +1,32 @@
 
 
-## Corrigir fluxo HR: Departamento obrigatório + seleção de colaborador
+## Substituir Relatórios Corp por métricas relevantes ao RH
 
-No modo `hr`, o fluxo correto é: selecionar departamento → filtrar colaboradores daquele departamento → selecionar o destinatário. Departamento não é opcional — é pré-requisito.
+O "Resumo Financeiro" será removido e os relatórios serão reestruturados com dados operacionais que fazem sentido para o RH.
 
-### Alterações em `DocumentUploadDialog.tsx`
+### Novo layout da página `src/pages/corp/Reports.tsx`
 
-1. **Modo `hr`**: Tornar departamento obrigatório (label "Departamento *"), e adicionar campo "Colaborador *" logo abaixo
-2. **Seleção de colaborador**: Usar `useDepartmentMembers(departmentId)` para carregar membros do departamento selecionado e renderizar um `Select` com os nomes
-3. **Estado**: Adicionar `selectedUserId` — ao selecionar departamento, limpar o colaborador selecionado. O `selectedUserId` substitui o `targetUserId` prop no upload
-4. **Validação**: No modo `hr`, exigir `departmentId` e `selectedUserId` para habilitar o botão "Enviar"
-5. **Modo `self`**: Manter departamento como opcional (sem campo de colaborador), o `owner_user_id` é o próprio usuário
+**Linha 1 — Cards de resumo (grid 4 colunas)**:
+- Total de Solicitações
+- Pendentes (gerente + diretoria)
+- Aprovadas
+- Rejeitadas
+
+**Linha 2 — Gráficos (grid 2 colunas)**:
+- **Distribuição por Status** (PieChart) — manter, já existe
+- **Requisições por Departamento** (BarChart) — manter, já existe
+
+**Linha 3 — Gráficos adicionais (grid 2 colunas)**:
+- **Solicitações por Categoria** (PieChart) — agrupar por `request_type.category` (produto, documento, reembolso, folga, etc.)
+- **Taxa de Aprovação por Departamento** (BarChart horizontal) — aprovadas vs total por departamento
+
+### Dados necessários
+- Ajustar `useCorpDashboard` para incluir `request_type_id` no select e fazer join com `corp_request_types` para obter `category`
+- Ou criar os cálculos diretamente no componente de Reports com uma query dedicada
+
+### Resumo das mudanças
+- Remover card "Resumo Financeiro" (volume aprovado em R$, taxa de aprovação financeira)
+- Adicionar cards de resumo operacional no topo
+- Adicionar gráfico de solicitações por categoria
+- Adicionar gráfico de taxa de aprovação por departamento
 
