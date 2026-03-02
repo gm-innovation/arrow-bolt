@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, ClipboardList, FileText, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, FileText, BarChart3, Settings, Users } from 'lucide-react';
 
 interface CorpLayoutProps {
   children: ReactNode;
@@ -23,6 +23,7 @@ const CorpLayout = ({ children }: CorpLayoutProps) => {
     { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/corp/dashboard' },
     { value: 'requests', label: 'Solicitações', icon: ClipboardList, path: '/corp/requests' },
     { value: 'documents', label: 'Documentos', icon: FileText, path: '/corp/documents' },
+    { value: 'groups', label: 'Grupos', icon: Users, path: '/corp/groups' },
     ...(canViewReports ? [{ value: 'reports', label: 'Relatórios', icon: BarChart3, path: '/corp/reports' }] : []),
     ...(canViewAdmin ? [{ value: 'admin', label: 'Admin', icon: Settings, path: '/corp/admin/departments' }] : []),
   ];

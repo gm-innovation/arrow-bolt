@@ -6,7 +6,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Users, User } from 'lucide-react';
 
 export interface MentionItem {
-  type: 'role' | 'user';
+  type: 'role' | 'user' | 'group';
   value: string;
   displayName: string;
 }
@@ -51,38 +51,54 @@ const FeedMentionInput = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [cursorMentionStart, setCursorMentionStart] = useState<number | null>(null);
   const [userResults, setUserResults] = useState<MentionItem[]>([]);
+  const [groupResults, setGroupResults] = useState<MentionItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Fetch users when search changes
   useEffect(() => {
     if (!showDropdown || !user) return;
-    const fetchUsers = async () => {
+    const fetchResults = async () => {
       if (debouncedSearch.length < 1) {
         setUserResults([]);
+        setGroupResults([]);
         return;
       }
-      const { data } = await supabase
+      // Fetch users
+      const { data: usersData } = await supabase
         .from('profiles')
         .select('id, full_name')
         .ilike('full_name', `%${debouncedSearch}%`)
         .limit(8);
       setUserResults(
-        (data || []).map((p) => ({
+        (usersData || []).map((p) => ({
           type: 'user' as const,
           value: p.id,
           displayName: p.full_name || 'Sem nome',
         }))
       );
+      // Fetch groups
+      const { data: groupsData } = await supabase
+        .from('corp_groups')
+        .select('id, name')
+        .ilike('name', `%${debouncedSearch}%`)
+        .limit(6);
+      setGroupResults(
+        (groupsData || []).map((g) => ({
+          type: 'group' as const,
+          value: g.id,
+          displayName: g.name,
+        }))
+      );
     };
-    fetchUsers();
+    fetchResults();
   }, [debouncedSearch, showDropdown, user]);
 
   const filteredRoles = ROLE_OPTIONS.filter((r) =>
     r.displayName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const allOptions = [...filteredRoles, ...userResults];
+  const allOptions = [...filteredRoles, ...groupResults, ...userResults];
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -200,14 +216,14 @@ const FeedMentionInput = ({
               key={`${m.type}-${m.value}`}
               className={cn(
                 'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium cursor-pointer transition-colors',
-                m.type === 'role'
+                m.type === 'role' || m.type === 'group'
                   ? 'bg-primary/10 text-primary hover:bg-primary/20'
                   : 'bg-accent text-accent-foreground hover:bg-accent/80'
               )}
               onClick={() => removeMention(i)}
               title="Clique para remover"
             >
-              {m.type === 'role' ? <Users className="h-3 w-3" /> : <User className="h-3 w-3" />}
+              {m.type === 'role' || m.type === 'group' ? <Users className="h-3 w-3" /> : <User className="h-3 w-3" />}
               @{m.displayName}
               <span className="text-[10px] opacity-60">✕</span>
             </span>
@@ -223,7 +239,7 @@ const FeedMentionInput = ({
         >
           {filteredRoles.length > 0 && (
             <>
-              <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Grupos</p>
+              <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Funções</p>
               {filteredRoles.map((r, i) => (
                 <button
                   key={r.value}
@@ -241,11 +257,34 @@ const FeedMentionInput = ({
               ))}
             </>
           )}
+          {groupResults.length > 0 && (
+            <>
+              <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">Grupos</p>
+              {groupResults.map((g, idx) => {
+                const globalIdx = filteredRoles.length + idx;
+                return (
+                  <button
+                    key={g.value}
+                    type="button"
+                    className={cn(
+                      'flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm cursor-pointer transition-colors',
+                      selectedIndex === globalIdx ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+                    )}
+                    onMouseDown={(e) => { e.preventDefault(); insertMention(g); }}
+                    onMouseEnter={() => setSelectedIndex(globalIdx)}
+                  >
+                    <Users className="h-3.5 w-3.5 text-primary" />
+                    {g.displayName}
+                  </button>
+                );
+              })}
+            </>
+          )}
           {userResults.length > 0 && (
             <>
               <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">Pessoas</p>
               {userResults.map((u, idx) => {
-                const globalIdx = filteredRoles.length + idx;
+                const globalIdx = filteredRoles.length + groupResults.length + idx;
                 return (
                   <button
                     key={u.value}
