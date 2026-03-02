@@ -10,16 +10,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
 
 const BADGE_TYPES = [
-  { value: 'tenure_1y', label: '🎖️ 1 Ano de Empresa', icon: '🎖️' },
-  { value: 'tenure_5y', label: '🏅 5 Anos de Empresa', icon: '🏅' },
-  { value: 'tenure_10y', label: '🥇 10 Anos de Empresa', icon: '🥇' },
   { value: 'goal_achieved', label: '🎯 Meta Alcançada', icon: '🎯' },
   { value: 'project_completed', label: '🚀 Projeto Finalizado', icon: '🚀' },
   { value: 'course_completed', label: '📚 Curso Finalizado', icon: '📚' },
   { value: 'custom', label: '⭐ Personalizada', icon: '⭐' },
 ];
+
+const EMOJI_OPTIONS = ['⭐', '🏆', '🎯', '🚀', '💎', '🔥', '👑', '✨', '💡', '🎖️', '🥇', '🏅', '🎉', '💪', '🌟'];
 
 interface Props {
   companyId: string;
@@ -33,6 +33,7 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
   const [badgeType, setBadgeType] = useState('custom');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [customIcon, setCustomIcon] = useState('⭐');
 
   const selectedType = BADGE_TYPES.find(b => b.value === badgeType);
 
@@ -51,6 +52,7 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
 
   const award = useMutation({
     mutationFn: async () => {
+      const icon = badgeType === 'custom' ? customIcon : selectedType?.icon || '⭐';
       const { error } = await (supabase as any)
         .from('corp_badges')
         .insert({
@@ -59,7 +61,7 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
           badge_type: badgeType,
           title: title || selectedType?.label || 'Conquista',
           description: description || null,
-          icon: selectedType?.icon || '⭐',
+          icon,
           awarded_by: user!.id,
         });
       if (error) throw error;
@@ -72,6 +74,7 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
       setTitle('');
       setDescription('');
       setBadgeType('custom');
+      setCustomIcon('⭐');
     },
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
@@ -114,6 +117,28 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
               </SelectContent>
             </Select>
           </div>
+          {badgeType === 'custom' && (
+            <div>
+              <Label>Ícone</Label>
+              <div className="grid grid-cols-8 gap-1.5 mt-1.5">
+                {EMOJI_OPTIONS.map(emoji => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setCustomIcon(emoji)}
+                    className={cn(
+                      'h-9 w-9 rounded-md text-lg flex items-center justify-center border transition-all',
+                      customIcon === emoji
+                        ? 'border-primary bg-primary/10 ring-2 ring-primary/30 scale-110'
+                        : 'border-border hover:border-primary/50 hover:bg-accent'
+                    )}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <div>
             <Label>Título</Label>
             <Input value={title} onChange={e => setTitle(e.target.value)} placeholder={selectedType?.label || 'Título da conquista'} />

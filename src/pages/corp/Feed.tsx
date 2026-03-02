@@ -6,6 +6,7 @@ import FeedPostCard from '@/components/corp/FeedPostCard';
 import FeedProfileSidebar from '@/components/corp/FeedProfileSidebar';
 import FeedRightSidebar from '@/components/corp/FeedRightSidebar';
 import FeedBirthdayCard from '@/components/corp/FeedBirthdayCard';
+import FeedWorkAnniversaryCard from '@/components/corp/FeedWorkAnniversaryCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -49,6 +50,7 @@ const CorpFeed = () => {
           <FeedCreatePost companyId={effectiveCompanyId} userProfile={profile} userRole={userRole} />
 
           {effectiveCompanyId && <FeedBirthdayCard companyId={effectiveCompanyId} />}
+          {effectiveCompanyId && <FeedWorkAnniversaryCard companyId={effectiveCompanyId} />}
 
           {isLoading ? (
             <div className="space-y-4">

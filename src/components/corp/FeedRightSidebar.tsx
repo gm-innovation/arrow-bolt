@@ -21,6 +21,31 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
   const navigate = useNavigate();
   const { groups, isLoading: groupsLoading, myPendingRequests, requestJoin, cancelRequest, leaveGroup } = useCorpGroups(companyId);
 
+  const { data: workAnniversaries = [] } = useQuery({
+    queryKey: ['feed-work-anniversaries-month', companyId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url, hire_date')
+        .eq('company_id', companyId)
+        .not('hire_date', 'is', null);
+      const now = new Date();
+      return (data || [])
+        .filter((p: any) => {
+          const d = new Date(p.hire_date);
+          return d.getMonth() === now.getMonth() && d.getFullYear() < now.getFullYear();
+        })
+        .map((p: any) => ({
+          ...p,
+          years: now.getFullYear() - new Date(p.hire_date).getFullYear(),
+          day: new Date(p.hire_date).getDate(),
+        }))
+        .sort((a: any, b: any) => a.day - b.day)
+        .slice(0, 8);
+    },
+    enabled: !!companyId,
+  });
+
   const { data: birthdays = [] } = useQuery({
     queryKey: ['feed-birthdays', companyId],
     queryFn: async () => {
@@ -79,6 +104,37 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
     <div className="space-y-4 sticky top-4">
       {/* Badges */}
       <FeedBadgesCard companyId={companyId} />
+
+      {/* Work Anniversaries */}
+      {workAnniversaries.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2 px-4 pt-4">
+            <CardTitle className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
+              <span className="text-sm">🎖️</span>
+              Aniversários de Empresa
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="px-4 pb-4 pt-0">
+            <div className="space-y-2.5">
+              {workAnniversaries.map((p: any) => (
+                <div key={p.id} className="flex items-center gap-2">
+                  <Avatar className="h-7 w-7">
+                    {p.avatar_url && <AvatarImage src={p.avatar_url} />}
+                    <AvatarFallback className="text-[9px]">{getInitials(p.full_name)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-medium truncate">{p.full_name}</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      {p.years} {p.years === 1 ? 'ano' : 'anos'} — dia {p.day}
+                    </p>
+                  </div>
+                  <span className="text-sm">🏅</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Birthdays */}
       <Card>
