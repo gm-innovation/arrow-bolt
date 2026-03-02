@@ -1,18 +1,14 @@
 
 
-## Reordenar tipos de solicitação no dropdown
+## Corrigir fluxo HR: Departamento obrigatório + seleção de colaborador
 
-Adicionar um mapa de ordenação por categoria e ordenar `activeTypes` antes de renderizar:
+No modo `hr`, o fluxo correto é: selecionar departamento → filtrar colaboradores daquele departamento → selecionar o destinatário. Departamento não é opcional — é pré-requisito.
 
-**`NewRequestDialog.tsx`** (linha ~87):
-- Criar constante `CATEGORY_ORDER` com a sequência desejada: `product` → `document` → `reimbursement` → `time_off` → `subscription` → `general`
-- Ordenar `activeTypes` usando `.sort()` baseado nesse mapa
+### Alterações em `DocumentUploadDialog.tsx`
 
-Sequência final no dropdown:
-1. Produto / Material
-2. Documento
-3. Reembolso
-4. Folga / Férias
-5. Assinatura / Software
-6. Geral
+1. **Modo `hr`**: Tornar departamento obrigatório (label "Departamento *"), e adicionar campo "Colaborador *" logo abaixo
+2. **Seleção de colaborador**: Usar `useDepartmentMembers(departmentId)` para carregar membros do departamento selecionado e renderizar um `Select` com os nomes
+3. **Estado**: Adicionar `selectedUserId` — ao selecionar departamento, limpar o colaborador selecionado. O `selectedUserId` substitui o `targetUserId` prop no upload
+4. **Validação**: No modo `hr`, exigir `departmentId` e `selectedUserId` para habilitar o botão "Enviar"
+5. **Modo `self`**: Manter departamento como opcional (sem campo de colaborador), o `owner_user_id` é o próprio usuário
 
