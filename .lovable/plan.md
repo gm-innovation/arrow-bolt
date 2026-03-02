@@ -1,33 +1,14 @@
 
 
-## Adicionar roles Suprimentos, Qualidade e Financeiro nos dropdowns de usuários
+## Remover CorpLayout do Feed Corporativo
 
-As novas roles (`compras`, `qualidade`, `financeiro`) foram adicionadas ao banco de dados e ao sistema de navegação, mas os dropdowns de seleção de função nas telas de gerenciamento de usuários não foram atualizados. Faltam as opções nos seguintes locais:
+O problema é que a página `Feed` (`src/pages/corp/Feed.tsx`) usa o componente `CorpLayout`, que renderiza as abas (Dashboard, Solicitações, Documentos). O Feed é um item global independente na sidebar e não deve exibir essas abas.
 
-### Arquivos a alterar
+### Alteração
 
-**1. `src/pages/super-admin/Users.tsx`**
-- Linha 92-106: Adicionar cases no `getRoleLabel` para `commercial`, `director`, `compras`, `qualidade`, `financeiro`
-- Linhas 141-145: Adicionar SelectItems no filtro de roles para as novas funções
+**`src/pages/corp/Feed.tsx`**
+- Remover o import de `CorpLayout`
+- Substituir `<CorpLayout>` por um `<div>` simples, mantendo todo o conteúdo interno igual
 
-**2. `src/components/super-admin/users/NewUserDialog.tsx`**
-- Linhas 182-188: Adicionar SelectItems `director`, `compras`, `qualidade`, `financeiro` no dropdown de função
-
-**3. `src/components/super-admin/users/EditUserDialog.tsx`**
-- Linhas 158-163: Adicionar SelectItems `director`, `compras`, `qualidade`, `financeiro` no dropdown de função
-
-**4. `src/pages/admin/Users.tsx`**
-- Linhas 178-182: Adicionar as novas roles no filtro de funções
-
-### Valores a adicionar em todos os dropdowns
-
-| Valor | Label |
-|-------|-------|
-| `commercial` | Comercial |
-| `director` | Diretor |
-| `compras` | Suprimentos |
-| `qualidade` | Qualidade |
-| `financeiro` | Financeiro |
-
-Alteração simples e localizada, sem impacto em banco de dados ou lógica de negócio.
+Apenas 1 arquivo alterado. Sem impacto em banco de dados ou outras páginas.
 
