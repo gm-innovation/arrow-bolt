@@ -3,14 +3,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import FeedCreatePost from '@/components/corp/FeedCreatePost';
 import FeedPostCard from '@/components/corp/FeedPostCard';
-import FeedPostDialog from '@/components/corp/FeedPostDialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 
 const CorpFeed = () => {
   const { user, userRole } = useAuth();
   const { posts, isLoading, comments } = useCorpFeed();
-  const canPin = userRole === 'admin' || userRole === 'super_admin' || userRole === 'hr';
   const companyId = (posts as any[])?.[0]?.company_id || '';
 
   const { data: profile } = useQuery({
@@ -26,10 +24,7 @@ const CorpFeed = () => {
 
   return (
     <div className="max-w-[600px] mx-auto space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Feed Corporativo</h2>
-        {canPin && <FeedPostDialog companyId={effectiveCompanyId} />}
-      </div>
+      <h2 className="text-xl font-semibold">Feed Corporativo</h2>
 
       <FeedCreatePost companyId={effectiveCompanyId} userProfile={profile} />
 
