@@ -3,12 +3,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Cake, LogIn, LogOut, UserPlus, Users, Lock } from 'lucide-react';
+import { Cake, Clock, LogOut, UserPlus, Users, Lock } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCorpGroups } from '@/hooks/useCorpGroups';
+import { useNavigate } from 'react-router-dom';
 
 interface FeedRightSidebarProps {
   companyId: string;
@@ -16,7 +17,8 @@ interface FeedRightSidebarProps {
 
 const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
   const queryClient = useQueryClient();
-  const { groups, isLoading: groupsLoading, joinGroup, leaveGroup } = useCorpGroups(companyId);
+  const navigate = useNavigate();
+  const { groups, isLoading: groupsLoading, myPendingRequests, requestJoin, cancelRequest, leaveGroup } = useCorpGroups(companyId);
 
   // Birthdays this month
   const { data: birthdays = [] } = useQuery({
@@ -62,8 +64,8 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
   const getInitials = (name?: string) =>
     name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
 
-  const handleJoin = (groupId: string) => {
-    joinGroup.mutate(groupId, {
+  const handleRequestJoin = (groupId: string) => {
+    requestJoin.mutate(groupId, {
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ['my-corp-groups'] }),
     });
   };
@@ -140,7 +142,7 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
         </Card>
       )}
 
-      {/* All groups with join/leave */}
+      {/* All groups with request/leave */}
       <Card>
         <CardHeader className="pb-2 px-4 pt-4">
           <CardTitle className="text-xs font-semibold flex items-center gap-1.5 text-muted-foreground uppercase tracking-wider">
@@ -158,9 +160,13 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
               <div className="space-y-2.5">
                 {groups.map((g: any) => {
                   const isRoleBased = g.group_type === 'role_based';
+                  const isPending = myPendingRequests.includes(g.id);
                   return (
                     <div key={g.id} className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
+                      <div
+                        className="min-w-0 flex-1 cursor-pointer hover:underline"
+                        onClick={() => navigate(`/corp/groups/${g.id}`)}
+                      >
                         <p className="text-xs font-medium truncate">{g.name}</p>
                         <div className="flex items-center gap-1 mt-0.5">
                           <Badge variant="secondary" className="text-[9px] h-4 shrink-0">
@@ -186,16 +192,20 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
                             <LogOut className="h-3 w-3 mr-1" />
                             Sair
                           </Button>
+                        ) : isPending ? (
+                          <Badge variant="outline" className="text-[9px] h-6 gap-0.5">
+                            <Clock className="h-2.5 w-2.5" />
+                            Pendente
+                          </Badge>
                         ) : (
                           <Button
                             variant="outline"
                             size="sm"
                             className="h-7 px-2 text-[10px]"
-                            onClick={() => handleJoin(g.id)}
-                            disabled={joinGroup.isPending}
+                            onClick={() => handleRequestJoin(g.id)}
+                            disabled={requestJoin.isPending}
                           >
-                            <LogIn className="h-3 w-3 mr-1" />
-                            Entrar
+                            Solicitar
                           </Button>
                         )
                       )}

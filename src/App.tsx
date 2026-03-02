@@ -108,6 +108,7 @@ const CorpDepartments = lazy(() => import("./pages/corp/admin/Departments"));
 const CorpRequestTypes = lazy(() => import("./pages/corp/admin/RequestTypes"));
 const CorpAuditLog = lazy(() => import("./pages/corp/admin/AuditLog"));
 const CorpGroups = lazy(() => import("./pages/corp/Groups"));
+const CorpGroupDetail = lazy(() => import("./pages/corp/GroupDetail"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
 const SuppliesRequests = lazy(() => import("./pages/supplies/Requests"));
@@ -303,6 +304,7 @@ const App = () => {
                   <Route path="/corp/documents" element={<CorpRoute pageTitle="Documentos Corp"><CorpDocuments /></CorpRoute>} />
                   <Route path="/corp/feed" element={<CorpRoute pageTitle="Feed"><CorpFeed /></CorpRoute>} />
                   <Route path="/corp/groups" element={<CorpRoute pageTitle="Grupos"><CorpGroups /></CorpRoute>} />
+                  <Route path="/corp/groups/:id" element={<CorpRoute pageTitle="Grupo"><CorpGroupDetail /></CorpRoute>} />
                   <Route path="/corp/reports" element={<CorpReportsRoute pageTitle="Relatórios Corp"><CorpReports /></CorpReportsRoute>} />
                   <Route path="/corp/admin/departments" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpDepartments /></CorpAdminRoute>} />
                   <Route path="/corp/admin/request-types" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpRequestTypes /></CorpAdminRoute>} />

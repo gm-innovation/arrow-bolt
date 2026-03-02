@@ -53,9 +53,9 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
     queryFn: async () => {
       const { data } = await supabase
         .from('corp_group_members')
-        .select('corp_groups:corp_groups!corp_group_members_group_id_fkey(name)')
+        .select('corp_groups:corp_groups!corp_group_members_group_id_fkey(id, name)')
         .eq('user_id', user!.id);
-      return (data || []).map((m: any) => m.corp_groups?.name).filter(Boolean);
+      return (data || []).map((m: any) => ({ id: m.corp_groups?.id, name: m.corp_groups?.name })).filter((g: any) => g.name);
     },
     enabled: !!user,
   });
@@ -123,15 +123,15 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
             <div className="px-4 py-3">
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Meus Grupos</p>
               <div className="flex flex-wrap gap-1">
-                {myGroups.map((name: string) => (
+                {myGroups.map((g: any) => (
                   <Badge
-                    key={name}
+                    key={g.id}
                     variant="outline"
                     className="text-[10px] h-5 gap-1 cursor-pointer hover:bg-accent transition-colors"
-                    onClick={() => navigate('/corp/groups')}
+                    onClick={() => navigate(`/corp/groups/${g.id}`)}
                   >
                     <Users className="h-2.5 w-2.5" />
-                    {name}
+                    {g.name}
                   </Badge>
                 ))}
               </div>
