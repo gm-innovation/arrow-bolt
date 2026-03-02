@@ -2,10 +2,18 @@ import { createContext, useContext, useEffect, useState, useRef, useCallback, us
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-interface AuthContextType {
+interface UserProfile {
+  id: string;
+  company_id: string | null;
+  full_name: string | null;
+  email: string | null;
+}
+
+export interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRole: string | null;
+  profile: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: any }>;
@@ -20,6 +28,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   
   // Use refs to track initialization and prevent duplicate processing
@@ -34,21 +43,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     fetchingRoleRef.current = true;
     
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+      // Fetch role and profile in parallel
+      const [roleResult, profileResult] = await Promise.all([
+        supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+        supabase.from('profiles').select('id, company_id, full_name, email').eq('id', userId).maybeSingle(),
+      ]);
 
-      if (error) {
-        console.error('Error fetching user role:', error);
+      if (roleResult.error) {
+        console.error('Error fetching user role:', roleResult.error);
         setUserRole(null);
       } else {
-        setUserRole(data?.role || null);
+        setUserRole(roleResult.data?.role || null);
+      }
+
+      if (profileResult.data) {
+        setProfile(profileResult.data as UserProfile);
+      } else {
+        setProfile(null);
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
       setUserRole(null);
+      setProfile(null);
     } finally {
       setLoading(false);
       fetchingRoleRef.current = false;
@@ -138,6 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setUserRole(null);
+    setProfile(null);
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
@@ -161,13 +178,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     user,
     session,
     userRole,
+    profile,
     loading,
     signIn,
     signUp,
     signOut,
     resetPassword,
     updatePassword,
-  }), [user, session, userRole, loading, signIn, signUp, signOut, resetPassword, updatePassword]);
+  }), [user, session, userRole, profile, loading, signIn, signUp, signOut, resetPassword, updatePassword]);
 
   return (
     <AuthContext.Provider value={contextValue}>

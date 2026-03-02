@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
 
 interface UserMenuProps {
-  userType: "super-admin" | "admin" | "manager" | "tech" | "hr";
+  userType: string;
 }
 
 export const UserMenu = ({ userType }: UserMenuProps) => {

@@ -78,7 +78,7 @@ export const useOpportunities = () => {
         ...input,
         company_id: companyId,
         created_by: user!.id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {

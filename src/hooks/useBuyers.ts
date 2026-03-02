@@ -53,7 +53,7 @@ export const useBuyers = () => {
   const createBuyer = useMutation({
     mutationFn: async (input: Record<string, any>) => {
       const companyId = await getCompanyId();
-      const { error } = await supabase.from('crm_buyers').insert({ ...input, company_id: companyId });
+      const { error } = await supabase.from('crm_buyers').insert({ ...input, company_id: companyId } as any);
       if (error) throw error;
     },
     onSuccess: () => {

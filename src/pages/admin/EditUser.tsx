@@ -80,7 +80,7 @@ const EditUser = () => {
         }
 
         // Fetch user data
-        const { data: userData, error: userError } = await supabase
+        const { data: userData, error: userError } = await (supabase as any)
           .from("profiles")
           .select(`
             id,
