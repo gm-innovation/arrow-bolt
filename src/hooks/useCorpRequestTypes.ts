@@ -23,7 +23,7 @@ export const useCorpRequestTypes = () => {
 
   const createRequestType = useMutation({
     mutationFn: async (type: {
-      name: string; company_id: string; department_id?: string;
+      name: string; company_id: string; category?: string; department_id?: string;
       requires_approval?: boolean; requires_director_approval?: boolean;
       director_threshold_value?: number; dynamic_fields?: any;
     }) => {
