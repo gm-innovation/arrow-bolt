@@ -12,13 +12,45 @@ export const useCorpFeed = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('corp_feed_posts')
-        .select('*, author:profiles!corp_feed_posts_author_id_fkey(id, full_name, avatar_url)')
+        .select(`
+          *,
+          author:profiles!corp_feed_posts_author_id_fkey(id, full_name, avatar_url),
+          corp_feed_likes(user_id),
+          corp_feed_comments(id)
+        `)
         .order('pinned', { ascending: false })
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+
+      return (data || []).map((post: any) => ({
+        ...post,
+        likes_count: post.corp_feed_likes?.length || 0,
+        comments_count: post.corp_feed_comments?.length || 0,
+        liked_by_me: post.corp_feed_likes?.some((l: any) => l.user_id === user?.id) || false,
+      }));
     },
     enabled: !!user,
+  });
+
+  const { data: comments = {}, isLoading: commentsLoading } = useQuery({
+    queryKey: ['corp-feed-comments'],
+    queryFn: async () => {
+      const postIds = posts.map((p: any) => p.id);
+      if (postIds.length === 0) return {};
+      const { data, error } = await supabase
+        .from('corp_feed_comments')
+        .select('*, author:profiles!corp_feed_comments_author_id_fkey(id, full_name, avatar_url)')
+        .in('post_id', postIds)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      const grouped: Record<string, any[]> = {};
+      (data || []).forEach((c: any) => {
+        if (!grouped[c.post_id]) grouped[c.post_id] = [];
+        grouped[c.post_id].push(c);
+      });
+      return grouped;
+    },
+    enabled: !!user && posts.length > 0,
   });
 
   const createPost = useMutation({
@@ -68,5 +100,61 @@ export const useCorpFeed = () => {
     },
   });
 
-  return { posts, isLoading, createPost, updatePost, deletePost };
+  const likePost = useMutation({
+    mutationFn: async (postId: string) => {
+      const { error } = await supabase
+        .from('corp_feed_likes')
+        .insert({ post_id: postId, user_id: user!.id });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['corp-feed'] }),
+  });
+
+  const unlikePost = useMutation({
+    mutationFn: async (postId: string) => {
+      const { error } = await supabase
+        .from('corp_feed_likes')
+        .delete()
+        .eq('post_id', postId)
+        .eq('user_id', user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['corp-feed'] }),
+  });
+
+  const addComment = useMutation({
+    mutationFn: async ({ postId, content }: { postId: string; content: string }) => {
+      const { error } = await supabase
+        .from('corp_feed_comments')
+        .insert({ post_id: postId, author_id: user!.id, content });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corp-feed'] });
+      queryClient.invalidateQueries({ queryKey: ['corp-feed-comments'] });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao comentar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteComment = useMutation({
+    mutationFn: async (commentId: string) => {
+      const { error } = await supabase
+        .from('corp_feed_comments')
+        .delete()
+        .eq('id', commentId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corp-feed'] });
+      queryClient.invalidateQueries({ queryKey: ['corp-feed-comments'] });
+    },
+  });
+
+  return {
+    posts, isLoading, comments, commentsLoading,
+    createPost, updatePost, deletePost,
+    likePost, unlikePost, addComment, deleteComment,
+  };
 };
