@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Award } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -12,14 +13,40 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
-const BADGE_TYPES = [
-  { value: 'goal_achieved', label: '🎯 Meta Alcançada', icon: '🎯' },
-  { value: 'project_completed', label: '🚀 Projeto Finalizado', icon: '🚀' },
-  { value: 'course_completed', label: '📚 Curso Finalizado', icon: '📚' },
-  { value: 'custom', label: '⭐ Personalizada', icon: '⭐' },
+const BADGE_CATEGORIES = [
+  {
+    category: 'manual',
+    label: '🏅 Reconhecimento',
+    items: [
+      { value: 'goal_achieved', label: 'Meta Alcançada', icon: '🎯', defaultXp: 15 },
+      { value: 'project_completed', label: 'Projeto Finalizado', icon: '🚀', defaultXp: 25 },
+      { value: 'course_completed', label: 'Curso Concluído', icon: '📚', defaultXp: 15 },
+      { value: 'custom', label: 'Personalizada', icon: '⭐', defaultXp: 10 },
+    ],
+  },
+  {
+    category: 'engagement',
+    label: '💬 Engajamento',
+    items: [
+      { value: 'communicator', label: 'Comunicador Ativo', icon: '✍️', defaultXp: 10 },
+      { value: 'influencer', label: 'Influenciador', icon: '❤️', defaultXp: 15 },
+      { value: 'debater', label: 'Debatedor', icon: '💬', defaultXp: 10 },
+    ],
+  },
+  {
+    category: 'attendance',
+    label: '✅ Presença',
+    items: [
+      { value: 'monthly_attendance', label: 'Assiduidade Mensal', icon: '✅', defaultXp: 10 },
+      { value: 'attendance_streak', label: 'Sequência de Presença', icon: '🔥', defaultXp: 25 },
+    ],
+  },
 ];
 
+const ALL_BADGE_ITEMS = BADGE_CATEGORIES.flatMap(c => c.items.map(i => ({ ...i, category: c.category })));
+
 const EMOJI_OPTIONS = ['⭐', '🏆', '🎯', '🚀', '💎', '🔥', '👑', '✨', '💡', '🎖️', '🥇', '🏅', '🎉', '💪', '🌟'];
+const XP_OPTIONS = [5, 10, 15, 25, 50];
 
 interface Props {
   companyId: string;
@@ -34,8 +61,18 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [customIcon, setCustomIcon] = useState('⭐');
+  const [xpValue, setXpValue] = useState(10);
 
-  const selectedType = BADGE_TYPES.find(b => b.value === badgeType);
+  const selectedItem = ALL_BADGE_ITEMS.find(b => b.value === badgeType);
+
+  const handleBadgeTypeChange = (value: string) => {
+    setBadgeType(value);
+    const item = ALL_BADGE_ITEMS.find(b => b.value === value);
+    if (item) {
+      setXpValue(item.defaultXp);
+      if (value !== 'custom') setCustomIcon(item.icon);
+    }
+  };
 
   const { data: colleagues = [] } = useQuery({
     queryKey: ['colleagues', companyId],
@@ -52,29 +89,30 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
 
   const award = useMutation({
     mutationFn: async () => {
-      const icon = badgeType === 'custom' ? customIcon : selectedType?.icon || '⭐';
+      const icon = badgeType === 'custom' ? customIcon : selectedItem?.icon || '⭐';
+      const category = selectedItem?.category || 'manual';
       const { error } = await (supabase as any)
         .from('corp_badges')
         .insert({
           company_id: companyId,
           user_id: userId,
           badge_type: badgeType,
-          title: title || selectedType?.label || 'Conquista',
+          title: title || selectedItem?.label || 'Conquista',
           description: description || null,
           icon,
           awarded_by: user!.id,
+          xp_value: xpValue,
+          category,
         });
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['corp-badges-recent'] });
+      queryClient.invalidateQueries({ queryKey: ['user-xp'] });
       toast({ title: 'Conquista concedida! 🏆' });
       setOpen(false);
-      setUserId('');
-      setTitle('');
-      setDescription('');
-      setBadgeType('custom');
-      setCustomIcon('⭐');
+      setUserId(''); setTitle(''); setDescription('');
+      setBadgeType('custom'); setCustomIcon('⭐'); setXpValue(10);
     },
     onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
@@ -87,7 +125,7 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
           Conceder Conquista
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Award className="h-5 w-5 text-amber-500" />
@@ -106,17 +144,28 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
               </SelectContent>
             </Select>
           </div>
+
           <div>
-            <Label>Tipo</Label>
-            <Select value={badgeType} onValueChange={setBadgeType}>
+            <Label>Categoria / Tipo</Label>
+            <Select value={badgeType} onValueChange={handleBadgeTypeChange}>
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {BADGE_TYPES.map(b => (
-                  <SelectItem key={b.value} value={b.value}>{b.label}</SelectItem>
+                {BADGE_CATEGORIES.map(cat => (
+                  <div key={cat.category}>
+                    <div className="px-2 py-1.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      {cat.label}
+                    </div>
+                    {cat.items.map(item => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.icon} {item.label}
+                      </SelectItem>
+                    ))}
+                  </div>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           {badgeType === 'custom' && (
             <div>
               <Label>Ícone</Label>
@@ -139,16 +188,38 @@ const AwardBadgeDialog = ({ companyId }: Props) => {
               </div>
             </div>
           )}
+
+          <div>
+            <Label>XP da Conquista</Label>
+            <div className="flex gap-1.5 mt-1.5">
+              {XP_OPTIONS.map(xp => (
+                <button
+                  key={xp}
+                  type="button"
+                  onClick={() => setXpValue(xp)}
+                  className={cn(
+                    'flex-1 h-9 rounded-md text-xs font-semibold border transition-all',
+                    xpValue === xp
+                      ? 'border-primary bg-primary/10 text-primary ring-2 ring-primary/30'
+                      : 'border-border hover:border-primary/50 hover:bg-accent text-muted-foreground'
+                  )}
+                >
+                  +{xp}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <Label>Título</Label>
-            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder={selectedType?.label || 'Título da conquista'} />
+            <Input value={title} onChange={e => setTitle(e.target.value)} placeholder={selectedItem?.label || 'Título da conquista'} />
           </div>
           <div>
             <Label>Descrição (opcional)</Label>
             <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Motivo ou detalhes da conquista" rows={2} />
           </div>
           <Button onClick={() => award.mutate()} disabled={!userId || award.isPending} className="w-full">
-            {award.isPending ? 'Concedendo...' : 'Conceder Conquista'}
+            {award.isPending ? 'Concedendo...' : `Conceder Conquista (+${xpValue} XP)`}
           </Button>
         </div>
       </DialogContent>

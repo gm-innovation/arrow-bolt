@@ -1,8 +1,16 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Award } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+
+const CATEGORY_LABELS: Record<string, string> = {
+  manual: '🏅',
+  engagement: '💬',
+  attendance: '✅',
+  tenure: '🎖️',
+};
 
 interface Props {
   companyId: string;
@@ -37,6 +45,8 @@ const FeedBadgesCard = ({ companyId }: Props) => {
         <div className="space-y-2.5">
           {badges.map((b: any) => {
             const initials = b.user?.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '??';
+            const catIcon = CATEGORY_LABELS[b.category] || '🏅';
+            const xp = b.xp_value || 10;
             return (
               <div key={b.id} className="flex items-center gap-2">
                 <span className="text-sm shrink-0">{b.icon || '🏆'}</span>
@@ -48,6 +58,9 @@ const FeedBadgesCard = ({ companyId }: Props) => {
                   <p className="text-xs font-medium truncate">{b.user?.full_name}</p>
                   <p className="text-[10px] text-muted-foreground truncate">{b.title}</p>
                 </div>
+                <Badge variant="secondary" className="text-[9px] h-4 shrink-0 font-semibold">
+                  +{xp}
+                </Badge>
               </div>
             );
           })}
