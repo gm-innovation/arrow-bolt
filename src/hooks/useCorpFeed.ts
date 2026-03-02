@@ -3,6 +3,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 
+const getFileType = (mime: string): string => {
+  if (mime.startsWith('image/')) return 'image';
+  if (mime.startsWith('video/')) return 'video';
+  if (mime.startsWith('audio/')) return 'audio';
+  return 'file';
+};
+
+const sanitizeFileName = (name: string): string =>
+  name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+
 export const useCorpFeed = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -16,7 +26,8 @@ export const useCorpFeed = () => {
           *,
           author:profiles!corp_feed_posts_author_id_fkey(id, full_name, avatar_url),
           corp_feed_likes(user_id),
-          corp_feed_comments(id)
+          corp_feed_comments(id),
+          corp_feed_attachments(id, file_url, file_name, file_type, file_size, mime_type)
         `)
         .order('pinned', { ascending: false })
         .order('created_at', { ascending: false });
@@ -27,6 +38,7 @@ export const useCorpFeed = () => {
         likes_count: post.corp_feed_likes?.length || 0,
         comments_count: post.corp_feed_comments?.length || 0,
         liked_by_me: post.corp_feed_likes?.some((l: any) => l.user_id === user?.id) || false,
+        attachments: post.corp_feed_attachments || [],
       }));
     },
     enabled: !!user,
@@ -53,13 +65,41 @@ export const useCorpFeed = () => {
     enabled: !!user && posts.length > 0,
   });
 
+  const uploadAttachments = async (postId: string, files: File[]) => {
+    for (const file of files) {
+      const safeName = sanitizeFileName(file.name);
+      const path = `${user!.id}/${postId}/${Date.now()}-${safeName}`;
+      const { error: uploadError } = await supabase.storage
+        .from('corp-feed-media')
+        .upload(path, file, { cacheControl: '3600', upsert: false });
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from('corp-feed-media').getPublicUrl(path);
+
+      const { error: insertError } = await supabase.from('corp_feed_attachments').insert({
+        post_id: postId,
+        file_url: urlData.publicUrl,
+        file_name: file.name,
+        file_type: getFileType(file.type),
+        file_size: file.size,
+        mime_type: file.type,
+      });
+      if (insertError) throw insertError;
+    }
+  };
+
   const createPost = useMutation({
-    mutationFn: async (post: { company_id: string; title?: string; content: string; post_type?: string; pinned?: boolean }) => {
+    mutationFn: async (post: { company_id: string; title?: string; content: string; post_type?: string; pinned?: boolean; files?: File[] }) => {
+      const { files, ...postData } = post;
       const { data, error } = await supabase
         .from('corp_feed_posts')
-        .insert({ ...post, author_id: user!.id })
+        .insert({ ...postData, author_id: user!.id })
         .select().single();
       if (error) throw error;
+
+      if (files && files.length > 0) {
+        await uploadAttachments(data.id, files);
+      }
       return data;
     },
     onSuccess: () => {
