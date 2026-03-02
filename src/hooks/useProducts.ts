@@ -27,7 +27,7 @@ export const useProducts = () => {
       const { error } = await supabase.from("crm_products").insert({
         ...product,
         company_id: profile?.company_id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {

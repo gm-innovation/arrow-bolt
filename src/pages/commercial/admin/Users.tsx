@@ -56,7 +56,7 @@ const AdminUsers = () => {
     queryKey: ["commercial-admin-users", profile?.company_id],
     queryFn: async () => {
       if (!profile?.company_id) return [];
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from("profiles")
         .select("id, full_name, email, phone, created_at, user_roles(role)")
         .eq("company_id", profile.company_id)

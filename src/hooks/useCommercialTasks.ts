@@ -47,7 +47,7 @@ export const useCommercialTasks = () => {
         ...payload,
         company_id: profile!.company_id,
         created_by: profile!.id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {

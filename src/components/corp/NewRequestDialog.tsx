@@ -29,6 +29,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   const { requestTypes } = useCorpRequestTypes();
   const { departments } = useDepartments();
   const { users } = useUsers();
+  const { user } = useAuth();
 
   const selectedType = requestTypes.find(t => t.id === typeId);
 

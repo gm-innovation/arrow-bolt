@@ -27,7 +27,7 @@ export const useUsers = () => {
 
       if (!profileData?.company_id) throw new Error('Empresa não encontrada');
 
-      const { data: usersData, error } = await supabase
+      const { data: usersData, error } = await (supabase as any)
         .from('profiles')
         .select(`
           id,

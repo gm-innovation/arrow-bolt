@@ -42,7 +42,7 @@ export const useRecurrences = () => {
       const { error } = await supabase.from("crm_client_recurrences").insert({
         ...rec,
         company_id: profile?.company_id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -81,7 +81,7 @@ export const useRecurrences = () => {
       const { error } = await supabase.from("crm_recurrence_templates").insert({
         ...tpl,
         company_id: profile?.company_id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {

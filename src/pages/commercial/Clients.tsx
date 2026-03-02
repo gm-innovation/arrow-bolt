@@ -39,7 +39,7 @@ const CommercialClients = () => {
         const { error } = await supabase.from('clients').update(updates).eq('id', editingClient.id);
         if (error) throw error;
       } else {
-        const { data: newClient, error } = await supabase.from('clients').insert({ ...formData, company_id: profile.company_id }).select('id').single();
+        const { data: newClient, error } = await supabase.from('clients').insert({ ...formData, company_id: profile.company_id } as any).select('id').single();
         if (error) throw error;
         
         // Create associated buyer if provided
@@ -50,7 +50,7 @@ const CommercialClients = () => {
             company_id: profile.company_id,
             is_primary: true,
             is_active: true,
-          });
+          } as any);
         }
       }
     },

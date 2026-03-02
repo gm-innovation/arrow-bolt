@@ -29,7 +29,7 @@ export const useIntegrationLogs = () => {
         ...log,
         company_id: profile?.company_id,
         user_id: profile?.id,
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["crm-integration-logs"] }),
