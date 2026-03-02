@@ -1,42 +1,63 @@
 
 
-## Página de Grupo como Fórum com Layout 3 Colunas
+## Plano: Remover página Grupos, Discussões no Feed, Reações, Enquetes, Aniversariantes e Kudos
 
-### Estrutura
+### 1. Remover página/aba "Grupos"
+- Remover aba "Grupos" do `CorpLayout.tsx` (linha 26)
+- Remover rota `/corp/groups` do `App.tsx` (manter `/corp/groups/:id` e `/corp/groups/:id/discussions/:discussionId`)
+- Deletar `src/pages/corp/Groups.tsx`
 
-A página de detalhe do grupo (`/corp/groups/:id`) será reestruturada com o mesmo layout de 3 colunas do feed principal, e o conteúdo central funcionará como um fórum com discussões/tópicos.
+### 2. Discussões gerais no Feed (coluna esquerda)
+Na sidebar esquerda (`FeedProfileSidebar.tsx`), abaixo dos grupos, adicionar seção **"Discussões"** com botão "Nova Discussão". Discussões gerais são abertas a todos da empresa (não vinculadas a um grupo).
 
-### Banco de Dados — 2 novas tabelas
+**Banco de dados:** Reutilizar `corp_group_discussions` adicionando coluna `company_id` (nullable) — quando `group_id` é null e `company_id` preenchido, é uma discussão geral do feed. Ou criar tabela separada `corp_feed_discussions` com campos similares e `corp_feed_discussion_posts` para respostas.
 
-**`corp_group_discussions`** — Tópicos/assuntos do fórum
-- `id`, `group_id` (FK corp_groups), `author_id` (FK profiles), `title`, `content`, `pinned`, `created_at`, `updated_at`
-- RLS: membros do grupo podem ler; membros podem criar; autor pode editar/deletar
+Decisão: criar **`corp_feed_discussions`** (id, company_id, author_id, title, content, pinned, created_at) e **`corp_feed_discussion_replies`** (id, discussion_id, author_id, content, created_at) para manter separação clara. RLS: mesma empresa pode ler/criar. Nova rota `/corp/feed/discussions/:id`.
 
-**`corp_group_discussion_posts`** — Respostas dentro de cada discussão (feed interno)
-- `id`, `discussion_id` (FK corp_group_discussions), `author_id` (FK profiles), `content`, `created_at`
-- RLS: membros do grupo podem ler e criar; autor pode deletar
+- `FeedProfileSidebar.tsx`: listar últimas 5 discussões gerais com título truncado + link. Botão "Nova Discussão" abre dialog
+- Nova página `src/pages/corp/FeedDiscussion.tsx` com layout 3 colunas: sidebar esquerda (perfil), centro (tópico + respostas), direita (aniversariantes/grupos)
 
-### Página `GroupDetail.tsx` — Layout 3 colunas
+### 3. Reações variadas (substituir curtida simples)
 
-**Coluna esquerda (260px):** Card com info do grupo (nome, tipo, descrição, badge de membros, botão Sair/Solicitar, e painel de aprovação para admin/HR)
+**Banco de dados:** Adicionar coluna `reaction_type` (text, default 'like') na `corp_feed_likes`. Alterar unique constraint de `(post_id, user_id)` para `(post_id, user_id, reaction_type)` — ou manter uma reação por usuário e mudar o tipo. Decisão: **uma reação por usuário por post**, coluna `reaction_type` (like, love, celebrate, support, funny, insightful).
 
-**Coluna central:** Lista de discussões do grupo. Cada discussão mostra título, autor, data, e contagem de respostas. Botão "Nova Discussão" no topo. Ao clicar em uma discussão, abre a página de discussão.
+- `FeedPostCard.tsx`: substituir botão "Curtir" por popover de reações (emoji picker com 6 opções tipo LinkedIn)
+- Mostrar contagem agrupada por tipo de reação
 
-**Coluna direita (260px):** Lista de membros do grupo com avatares
+### 4. Enquetes
 
-### Nova Página `GroupDiscussion.tsx` — `/corp/groups/:id/discussions/:discussionId`
+**Banco de dados:** 
+- `corp_feed_polls` (id, post_id FK, question, allow_multiple, ends_at)
+- `corp_feed_poll_options` (id, poll_id FK, option_text, position)
+- `corp_feed_poll_votes` (id, option_id FK, user_id, created_at, unique user_id+poll_id via trigger)
 
-Layout 3 colunas igual. A coluna central mostra o post original da discussão no topo e abaixo um feed de respostas (como posts do feed principal), com campo para responder. Colunas laterais iguais à página do grupo.
+- `FeedCreatePost.tsx`: adicionar botão "Enquete" que expande campos para pergunta + opções
+- `FeedPostCard.tsx`: renderizar enquete inline com barras de progresso e porcentagens
+- Após votar, mostrar resultados; antes, mostrar opções clicáveis
 
-### Novo hook `useGroupDiscussions.ts`
-- Queries: listar discussões do grupo, listar posts de uma discussão
-- Mutations: criar discussão, criar resposta, deletar
+### 5. Card de aniversariantes no feed
+Gerar automaticamente um post especial de aniversário no feed central quando for o dia do aniversário de alguém. Pode ser feito client-side: verificar se há aniversariante do dia e renderizar um card especial no topo do feed (sem criar post real no banco).
 
-### Rota no `App.tsx`
-- `/corp/groups/:id/discussions/:discussionId` → `GroupDiscussion.tsx`
+- Componente `BirthdayCard` renderizado no feed central acima dos posts, mostrando quem faz aniversário hoje com visual festivo
 
-### Componentes novos
-- `GroupInfoSidebar.tsx` — Sidebar esquerda com info do grupo (extraído do GroupDetail atual)
-- `GroupMembersSidebar.tsx` — Sidebar direita com lista de membros
-- `NewDiscussionDialog.tsx` — Dialog para criar nova discussão (título + conteúdo)
+### 6. Kudos
+Sistema de reconhecimento entre colegas.
+
+**Banco de dados:**
+- `corp_kudos` (id, company_id, from_user_id, to_user_id, category (teamwork/innovation/leadership/helpfulness/excellence), message, created_at)
+
+- `FeedCreatePost.tsx`: botão "Kudos" abre dialog para selecionar colega + categoria + mensagem
+- Kudos aparecem como posts especiais no feed com visual diferenciado (ícone de troféu, destaque do destinatário)
+- `FeedRightSidebar.tsx`: card "Top Kudos" mostrando quem mais recebeu reconhecimentos no mês
+
+### Resumo de migrações SQL
+1. `corp_feed_discussions` + `corp_feed_discussion_replies` + RLS
+2. Alterar `corp_feed_likes`: add `reaction_type text default 'like'`, drop/recreate unique constraint
+3. `corp_feed_polls` + `corp_feed_poll_options` + `corp_feed_poll_votes` + RLS
+4. `corp_kudos` + RLS
+
+### Componentes novos/alterados
+- Deletar: `src/pages/corp/Groups.tsx`
+- Alterar: `CorpLayout.tsx`, `App.tsx`, `FeedProfileSidebar.tsx`, `FeedPostCard.tsx`, `FeedCreatePost.tsx`, `FeedRightSidebar.tsx`, `useCorpFeed.ts`
+- Criar: `FeedDiscussion.tsx` (página), `FeedReactionPicker.tsx`, `FeedPollCreate.tsx`, `FeedPollDisplay.tsx`, `FeedBirthdayCard.tsx`, `FeedKudosDialog.tsx`, `FeedKudosCard.tsx`, `useCorpFeedDiscussions.ts`
 
