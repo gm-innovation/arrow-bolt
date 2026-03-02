@@ -1,47 +1,38 @@
 
 
-## Transformar Feed Corporativo em Rede Social Interna
+## Adicionar Mídia ao Feed Corporativo
 
-### Estado Atual
-O feed é uma lista simples de cards com título, conteúdo, autor e tipo. Sem interação social (curtidas, comentários), sem criação inline, sem avatar real.
+### Banco de Dados
 
-### Novas Funcionalidades
+**1. Storage bucket** `corp-feed-media` (público) para armazenar fotos, vídeos, áudios e arquivos, com RLS permitindo upload por autenticados e leitura pública.
 
-**1. Banco de Dados — Novas tabelas (migração SQL)**
+**2. Tabela `corp_feed_attachments`**:
+- `id` (uuid PK), `post_id` (FK → corp_feed_posts), `file_url` (text), `file_name` (text), `file_type` (text — image/video/audio/file), `file_size` (bigint), `mime_type` (text), `created_at`
+- RLS: leitura para autenticados, inserção/deleção pelo autor do post
 
-- **`corp_feed_likes`**: `id`, `post_id` (FK → corp_feed_posts), `user_id` (FK → profiles), `created_at`. Unique(post_id, user_id).
-- **`corp_feed_comments`**: `id`, `post_id` (FK → corp_feed_posts), `author_id` (FK → profiles), `content` (text), `created_at`, `updated_at`.
-- RLS: usuários autenticados da mesma empresa podem ler; cada um pode criar/deletar os próprios likes/comentários.
-- Habilitar realtime para ambas as tabelas.
+### Hook `useCorpFeed.ts`
 
-**2. Hook `useCorpFeed.ts` — Expandir**
+- Adicionar mutation `uploadAttachments` que faz upload dos arquivos para o bucket e insere registros na tabela `corp_feed_attachments`
+- Atualizar query de posts para incluir `corp_feed_attachments(*)` no select
+- Atualizar `createPost` para aceitar arquivos e chamar upload após criação do post
 
-- Query de posts: incluir contagem de likes (`corp_feed_likes(count)`), contagem de comentários (`corp_feed_comments(count)`), e flag se o usuário atual curtiu.
-- Mutations: `likePost`, `unlikePost`, `addComment`, `deleteComment`.
+### Componente `FeedCreatePost.tsx`
 
-**3. Página `Feed.tsx` — Redesign visual estilo rede social**
+- Adicionar barra de ações com botões: Foto (📷), Vídeo (🎥), Áudio (🎤), Arquivo (📎)
+- Cada botão abre um `<input type="file">` com accept filtrado (image/*, video/*, audio/*, *)
+- Preview dos anexos selecionados antes de publicar: thumbnails para imagens, ícones para outros tipos
+- Botão X para remover anexo antes de publicar
+- Permitir múltiplos anexos por post
 
-- **Criar post inline**: Área no topo com avatar do usuário + textarea "No que você está pensando?" que ao clicar expande com opções de tipo e botão publicar (sem dialog separado).
-- **Card de post redesenhado**:
-  - Avatar do autor com imagem real (`avatar_url`) via `AvatarImage`.
-  - Barra de ações: botão curtir (❤️ com contagem), botão comentar (💬 com contagem), timestamp relativo.
-  - Seção de comentários colapsável: lista de comentários com avatar + nome + texto + hora, e input para novo comentário.
-  - Posts fixados com destaque visual (ícone pin + borda).
-- **Layout centralizado**: max-width ~600px estilo timeline, centrado na página.
+### Componente `FeedPostCard.tsx`
 
-**4. Componentes novos**
+- Renderizar anexos do post:
+  - **Imagens**: grid responsivo com preview clicável
+  - **Vídeos**: player `<video>` nativo com controles
+  - **Áudios**: player `<audio>` nativo com controles
+  - **Arquivos**: card com ícone + nome + tamanho + botão download
 
-- **`FeedPostCard.tsx`**: Card individual com autor, conteúdo, ações (like/comment), lista de comentários.
-- **`FeedCommentSection.tsx`**: Lista de comentários + input de novo comentário.
-- **`FeedCreatePost.tsx`**: Área inline de criação no topo do feed (substitui o dialog para criação rápida; dialog mantido para admins com opções avançadas como fixar).
+### Componente novo: `FeedMediaPreview.tsx`
 
-**5. Detalhes técnicos**
-
-- Contagem de likes via query agregada no select do Supabase (evita N+1).
-- Verificação de "já curtiu" comparando `user_id = auth.uid()` no array de likes retornado.
-- Comentários carregados junto com o post (limite de 3 visíveis, expandir para ver todos).
-- Timestamps relativos usando `formatDistanceToNow` do date-fns.
-
-### Resultado
-Feed com aparência de rede social: criação rápida de posts, curtidas com contagem, comentários inline, avatares reais, layout de timeline centralizado.
+Componente reutilizável que recebe a lista de attachments e renderiza o layout adequado (grid de imagens, players de mídia, cards de arquivo).
 
