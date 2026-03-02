@@ -127,10 +127,10 @@ export const useCorpFeed = () => {
     if (error) throw error;
   };
 
-  const createPoll = async (postId: string, poll: { question: string; options: string[] }) => {
+  const createPoll = async (postId: string, poll: { question: string; options: string[]; group_id?: string }) => {
     const { data: pollRow, error: pollErr } = await (supabase as any)
       .from('corp_feed_polls')
-      .insert({ post_id: postId, question: poll.question })
+      .insert({ post_id: postId, question: poll.question, group_id: poll.group_id || null })
       .select().single();
     if (pollErr) throw pollErr;
     const optionRows = poll.options.map((opt, i) => ({
@@ -144,7 +144,7 @@ export const useCorpFeed = () => {
     mutationFn: async (post: {
       company_id: string; title?: string; content: string; post_type?: string;
       pinned?: boolean; files?: File[]; mentions?: MentionItem[];
-      poll?: { question: string; options: string[] };
+      poll?: { question: string; options: string[]; group_id?: string };
     }) => {
       const { files, mentions, poll, ...postData } = post;
       const { data, error } = await supabase

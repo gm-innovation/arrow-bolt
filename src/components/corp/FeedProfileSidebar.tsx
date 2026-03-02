@@ -51,7 +51,7 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
     queryFn: async () => {
       const { data } = await (supabase as any)
         .from('corp_feed_polls')
-        .select('*, corp_feed_posts!corp_feed_polls_post_id_fkey(id, company_id)')
+        .select('*, corp_feed_posts!corp_feed_polls_post_id_fkey(id, company_id, author_id)')
         .eq('status', 'active')
         .limit(10);
       // Filter by company
@@ -169,7 +169,7 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
           {activePoll ? (
             <div className="space-y-2">
               <FeedPollDisplay postId={activePoll.post_id} />
-              {isAdminOrHR && (
+              {(activePoll.corp_feed_posts?.author_id === user?.id || isAdminOrHR) && (
                 <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 text-destructive hover:text-destructive" onClick={() => closePoll.mutate()} disabled={closePoll.isPending}>
                   <StopCircle className="h-3.5 w-3.5" />
                   Finalizar Enquete
@@ -177,10 +177,7 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
               )}
             </div>
           ) : (
-            isAdminOrHR && <FeedPollSidebarCreate companyId={companyId} hasActivePoll={false} />
-          )}
-          {!activePoll && !isAdminOrHR && (
-            <p className="text-[10px] text-muted-foreground">Nenhuma enquete ativa</p>
+            <FeedPollSidebarCreate companyId={companyId} hasActivePoll={false} />
           )}
         </div>
 
