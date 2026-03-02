@@ -1,14 +1,18 @@
 
 
-## Remover CorpLayout do Feed Corporativo
+## Corrigir tela em branco — erro de build do Dexie
 
-O problema é que a página `Feed` (`src/pages/corp/Feed.tsx`) usa o componente `CorpLayout`, que renderiza as abas (Dashboard, Solicitações, Documentos). O Feed é um item global independente na sidebar e não deve exibir essas abas.
+A tela em branco é causada por um erro de compilação TypeScript no pacote `dexie`:
 
-### Alteração
+```
+node_modules/dexie/dist/dexie.d.ts(1202,23): error TS1540: A 'namespace' declaration should not be declared using the 'module' keyword.
+```
 
-**`src/pages/corp/Feed.tsx`**
-- Remover o import de `CorpLayout`
-- Substituir `<CorpLayout>` por um `<div>` simples, mantendo todo o conteúdo interno igual
+Este erro impede que a aplicação compile, resultando na tela em branco.
 
-Apenas 1 arquivo alterado. Sem impacto em banco de dados ou outras páginas.
+### Solução
+
+**`tsconfig.app.json`** — Adicionar `skipLibCheck: true` nas `compilerOptions` para ignorar erros de tipagem em pacotes de terceiros (como `dexie`). Isso é uma prática comum e segura, pois não afeta a verificação de tipos do código do projeto.
+
+Alteração de 1 linha em 1 arquivo.
 
