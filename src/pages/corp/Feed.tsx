@@ -5,6 +5,7 @@ import FeedCreatePost from '@/components/corp/FeedCreatePost';
 import FeedPostCard from '@/components/corp/FeedPostCard';
 import FeedProfileSidebar from '@/components/corp/FeedProfileSidebar';
 import FeedRightSidebar from '@/components/corp/FeedRightSidebar';
+import FeedBirthdayCard from '@/components/corp/FeedBirthdayCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -31,11 +32,7 @@ const CorpFeed = () => {
   const { data: userRole } = useQuery({
     queryKey: ['my-role', user?.id],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user!.id)
-        .single();
+      const { data } = await supabase.from('user_roles').select('role').eq('user_id', user!.id).single();
       return data?.role;
     },
     enabled: !!user,
@@ -46,14 +43,12 @@ const CorpFeed = () => {
   return (
     <div className="max-w-[1100px] mx-auto px-2">
       <div className={isMobile ? 'space-y-4' : 'grid grid-cols-[260px_1fr_260px] gap-5 items-start'}>
-        {/* Left sidebar - Profile */}
-        <div className={isMobile ? '' : ''}>
-          <FeedProfileSidebar profile={profile} role={userRole} />
-        </div>
+        <div><FeedProfileSidebar profile={profile} role={userRole} /></div>
 
-        {/* Center - Timeline */}
         <div className="space-y-4 min-w-0">
           <FeedCreatePost companyId={effectiveCompanyId} userProfile={profile} userRole={userRole} />
+
+          {effectiveCompanyId && <FeedBirthdayCard companyId={effectiveCompanyId} />}
 
           {isLoading ? (
             <div className="space-y-4">
@@ -73,10 +68,7 @@ const CorpFeed = () => {
           )}
         </div>
 
-        {/* Right sidebar */}
-        {!isMobile && effectiveCompanyId && (
-          <FeedRightSidebar companyId={effectiveCompanyId} />
-        )}
+        {!isMobile && effectiveCompanyId && <FeedRightSidebar companyId={effectiveCompanyId} />}
       </div>
     </div>
   );

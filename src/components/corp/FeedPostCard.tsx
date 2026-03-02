@@ -3,27 +3,21 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, MessageCircle, Pin, Users, User } from 'lucide-react';
+import { MessageCircle, Pin, Users, User } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCorpFeed } from '@/hooks/useCorpFeed';
 import FeedCommentSection from './FeedCommentSection';
 import FeedMediaPreview from './FeedMediaPreview';
 import FeedUserProfileCard from './FeedUserProfileCard';
+import FeedReactionPicker, { ReactionType } from './FeedReactionPicker';
+import FeedPollDisplay from './FeedPollDisplay';
 import { cn } from '@/lib/utils';
 
 const ROLE_LABELS: Record<string, string> = {
-  technician: 'Técnico',
-  admin: 'Administrador',
-  hr: 'RH',
-  manager: 'Gerente',
-  commercial: 'Comercial',
-  qualidade: 'Qualidade',
-  compras: 'Suprimentos',
-  financeiro: 'Financeiro',
-  super_admin: 'Super Admin',
-  director: 'Diretor',
-  corp: 'Corporativo',
+  technician: 'Técnico', admin: 'Administrador', hr: 'RH', manager: 'Gerente',
+  commercial: 'Comercial', qualidade: 'Qualidade', compras: 'Suprimentos',
+  financeiro: 'Financeiro', super_admin: 'Super Admin', director: 'Diretor', corp: 'Corporativo',
 };
 
 interface FeedPostCardProps {
@@ -31,22 +25,15 @@ interface FeedPostCardProps {
   comments: any[];
 }
 
-/** Render post content with inline mention highlights */
 const renderContentWithMentions = (content: string, mentions: any[]) => {
   if (!mentions || mentions.length === 0) {
     return <p className="text-sm whitespace-pre-wrap">{content}</p>;
   }
-
   const mentionMap = new Map(mentions.map((m: any) => [m.display_name, m]));
-  const pattern = mentions
-    .map((m: any) => `@${m.display_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`)
-    .join('|');
-
+  const pattern = mentions.map((m: any) => `@${m.display_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).join('|');
   if (!pattern) return <p className="text-sm whitespace-pre-wrap">{content}</p>;
-
   const regex = new RegExp(`(${pattern})`, 'g');
   const parts = content.split(regex);
-
   return (
     <p className="text-sm whitespace-pre-wrap">
       {parts.map((part, i) => {
@@ -56,15 +43,8 @@ const renderContentWithMentions = (content: string, mentions: any[]) => {
           const isGroup = mention.mention_type === 'group';
           const isRole = mention.mention_type === 'role';
           return (
-            <span
-              key={i}
-              className={cn(
-                'inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[11px] font-semibold align-baseline',
-                isRole || isGroup
-                  ? 'bg-primary/10 text-primary'
-                  : 'bg-accent text-accent-foreground'
-              )}
-            >
+            <span key={i} className={cn('inline-flex items-center gap-0.5 rounded-full px-1.5 py-0 text-[11px] font-semibold align-baseline',
+              isRole || isGroup ? 'bg-primary/10 text-primary' : 'bg-accent text-accent-foreground')}>
               {isRole || isGroup ? <Users className="h-3 w-3 inline" /> : <User className="h-3 w-3 inline" />}
               {part}
             </span>
@@ -77,33 +57,29 @@ const renderContentWithMentions = (content: string, mentions: any[]) => {
 };
 
 const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
-  const { likePost, unlikePost } = useCorpFeed();
+  const { reactToPost, removeReaction } = useCorpFeed();
   const [showComments, setShowComments] = useState(false);
 
   const initials = post.author?.full_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '??';
   const roleMentions = (post.mentions || []).filter((m: any) => m.mention_type === 'role' || m.mention_type === 'group');
   const authorRole = post.author_role;
 
-  const handleLike = () => {
-    if (post.liked_by_me) {
-      unlikePost.mutate(post.id);
-    } else {
-      likePost.mutate(post.id);
-    }
+  const handleReact = (type: ReactionType) => {
+    reactToPost.mutate({ postId: post.id, reactionType: type });
   };
+
+  const handleRemoveReaction = () => {
+    removeReaction.mutate(post.id);
+  };
+
+  const hasPoll = post.post_type === 'poll';
 
   return (
     <Card className={cn(post.pinned && 'border-primary/40 bg-primary/5')}>
       <CardHeader className="pb-2 px-4 pt-4">
         <div className="flex items-start justify-between">
           <FeedUserProfileCard
-            author={{
-              id: post.author?.id,
-              full_name: post.author?.full_name,
-              avatar_url: post.author?.avatar_url,
-              hire_date: post.author?.hire_date,
-              birth_date: post.author?.birth_date,
-            }}
+            author={{ id: post.author?.id, full_name: post.author?.full_name, avatar_url: post.author?.avatar_url, hire_date: post.author?.hire_date, birth_date: post.author?.birth_date }}
             role={authorRole}
             groups={post.author_groups}
           >
@@ -115,14 +91,8 @@ const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
               <div>
                 <p className="text-sm font-medium group-hover:text-primary transition-colors">{post.author?.full_name || 'Desconhecido'}</p>
                 <div className="flex items-center gap-1.5">
-                  {authorRole && (
-                    <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-medium">
-                      {ROLE_LABELS[authorRole] || authorRole}
-                    </Badge>
-                  )}
-                  <span className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}
-                  </span>
+                  {authorRole && <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-medium">{ROLE_LABELS[authorRole] || authorRole}</Badge>}
+                  <span className="text-xs text-muted-foreground">{formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}</span>
                 </div>
               </div>
             </button>
@@ -135,33 +105,24 @@ const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
         {roleMentions.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {roleMentions.map((m: any) => (
-              <span
-                key={m.id}
-                className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium"
-              >
-                <Users className="h-3 w-3" />
-                Direcionado a @{m.display_name}
+              <span key={m.id} className="inline-flex items-center gap-1 rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-medium">
+                <Users className="h-3 w-3" />Direcionado a @{m.display_name}
               </span>
             ))}
           </div>
         )}
 
         {post.title && <p className="font-semibold text-sm">{post.title}</p>}
-        {renderContentWithMentions(post.content, post.mentions)}
+        {post.content && renderContentWithMentions(post.content, post.mentions)}
 
-        {post.attachments?.length > 0 && (
-          <FeedMediaPreview attachments={post.attachments} />
-        )}
+        {post.attachments?.length > 0 && <FeedMediaPreview attachments={post.attachments} />}
 
-        {/* LinkedIn-style counts */}
-        {(post.likes_count > 0 || post.comments_count > 0) && (
+        {hasPoll && <FeedPollDisplay postId={post.id} />}
+
+        {/* Reaction counts + comment count */}
+        {(post.total_reactions > 0 || post.comments_count > 0) && (
           <div className="flex items-center justify-between text-xs text-muted-foreground pb-1">
-            {post.likes_count > 0 && (
-              <span className="flex items-center gap-1">
-                <span className="bg-primary text-primary-foreground rounded-full h-4 w-4 flex items-center justify-center text-[9px]">♥</span>
-                {post.likes_count} {post.likes_count === 1 ? 'curtida' : 'curtidas'}
-              </span>
-            )}
+            <div />
             {post.comments_count > 0 && (
               <button onClick={() => setShowComments(!showComments)} className="hover:underline hover:text-primary ml-auto">
                 {post.comments_count} {post.comments_count === 1 ? 'comentário' : 'comentários'}
@@ -171,29 +132,18 @@ const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
         )}
 
         <div className="flex items-center border-t border-border pt-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn('flex-1 gap-1.5 text-xs h-9', post.liked_by_me && 'text-primary font-semibold')}
-            onClick={handleLike}
-          >
-            <Heart className={cn('h-4 w-4', post.liked_by_me && 'fill-current')} />
-            Curtir
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 gap-1.5 text-xs h-9"
-            onClick={() => setShowComments(!showComments)}
-          >
-            <MessageCircle className="h-4 w-4" />
-            Comentar
+          <FeedReactionPicker
+            myReaction={post.my_reaction}
+            reactionCounts={post.reaction_counts || {}}
+            onReact={handleReact}
+            onRemoveReaction={handleRemoveReaction}
+          />
+          <Button variant="ghost" size="sm" className="flex-1 gap-1.5 text-xs h-9" onClick={() => setShowComments(!showComments)}>
+            <MessageCircle className="h-4 w-4" />Comentar
           </Button>
         </div>
 
-        {showComments && (
-          <FeedCommentSection postId={post.id} comments={comments} />
-        )}
+        {showComments && <FeedCommentSection postId={post.id} comments={comments} />}
       </CardContent>
     </Card>
   );
