@@ -1,25 +1,26 @@
 
 
-## Criar Grupos Padrão Automaticamente ✅
+## Grupos: Entrar pela Direita + Acessar pela Esquerda
 
-Concluído. 11 grupos criados, membros auto-associados e triggers implementados.
+### Problema Atual
+- Sidebar direita lista apenas "Grupos Populares" (top 5) sem ação — usuário não consegue entrar em nenhum grupo.
+- Sidebar esquerda lista nomes dos grupos que participa, mas não são clicáveis.
 
-### Resultado
+### Solução
 
-| Grupo | Membros |
-|-------|---------|
-| Técnicos | 15 |
-| Administradores | 2 |
-| Recursos Humanos | 2 |
-| Gerentes | 1 |
-| Comercial | 1 |
-| Qualidade | 1 |
-| Financeiro | 1 |
-| Suprimentos | 1 |
-| CIPA | 0 |
-| Brigada de Incêndio | 0 |
-| SESMT | 0 |
+**1. `src/components/corp/FeedRightSidebar.tsx`** — Listar TODOS os grupos com botão "Entrar"/"Sair"
+- Substituir query manual `feed-popular-groups` por `useCorpGroups(companyId)` 
+- Listar todos os grupos da empresa dentro de `ScrollArea`
+- Para cada grupo: nome, badge de membros, e botão "Entrar" (se não é membro) ou "Sair" (se é membro)
+- Grupos `role_based`: badge "Automático", sem botão de ação (membership gerida pelo trigger)
+- Invalidar `my-corp-groups` ao entrar/sair para atualizar sidebar esquerda
 
-### Triggers criados
-- `trg_auto_create_corp_groups` — cria grupos automaticamente quando nova empresa é cadastrada
-- `trg_auto_assign_corp_group` — associa usuário ao grupo quando role é atribuída/alterada
+**2. `src/components/corp/FeedProfileSidebar.tsx`** — Tornar grupos clicáveis
+- Ao clicar em um grupo que o usuário participa, navegar para `/corp/groups` (página de grupos) onde pode ver detalhes e membros
+- Usar `useNavigate` do react-router-dom para navegação
+- Cada badge de grupo vira um link/botão clicável com hover visual
+
+### Segurança
+- RLS já permite: SELECT para mesma empresa, INSERT com `user_id = auth.uid()`, DELETE com `user_id = auth.uid()`
+- Nenhuma alteração de banco necessária
+
