@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCorpGroups } from '@/hooks/useCorpGroups';
 import { useNavigate } from 'react-router-dom';
-import FeedKudosCard from './FeedKudosCard';
+import FeedBadgesCard from './FeedBadgesCard';
 
 interface FeedRightSidebarProps {
   companyId: string;
@@ -77,8 +77,8 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
 
   return (
     <div className="space-y-4 sticky top-4">
-      {/* Kudos */}
-      <FeedKudosCard companyId={companyId} />
+      {/* Badges */}
+      <FeedBadgesCard companyId={companyId} />
 
       {/* Birthdays */}
       <Card>

@@ -3,13 +3,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Send, Image, Film, Music, Paperclip, BarChart3 } from 'lucide-react';
+import { Send, Image, Film, Music, Paperclip } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCorpFeed } from '@/hooks/useCorpFeed';
 import FeedMediaPreview from './FeedMediaPreview';
 import FeedMentionInput, { MentionItem } from './FeedMentionInput';
-import FeedPollCreate from './FeedPollCreate';
-import FeedKudosDialog from './FeedKudosDialog';
 
 const ROLE_LABELS: Record<string, string> = {
   technician: 'Técnico', admin: 'Administrador', hr: 'RH', manager: 'Gerente',
@@ -30,8 +28,6 @@ const FeedCreatePost = ({ companyId, userProfile, userRole }: FeedCreatePostProp
   const [mentions, setMentions] = useState<MentionItem[]>([]);
   const [expanded, setExpanded] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
-  const [showPoll, setShowPoll] = useState(false);
-  const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [acceptType, setAcceptType] = useState('*/*');
 
@@ -60,20 +56,18 @@ const FeedCreatePost = ({ companyId, userProfile, userRole }: FeedCreatePostProp
   }));
 
   const handleSubmit = () => {
-    if ((!content.trim() && files.length === 0 && !pollData) || !companyId) return;
+    if ((!content.trim() && files.length === 0) || !companyId) return;
     createPost.mutate(
       {
         company_id: companyId,
         content: content || '',
         files,
         mentions,
-        post_type: pollData ? 'poll' : 'text',
-        poll: pollData || undefined,
+        post_type: 'text',
       },
       {
         onSuccess: () => {
           setContent(''); setExpanded(false); setFiles([]); setMentions([]);
-          setShowPoll(false); setPollData(null);
         },
       }
     );
@@ -87,7 +81,7 @@ const FeedCreatePost = ({ companyId, userProfile, userRole }: FeedCreatePostProp
             {userProfile?.avatar_url && <AvatarImage src={userProfile.avatar_url} />}
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
-          <div className="flex-1 space-y-3">
+          <div className="flex-1 min-w-0 space-y-3 overflow-hidden">
             {userRole && !expanded && (
               <Badge variant="secondary" className="text-[9px] h-4 mb-1">{ROLE_LABELS[userRole] || userRole}</Badge>
             )}
@@ -99,33 +93,27 @@ const FeedCreatePost = ({ companyId, userProfile, userRole }: FeedCreatePostProp
 
             {previewAttachments.length > 0 && <FeedMediaPreview attachments={previewAttachments} editable onRemove={removeFile} />}
 
-            {showPoll && <FeedPollCreate onPollData={(data) => { setPollData(data); if (!data) setShowPoll(false); }} />}
-
             <input ref={fileInputRef} type="file" multiple accept={acceptType} className="hidden" onChange={handleFilesChange} />
 
-            <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-border">
-              <div className="flex items-center gap-1">
-                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleFileSelect('image/*')}>
+            <div className="flex items-center justify-between flex-wrap gap-1 pt-1 border-t border-border">
+              <div className="flex items-center flex-wrap gap-0.5">
+                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs px-2" onClick={() => handleFileSelect('image/*')}>
                   <Image className="h-4 w-4 text-green-600" /><span className="hidden sm:inline">Foto</span>
                 </Button>
-                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleFileSelect('video/*')}>
+                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs px-2" onClick={() => handleFileSelect('video/*')}>
                   <Film className="h-4 w-4 text-blue-600" /><span className="hidden sm:inline">Vídeo</span>
                 </Button>
-                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleFileSelect('audio/*')}>
+                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs px-2" onClick={() => handleFileSelect('audio/*')}>
                   <Music className="h-4 w-4 text-orange-600" /><span className="hidden sm:inline">Áudio</span>
                 </Button>
-                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleFileSelect('*/*')}>
+                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs px-2" onClick={() => handleFileSelect('*/*')}>
                   <Paperclip className="h-4 w-4 text-muted-foreground" /><span className="hidden sm:inline">Arquivo</span>
                 </Button>
-                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => { setShowPoll(true); setExpanded(true); }}>
-                  <BarChart3 className="h-4 w-4 text-purple-600" /><span className="hidden sm:inline">Enquete</span>
-                </Button>
-                <FeedKudosDialog companyId={companyId} />
               </div>
 
               {expanded && (
                 <Button size="sm" onClick={handleSubmit}
-                  disabled={(!content.trim() && files.length === 0 && !pollData) || createPost.isPending}
+                  disabled={(!content.trim() && files.length === 0) || createPost.isPending}
                   className="gap-1.5">
                   <Send className="h-3.5 w-3.5" />
                   {createPost.isPending ? 'Publicando...' : 'Publicar'}

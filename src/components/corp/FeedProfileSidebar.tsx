@@ -1,16 +1,21 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Briefcase, Calendar, Heart, FileText, Users, MessageSquareText } from 'lucide-react';
+import { Briefcase, Calendar, Heart, FileText, Users, MessageSquareText, BarChart3, StopCircle } from 'lucide-react';
 import { formatDistanceToNow, differenceInYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useCorpFeedDiscussions } from '@/hooks/useCorpFeedDiscussions';
 import FeedNewDiscussionDialog from './FeedNewDiscussionDialog';
+import FeedPollSidebarCreate from './FeedPollSidebarCreate';
+import FeedPollDisplay from './FeedPollDisplay';
+import AwardBadgeDialog from './AwardBadgeDialog';
+import { toast } from '@/hooks/use-toast';
 
 const ROLE_LABELS: Record<string, string> = {
   technician: 'Técnico', admin: 'Administrador', hr: 'RH', manager: 'Gerente',
@@ -28,14 +33,54 @@ interface FeedProfileSidebarProps {
 const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
   const tenure = profile?.hire_date ? formatDistanceToNow(new Date(profile.hire_date), { locale: ptBR }) : null;
   const age = profile?.birth_date ? differenceInYears(new Date(), new Date(profile.birth_date)) : null;
   const companyId = profile?.company_id || '';
 
+  const isAdminOrHR = role === 'admin' || role === 'hr' || role === 'super_admin';
+
   const { discussions } = useCorpFeedDiscussions(companyId);
   const recentDiscussions = discussions.slice(0, 5);
+
+  // Fetch active poll
+  const { data: activePoll } = useQuery({
+    queryKey: ['active-poll', companyId],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from('corp_feed_polls')
+        .select('*, corp_feed_posts!corp_feed_polls_post_id_fkey(id, company_id)')
+        .eq('status', 'active')
+        .limit(10);
+      // Filter by company
+      const companyPolls = (data || []).filter((p: any) => p.corp_feed_posts?.company_id === companyId);
+      return companyPolls.length > 0 ? companyPolls[0] : null;
+    },
+    enabled: !!companyId,
+  });
+
+  const closePoll = useMutation({
+    mutationFn: async () => {
+      if (!activePoll) return;
+      await (supabase as any)
+        .from('corp_feed_polls')
+        .update({ status: 'closed', closed_at: new Date().toISOString() })
+        .eq('id', activePoll.id);
+      // Unpin the post
+      await supabase
+        .from('corp_feed_posts')
+        .update({ pinned: false })
+        .eq('id', activePoll.post_id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['active-poll'] });
+      queryClient.invalidateQueries({ queryKey: ['corp-feed'] });
+      queryClient.invalidateQueries({ queryKey: ['poll'] });
+      toast({ title: 'Enquete finalizada' });
+    },
+  });
 
   // Fetch user's groups
   const { data: myGroups = [] } = useQuery({
@@ -114,6 +159,31 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
           </>
         )}
 
+        {/* Poll Section */}
+        <Separator />
+        <div className="px-4 py-3">
+          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+            <BarChart3 className="h-3 w-3" />
+            Enquete
+          </p>
+          {activePoll ? (
+            <div className="space-y-2">
+              <FeedPollDisplay postId={activePoll.post_id} />
+              {isAdminOrHR && (
+                <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 text-destructive hover:text-destructive" onClick={() => closePoll.mutate()} disabled={closePoll.isPending}>
+                  <StopCircle className="h-3.5 w-3.5" />
+                  Finalizar Enquete
+                </Button>
+              )}
+            </div>
+          ) : (
+            isAdminOrHR && <FeedPollSidebarCreate companyId={companyId} hasActivePoll={false} />
+          )}
+          {!activePoll && !isAdminOrHR && (
+            <p className="text-[10px] text-muted-foreground">Nenhuma enquete ativa</p>
+          )}
+        </div>
+
         {/* Discussions */}
         <Separator />
         <div className="px-4 py-3">
@@ -136,6 +206,16 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
           )}
           {companyId && <FeedNewDiscussionDialog companyId={companyId} />}
         </div>
+
+        {/* Award Badge (Admin/HR only) */}
+        {isAdminOrHR && companyId && (
+          <>
+            <Separator />
+            <div className="px-4 py-3">
+              <AwardBadgeDialog companyId={companyId} />
+            </div>
+          </>
+        )}
 
         {/* Stats */}
         <Separator />
