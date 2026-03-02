@@ -1,58 +1,32 @@
 
 
-## Feed Corporativo Inspirado no LinkedIn — Layout 3 Colunas
+## Criar Grupos Padrão Automaticamente
 
-Transformar o feed atual em um layout de 3 colunas inspirado no LinkedIn, com perfil do usuário à esquerda, timeline central e sidebar de sugestões/informações à direita.
+A migração anterior criou a tabela `corp_groups` mas não populou com grupos automáticos baseados nas funções (roles) existentes.
 
-### Estrutura Visual
+### O que fazer
 
-```text
-┌──────────────┬────────────────────────┬──────────────┐
-│  PERFIL      │   TIMELINE CENTRAL     │  SIDEBAR     │
-│  (280px)     │   (max ~600px)         │  (280px)     │
-│              │                        │              │
-│  Avatar      │  [Criar Post]          │ Aniversari-  │
-│  Nome        │  ─────────────         │ antes do mês │
-│  Função      │  Post 1                │              │
-│  Tempo emp.  │  Post 2                │ Grupos       │
-│  Idade       │  ...                   │ populares    │
-│  Grupos      │                        │              │
-│              │                        │ Novos        │
-│  Estatísticas│                        │ colabora-    │
-│  - Posts     │                        │ dores        │
-│  - Likes     │                        │              │
-└──────────────┴────────────────────────┴──────────────┘
-  (hidden mobile)                        (hidden mobile)
-```
+Inserir grupos `role_based` para cada role existente na empresa **Googlemarine Eletrônica Naval** (`09a110b9-...`), usando as roles já cadastradas no sistema:
+
+| Role | Nome do Grupo |
+|------|--------------|
+| technician | Técnicos |
+| admin | Administradores |
+| hr | Recursos Humanos |
+| manager | Gerentes |
+| commercial | Comercial |
+| qualidade | Qualidade |
+| financeiro | Financeiro |
+| compras | Suprimentos |
+
+Além disso, criar grupos de trabalho padrão comuns em empresas:
+- **CIPA** (Comissão Interna de Prevenção de Acidentes)
+- **Brigada de Incêndio**
+- **SESMT** (Serviço Especializado em Segurança)
 
 ### Alterações
 
-**1. `src/components/corp/FeedProfileSidebar.tsx` (Novo)**
-- Card com avatar grande, nome, função (badge), tempo de empresa, idade
-- Seção de grupos do usuário
-- Estatísticas simples (posts publicados, curtidas recebidas)
-- Responsivo: no mobile vira um card compacto horizontal no topo
-
-**2. `src/components/corp/FeedRightSidebar.tsx` (Novo)**
-- Card "Aniversariantes do Mês" — busca `birth_date` dos profiles da mesma empresa, filtra mês atual
-- Card "Novos Colaboradores" — busca `hire_date` dos últimos 30 dias
-- Card "Grupos Populares" — lista top grupos com mais membros
-- Hidden no mobile
-
-**3. `src/pages/corp/Feed.tsx` — Refatorar layout**
-- Alterar de coluna única para grid de 3 colunas (`grid-cols-[280px_1fr_280px]`)
-- Buscar `hire_date`, `birth_date`, role do usuário logado
-- Coluna esquerda: `FeedProfileSidebar`
-- Coluna central: `FeedCreatePost` + lista de posts (como está)
-- Coluna direita: `FeedRightSidebar`
-- No mobile: layout empilhado, sidebar de perfil compacta no topo, sidebar direita oculta
-
-**4. `src/components/corp/FeedCreatePost.tsx` — Melhorar estilo**
-- Adicionar badge da função do usuário ao lado do avatar
-- Placeholder mais convidativo estilo LinkedIn: "Compartilhe uma ideia, artigo ou atualização..."
-- Botões de mídia sempre visíveis (Foto, Vídeo, Documento) como no LinkedIn, mesmo antes de expandir
-
-**5. `src/components/corp/FeedPostCard.tsx` — Ajustes visuais**
-- Separador visual mais claro entre ações (curtir, comentar)
-- Contagem de curtidas e comentários no estilo LinkedIn ("X curtidas • Y comentários")
+1. **SQL INSERT** (via insert tool) — Inserir 11 grupos na tabela `corp_groups` para a empresa existente
+2. **SQL INSERT** — Auto-associar membros aos grupos `role_based` baseado na tabela `user_roles` + `profiles`
+3. **Migração SQL** — Criar trigger para auto-inserir grupos role_based quando nova empresa for criada, e auto-associar usuários quando receberem uma role
 
