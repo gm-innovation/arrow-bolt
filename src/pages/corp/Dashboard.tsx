@@ -2,9 +2,9 @@ import CorpLayout from '@/components/corp/CorpLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCorpDashboard } from '@/hooks/useCorpDashboard';
 import { useCorpRequests } from '@/hooks/useCorpRequests';
-import { useCorpFeed } from '@/hooks/useCorpFeed';
+
 import { useAuth } from '@/contexts/AuthContext';
-import { ClipboardList, Clock, CheckCircle2, XCircle, DollarSign, AlertTriangle, MessageSquare } from 'lucide-react';
+import { ClipboardList, Clock, CheckCircle2, XCircle, DollarSign, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,7 @@ import { ptBR } from 'date-fns/locale';
 const CorpDashboard = () => {
   const { stats, isLoading } = useCorpDashboard();
   const { requests } = useCorpRequests();
-  const { posts } = useCorpFeed();
+  
   const { userRole } = useAuth();
   const navigate = useNavigate();
 
@@ -32,8 +32,6 @@ const CorpDashboard = () => {
   ];
 
   const recentRequests = (requests || []).slice(0, 5);
-  const recentPosts = (posts as any[] || []).slice(0, 3);
-
   return (
     <CorpLayout>
       <div className="space-y-6">
@@ -52,8 +50,7 @@ const CorpDashboard = () => {
           ))}
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Requests */}
+        <div>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-base">Solicitações Recentes</CardTitle>
@@ -72,30 +69,6 @@ const CorpDashboard = () => {
                     <Badge variant={req.status === 'approved' ? 'success' : req.status === 'rejected' ? 'destructive' : req.status.startsWith('pending') ? 'warning' : 'secondary'} size="sm">
                       {req.status === 'open' ? 'Aberta' : req.status === 'pending_manager' ? 'Pend. Ger.' : req.status === 'pending_director' ? 'Pend. Dir.' : req.status === 'approved' ? 'Aprovada' : req.status === 'rejected' ? 'Rejeitada' : req.status}
                     </Badge>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Recent Feed */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <MessageSquare className="h-4 w-4" />
-                Feed Recente
-              </CardTitle>
-              <Button variant="ghost" size="sm" onClick={() => navigate('/corp/feed')}>Ver feed</Button>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {recentPosts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhum post no feed.</p>
-              ) : (
-                recentPosts.map((post: any) => (
-                  <div key={post.id} className="p-2 rounded hover:bg-muted/50">
-                    {post.title && <p className="text-sm font-medium">{post.title}</p>}
-                    <p className="text-sm text-muted-foreground line-clamp-2">{post.content}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{post.author?.full_name} • {format(new Date(post.created_at), "dd/MM", { locale: ptBR })}</p>
                   </div>
                 ))
               )}
