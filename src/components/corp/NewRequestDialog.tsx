@@ -84,7 +84,8 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
 
   const selectedType = requestTypes.find((t: any) => t.id === selectedTypeId);
   const category = selectedType?.category || 'general';
-  const activeTypes = requestTypes.filter((t: any) => t.active);
+  const CATEGORY_ORDER: Record<string, number> = { product: 0, document: 1, reimbursement: 2, time_off: 3, subscription: 4, general: 5 };
+  const activeTypes = requestTypes.filter((t: any) => t.active).sort((a: any, b: any) => (CATEGORY_ORDER[a.category || 'general'] ?? 99) - (CATEGORY_ORDER[b.category || 'general'] ?? 99));
 
   const filteredUsers = useMemo(() => {
     if (!departmentId || !departmentMembers?.length) return [];
