@@ -3,22 +3,38 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BarChart3, Plus, X } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCorpFeed } from '@/hooks/useCorpFeed';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   companyId: string;
   hasActivePoll: boolean;
-  onClosePoll?: () => void;
 }
 
-const FeedPollSidebarCreate = ({ companyId, hasActivePoll, onClosePoll }: Props) => {
+const FeedPollSidebarCreate = ({ companyId, hasActivePoll }: Props) => {
   const { user } = useAuth();
   const { createPost } = useCorpFeed();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
+  const [scope, setScope] = useState('global');
+
+  // Fetch user's groups
+  const { data: userGroups = [] } = useQuery({
+    queryKey: ['my-corp-groups-for-poll', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('corp_group_members')
+        .select('corp_groups:corp_groups!corp_group_members_group_id_fkey(id, name)')
+        .eq('user_id', user!.id);
+      return (data || []).map((m: any) => ({ id: m.corp_groups?.id, name: m.corp_groups?.name })).filter((g: any) => g.id && g.name);
+    },
+    enabled: !!user && open,
+  });
 
   const addOption = () => { if (options.length < 6) setOptions([...options, '']); };
   const removeOption = (i: number) => { if (options.length > 2) setOptions(options.filter((_, idx) => idx !== i)); };
@@ -28,19 +44,21 @@ const FeedPollSidebarCreate = ({ companyId, hasActivePoll, onClosePoll }: Props)
 
   const handleSubmit = () => {
     if (!valid) return;
+    const groupId = scope === 'global' ? undefined : scope;
     createPost.mutate(
       {
         company_id: companyId,
         content: question,
         post_type: 'poll',
         pinned: true,
-        poll: { question, options: options.filter(o => o.trim()) },
+        poll: { question, options: options.filter(o => o.trim()), group_id: groupId },
       },
       {
         onSuccess: () => {
           setOpen(false);
           setQuestion('');
           setOptions(['', '']);
+          setScope('global');
         },
       }
     );
@@ -67,6 +85,20 @@ const FeedPollSidebarCreate = ({ companyId, hasActivePoll, onClosePoll }: Props)
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+          <div>
+            <Label>Escopo</Label>
+            <Select value={scope} onValueChange={setScope}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o escopo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="global">Global (Toda a Empresa)</SelectItem>
+                {userGroups.map((g: any) => (
+                  <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div>
             <Label>Pergunta</Label>
             <Input value={question} onChange={e => setQuestion(e.target.value)} placeholder="Qual a sua opinião sobre...?" />
