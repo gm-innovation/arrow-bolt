@@ -7,13 +7,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Upload } from 'lucide-react';
 import { useCorpDocuments } from '@/hooks/useCorpDocuments';
 import { useDepartments } from '@/hooks/useDepartments';
+import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 interface DocumentUploadDialogProps {
   companyId: string;
-  targetUserId?: string;
   mode?: 'self' | 'hr';
 }
 
@@ -34,17 +34,18 @@ const docTypeLabels: Record<string, string> = {
 const hrTypes = ['payslip', 'benefits', 'declaration', 'institutional'];
 const userTypes = ['medical_certificate', 'reimbursement_proof', 'signed_form', 'other'];
 
-const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: DocumentUploadDialogProps) => {
+const DocumentUploadDialog = ({ companyId, mode = 'self' }: DocumentUploadDialogProps) => {
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [docType, setDocType] = useState('');
-  
   const [departmentId, setDepartmentId] = useState('');
+  const [selectedUserId, setSelectedUserId] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const { user } = useAuth();
   const { uploadDocument } = useCorpDocuments();
   const { departments } = useDepartments();
+  const { members, isLoading: membersLoading } = useDepartmentMembers(departmentId || undefined);
 
   const availableTypes = mode === 'hr' ? hrTypes : userTypes;
 
@@ -52,8 +53,9 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
     if (!file || !title || !docType || !user) return;
     setUploading(true);
     try {
+      const ownerUserId = mode === 'hr' ? selectedUserId : user.id;
       const safeName = sanitizeFileName(file.name);
-      const path = `${companyId}/${targetUserId || user.id}/${Date.now()}_${safeName}`;
+      const path = `${companyId}/${ownerUserId}/${Date.now()}_${safeName}`;
       const { error: storageError } = await supabase.storage.from('corp-documents').upload(path, file);
       if (storageError) throw storageError;
 
@@ -61,7 +63,7 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
 
       uploadDocument.mutate({
         company_id: companyId,
-        owner_user_id: targetUserId || user.id,
+        owner_user_id: ownerUserId,
         document_type: docType,
         title,
         file_name: file.name,
@@ -74,6 +76,7 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
           setTitle('');
           setDocType('');
           setDepartmentId('');
+          setSelectedUserId('');
           setFile(null);
         }
       });
@@ -110,8 +113,8 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
             </Select>
           </div>
           <div>
-            <Label>Departamento (opcional)</Label>
-            <Select value={departmentId} onValueChange={setDepartmentId}>
+            <Label>{mode === 'hr' ? 'Departamento *' : 'Departamento (opcional)'}</Label>
+            <Select value={departmentId} onValueChange={(val) => { setDepartmentId(val); setSelectedUserId(''); }}>
               <SelectTrigger><SelectValue placeholder="Selecione o departamento" /></SelectTrigger>
               <SelectContent>
                 {departments.map((d: any) => (
@@ -120,13 +123,26 @@ const DocumentUploadDialog = ({ companyId, targetUserId, mode = 'self' }: Docume
               </SelectContent>
             </Select>
           </div>
+          {mode === 'hr' && departmentId && (
+            <div>
+              <Label>Colaborador *</Label>
+              <Select value={selectedUserId} onValueChange={setSelectedUserId} disabled={membersLoading}>
+                <SelectTrigger><SelectValue placeholder={membersLoading ? 'Carregando...' : 'Selecione o colaborador'} /></SelectTrigger>
+                <SelectContent>
+                  {members.map((m: any) => (
+                    <SelectItem key={m.user_id} value={m.user_id}>{m.profile?.full_name || m.profile?.email || m.user_id}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div>
             <Label>Arquivo *</Label>
             <Input type="file" onChange={e => setFile(e.target.files?.[0] || null)} />
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={handleUpload} disabled={!file || !title || !docType || uploading}>
+            <Button onClick={handleUpload} disabled={!file || !title || !docType || uploading || (mode === 'hr' && (!departmentId || !selectedUserId))}>
               {uploading ? 'Enviando...' : 'Enviar'}
             </Button>
           </div>
