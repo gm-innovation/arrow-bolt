@@ -8,6 +8,7 @@ import { ptBR } from 'date-fns/locale';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const ROLE_LABELS: Record<string, string> = {
   technician: 'Técnico',
@@ -36,6 +37,7 @@ interface FeedProfileSidebarProps {
 
 const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
   const tenure = profile?.hire_date
@@ -122,7 +124,12 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Meus Grupos</p>
               <div className="flex flex-wrap gap-1">
                 {myGroups.map((name: string) => (
-                  <Badge key={name} variant="outline" className="text-[10px] h-5 gap-1">
+                  <Badge
+                    key={name}
+                    variant="outline"
+                    className="text-[10px] h-5 gap-1 cursor-pointer hover:bg-accent transition-colors"
+                    onClick={() => navigate('/corp/groups')}
+                  >
                     <Users className="h-2.5 w-2.5" />
                     {name}
                   </Badge>
