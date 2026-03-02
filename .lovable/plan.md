@@ -1,18 +1,35 @@
 
+Objetivo: remover a tela em branco estabilizando o carregamento inicial do app.
 
-## Corrigir tela em branco — erro de build do Dexie
+Diagnóstico (com base nos sinais atuais):
+- A tela fica cinza/branca e o app não monta.
+- No console, aparecem falhas de carregamento de módulos com `503`/`ERR_ABORTED` (ex.: `react-router-dom.js`, `src/pages/Login.tsx`, `src/pages/corp/admin/RequestTypes.tsx`).
+- O `App.tsx` importa muitas páginas de forma síncrona; qualquer falha em um módulo durante o boot pode derrubar toda a aplicação.
+- O projeto registra Service Worker no bootstrap; isso pode piorar inconsistências de cache durante desenvolvimento/preview.
 
-A tela em branco é causada por um erro de compilação TypeScript no pacote `dexie`:
+Plano de implementação:
+1) Endurecer bootstrap (evitar cache instável no preview)
+- Arquivo: `src/main.tsx`
+- Registrar Service Worker apenas em produção.
+- Em desenvolvimento/preview, desregistrar SW existente para evitar servir bundle/module desatualizado.
 
-```
-node_modules/dexie/dist/dexie.d.ts(1202,23): error TS1540: A 'namespace' declaration should not be declared using the 'module' keyword.
-```
+2) Reduzir risco de “falha global” no carregamento inicial
+- Arquivo: `src/App.tsx`
+- Migrar páginas pesadas para carregamento lazy (`React.lazy` + `Suspense`) em grupos (começando por blocos corp/commercial/admin).
+- Manter apenas rotas essenciais síncronas (auth e shell mínimo).
+- Resultado: se um módulo falhar, não quebra todo o bootstrap inicial.
 
-Este erro impede que a aplicação compile, resultando na tela em branco.
+3) Fallback explícito de carregamento e erro
+- Arquivo: `src/App.tsx`
+- Envolver árvore de rotas em `Suspense` com fallback visual.
+- Adicionar boundary de erro no nível de rotas para evitar página totalmente vazia e mostrar estado de recuperação.
 
-### Solução
+4) Verificação pós-correção
+- Validar `/`, `/login` e rota autenticada (ex.: `/tech/dashboard`).
+- Confirmar que não há mais `503` para módulos críticos no console/rede.
+- Confirmar renderização normal após hard refresh (sem tela em branco).
 
-**`tsconfig.app.json`** — Adicionar `skipLibCheck: true` nas `compilerOptions` para ignorar erros de tipagem em pacotes de terceiros (como `dexie`). Isso é uma prática comum e segura, pois não afeta a verificação de tipos do código do projeto.
-
-Alteração de 1 linha em 1 arquivo.
-
+Detalhes técnicos (resumo):
+- Não há mudança de banco/autenticação/regras de acesso.
+- Foco total em estabilidade de frontend (boot, loading strategy e cache behavior).
+- Arquivos principais previstos: `src/main.tsx`, `src/App.tsx` (e opcionalmente split de imports por domínio para organização).
