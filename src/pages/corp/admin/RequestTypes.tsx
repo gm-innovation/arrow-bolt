@@ -19,6 +19,7 @@ const CorpRequestTypes = () => {
   const [createOpen, setCreateOpen] = useState(false);
   const [editType, setEditType] = useState<any>(null);
   const [name, setName] = useState('');
+  const [category, setCategory] = useState('general');
   const [departmentId, setDepartmentId] = useState('');
   const [requiresApproval, setRequiresApproval] = useState(false);
   const [requiresDirector, setRequiresDirector] = useState(false);
@@ -26,15 +27,23 @@ const CorpRequestTypes = () => {
 
   const companyId = requestTypes?.[0]?.company_id || '';
 
+  const categoryOptions = [
+    { value: 'general', label: 'Geral' },
+    { value: 'product', label: 'Produto / Material' },
+    { value: 'subscription', label: 'Assinatura / Software' },
+    { value: 'document', label: 'Documento' },
+    { value: 'time_off', label: 'Folga / Férias' },
+  ];
+
   const resetForm = () => {
-    setName(''); setDepartmentId(''); setRequiresApproval(false);
+    setName(''); setCategory('general'); setDepartmentId(''); setRequiresApproval(false);
     setRequiresDirector(false); setThreshold('');
   };
 
   const handleCreate = () => {
     if (!name.trim()) return;
     createRequestType.mutate({
-      name, company_id: companyId,
+      name, company_id: companyId, category,
       department_id: departmentId || undefined,
       requires_approval: requiresApproval,
       requires_director_approval: requiresDirector,
@@ -45,7 +54,7 @@ const CorpRequestTypes = () => {
   const handleEdit = () => {
     if (!editType || !name.trim()) return;
     updateRequestType.mutate({
-      id: editType.id, name,
+      id: editType.id, name, category,
       department_id: departmentId || null,
       requires_approval: requiresApproval,
       requires_director_approval: requiresDirector,
@@ -54,7 +63,7 @@ const CorpRequestTypes = () => {
   };
 
   const openEdit = (t: any) => {
-    setEditType(t); setName(t.name); setDepartmentId(t.department_id || '');
+    setEditType(t); setName(t.name); setCategory(t.category || 'general'); setDepartmentId(t.department_id || '');
     setRequiresApproval(t.requires_approval); setRequiresDirector(t.requires_director_approval);
     setThreshold(t.director_threshold_value?.toString() || '');
   };
@@ -62,6 +71,15 @@ const CorpRequestTypes = () => {
   const formFields = (
     <div className="space-y-4">
       <div><Label>Nome *</Label><Input value={name} onChange={e => setName(e.target.value)} /></div>
+      <div>
+        <Label>Categoria</Label>
+        <Select value={category} onValueChange={setCategory}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {categoryOptions.map(c => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
       <div>
         <Label>Departamento</Label>
         <Select value={departmentId} onValueChange={setDepartmentId}>

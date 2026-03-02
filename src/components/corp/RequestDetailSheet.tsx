@@ -5,6 +5,22 @@ import ApprovalActions from './ApprovalActions';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
+const dynamicFieldLabels: Record<string, string> = {
+  product_name: 'Produto',
+  quantity: 'Quantidade',
+  justification: 'Justificativa',
+  service_name: 'Serviço/Plataforma',
+  period: 'Período',
+  document_type: 'Tipo de Documento',
+  deadline: 'Prazo',
+  time_off_type: 'Tipo de Ausência',
+  start_date: 'Data Início',
+  end_date: 'Data Fim',
+};
+
+const dynamicFieldLabel = (key: string) =>
+  dynamicFieldLabels[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
 interface RequestDetailSheetProps {
   request: any;
   open: boolean;
@@ -133,6 +149,24 @@ const RequestDetailSheet = ({ request, open, onOpenChange }: RequestDetailSheetP
               )}
             </div>
           </div>
+
+          {/* Dynamic data */}
+          {request.dynamic_data && Object.keys(request.dynamic_data).length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <p className="text-sm font-medium mb-2">Dados Adicionais</p>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  {Object.entries(request.dynamic_data).map(([key, value]) => (
+                    <div key={key}>
+                      <p className="text-muted-foreground">{dynamicFieldLabel(key)}</p>
+                      <p className="font-medium">{String(value || '—')}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
           <Separator />
 
