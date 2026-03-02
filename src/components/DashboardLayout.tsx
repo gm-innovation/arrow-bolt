@@ -1,5 +1,5 @@
-import { ReactNode, useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { ReactNode, useState, useEffect, Suspense } from "react";
+import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
@@ -52,9 +52,24 @@ import { ChatButton } from "@/components/chat/ChatButton";
 import { useWhatsAppAutoNotifier } from "@/hooks/useWhatsAppAutoNotifier";
 import { AIAssistant } from "@/components/ai/AIAssistant";
 import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const ContentSkeleton = () => (
+  <div className="space-y-6">
+    <Skeleton className="h-7 w-48" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <Skeleton className="h-24 rounded-xl" />
+      <Skeleton className="h-24 rounded-xl" />
+      <Skeleton className="h-24 rounded-xl" />
+      <Skeleton className="h-24 rounded-xl" />
+    </div>
+    <Skeleton className="h-64 rounded-xl" />
+    <Skeleton className="h-40 rounded-xl" />
+  </div>
+);
 
 interface DashboardLayoutProps {
-  children: ReactNode;
+  children?: ReactNode;
   userType: "super-admin" | "admin" | "manager" | "tech" | "hr" | "commercial" | "director" | "compras" | "qualidade" | "financeiro";
   pageTitle?: string;
 }
@@ -443,7 +458,11 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         {/* Content Area */}
         <div className="flex-1 overflow-auto flex flex-col">
           <div className="flex-1 p-4 md:p-6">
-            {children}
+            {children ? children : (
+              <Suspense fallback={<ContentSkeleton />}>
+                <Outlet />
+              </Suspense>
+            )}
           </div>
           
           {/* AI Assistant - disponível em todas as páginas */}
