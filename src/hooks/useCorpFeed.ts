@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import type { MentionItem } from '@/components/corp/FeedMentionInput';
 
 const getFileType = (mime: string): string => {
   if (mime.startsWith('image/')) return 'image';
@@ -27,7 +28,8 @@ export const useCorpFeed = () => {
           author:profiles!corp_feed_posts_author_id_fkey(id, full_name, avatar_url),
           corp_feed_likes(user_id),
           corp_feed_comments(id),
-          corp_feed_attachments(id, file_url, file_name, file_type, file_size, mime_type)
+          corp_feed_attachments(id, file_url, file_name, file_type, file_size, mime_type),
+          corp_feed_mentions(id, mention_type, mention_value, display_name)
         `)
         .order('pinned', { ascending: false })
         .order('created_at', { ascending: false });
@@ -39,6 +41,7 @@ export const useCorpFeed = () => {
         comments_count: post.corp_feed_comments?.length || 0,
         liked_by_me: post.corp_feed_likes?.some((l: any) => l.user_id === user?.id) || false,
         attachments: post.corp_feed_attachments || [],
+        mentions: post.corp_feed_mentions || [],
       }));
     },
     enabled: !!user,
@@ -88,9 +91,29 @@ export const useCorpFeed = () => {
     }
   };
 
+  const saveMentions = async (postId: string, mentions: MentionItem[]) => {
+    if (mentions.length === 0) return;
+    const rows = mentions.map((m) => ({
+      post_id: postId,
+      mention_type: m.type,
+      mention_value: m.value,
+      display_name: m.displayName,
+    }));
+    const { error } = await supabase.from('corp_feed_mentions').insert(rows);
+    if (error) throw error;
+  };
+
   const createPost = useMutation({
-    mutationFn: async (post: { company_id: string; title?: string; content: string; post_type?: string; pinned?: boolean; files?: File[] }) => {
-      const { files, ...postData } = post;
+    mutationFn: async (post: {
+      company_id: string;
+      title?: string;
+      content: string;
+      post_type?: string;
+      pinned?: boolean;
+      files?: File[];
+      mentions?: MentionItem[];
+    }) => {
+      const { files, mentions, ...postData } = post;
       const { data, error } = await supabase
         .from('corp_feed_posts')
         .insert({ ...postData, author_id: user!.id })
@@ -99,6 +122,9 @@ export const useCorpFeed = () => {
 
       if (files && files.length > 0) {
         await uploadAttachments(data.id, files);
+      }
+      if (mentions && mentions.length > 0) {
+        await saveMentions(data.id, mentions);
       }
       return data;
     },
