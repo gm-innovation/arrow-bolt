@@ -297,14 +297,14 @@ const App = () => {
                   </Route>
 
                   {/* Corp Routes - dynamic userType based on role */}
-                  <Route path="/corp/dashboard" element={<CorpRoute><CorpDashboard /></CorpRoute>} />
-                  <Route path="/corp/requests" element={<CorpRoute><CorpRequests /></CorpRoute>} />
-                  <Route path="/corp/documents" element={<CorpRoute><CorpDocuments /></CorpRoute>} />
-                  <Route path="/corp/feed" element={<CorpRoute><CorpFeed /></CorpRoute>} />
-                  <Route path="/corp/reports" element={<CorpReportsRoute><CorpReports /></CorpReportsRoute>} />
-                  <Route path="/corp/admin/departments" element={<CorpAdminRoute><CorpDepartments /></CorpAdminRoute>} />
-                  <Route path="/corp/admin/request-types" element={<CorpAdminRoute><CorpRequestTypes /></CorpAdminRoute>} />
-                  <Route path="/corp/admin/audit-log" element={<CorpAdminRoute><CorpAuditLog /></CorpAdminRoute>} />
+                  <Route path="/corp/dashboard" element={<CorpRoute pageTitle="Solicitações Corp"><CorpDashboard /></CorpRoute>} />
+                  <Route path="/corp/requests" element={<CorpRoute pageTitle="Solicitações Corp"><CorpRequests /></CorpRoute>} />
+                  <Route path="/corp/documents" element={<CorpRoute pageTitle="Documentos Corp"><CorpDocuments /></CorpRoute>} />
+                  <Route path="/corp/feed" element={<CorpRoute pageTitle="Feed"><CorpFeed /></CorpRoute>} />
+                  <Route path="/corp/reports" element={<CorpReportsRoute pageTitle="Relatórios Corp"><CorpReports /></CorpReportsRoute>} />
+                  <Route path="/corp/admin/departments" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpDepartments /></CorpAdminRoute>} />
+                  <Route path="/corp/admin/request-types" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpRequestTypes /></CorpAdminRoute>} />
+                  <Route path="/corp/admin/audit-log" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpAuditLog /></CorpAdminRoute>} />
 
                   {/* Supplies - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras" /></ProtectedRoute>}>
