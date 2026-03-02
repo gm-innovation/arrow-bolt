@@ -11,6 +11,10 @@ import { useCorpRequestTypes } from '@/hooks/useCorpRequestTypes';
 import { useDepartments } from '@/hooks/useDepartments';
 import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { sanitizeFileName } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
+import FileUploadSection from './FileUploadSection';
 
 interface NewRequestDialogProps {
   companyId: string;
@@ -69,6 +73,9 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   // Multi-item states
   const [productItems, setProductItems] = useState<ProductItem[]>([{ name: '', quantity: '1', unit_value: '', link: '' }]);
   const [documentItems, setDocumentItems] = useState<DocumentItem[]>([{ type: '', observation: '' }]);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
+  const [documentFiles, setDocumentFiles] = useState<Record<number, File[]>>({});
 
   const { createRequest } = useCorpRequests();
   const { requestTypes } = useCorpRequestTypes();
@@ -106,6 +113,9 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
     setDynamicData({});
     setProductItems([{ name: '', quantity: '1', unit_value: '', link: '' }]);
     setDocumentItems([{ type: '', observation: '' }]);
+    setAttachedFiles([]);
+    setReceiptFiles([]);
+    setDocumentFiles({});
   };
 
   const handleSelectType = (typeId: string) => {
@@ -122,7 +132,35 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
     return 'pending_manager';
   };
 
-  const handleSubmit = () => {
+  const uploadFilesForRequest = async (requestId: string, files: File[], subfolder?: string) => {
+    const profileData = user ? await supabase.from('profiles').select('company_id').eq('id', user.id).single() : null;
+    const companyId = profileData?.data?.company_id;
+    if (!companyId || files.length === 0) return;
+
+    for (const file of files) {
+      const safeName = sanitizeFileName(file.name);
+      const subPath = subfolder ? `${subfolder}/` : '';
+      const path = `${companyId}/requests/${requestId}/${subPath}${Date.now()}-${safeName}`;
+
+      const { error: uploadError } = await supabase.storage.from('corp-documents').upload(path, file);
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        continue;
+      }
+
+      const { data: urlData } = await supabase.storage.from('corp-documents').createSignedUrl(path, 60 * 60 * 24 * 365);
+
+      await supabase.from('corp_request_attachments').insert({
+        request_id: requestId,
+        file_name: file.name,
+        file_url: urlData?.signedUrl || path,
+        file_size: file.size,
+        uploaded_by: user!.id,
+      });
+    }
+  };
+
+  const handleSubmit = async () => {
     if (!title.trim()) return;
 
     const finalDynamic = { ...dynamicData };
@@ -148,7 +186,20 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
       status: determineStatus(),
       dynamic_data: Object.keys(finalDynamic).length > 0 ? finalDynamic : undefined,
     }, {
-      onSuccess: () => {
+      onSuccess: async (data) => {
+        try {
+          // Upload receipt files (reimbursement)
+          await uploadFilesForRequest(data.id, receiptFiles, 'comprovantes');
+          // Upload document-specific files
+          for (const [idx, files] of Object.entries(documentFiles)) {
+            await uploadFilesForRequest(data.id, files, `documentos/${idx}`);
+          }
+          // Upload general attachments
+          await uploadFilesForRequest(data.id, attachedFiles);
+        } catch (err) {
+          console.error('Error uploading attachments:', err);
+          toast({ title: 'Solicitação criada, mas houve erro ao enviar alguns anexos', variant: 'destructive' });
+        }
         setOpen(false);
         resetForm();
       }
@@ -230,27 +281,35 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
               </Button>
             </div>
             {documentItems.map((item, idx) => (
-              <div key={idx} className="flex items-end gap-2 p-3 rounded-lg border bg-muted/30">
-                <div className="flex-1">
-                  <Label className="text-xs">Tipo</Label>
-                  <Select value={item.type} onValueChange={v => updateDocumentItem(idx, 'type', v)}>
-                    <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
-                    <SelectContent>
-                      {DOCUMENT_TYPE_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div key={idx} className="space-y-2 p-3 rounded-lg border bg-muted/30">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1">
+                    <Label className="text-xs">Tipo</Label>
+                    <Select value={item.type} onValueChange={v => updateDocumentItem(idx, 'type', v)}>
+                      <SelectTrigger><SelectValue placeholder="Selecione o tipo" /></SelectTrigger>
+                      <SelectContent>
+                        {DOCUMENT_TYPE_OPTIONS.map(opt => (
+                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs">Observação</Label>
+                    <Input value={item.observation} onChange={e => updateDocumentItem(idx, 'observation', e.target.value)} placeholder="Detalhes..." />
+                  </div>
+                  {documentItems.length > 1 && (
+                    <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-destructive" onClick={() => removeDocumentItem(idx)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-                <div className="flex-1">
-                  <Label className="text-xs">Observação</Label>
-                  <Input value={item.observation} onChange={e => updateDocumentItem(idx, 'observation', e.target.value)} placeholder="Detalhes..." />
-                </div>
-                {documentItems.length > 1 && (
-                  <Button type="button" variant="ghost" size="icon" className="h-10 w-10 text-destructive" onClick={() => removeDocumentItem(idx)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+                <FileUploadSection
+                  files={documentFiles[idx] || []}
+                  onFilesChange={(files) => setDocumentFiles(prev => ({ ...prev, [idx]: files }))}
+                  label="Anexar documento (atestado, certificado, etc.)"
+                  multiple={false}
+                />
               </div>
             ))}
           </div>
@@ -316,9 +375,15 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
               </div>
             </div>
             <div>
-              <Label>Comprovante (referência)</Label>
-              <Input value={dynamicData.receipt_reference || ''} onChange={e => updateDynamic('receipt_reference', e.target.value)} placeholder="Nº da nota fiscal ou descrição" />
+              <Label>Nº da Nota Fiscal (opcional)</Label>
+              <Input value={dynamicData.receipt_reference || ''} onChange={e => updateDynamic('receipt_reference', e.target.value)} placeholder="Nº da nota fiscal" />
             </div>
+            <FileUploadSection
+              files={receiptFiles}
+              onFilesChange={setReceiptFiles}
+              label="Foto do comprovante / recibo *"
+              accept="image/*,.pdf"
+            />
           </div>
         );
 
@@ -465,6 +530,12 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
                   {!selectedType.requires_director_approval && ' do gerente'}.
                 </p>
               )}
+
+              <FileUploadSection
+                files={attachedFiles}
+                onFilesChange={setAttachedFiles}
+                label="Anexos gerais (opcional)"
+              />
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => { setOpen(false); resetForm(); }}>Cancelar</Button>
