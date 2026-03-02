@@ -30,39 +30,39 @@ const roleToUserType: Record<string, "super-admin" | "admin" | "manager" | "tech
   financeiro: "financeiro",
 };
 
-export const CorpRoute = ({ children }: { children: React.ReactNode }) => {
+export const CorpRoute = ({ children, pageTitle }: { children: React.ReactNode; pageTitle?: string }) => {
   const { userRole } = useAuth();
   const userType = roleToUserType[userRole || ''] || 'admin';
 
   return (
     <ProtectedRoute allowedRoles={['admin', 'super_admin', 'manager', 'technician', 'hr', 'commercial', 'director', 'compras', 'qualidade', 'financeiro']}>
-      <DashboardLayout userType={userType}>
+      <DashboardLayout userType={userType} pageTitle={pageTitle}>
         <Suspense fallback={<ContentSkeleton />}>{children}</Suspense>
       </DashboardLayout>
     </ProtectedRoute>
   );
 };
 
-export const CorpAdminRoute = ({ children }: { children: React.ReactNode }) => {
+export const CorpAdminRoute = ({ children, pageTitle }: { children: React.ReactNode; pageTitle?: string }) => {
   const { userRole } = useAuth();
   const userType = roleToUserType[userRole || ''] || 'admin';
 
   return (
     <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
-      <DashboardLayout userType={userType}>
+      <DashboardLayout userType={userType} pageTitle={pageTitle}>
         <Suspense fallback={<ContentSkeleton />}>{children}</Suspense>
       </DashboardLayout>
     </ProtectedRoute>
   );
 };
 
-export const CorpReportsRoute = ({ children }: { children: React.ReactNode }) => {
+export const CorpReportsRoute = ({ children, pageTitle }: { children: React.ReactNode; pageTitle?: string }) => {
   const { userRole } = useAuth();
   const userType = roleToUserType[userRole || ''] || 'admin';
 
   return (
     <ProtectedRoute allowedRoles={['admin', 'super_admin', 'hr', 'director']}>
-      <DashboardLayout userType={userType}>
+      <DashboardLayout userType={userType} pageTitle={pageTitle}>
         <Suspense fallback={<ContentSkeleton />}>{children}</Suspense>
       </DashboardLayout>
     </ProtectedRoute>
