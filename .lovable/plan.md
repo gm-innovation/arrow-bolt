@@ -1,9 +1,9 @@
 
 
-## Remover "Feed Recente" do Dashboard de Solicitações Corp
+## Correção: Ano no footer
 
-O card "Feed Recente" não pertence ao contexto de solicitações corporativas. Deve ser removido do `src/pages/corp/Dashboard.tsx`.
+O footer em `src/components/DashboardLayout.tsx` exibe "© 2025" mas estamos em 2026.
 
-### Alterações
-- **`src/pages/corp/Dashboard.tsx`**: Remover a importação de `useCorpFeed`, o ícone `MessageSquare`, a variável `recentPosts`, e todo o card "Feed Recente". O card "Solicitações Recentes" passa a ocupar a largura total (remover o grid de 2 colunas).
+### Alteração
+- **`src/components/DashboardLayout.tsx`** — trocar "2025" por "2026" no texto do footer.
 
