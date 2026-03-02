@@ -10,7 +10,7 @@ export const useCorpDashboard = () => {
     queryFn: async () => {
       const { data: requests, error } = await supabase
         .from('corp_requests')
-        .select('id, status, amount, created_at, department_id');
+        .select('id, status, amount, created_at, department_id, type_id, request_type:corp_request_types!type_id(category)');
       if (error) throw error;
 
       const total = requests?.length || 0;
