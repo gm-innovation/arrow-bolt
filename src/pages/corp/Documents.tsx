@@ -88,7 +88,7 @@ const CorpDocuments = () => {
           <h2 className="text-xl font-semibold">Documentos</h2>
           <div className="flex gap-2">
             <DocumentUploadDialog companyId={companyId} mode="self" />
-            {isHR && <DocumentUploadDialog companyId={companyId} mode="hr" targetUserId="" />}
+            {isHR && <DocumentUploadDialog companyId={companyId} mode="hr" />}
           </div>
         </div>
 
