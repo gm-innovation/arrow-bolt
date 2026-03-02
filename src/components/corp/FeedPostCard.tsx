@@ -153,24 +153,41 @@ const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
           <FeedMediaPreview attachments={post.attachments} />
         )}
 
-        <div className="flex items-center gap-1 pt-1 border-t border-border">
+        {/* LinkedIn-style counts */}
+        {(post.likes_count > 0 || post.comments_count > 0) && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground pb-1">
+            {post.likes_count > 0 && (
+              <span className="flex items-center gap-1">
+                <span className="bg-primary text-primary-foreground rounded-full h-4 w-4 flex items-center justify-center text-[9px]">♥</span>
+                {post.likes_count} {post.likes_count === 1 ? 'curtida' : 'curtidas'}
+              </span>
+            )}
+            {post.comments_count > 0 && (
+              <button onClick={() => setShowComments(!showComments)} className="hover:underline hover:text-primary ml-auto">
+                {post.comments_count} {post.comments_count === 1 ? 'comentário' : 'comentários'}
+              </button>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center border-t border-border pt-1">
           <Button
             variant="ghost"
             size="sm"
-            className={cn('gap-1.5 text-xs h-8', post.liked_by_me && 'text-red-500')}
+            className={cn('flex-1 gap-1.5 text-xs h-9', post.liked_by_me && 'text-primary font-semibold')}
             onClick={handleLike}
           >
             <Heart className={cn('h-4 w-4', post.liked_by_me && 'fill-current')} />
-            {post.likes_count > 0 && post.likes_count}
+            Curtir
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="gap-1.5 text-xs h-8"
+            className="flex-1 gap-1.5 text-xs h-9"
             onClick={() => setShowComments(!showComments)}
           >
             <MessageCircle className="h-4 w-4" />
-            {post.comments_count > 0 && post.comments_count}
+            Comentar
           </Button>
         </div>
 

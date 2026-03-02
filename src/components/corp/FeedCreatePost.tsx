@@ -2,18 +2,26 @@ import { useState, useRef } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Send, Image, Film, Music, Paperclip } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCorpFeed } from '@/hooks/useCorpFeed';
 import FeedMediaPreview from './FeedMediaPreview';
 import FeedMentionInput, { MentionItem } from './FeedMentionInput';
 
+const ROLE_LABELS: Record<string, string> = {
+  technician: 'Técnico', admin: 'Administrador', hr: 'RH', manager: 'Gerente',
+  commercial: 'Comercial', qualidade: 'Qualidade', compras: 'Suprimentos',
+  financeiro: 'Financeiro', super_admin: 'Super Admin', director: 'Diretor', corp: 'Corporativo',
+};
+
 interface FeedCreatePostProps {
   companyId: string;
   userProfile?: { full_name?: string; avatar_url?: string } | null;
+  userRole?: string;
 }
 
-const FeedCreatePost = ({ companyId, userProfile }: FeedCreatePostProps) => {
+const FeedCreatePost = ({ companyId, userProfile, userRole }: FeedCreatePostProps) => {
   const { user } = useAuth();
   const { createPost } = useCorpFeed();
   const [content, setContent] = useState('');
@@ -73,12 +81,17 @@ const FeedCreatePost = ({ companyId, userProfile }: FeedCreatePostProps) => {
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
           <div className="flex-1 space-y-3">
+            {userRole && !expanded && (
+              <Badge variant="secondary" className="text-[9px] h-4 mb-1">
+                {ROLE_LABELS[userRole] || userRole}
+              </Badge>
+            )}
             <FeedMentionInput
               value={content}
               onChange={setContent}
               mentions={mentions}
               onMentionsChange={setMentions}
-              placeholder="No que você está pensando? Use @ para mencionar..."
+              placeholder="Compartilhe uma ideia, artigo ou atualização..."
               rows={expanded ? 3 : 1}
               onFocus={() => setExpanded(true)}
             />
@@ -89,23 +102,28 @@ const FeedCreatePost = ({ companyId, userProfile }: FeedCreatePostProps) => {
 
             <input ref={fileInputRef} type="file" multiple accept={acceptType} className="hidden" onChange={handleFilesChange} />
 
-            {expanded && (
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <div className="flex items-center gap-1">
-                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleFileSelect('image/*')} title="Foto">
-                    <Image className="h-4 w-4 text-green-600" />
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleFileSelect('video/*')} title="Vídeo">
-                    <Film className="h-4 w-4 text-blue-600" />
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleFileSelect('audio/*')} title="Áudio">
-                    <Music className="h-4 w-4 text-orange-600" />
-                  </Button>
-                  <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleFileSelect('*/*')} title="Arquivo">
-                    <Paperclip className="h-4 w-4 text-muted-foreground" />
-                  </Button>
-                </div>
+            {/* Media buttons always visible like LinkedIn */}
+            <div className="flex items-center justify-between flex-wrap gap-2 pt-1 border-t border-border">
+              <div className="flex items-center gap-1">
+                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleFileSelect('image/*')}>
+                  <Image className="h-4 w-4 text-green-600" />
+                  <span className="hidden sm:inline">Foto</span>
+                </Button>
+                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleFileSelect('video/*')}>
+                  <Film className="h-4 w-4 text-blue-600" />
+                  <span className="hidden sm:inline">Vídeo</span>
+                </Button>
+                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleFileSelect('audio/*')}>
+                  <Music className="h-4 w-4 text-orange-600" />
+                  <span className="hidden sm:inline">Áudio</span>
+                </Button>
+                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1.5 text-xs" onClick={() => handleFileSelect('*/*')}>
+                  <Paperclip className="h-4 w-4 text-muted-foreground" />
+                  <span className="hidden sm:inline">Arquivo</span>
+                </Button>
+              </div>
 
+              {expanded && (
                 <Button
                   size="sm"
                   onClick={handleSubmit}
@@ -115,8 +133,8 @@ const FeedCreatePost = ({ companyId, userProfile }: FeedCreatePostProps) => {
                   <Send className="h-3.5 w-3.5" />
                   {createPost.isPending ? 'Publicando...' : 'Publicar'}
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
