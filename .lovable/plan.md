@@ -1,37 +1,30 @@
 
 
-## Anexos de Arquivos no Modal de Nova Solicitação
+## Ajuste de Lógica: Anexos por Categoria
 
-### Contexto
-A infraestrutura já existe: tabela `corp_request_attachments`, bucket `corp-documents` (privado), e políticas RLS configuradas. Falta apenas a interface de upload e a lógica de envio.
+### Entendimento
 
-### Dinâmica proposta
+- **Reembolso**: correto — anexar comprovante/recibo faz sentido
+- **Abono de falta/horas**: é uma solicitação de folga/abono, e o atestado é o documento comprobatório anexado. Não é "solicitar um documento"
+- **Certificados**: envio espontâneo ou em resposta a uma solicitação da empresa — não se encaixa como "nova solicitação"
 
-**Upload genérico por categoria:**
-- **Reembolso**: Seção "Comprovante" com upload de foto/arquivo (substituir o campo texto "referência" por um upload real + campo texto opcional para nº da nota)
-- **Documento**: Cada item de documento pode ter um arquivo anexo (ex: atestado médico escaneado, certificado em PDF)
-- **Geral/Outros**: Seção opcional "Anexos" para qualquer tipo de solicitação
+### Alterações em `NewRequestDialog.tsx`
 
-**Fluxo técnico:**
-1. Usuário seleciona arquivos localmente (estado local com `File[]`)
-2. Preview dos arquivos selecionados (nome, tamanho, botão remover)
-3. Ao clicar "Criar Solicitação":
-   - Cria a solicitação (obtém o `request_id`)
-   - Faz upload dos arquivos para `corp-documents/{company_id}/requests/{request_id}/`
-   - Gera URL assinada (bucket é privado)
-   - Insere registros em `corp_request_attachments`
+1. **Categoria `time_off`**: Adicionar seção de anexo quando o tipo for `abono`, com label "Anexar comprovante (atestado médico, etc.)" — o atestado é prova, não o objeto da solicitação
 
-### Alterações
+2. **Categoria `document`**: Remover "Atestado" das opções de tipo de documento (`DOCUMENT_TYPE_OPTIONS`), pois atestado é anexo de abono, não documento solicitado. Manter: Declaração, Certidão, Contrato, Contra-cheque/Holerite, Outro
 
-1. **`src/components/corp/NewRequestDialog.tsx`**:
-   - Adicionar estado `attachedFiles: File[]`
-   - Seção de upload com `<input type="file" multiple accept="image/*,.pdf,.doc,.docx" />`
-   - Preview dos arquivos com ícone, nome, tamanho e botão remover
-   - Para **Reembolso**: Upload aparece na seção de comprovante (label "Foto do comprovante / recibo")
-   - Para **Documento**: Upload aparece em cada item de documento (label "Anexar documento")
-   - Para **todas as categorias**: Seção "Anexos (opcional)" no final do formulário
-   - No `handleSubmit`: após criar a request, fazer upload e inserir em `corp_request_attachments`
-   - Sanitizar nomes de arquivo antes do upload (padrão existente no projeto)
+3. **Remover upload de arquivo da categoria `document`**: O fluxo de "Documento" é para *solicitar* documentos ao RH/empresa (ex: declaração, holerite). Não faz sentido anexar arquivo — quem anexa é quem responde à solicitação. Remover o `FileUploadSection` dos `documentItems`
 
-2. **Sem migração SQL necessária** — tabela e bucket já existem.
+4. **Anexos gerais**: Manter a seção "Anexos gerais (opcional)" no final para casos diversos
+
+### Resumo das mudanças
+
+```text
+time_off (abono)  → + FileUploadSection para comprovante
+document          → - "Atestado" das opções
+                    - Remover FileUploadSection por item
+                    (solicitar documento ≠ enviar documento)
+reimbursement     → sem mudança (já tem upload de recibo)
+```
 
