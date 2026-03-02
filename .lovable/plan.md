@@ -1,50 +1,42 @@
 
 
-## Correções no Sistema de Grupos
+## Página de Grupo como Fórum com Layout 3 Colunas
 
-### Problema 1: Página interna do grupo inexistente
-Ao clicar em um grupo (na sidebar esquerda ou na página de grupos), o usuário é redirecionado para `/corp/groups` que é apenas uma listagem. Não existe uma página de detalhe do grupo com feed/membros.
+### Estrutura
 
-### Problema 2: Entrada automática sem aprovação
-Atualmente, ao clicar "Entrar", o usuário é inserido diretamente na tabela `corp_group_members`. Deveria haver um fluxo de solicitação com aprovação por admin/HR.
+A página de detalhe do grupo (`/corp/groups/:id`) será reestruturada com o mesmo layout de 3 colunas do feed principal, e o conteúdo central funcionará como um fórum com discussões/tópicos.
 
----
+### Banco de Dados — 2 novas tabelas
 
-### Alterações
+**`corp_group_discussions`** — Tópicos/assuntos do fórum
+- `id`, `group_id` (FK corp_groups), `author_id` (FK profiles), `title`, `content`, `pinned`, `created_at`, `updated_at`
+- RLS: membros do grupo podem ler; membros podem criar; autor pode editar/deletar
 
-**1. Banco de dados — Nova tabela `corp_group_join_requests`**
-- Campos: `id`, `group_id`, `user_id`, `status` (pending/approved/rejected), `requested_at`, `reviewed_by`, `reviewed_at`
-- RLS: usuário pode inserir request com seu `user_id`, admin/HR podem atualizar status
-- Trigger: ao aprovar, inserir automaticamente em `corp_group_members`
+**`corp_group_discussion_posts`** — Respostas dentro de cada discussão (feed interno)
+- `id`, `discussion_id` (FK corp_group_discussions), `author_id` (FK profiles), `content`, `created_at`
+- RLS: membros do grupo podem ler e criar; autor pode deletar
 
-**2. Nova página `/corp/groups/:id` — Detalhe do Grupo**
-- Criar `src/pages/corp/GroupDetail.tsx`
-- Mostra nome, descrição, lista de membros com avatar
-- Se o usuário é membro: mostra feed/conteúdo do grupo (inicialmente lista de membros)
-- Se não é membro: mostra botão "Solicitar Entrada"
-- Rota no `App.tsx`: `/corp/groups/:id`
+### Página `GroupDetail.tsx` — Layout 3 colunas
 
-**3. Atualizar `useCorpGroups.ts`**
-- Substituir `joinGroup` por `requestJoin` que insere em `corp_group_join_requests` com status `pending`
-- Adicionar query de `pendingRequests` para admins/HR visualizarem
-- Adicionar mutations `approveRequest` e `rejectRequest`
+**Coluna esquerda (260px):** Card com info do grupo (nome, tipo, descrição, badge de membros, botão Sair/Solicitar, e painel de aprovação para admin/HR)
 
-**4. Atualizar `FeedRightSidebar.tsx`**
-- Botão "Entrar" vira "Solicitar" para grupos custom
-- Mostrar badge "Pendente" se já existe solicitação pendente
-- Clicar no nome do grupo navega para `/corp/groups/:id`
+**Coluna central:** Lista de discussões do grupo. Cada discussão mostra título, autor, data, e contagem de respostas. Botão "Nova Discussão" no topo. Ao clicar em uma discussão, abre a página de discussão.
 
-**5. Atualizar `FeedProfileSidebar.tsx`**
-- Clicar no badge do grupo navega para `/corp/groups/:id` (buscar group_id na query)
+**Coluna direita (260px):** Lista de membros do grupo com avatares
 
-**6. Atualizar `CorpLayout.tsx`**
-- Manter aba "Grupos" apontando para `/corp/groups` (listagem geral)
+### Nova Página `GroupDiscussion.tsx` — `/corp/groups/:id/discussions/:discussionId`
 
-**7. Atualizar `Groups.tsx`**
-- Cards clicáveis navegam para `/corp/groups/:id`
-- Botão "Entrar" vira "Solicitar" e cria request pendente
-- Para admin/HR: mostrar badge com contagem de solicitações pendentes por grupo
+Layout 3 colunas igual. A coluna central mostra o post original da discussão no topo e abaixo um feed de respostas (como posts do feed principal), com campo para responder. Colunas laterais iguais à página do grupo.
 
-**8. Painel de aprovação (dentro de GroupDetail)**
-- Admin/HR veem lista de solicitações pendentes com botões Aprovar/Rejeitar
+### Novo hook `useGroupDiscussions.ts`
+- Queries: listar discussões do grupo, listar posts de uma discussão
+- Mutations: criar discussão, criar resposta, deletar
+
+### Rota no `App.tsx`
+- `/corp/groups/:id/discussions/:discussionId` → `GroupDiscussion.tsx`
+
+### Componentes novos
+- `GroupInfoSidebar.tsx` — Sidebar esquerda com info do grupo (extraído do GroupDetail atual)
+- `GroupMembersSidebar.tsx` — Sidebar direita com lista de membros
+- `NewDiscussionDialog.tsx` — Dialog para criar nova discussão (título + conteúdo)
 
