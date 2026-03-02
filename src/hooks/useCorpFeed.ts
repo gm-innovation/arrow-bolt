@@ -25,7 +25,7 @@ export const useCorpFeed = () => {
         .from('corp_feed_posts')
         .select(`
           *,
-          author:profiles!corp_feed_posts_author_id_fkey(id, full_name, avatar_url),
+          author:profiles!corp_feed_posts_author_id_fkey(id, full_name, avatar_url, hire_date, birth_date),
           corp_feed_likes(user_id),
           corp_feed_comments(id),
           corp_feed_attachments(id, file_url, file_name, file_type, file_size, mime_type),
@@ -35,6 +35,27 @@ export const useCorpFeed = () => {
         .order('created_at', { ascending: false });
       if (error) throw error;
 
+      // Fetch author roles for all posts
+      const authorIds = [...new Set((data || []).map((p: any) => p.author_id))];
+      const { data: rolesData } = authorIds.length > 0
+        ? await supabase.from('user_roles').select('user_id, role').in('user_id', authorIds)
+        : { data: [] };
+      const roleMap = new Map((rolesData || []).map((r: any) => [r.user_id, r.role]));
+
+      // Fetch author group memberships
+      const { data: memberData } = authorIds.length > 0
+        ? await supabase
+            .from('corp_group_members')
+            .select('user_id, corp_groups:corp_groups!corp_group_members_group_id_fkey(name)')
+            .in('user_id', authorIds)
+        : { data: [] };
+      const groupMap = new Map<string, { name: string }[]>();
+      (memberData || []).forEach((m: any) => {
+        const list = groupMap.get(m.user_id) || [];
+        if (m.corp_groups?.name) list.push({ name: m.corp_groups.name });
+        groupMap.set(m.user_id, list);
+      });
+
       return (data || []).map((post: any) => ({
         ...post,
         likes_count: post.corp_feed_likes?.length || 0,
@@ -42,6 +63,8 @@ export const useCorpFeed = () => {
         liked_by_me: post.corp_feed_likes?.some((l: any) => l.user_id === user?.id) || false,
         attachments: post.corp_feed_attachments || [],
         mentions: post.corp_feed_mentions || [],
+        author_role: roleMap.get(post.author_id) || null,
+        author_groups: groupMap.get(post.author_id) || [],
       }));
     },
     enabled: !!user,
