@@ -9,7 +9,7 @@ import FeedBirthdayCard from '@/components/corp/FeedBirthdayCard';
 import FeedWorkAnniversaryCard from '@/components/corp/FeedWorkAnniversaryCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { useIsMobile } from '@/hooks/use-mobile';
+
 
 const CorpFeed = () => {
   const { user } = useAuth();
