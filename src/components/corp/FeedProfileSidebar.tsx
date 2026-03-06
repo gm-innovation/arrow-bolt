@@ -120,7 +120,22 @@ const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps)
     enabled: !!user,
   });
 
+  const { createGroup } = useCorpGroups(companyId);
+
+  const handleCreateGroup = () => {
+    if (!newGroupName.trim()) return;
+    createGroup.mutate({ name: newGroupName.trim(), description: newGroupDesc.trim() || undefined }, {
+      onSuccess: () => {
+        setShowCreateGroup(false);
+        setNewGroupName('');
+        setNewGroupDesc('');
+        queryClient.invalidateQueries({ queryKey: ['my-corp-groups'] });
+      },
+    });
+  };
+
   return (
+    <>
     <Card className="sticky top-4">
       <CardContent className="p-0">
         <div className="h-16 rounded-t-lg overflow-hidden relative">
