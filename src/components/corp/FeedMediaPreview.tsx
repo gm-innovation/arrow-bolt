@@ -3,6 +3,7 @@ import { X, FileText, Download, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Attachment {
   id?: string;
@@ -26,11 +27,27 @@ const formatSize = (bytes?: number | null) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
+const fetchAsBlob = async (url: string): Promise<Blob> => {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('Falha ao baixar');
+  return res.blob();
+};
+
+const fetchViaProxy = async (attachmentId: string): Promise<Blob> => {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+  const url = `https://${projectId}.supabase.co/functions/v1/corp-feed-media-proxy?attachmentId=${encodeURIComponent(attachmentId)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${session.access_token}` },
+  });
+  if (!res.ok) throw new Error('Proxy failed');
+  return res.blob();
+};
+
 const downloadFile = async (url: string, name: string) => {
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Falha ao baixar');
-    const blob = await res.blob();
+    const blob = await fetchAsBlob(url);
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = blobUrl;
@@ -44,11 +61,9 @@ const downloadFile = async (url: string, name: string) => {
   }
 };
 
-const openImageInNewTab = async (url: string, name: string) => {
+const openImageInNewTab = async (url: string, _name: string) => {
   try {
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Falha ao abrir');
-    const blob = await res.blob();
+    const blob = await fetchAsBlob(url);
     const blobUrl = URL.createObjectURL(blob);
     window.open(blobUrl, '_blank');
   } catch {
@@ -61,7 +76,8 @@ const getVideoKey = (vid: Attachment) => vid.id || vid.file_url;
 const VideoPlayer = ({ vid, editable, onRemove, removeIndex }: { vid: Attachment; editable?: boolean; onRemove?: (i: number) => void; removeIndex: number }) => {
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
-  const triedFallback = useRef(false);
+  const triedDirect = useRef(false);
+  const triedProxy = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -70,21 +86,34 @@ const VideoPlayer = ({ vid, editable, onRemove, removeIndex }: { vid: Attachment
   }, [blobUrl]);
 
   const handleError = useCallback(async () => {
-    if (triedFallback.current) {
-      setFailed(true);
-      return;
+    // Step 1: try fetch + blob from direct URL
+    if (!triedDirect.current) {
+      triedDirect.current = true;
+      try {
+        const blob = await fetchAsBlob(vid.file_url);
+        const url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        return;
+      } catch {
+        // continue to proxy
+      }
     }
-    triedFallback.current = true;
-    try {
-      const res = await fetch(vid.file_url);
-      if (!res.ok) throw new Error('fetch failed');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setBlobUrl(url);
-    } catch {
-      setFailed(true);
+
+    // Step 2: try proxy (needs attachment id)
+    if (!triedProxy.current && vid.id) {
+      triedProxy.current = true;
+      try {
+        const blob = await fetchViaProxy(vid.id);
+        const url = URL.createObjectURL(blob);
+        setBlobUrl(url);
+        return;
+      } catch {
+        // fall through
+      }
     }
-  }, [vid.file_url]);
+
+    setFailed(true);
+  }, [vid.file_url, vid.id]);
 
   if (failed) {
     return (
@@ -191,12 +220,7 @@ const FeedMediaPreview = ({ attachments, onRemove, editable }: FeedMediaPreviewP
             </audio>
           </div>
           {editable && onRemove && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 shrink-0"
-              onClick={() => onRemove(getIndex(aud))}
-            >
+            <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => onRemove(getIndex(aud))}>
               <X className="h-3 w-3" />
             </Button>
           )}

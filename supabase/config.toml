@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.get-vapid-key]
 verify_jwt = false
+
+[functions.corp-feed-media-proxy]
+verify_jwt = false
