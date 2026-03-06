@@ -1,74 +1,48 @@
 
+Objetivo: fazer o vídeo tocar no player do front sem cair em “baixar vídeo”, mesmo quando o navegador bloqueia a URL direta do storage.
 
-## Gamificação do Sistema de Conquistas
+Diagnóstico (confirmado)
+- O bloqueio não é do player em si: a URL do vídeo falha no browser (`Failed to fetch`).
+- O fallback atual também falha porque usa `fetch` na mesma URL bloqueada.
+- Neste caso, o arquivo tem nome com `bannerhome.mp4`, padrão comum de bloqueio por extensões/filtros de rede.
 
-O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
+Abordagem proposta
+1) Trocar o fallback de vídeo para buscar o arquivo via função backend (mesmo domínio da app), não pela URL pública do storage.
+2) Converter essa resposta para `Blob` no front e alimentar o `<video src={blobUrl}>`.
+3) Evitar o problema em uploads futuros salvando arquivos com nome técnico (UUID + extensão), sem palavras sensíveis como “banner”.
 
-### Modelo de Dados
+Arquivos a implementar
+- `supabase/functions/corp-feed-media-proxy/index.ts` (nova função)
+- `src/components/corp/FeedMediaPreview.tsx`
+- `src/hooks/useCorpFeed.ts`
 
-Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
+Plano técnico
+1. Nova função `corp-feed-media-proxy`
+- Recebe `attachmentId`.
+- Valida usuário autenticado via header Authorization.
+- Busca anexo + post e valida que usuário pertence à mesma empresa do post.
+- Faz download do objeto no bucket `corp-feed-media` com chave de serviço.
+- Retorna bytes com `Content-Type` correto (ex.: `video/mp4`).
 
+2. Atualizar `FeedMediaPreview.tsx`
+- No `VideoPlayer`, quando falhar `vid.file_url`, chamar a função proxy.
+- Se proxy responder, criar `blobUrl` e manter player funcionando.
+- Só mostrar fallback “Baixar vídeo” se proxy também falhar.
+- Manter cleanup com `URL.revokeObjectURL`.
+
+3. Atualizar `useCorpFeed.ts` (uploads futuros)
+- Trocar path de upload de `timestamp-nome-original` para `uuid.ext`.
+- Manter `file_name` original apenas para exibição (não no path).
+
+Fluxo final
 ```text
-Tier         | XP necessário | Ícone
-─────────────┼───────────────┼──────
-Bronze       | 0             | 🥉
-Prata        | 100           | 🥈
-Ouro         | 300           | 🥇
-Diamante     | 600           | 💎
-Rubi         | 1000          | ❤️‍🔥
+video src direto falha -> chama proxy -> recebe bytes -> cria blob URL -> player toca normalmente
 ```
 
-Alterações na tabela `corp_badges`:
-- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
-- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
+Validação
+- Testar o vídeo atual que está quebrando: deve tocar no player sem abrir nova aba.
+- Publicar novo vídeo com nome “banner*.mp4”: deve tocar normalmente.
+- Confirmar que PDF/imagem continuam funcionando como antes.
+- Testar no mobile (390/414) para garantir controle e reprodução no card.
 
-### Conquistas Automáticas (por categoria)
-
-Definir um conjunto fixo no código (sem tabela extra):
-
-**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
-**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
-**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
-
-Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
-
-### Mudanças nos Componentes
-
-**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
-- Substituir `BADGE_TYPES` por categorias com sub-opções:
-  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
-  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
-  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
-- Cada opção define XP (5, 10, 15, 25 conforme importância)
-- Manter seletor de ícone para tipo Personalizada
-- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
-
-**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
-- Recebe `userId` e `companyId`
-- Query: contar total de badges do usuário e somar `xp_value`
-- Calcular tier atual e progresso para o próximo
-- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
-- Usado no `FeedProfileSidebar` abaixo do nome
-
-**3. `FeedProfileSidebar.tsx` — Integrar nível**
-- Adicionar `FeedUserLevel` abaixo do badge de role
-- Mostrar contagem de conquistas do usuário
-
-**4. `FeedBadgesCard.tsx` — Melhorar visual**
-- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
-- Agrupar visualmente por categoria com ícone
-
-### Migration SQL
-
-```sql
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
-```
-
-### Resumo
-- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
-- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
-- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
-- Integrar nível no `FeedProfileSidebar`
-- Melhorar `FeedBadgesCard` com indicador de XP
-
+Sem mudanças de banco necessárias para esta correção.
