@@ -32,7 +32,7 @@ interface FeedProfileSidebarProps {
   compact?: boolean;
 }
 
-const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
+const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
