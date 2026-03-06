@@ -31,16 +31,23 @@ const FeedColleaguesList = ({ companyId }: FeedColleaguesListProps) => {
   const { data: colleagues = [], isLoading } = useQuery({
     queryKey: ['feed-colleagues', companyId],
     queryFn: async () => {
-      const { data } = await (supabase as any)
+      const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, user_roles(role)')
+        .select('id, full_name, avatar_url')
         .eq('company_id', companyId)
         .order('full_name');
-      return (data || []).map((p: any) => ({
+
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+
+      const rolesMap = new Map((roles || []).map((r: any) => [r.user_id, r.role]));
+
+      return (profiles || []).map((p: any) => ({
         id: p.id,
         full_name: p.full_name,
         avatar_url: p.avatar_url,
-        role: p.user_roles?.[0]?.role || null,
+        role: rolesMap.get(p.id) || null,
       }));
     },
     enabled: !!companyId,
