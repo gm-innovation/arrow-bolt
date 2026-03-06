@@ -174,6 +174,29 @@ export const useCorpGroups = (companyId?: string) => {
     },
   });
 
+  const addMember = useMutation({
+    mutationFn: async ({ groupId, userId }: { groupId: string; userId: string }) => {
+      const { error } = await supabase.from('corp_group_members').insert({ group_id: groupId, user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corp-groups'] });
+      toast({ title: 'Membro adicionado' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao adicionar membro', description: e.message, variant: 'destructive' }),
+  });
+
+  const removeMember = useMutation({
+    mutationFn: async ({ groupId, userId }: { groupId: string; userId: string }) => {
+      const { error } = await supabase.from('corp_group_members').delete().eq('group_id', groupId).eq('user_id', userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corp-groups'] });
+      toast({ title: 'Membro removido' });
+    },
+  });
+
   return {
     groups,
     isLoading,
@@ -186,5 +209,7 @@ export const useCorpGroups = (companyId?: string) => {
     leaveGroup,
     createGroup,
     deleteGroup,
+    addMember,
+    removeMember,
   };
 };
