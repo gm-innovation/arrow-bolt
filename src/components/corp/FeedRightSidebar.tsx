@@ -106,6 +106,9 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
       {/* Badges */}
       <FeedBadgesCard companyId={companyId} />
 
+      {/* Colleagues */}
+      <FeedColleaguesList companyId={companyId} />
+
       {/* Work Anniversaries */}
       {workAnniversaries.length > 0 && (
         <Card>
