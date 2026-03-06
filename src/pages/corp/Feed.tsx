@@ -9,12 +9,12 @@ import FeedBirthdayCard from '@/components/corp/FeedBirthdayCard';
 import FeedWorkAnniversaryCard from '@/components/corp/FeedWorkAnniversaryCard';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { useIsMobile } from '@/hooks/use-mobile';
+
 
 const CorpFeed = () => {
   const { user } = useAuth();
   const { posts, isLoading, comments } = useCorpFeed();
-  const isMobile = useIsMobile();
+  
   const companyId = (posts as any[])?.[0]?.company_id || '';
 
   const { data: profile } = useQuery({
@@ -43,8 +43,16 @@ const CorpFeed = () => {
 
   return (
     <div className="max-w-[1100px] mx-auto px-2">
-      <div className={isMobile ? 'space-y-4' : 'grid grid-cols-[260px_1fr_260px] gap-5 items-start'}>
-        <div className="sticky top-4 self-start"><FeedProfileSidebar profile={profile} role={userRole} /></div>
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_260px] gap-4 md:gap-5 items-start">
+        {/* Left sidebar - compact on mobile, full on md+ */}
+        <div className="md:sticky md:top-4 self-start">
+          <div className="md:hidden">
+            <FeedProfileSidebar profile={profile} role={userRole} compact />
+          </div>
+          <div className="hidden md:block">
+            <FeedProfileSidebar profile={profile} role={userRole} />
+          </div>
+        </div>
 
         <div className="space-y-4 min-w-0 overflow-y-auto max-h-[calc(100vh-2rem)] no-scrollbar">
           <FeedCreatePost companyId={effectiveCompanyId} userProfile={profile} userRole={userRole} />
@@ -70,7 +78,12 @@ const CorpFeed = () => {
           )}
         </div>
 
-        {!isMobile && effectiveCompanyId && <FeedRightSidebar companyId={effectiveCompanyId} />}
+        {/* Right sidebar - only on xl+ */}
+        {effectiveCompanyId && (
+          <div className="hidden xl:block sticky top-4 self-start">
+            <FeedRightSidebar companyId={effectiveCompanyId} />
+          </div>
+        )}
       </div>
     </div>
   );

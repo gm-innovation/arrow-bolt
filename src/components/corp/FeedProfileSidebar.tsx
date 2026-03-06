@@ -29,9 +29,10 @@ interface FeedProfileSidebarProps {
     full_name?: string; avatar_url?: string; hire_date?: string; birth_date?: string; company_id?: string; cover_url?: string;
   } | null;
   role?: string;
+  compact?: boolean;
 }
 
-const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
+const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -138,112 +139,116 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
           </Button>
         </div>
 
-        <Separator />
-
-        <div className="px-4 py-3 space-y-2 text-xs text-muted-foreground">
-          {tenure && (
-            <div className="flex items-center gap-2">
-              <Briefcase className="h-3.5 w-3.5 shrink-0 text-primary/60" />
-              <span>Na empresa há <span className="font-medium text-foreground">{tenure}</span></span>
-            </div>
-          )}
-          {age !== null && (
-            <div className="flex items-center gap-2">
-              <Calendar className="h-3.5 w-3.5 shrink-0 text-primary/60" />
-              <span><span className="font-medium text-foreground">{age} anos</span></span>
-            </div>
-          )}
-        </div>
-
-        {/* Groups */}
-        {myGroups.length > 0 && (
+        {compact ? null : (
           <>
             <Separator />
+
+            <div className="px-4 py-3 space-y-2 text-xs text-muted-foreground">
+              {tenure && (
+                <div className="flex items-center gap-2">
+                  <Briefcase className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+                  <span>Na empresa há <span className="font-medium text-foreground">{tenure}</span></span>
+                </div>
+              )}
+              {age !== null && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-3.5 w-3.5 shrink-0 text-primary/60" />
+                  <span><span className="font-medium text-foreground">{age} anos</span></span>
+                </div>
+              )}
+            </div>
+
+            {/* Groups */}
+            {myGroups.length > 0 && (
+              <>
+                <Separator />
+                <div className="px-4 py-3">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Meus Grupos</p>
+                  <div className="flex flex-wrap gap-1">
+                    {myGroups.map((g: any) => (
+                      <Badge key={g.id} variant="outline" className="text-[10px] h-5 gap-1 cursor-pointer hover:bg-accent transition-colors"
+                        onClick={() => navigate(`/corp/groups/${g.id}`)}>
+                        <Users className="h-2.5 w-2.5" />{g.name}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Poll Section */}
+            <Separator />
             <div className="px-4 py-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Meus Grupos</p>
-              <div className="flex flex-wrap gap-1">
-                {myGroups.map((g: any) => (
-                  <Badge key={g.id} variant="outline" className="text-[10px] h-5 gap-1 cursor-pointer hover:bg-accent transition-colors"
-                    onClick={() => navigate(`/corp/groups/${g.id}`)}>
-                    <Users className="h-2.5 w-2.5" />{g.name}
-                  </Badge>
-                ))}
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                <BarChart3 className="h-3 w-3" />
+                Enquete
+              </p>
+              {activePoll ? (
+                <div className="space-y-2">
+                  <FeedPollDisplay postId={activePoll.post_id} />
+                  {(activePoll.corp_feed_posts?.author_id === user?.id || isAdminOrHR) && (
+                    <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 text-destructive hover:text-destructive" onClick={() => closePoll.mutate()} disabled={closePoll.isPending}>
+                      <StopCircle className="h-3.5 w-3.5" />
+                      Finalizar Enquete
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <FeedPollSidebarCreate companyId={companyId} hasActivePoll={false} />
+              )}
+            </div>
+
+            {/* Discussions */}
+            <Separator />
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
+                <MessageSquareText className="h-3 w-3" />
+                Discussões
+              </p>
+              {recentDiscussions.length > 0 ? (
+                <div className="space-y-1.5 mb-2">
+                  {recentDiscussions.map((d: any) => (
+                    <button key={d.id} className="block w-full text-left hover:bg-accent rounded px-1.5 py-1 transition-colors"
+                      onClick={() => navigate(`/corp/feed/discussions/${d.id}`)}>
+                      <p className="text-xs font-medium truncate">{d.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{d.reply_count} {d.reply_count === 1 ? 'resposta' : 'respostas'}</p>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[10px] text-muted-foreground mb-2">Nenhuma discussão ainda</p>
+              )}
+              {companyId && <FeedNewDiscussionDialog companyId={companyId} />}
+            </div>
+
+            {/* Award Badge (Admin/HR only) */}
+            {canAwardBadge && companyId && (
+              <>
+                <Separator />
+                <div className="px-4 py-3">
+                  <AwardBadgeDialog companyId={companyId} />
+                </div>
+              </>
+            )}
+
+            {/* Stats */}
+            <Separator />
+            <div className="px-4 py-3 grid grid-cols-2 gap-2 text-center">
+              <div>
+                <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                  <FileText className="h-3 w-3" /><span className="text-[10px] uppercase">Posts</span>
+                </div>
+                <p className="text-sm font-semibold">{stats?.posts ?? 0}</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-1 text-muted-foreground">
+                  <Heart className="h-3 w-3" /><span className="text-[10px] uppercase">Curtidas</span>
+                </div>
+                <p className="text-sm font-semibold">{stats?.likes ?? 0}</p>
               </div>
             </div>
           </>
         )}
-
-        {/* Poll Section */}
-        <Separator />
-        <div className="px-4 py-3">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
-            <BarChart3 className="h-3 w-3" />
-            Enquete
-          </p>
-          {activePoll ? (
-            <div className="space-y-2">
-              <FeedPollDisplay postId={activePoll.post_id} />
-              {(activePoll.corp_feed_posts?.author_id === user?.id || isAdminOrHR) && (
-                <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 text-destructive hover:text-destructive" onClick={() => closePoll.mutate()} disabled={closePoll.isPending}>
-                  <StopCircle className="h-3.5 w-3.5" />
-                  Finalizar Enquete
-                </Button>
-              )}
-            </div>
-          ) : (
-            <FeedPollSidebarCreate companyId={companyId} hasActivePoll={false} />
-          )}
-        </div>
-
-        {/* Discussions */}
-        <Separator />
-        <div className="px-4 py-3">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1">
-            <MessageSquareText className="h-3 w-3" />
-            Discussões
-          </p>
-          {recentDiscussions.length > 0 ? (
-            <div className="space-y-1.5 mb-2">
-              {recentDiscussions.map((d: any) => (
-                <button key={d.id} className="block w-full text-left hover:bg-accent rounded px-1.5 py-1 transition-colors"
-                  onClick={() => navigate(`/corp/feed/discussions/${d.id}`)}>
-                  <p className="text-xs font-medium truncate">{d.title}</p>
-                  <p className="text-[10px] text-muted-foreground">{d.reply_count} {d.reply_count === 1 ? 'resposta' : 'respostas'}</p>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[10px] text-muted-foreground mb-2">Nenhuma discussão ainda</p>
-          )}
-          {companyId && <FeedNewDiscussionDialog companyId={companyId} />}
-        </div>
-
-        {/* Award Badge (Admin/HR only) */}
-        {canAwardBadge && companyId && (
-          <>
-            <Separator />
-            <div className="px-4 py-3">
-              <AwardBadgeDialog companyId={companyId} />
-            </div>
-          </>
-        )}
-
-        {/* Stats */}
-        <Separator />
-        <div className="px-4 py-3 grid grid-cols-2 gap-2 text-center">
-          <div>
-            <div className="flex items-center justify-center gap-1 text-muted-foreground">
-              <FileText className="h-3 w-3" /><span className="text-[10px] uppercase">Posts</span>
-            </div>
-            <p className="text-sm font-semibold">{stats?.posts ?? 0}</p>
-          </div>
-          <div>
-            <div className="flex items-center justify-center gap-1 text-muted-foreground">
-              <Heart className="h-3 w-3" /><span className="text-[10px] uppercase">Curtidas</span>
-            </div>
-            <p className="text-sm font-semibold">{stats?.likes ?? 0}</p>
-          </div>
-        </div>
       </CardContent>
     </Card>
   );
