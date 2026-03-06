@@ -110,9 +110,15 @@ const UserProfileLeftSidebar = ({ targetUserId }: Props) => {
                       </div>
                     )}
 
-                    {/* Video mini players */}
+                    {/* Video cards */}
                     {videos.map((vid: any) => (
-                      <MiniVideoPlayer key={vid.id} att={vid} />
+                      <div key={vid.id} className="flex items-center gap-2 p-1.5 rounded border border-border bg-muted/30">
+                        <Film className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-[11px] font-medium truncate flex-1">{vid.file_name}</span>
+                        <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => downloadFile(vid.file_url, vid.file_name)}>
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </div>
                     ))}
 
                     {/* File cards */}
