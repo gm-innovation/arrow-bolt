@@ -234,7 +234,14 @@ const UserProfile = () => {
 
           {/* Name & Role */}
           <div className="space-y-1 mb-4">
-            <h1 className="text-xl font-bold">{profile.full_name || 'Usuário'}</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold">{profile.full_name || 'Usuário'}</h1>
+              {!isOwnProfile && (
+                <Button size="sm" className="gap-1.5" onClick={handleSendMessage}>
+                  <MessageCircle className="h-4 w-4" /> Enviar mensagem
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {role && <Badge variant="secondary" className="text-xs">{ROLE_LABELS[role] || role}</Badge>}
               {profile.company_id && targetUserId && (
