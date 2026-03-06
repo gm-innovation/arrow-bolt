@@ -111,7 +111,7 @@ const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
               role={authorRole}
               groups={post.author_groups}
             >
-              <button className="flex items-center gap-3 text-left cursor-pointer group">
+              <button className="flex items-center gap-3 text-left cursor-pointer group" onClick={() => navigate(`/corp/profile/${post.author?.id}`)}>
                 <Avatar className="h-10 w-10 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
                   {post.author?.avatar_url && <AvatarImage src={post.author.avatar_url} />}
                   <AvatarFallback className="text-xs">{initials}</AvatarFallback>
