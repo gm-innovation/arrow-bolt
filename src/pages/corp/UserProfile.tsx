@@ -32,7 +32,6 @@ const UserProfile = () => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState('');
-  const [uploadingCover, setUploadingCover] = useState(false);
 
   const targetUserId = userId || user?.id;
   const isOwnProfile = targetUserId === user?.id;
