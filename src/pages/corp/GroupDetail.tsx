@@ -32,7 +32,7 @@ const GroupDetail = () => {
   });
 
   const companyId = profile?.company_id || '';
-  const { groups, isLoading, myPendingRequests, pendingRequests, requestJoin, leaveGroup, approveRequest, rejectRequest } = useCorpGroups(companyId);
+  const { groups, isLoading, myPendingRequests, pendingRequests, requestJoin, leaveGroup, approveRequest, rejectRequest, addMember, removeMember } = useCorpGroups(companyId);
   const { discussions, loadingDiscussions, createDiscussion } = useGroupDiscussions(id);
 
   const group = groups.find((g: any) => g.id === id);
