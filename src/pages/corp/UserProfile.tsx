@@ -197,7 +197,7 @@ const UserProfile = () => {
           {isOwnProfile && (
             <>
               <input
-                ref={coverInputRef}
+                id="cover-file-input"
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -206,13 +206,12 @@ const UserProfile = () => {
                   e.target.value = '';
                 }}
               />
-              <button
-                type="button"
-                className="absolute bottom-3 right-3 h-8 px-3 rounded-md bg-secondary text-secondary-foreground flex items-center gap-1.5 hover:opacity-90 transition-opacity"
-                onClick={() => coverInputRef.current?.click()}
+              <label
+                htmlFor="cover-file-input"
+                className="absolute bottom-3 right-3 h-8 px-3 rounded-md bg-secondary text-secondary-foreground flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer"
               >
                 <Camera className="h-3.5 w-3.5" /> Alterar capa
-              </button>
+              </label>
             </>
           )}
         </div>
