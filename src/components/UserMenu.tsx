@@ -44,6 +44,11 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       case "manager": return "Gerente";
       case "tech": return "Técnico";
       case "hr": return "Recursos Humanos";
+      case "commercial": return "Comercial";
+      case "compras": return "Suprimentos";
+      case "qualidade": return "Qualidade";
+      case "financeiro": return "Financeiro";
+      case "director": return "Diretor";
       default: return "";
     }
   };
@@ -55,6 +60,11 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       case "manager": return "/manager/profile";
       case "tech": return "/tech/profile";
       case "hr": return "/hr/profile";
+      case "commercial": return "/commercial/profile";
+      case "compras": return "/supplies/profile";
+      case "qualidade": return "/quality/profile";
+      case "financeiro": return "/finance/profile";
+      case "director": return "/corp/profile";
       default: return "/";
     }
   };
@@ -66,6 +76,11 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       case "manager": return "/manager/settings";
       case "tech": return "/tech/settings";
       case "hr": return "/hr/settings";
+      case "commercial": return "/commercial/settings";
+      case "compras": return "/supplies/settings";
+      case "qualidade": return "/quality/settings";
+      case "financeiro": return "/finance/settings";
+      case "director": return "/corp/settings";
       default: return "/";
     }
   };

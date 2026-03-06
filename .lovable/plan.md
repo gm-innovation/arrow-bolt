@@ -1,51 +1,74 @@
 
 
-## Plano: Corrigir rotas de Perfil/Configurações e criar página de perfil social
+## Gamificação do Sistema de Conquistas
 
-### Problema 1: Redirecionamento para Dashboard
-O `UserMenu.tsx` nas funções `getProfilePath()` e `getSettingsPath()` não possui cases para `commercial`, `compras`, `qualidade`, `financeiro` e `director`. O default retorna `"/"`, que redireciona ao dashboard.
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-### Problema 2: Página de perfil social pública
-Não existe uma página de perfil social onde outros funcionários possam visualizar informações de um colega (foto de capa, avatar, bio, posts, conquistas) e iniciar comunicação direta.
+### Modelo de Dados
 
----
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-### Mudanças planejadas
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
+```
 
-**1. Corrigir `src/components/UserMenu.tsx`**
-- Adicionar todos os roles faltantes em `getProfilePath()` e `getSettingsPath()`:
-  - `commercial` → `/commercial/profile` e `/commercial/settings`
-  - `compras` → `/supplies/profile` e `/supplies/settings`  
-  - `qualidade` → `/quality/profile` e `/quality/settings`
-  - `financeiro` → `/finance/profile` e `/finance/settings`
-  - `director` → `/corp/profile` e `/corp/settings`
-- Adicionar também o `getUserTitle()` para roles faltantes
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
 
-**2. Criar rotas de Profile para roles sem elas**
-- Supplies, Quality, Finance e Director não possuem rotas `/profile` no `App.tsx`
-- Criar páginas de perfil reutilizando o componente existente (ou criando um componente compartilhado `SharedProfile`) que todos os roles usem, evitando duplicação
+### Conquistas Automáticas (por categoria)
 
-**3. Criar página de perfil social público (`/corp/profile/:userId`)**
-- Nova página acessível por qualquer funcionário da mesma empresa
-- Seções: foto de capa editável, avatar, nome, cargo/role, bio/descrição editável (pelo próprio usuário)
-- Exibir: tempo de empresa, idade, posts recentes, conquistas/badges, grupos
-- Botão "Enviar mensagem" para comunicação direta
-- O perfil do próprio usuário mostra controles de edição (upload de capa, avatar, edição de bio)
+Definir um conjunto fixo no código (sem tabela extra):
 
-**4. Adicionar campos no banco de dados**
-- Migration para adicionar à tabela `profiles`:
-  - `cover_url` (text, nullable) — URL da foto de capa
-  - `bio` (text, nullable) — descrição/bio do usuário
-- RLS: usuário pode atualizar apenas seus próprios campos
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
 
-**5. Atualizar `FeedProfileSidebar` e posts do feed**
-- Avatar e nome no feed devem ser clicáveis, redirecionando para `/corp/profile/:userId`
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
 
-### Arquivos afetados
-- `src/components/UserMenu.tsx` — adicionar cases faltantes
-- `src/App.tsx` — adicionar rotas `/corp/profile/:userId`, profile routes para supplies/quality/finance
-- `src/pages/corp/UserProfile.tsx` — **novo** — página de perfil social
-- `src/components/corp/FeedProfileSidebar.tsx` — link para perfil social
-- `src/components/corp/FeedPostCard.tsx` — avatar/nome clicáveis
-- Migration SQL — campos `cover_url` e `bio` na tabela profiles
+### Mudanças nos Componentes
+
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
+
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
 

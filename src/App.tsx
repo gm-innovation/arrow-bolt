@@ -110,6 +110,7 @@ const CorpAuditLog = lazy(() => import("./pages/corp/admin/AuditLog"));
 const CorpFeedDiscussion = lazy(() => import("./pages/corp/FeedDiscussion"));
 const CorpGroupDetail = lazy(() => import("./pages/corp/GroupDetail"));
 const CorpGroupDiscussion = lazy(() => import("./pages/corp/GroupDiscussion"));
+const CorpUserProfile = lazy(() => import("./pages/corp/UserProfile"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
 const SuppliesRequests = lazy(() => import("./pages/supplies/Requests"));
@@ -311,12 +312,15 @@ const App = () => {
                   <Route path="/corp/admin/departments" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpDepartments /></CorpAdminRoute>} />
                   <Route path="/corp/admin/request-types" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpRequestTypes /></CorpAdminRoute>} />
                   <Route path="/corp/admin/audit-log" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpAuditLog /></CorpAdminRoute>} />
+                  <Route path="/corp/profile/:userId" element={<CorpRoute pageTitle="Perfil"><CorpUserProfile /></CorpRoute>} />
+                  <Route path="/corp/profile" element={<CorpRoute pageTitle="Meu Perfil"><CorpUserProfile /></CorpRoute>} />
 
                   {/* Supplies - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras" /></ProtectedRoute>}>
                     <Route path="/supplies/dashboard" element={<SuppliesDashboard />} />
                     <Route path="/supplies/requests" element={<SuppliesRequests />} />
                     <Route path="/supplies/settings" element={<SuppliesSettings />} />
+                    <Route path="/supplies/profile" element={<CorpUserProfile />} />
                   </Route>
 
                   {/* Quality - nested layout route */}
@@ -327,6 +331,7 @@ const App = () => {
                     <Route path="/quality/audits" element={<QualityAudits />} />
                     <Route path="/quality/reports" element={<QualityReports />} />
                     <Route path="/quality/settings" element={<QualitySettings />} />
+                    <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>
 
                   {/* Finance - nested layout route */}
@@ -337,6 +342,7 @@ const App = () => {
                     <Route path="/finance/reimbursements" element={<FinanceReimbursements />} />
                     <Route path="/finance/reports" element={<FinanceReports />} />
                     <Route path="/finance/settings" element={<FinanceSettings />} />
+                    <Route path="/finance/profile" element={<CorpUserProfile />} />
                   </Route>
 
                   {/* Catch all */}

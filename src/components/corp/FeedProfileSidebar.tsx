@@ -115,15 +115,15 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
     <Card className="sticky top-4">
       <CardContent className="p-0">
         <div className="h-16 bg-gradient-to-r from-primary/20 to-primary/5 rounded-t-lg" />
-        <div className="px-4 -mt-8">
-          <Avatar className="h-16 w-16 ring-4 ring-card">
+        <div className="px-4 -mt-8 cursor-pointer" onClick={() => navigate(`/corp/profile/${user?.id}`)}>
+          <Avatar className="h-16 w-16 ring-4 ring-card hover:ring-primary/20 transition-all">
             {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
             <AvatarFallback className="text-lg font-semibold">{initials}</AvatarFallback>
           </Avatar>
         </div>
         <div className="px-4 pt-2 pb-3 space-y-2">
           <div className="space-y-1">
-            <p className="font-semibold text-sm">{profile?.full_name || 'Usuário'}</p>
+            <p className="font-semibold text-sm cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/corp/profile/${user?.id}`)}>{profile?.full_name || 'Usuário'}</p>
             {role && <Badge variant="secondary" className="text-[10px] h-5">{ROLE_LABELS[role] || role}</Badge>}
           </div>
           {user?.id && companyId && <FeedUserLevel userId={user.id} companyId={companyId} />}

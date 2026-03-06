@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -76,6 +77,7 @@ const renderContentWithMentions = (content: string, mentions: any[]) => {
 const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
   const { user } = useAuth();
   const { reactToPost, removeReaction, deletePost } = useCorpFeed();
+  const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
@@ -109,7 +111,7 @@ const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
               role={authorRole}
               groups={post.author_groups}
             >
-              <button className="flex items-center gap-3 text-left cursor-pointer group">
+              <button className="flex items-center gap-3 text-left cursor-pointer group" onClick={() => navigate(`/corp/profile/${post.author?.id}`)}>
                 <Avatar className="h-10 w-10 ring-2 ring-transparent group-hover:ring-primary/20 transition-all">
                   {post.author?.avatar_url && <AvatarImage src={post.author.avatar_url} />}
                   <AvatarFallback className="text-xs">{initials}</AvatarFallback>
