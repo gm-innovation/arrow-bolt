@@ -1,25 +1,74 @@
 
 
-## Plano: Mostrar publicações do usuário visitado no perfil (estilo feed)
+## Gamificação do Sistema de Conquistas
 
-### Problema
-Quando visito o perfil de outro usuário, aparece um card "Enviar mensagem" em vez de exibir as publicações desse usuário. O correto é mostrar as publicações do usuário visitado no estilo feed — o chat é um recurso separado.
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-### Mudanças
+### Modelo de Dados
 
-**`src/pages/corp/UserProfile.tsx`** (linhas 357-373):
-1. Remover o bloco condicional `isOwnProfile ? ... : <Card "Enviar mensagem">` 
-2. Em ambos os casos (próprio perfil ou visitante), exibir na coluna central:
-   - Se `isOwnProfile`: manter `UserProfileSharedPosts` (publicações compartilhadas comigo)
-   - Se `!isOwnProfile`: criar um componente similar que liste as **publicações feitas pelo usuário visitado** (`corp_feed_posts` onde `author_id = targetUserId`), exibindo-as como cards de feed com conteúdo, anexos e timestamp
-3. Manter o botão "Enviar mensagem" apenas no cabeçalho do perfil (ao lado do nome), onde já existe
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-### Implementação da coluna central para visitantes
-- Criar um novo componente `UserProfilePosts` (ou reutilizar lógica inline) que busca `corp_feed_posts` por `author_id = targetUserId`
-- Exibir os posts com o mesmo estilo de card do `UserProfileSharedPosts`: avatar do autor, conteúdo, anexos, data
-- Título da seção: "Publicações de {nome}"
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
+```
 
-### Arquivos afetados
-- `src/pages/corp/UserProfile.tsx` — ajustar condicional da coluna central
-- `src/components/corp/UserProfilePosts.tsx` — novo componente para listar posts do usuário visitado
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
+
+### Conquistas Automáticas (por categoria)
+
+Definir um conjunto fixo no código (sem tabela extra):
+
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+
+### Mudanças nos Componentes
+
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
+
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
 
