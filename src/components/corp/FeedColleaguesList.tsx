@@ -55,11 +55,12 @@ const FeedColleaguesList = ({ companyId }: FeedColleaguesListProps) => {
     enabled: !!companyId,
   });
 
+  const withoutSelf = colleagues.filter((c: any) => c.id !== user?.id);
   const filtered = search.trim()
-    ? colleagues.filter((c: any) =>
+    ? withoutSelf.filter((c: any) =>
         c.full_name?.toLowerCase().includes(search.toLowerCase())
       )
-    : colleagues;
+    : withoutSelf;
 
   const getInitials = (name?: string) =>
     name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '??';
