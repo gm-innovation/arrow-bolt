@@ -26,7 +26,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 interface FeedProfileSidebarProps {
   profile: {
-    full_name?: string; avatar_url?: string; hire_date?: string; birth_date?: string; company_id?: string;
+    full_name?: string; avatar_url?: string; hire_date?: string; birth_date?: string; company_id?: string; cover_url?: string;
   } | null;
   role?: string;
 }
