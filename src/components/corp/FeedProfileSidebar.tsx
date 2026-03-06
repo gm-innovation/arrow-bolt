@@ -123,7 +123,7 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
         </div>
         <div className="px-4 pt-2 pb-3 space-y-2">
           <div className="space-y-1">
-            <p className="font-semibold text-sm">{profile?.full_name || 'Usuário'}</p>
+            <p className="font-semibold text-sm cursor-pointer hover:text-primary transition-colors" onClick={() => navigate(`/corp/profile/${user?.id}`)}>{profile?.full_name || 'Usuário'}</p>
             {role && <Badge variant="secondary" className="text-[10px] h-5">{ROLE_LABELS[role] || role}</Badge>}
           </div>
           {user?.id && companyId && <FeedUserLevel userId={user.id} companyId={companyId} />}
