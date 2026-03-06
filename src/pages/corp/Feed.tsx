@@ -22,7 +22,7 @@ const CorpFeed = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url, company_id, hire_date, birth_date')
+        .select('full_name, avatar_url, company_id, hire_date, birth_date, cover_url')
         .eq('id', user!.id)
         .single();
       return data;

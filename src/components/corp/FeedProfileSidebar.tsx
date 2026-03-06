@@ -114,7 +114,13 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
   return (
     <Card className="sticky top-4">
       <CardContent className="p-0">
-        <div className="h-16 bg-gradient-to-r from-primary/20 to-primary/5 rounded-t-lg" />
+        <div className="h-16 rounded-t-lg overflow-hidden relative">
+          {profile?.cover_url ? (
+            <img src={profile.cover_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-primary/20 to-primary/5" />
+          )}
+        </div>
         <div className="px-4 -mt-8 cursor-pointer" onClick={() => navigate(`/corp/profile/${user?.id}`)}>
           <Avatar className="h-16 w-16 ring-4 ring-card hover:ring-primary/20 transition-all">
             {profile?.avatar_url && <AvatarImage src={profile.avatar_url} />}
