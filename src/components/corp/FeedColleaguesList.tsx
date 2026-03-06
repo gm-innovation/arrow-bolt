@@ -7,6 +7,7 @@ import { Users, Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 const ROLE_LABELS: Record<string, string> = {
   technician: 'Técnico',
@@ -27,6 +28,7 @@ interface FeedColleaguesListProps {
 const FeedColleaguesList = ({ companyId }: FeedColleaguesListProps) => {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: colleagues = [], isLoading } = useQuery({
     queryKey: ['feed-colleagues', companyId],
@@ -53,11 +55,12 @@ const FeedColleaguesList = ({ companyId }: FeedColleaguesListProps) => {
     enabled: !!companyId,
   });
 
+  const withoutSelf = colleagues.filter((c: any) => c.id !== user?.id);
   const filtered = search.trim()
-    ? colleagues.filter((c: any) =>
+    ? withoutSelf.filter((c: any) =>
         c.full_name?.toLowerCase().includes(search.toLowerCase())
       )
-    : colleagues;
+    : withoutSelf;
 
   const getInitials = (name?: string) =>
     name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '??';
