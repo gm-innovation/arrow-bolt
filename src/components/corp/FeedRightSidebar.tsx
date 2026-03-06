@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { useCorpGroups } from '@/hooks/useCorpGroups';
 import { useNavigate } from 'react-router-dom';
 import FeedBadgesCard from './FeedBadgesCard';
+import FeedColleaguesList from './FeedColleaguesList';
 
 interface FeedRightSidebarProps {
   companyId: string;
