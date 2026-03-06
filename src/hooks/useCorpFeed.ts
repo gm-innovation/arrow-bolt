@@ -103,8 +103,8 @@ export const useCorpFeed = () => {
 
   const uploadAttachments = async (postId: string, files: File[]) => {
     for (const file of files) {
-      const safeName = sanitizeFileName(file.name);
-      const path = `${user!.id}/${postId}/${Date.now()}-${safeName}`;
+      const ext = file.name.includes('.') ? file.name.substring(file.name.lastIndexOf('.')) : '';
+      const path = `${user!.id}/${postId}/${crypto.randomUUID()}${ext}`;
       const { error: uploadError } = await supabase.storage
         .from('corp-feed-media')
         .upload(path, file, { cacheControl: '3600', upsert: false });
