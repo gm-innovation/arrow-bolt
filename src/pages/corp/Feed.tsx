@@ -42,7 +42,7 @@ const CorpFeed = () => {
   const effectiveCompanyId = companyId || profile?.company_id || '';
 
   return (
-    <div className="max-w-[1100px] mx-auto px-2">
+    <div className="max-w-[1400px] mx-auto px-2">
       <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_260px] gap-4 md:gap-5 items-start">
         {/* Left sidebar - compact on mobile, full on md+ */}
         <div className="md:sticky md:top-4 self-start">
