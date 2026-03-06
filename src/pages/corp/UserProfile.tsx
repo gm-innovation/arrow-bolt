@@ -359,18 +359,7 @@ const UserProfile = () => {
         {isOwnProfile ? (
           <UserProfileSharedPosts targetUserId={targetUserId!} />
         ) : (
-          <Card>
-            <CardContent className="p-6 flex flex-col items-center gap-4 text-center">
-              <MessageCircle className="h-10 w-10 text-primary/40" />
-              <div>
-                <h3 className="font-semibold mb-1">Enviar mensagem para {profile.full_name?.split(' ')[0]}</h3>
-                <p className="text-sm text-muted-foreground">Inicie uma conversa direta com este colaborador</p>
-              </div>
-              <Button className="gap-1.5" onClick={handleSendMessage}>
-                <MessageCircle className="h-4 w-4" /> Enviar mensagem
-              </Button>
-            </CardContent>
-          </Card>
+          <UserProfilePosts targetUserId={targetUserId!} userName={profile.full_name} />
         )}
       </div>
     </div>
