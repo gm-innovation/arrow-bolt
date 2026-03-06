@@ -42,6 +42,7 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
   const companyId = profile?.company_id || '';
 
   const isAdminOrHR = role === 'admin' || role === 'hr' || role === 'super_admin';
+  const canAwardBadge = role === 'hr' || role === 'director' || role === 'super_admin';
 
   const { discussions } = useCorpFeedDiscussions(companyId);
   const recentDiscussions = discussions.slice(0, 5);
@@ -209,7 +210,7 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
         </div>
 
         {/* Award Badge (Admin/HR only) */}
-        {isAdminOrHR && companyId && (
+        {canAwardBadge && companyId && (
           <>
             <Separator />
             <div className="px-4 py-3">
