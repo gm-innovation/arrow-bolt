@@ -1,3 +1,4 @@
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { X, FileText, Download, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,75 @@ const openImageInNewTab = async (url: string, name: string) => {
   }
 };
 
+const getVideoKey = (vid: Attachment) => vid.id || vid.file_url;
+
+const VideoPlayer = ({ vid, editable, onRemove, removeIndex }: { vid: Attachment; editable?: boolean; onRemove?: (i: number) => void; removeIndex: number }) => {
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  const triedFallback = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      if (blobUrl) URL.revokeObjectURL(blobUrl);
+    };
+  }, [blobUrl]);
+
+  const handleError = useCallback(async () => {
+    if (triedFallback.current) {
+      setFailed(true);
+      return;
+    }
+    triedFallback.current = true;
+    try {
+      const res = await fetch(vid.file_url);
+      if (!res.ok) throw new Error('fetch failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      setBlobUrl(url);
+    } catch {
+      setFailed(true);
+    }
+  }, [vid.file_url]);
+
+  if (failed) {
+    return (
+      <div className="relative group flex flex-col items-center justify-center gap-2 p-4 rounded-lg border border-border bg-muted/30 text-center">
+        <p className="text-xs text-muted-foreground">Não foi possível carregar este vídeo.</p>
+        <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => downloadFile(vid.file_url, vid.file_name)}>
+          <Download className="h-3 w-3" /> Baixar vídeo
+        </Button>
+        {editable && onRemove && (
+          <Button variant="destructive" size="icon" className="absolute top-1 right-1 h-6 w-6" onClick={() => onRemove(removeIndex)}>
+            <X className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative group">
+      <video
+        controls
+        className="w-full rounded-lg max-h-80"
+        preload="metadata"
+        src={blobUrl || vid.file_url}
+        onError={handleError}
+      />
+      {editable && onRemove && (
+        <Button
+          variant="destructive"
+          size="icon"
+          className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+          onClick={() => onRemove(removeIndex)}
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      )}
+    </div>
+  );
+};
+
 const FeedMediaPreview = ({ attachments, onRemove, editable }: FeedMediaPreviewProps) => {
   if (!attachments.length) return null;
 
@@ -101,22 +171,14 @@ const FeedMediaPreview = ({ attachments, onRemove, editable }: FeedMediaPreviewP
         </div>
       )}
 
-      {videos.map((vid, i) => (
-        <div key={i} className="relative group">
-          <video controls className="w-full rounded-lg max-h-80" preload="metadata" crossOrigin="anonymous">
-            <source src={vid.file_url} type={vid.mime_type || 'video/mp4'} />
-          </video>
-          {editable && onRemove && (
-            <Button
-              variant="destructive"
-              size="icon"
-              className="absolute top-1 right-1 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={() => onRemove(getIndex(vid))}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
+      {videos.map((vid) => (
+        <VideoPlayer
+          key={getVideoKey(vid)}
+          vid={vid}
+          editable={editable}
+          onRemove={onRemove}
+          removeIndex={getIndex(vid)}
+        />
       ))}
 
       {audios.map((aud, i) => (
