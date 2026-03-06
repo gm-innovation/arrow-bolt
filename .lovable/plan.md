@@ -1,74 +1,36 @@
 
 
-## Gamificação do Sistema de Conquistas
+## Correção: Download de Arquivos e Reprodução de Vídeos no Feed
 
-O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
+### Problema
+1. **Arquivos (PDF)**: O link abre em nova aba (`target="_blank"`) apontando diretamente para a URL do storage, que é bloqueada pelo Chrome/extensões (`ERR_BLOCKED_BY_CLIENT`).
+2. **Vídeos**: O player `<video>` pode falhar ao carregar de URLs cross-origin do storage.
 
-### Modelo de Dados
+### Solução
 
-Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
+**`FeedMediaPreview.tsx`**:
 
-```text
-Tier         | XP necessário | Ícone
-─────────────┼───────────────┼──────
-Bronze       | 0             | 🥉
-Prata        | 100           | 🥈
-Ouro         | 300           | 🥇
-Diamante     | 600           | 💎
-Rubi         | 1000          | ❤️‍🔥
+1. **Download de arquivos via fetch+blob**: Substituir o `<a href target="_blank">` por uma função que faz `fetch()` da URL, cria um `Blob`, gera um `URL.createObjectURL()` e dispara o download programaticamente. Isso evita que o navegador/extensões bloqueiem a navegação direta ao domínio do storage.
+
+2. **Vídeos com `crossOrigin`**: Adicionar `crossOrigin="anonymous"` ao elemento `<video>` para garantir carregamento cross-origin correto.
+
+3. **Imagens**: Mesmo ajuste -- em vez de `window.open()`, usar a mesma abordagem fetch+blob para visualização em tela cheia ou download.
+
+### Mudança principal
+
+Criar uma função utilitária `downloadFile(url, filename)` que:
+```ts
+const downloadFile = async (url: string, name: string) => {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = name;
+  a.click();
+  URL.revokeObjectURL(blobUrl);
+};
 ```
 
-Alterações na tabela `corp_badges`:
-- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
-- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
-
-### Conquistas Automáticas (por categoria)
-
-Definir um conjunto fixo no código (sem tabela extra):
-
-**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
-**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
-**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
-
-Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
-
-### Mudanças nos Componentes
-
-**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
-- Substituir `BADGE_TYPES` por categorias com sub-opções:
-  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
-  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
-  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
-- Cada opção define XP (5, 10, 15, 25 conforme importância)
-- Manter seletor de ícone para tipo Personalizada
-- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
-
-**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
-- Recebe `userId` e `companyId`
-- Query: contar total de badges do usuário e somar `xp_value`
-- Calcular tier atual e progresso para o próximo
-- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
-- Usado no `FeedProfileSidebar` abaixo do nome
-
-**3. `FeedProfileSidebar.tsx` — Integrar nível**
-- Adicionar `FeedUserLevel` abaixo do badge de role
-- Mostrar contagem de conquistas do usuário
-
-**4. `FeedBadgesCard.tsx` — Melhorar visual**
-- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
-- Agrupar visualmente por categoria com ícone
-
-### Migration SQL
-
-```sql
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
-```
-
-### Resumo
-- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
-- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
-- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
-- Integrar nível no `FeedProfileSidebar`
-- Melhorar `FeedBadgesCard` com indicador de XP
+Aplicar essa função no botão de download de arquivos e no clique de imagens.
 
