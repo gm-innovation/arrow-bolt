@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Camera, Pencil, Check, X, Briefcase, Calendar, Users, MessageCircle, Award, ArrowLeft } from 'lucide-react';
+import { Camera, Pencil, Check, X, Briefcase, Calendar, Users, MessageCircle, Award, ArrowLeft, Image, Film, FileIcon } from 'lucide-react';
 import { formatDistanceToNow, differenceInYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import FeedUserLevel from '@/components/corp/FeedUserLevel';
+import UserProfileLeftSidebar from '@/components/corp/UserProfileLeftSidebar';
+import UserProfileSharedPosts from '@/components/corp/UserProfileSharedPosts';
 
 const ROLE_LABELS: Record<string, string> = {
   technician: 'Técnico', admin: 'Administrador', hr: 'RH', manager: 'Gerente',
@@ -62,49 +64,6 @@ const UserProfile = () => {
     enabled: !!targetUserId,
   });
 
-  // Fetch groups
-  const { data: groups = [] } = useQuery({
-    queryKey: ['user-groups', targetUserId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('corp_group_members')
-        .select('corp_groups:corp_groups!corp_group_members_group_id_fkey(id, name)')
-        .eq('user_id', targetUserId!);
-      return (data || []).map((m: any) => ({ id: m.corp_groups?.id, name: m.corp_groups?.name })).filter((g: any) => g.name);
-    },
-    enabled: !!targetUserId,
-  });
-
-  // Fetch badges
-  const { data: badges = [] } = useQuery({
-    queryKey: ['user-badges', targetUserId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('corp_badges')
-        .select('*')
-        .eq('user_id', targetUserId!)
-        .order('awarded_at', { ascending: false })
-        .limit(10);
-      return data || [];
-    },
-    enabled: !!targetUserId,
-  });
-
-  // Fetch recent posts
-  const { data: recentPosts = [] } = useQuery({
-    queryKey: ['user-posts', targetUserId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('corp_feed_posts')
-        .select('id, content, title, created_at')
-        .eq('author_id', targetUserId!)
-        .order('created_at', { ascending: false })
-        .limit(5);
-      return data || [];
-    },
-    enabled: !!targetUserId,
-  });
-
   // Fetch stats
   const { data: stats } = useQuery({
     queryKey: ['user-profile-stats', targetUserId],
@@ -131,14 +90,27 @@ const UserProfile = () => {
     },
   });
 
-  // Upload cover
+  // Upload cover — path must start with userId for RLS
   const uploadCover = async (file: File) => {
     const ext = file.name.split('.').pop();
-    const path = `covers/${user!.id}.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true });
-    if (uploadError) { toast({ title: 'Erro ao enviar capa', variant: 'destructive' }); return; }
+    const timestamp = Date.now();
+    const path = `${user!.id}/cover-${timestamp}.${ext}`;
+    
+    // Delete old cover files
+    const { data: oldFiles } = await supabase.storage.from('user-avatars').list(user!.id, { search: 'cover-' });
+    if (oldFiles?.length) {
+      await supabase.storage.from('user-avatars').remove(oldFiles.map(f => `${user!.id}/${f.name}`));
+    }
+
+    const { error: uploadError } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true, cacheControl: '0' });
+    if (uploadError) {
+      console.error('Cover upload error:', uploadError);
+      toast({ title: 'Erro ao enviar capa', description: uploadError.message, variant: 'destructive' });
+      return;
+    }
     const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path);
-    await supabase.from('profiles').update({ cover_url: publicUrl } as any).eq('id', user!.id);
+    const versionedUrl = `${publicUrl}?v=${timestamp}`;
+    await supabase.from('profiles').update({ cover_url: versionedUrl } as any).eq('id', user!.id);
     queryClient.invalidateQueries({ queryKey: ['user-profile', targetUserId] });
     toast({ title: 'Capa atualizada' });
   };
@@ -146,12 +118,24 @@ const UserProfile = () => {
   // Upload avatar
   const uploadAvatar = async (file: File) => {
     const ext = file.name.split('.').pop();
-    const path = `${user!.id}/avatar.${ext}`;
-    const { error: uploadError } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true });
-    if (uploadError) { toast({ title: 'Erro ao enviar avatar', variant: 'destructive' }); return; }
+    const timestamp = Date.now();
+    const path = `${user!.id}/avatar-${timestamp}.${ext}`;
+
+    // Delete old avatar files
+    const { data: oldFiles } = await supabase.storage.from('user-avatars').list(user!.id, { search: 'avatar-' });
+    if (oldFiles?.length) {
+      await supabase.storage.from('user-avatars').remove(oldFiles.map(f => `${user!.id}/${f.name}`));
+    }
+
+    const { error: uploadError } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true, cacheControl: '0' });
+    if (uploadError) {
+      toast({ title: 'Erro ao enviar avatar', description: uploadError.message, variant: 'destructive' });
+      return;
+    }
     const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path);
-    await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user!.id);
-    await supabase.auth.updateUser({ data: { avatar_url: publicUrl } });
+    const versionedUrl = `${publicUrl}?v=${timestamp}`;
+    await supabase.from('profiles').update({ avatar_url: versionedUrl }).eq('id', user!.id);
+    await supabase.auth.updateUser({ data: { avatar_url: versionedUrl } });
     queryClient.invalidateQueries({ queryKey: ['user-profile', targetUserId] });
     toast({ title: 'Avatar atualizado' });
   };
@@ -181,7 +165,7 @@ const UserProfile = () => {
   const coverUrl = (profile as any).cover_url || '';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-8">
+    <div className="max-w-[1100px] mx-auto space-y-6 pb-8 px-2">
       <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => navigate(-1)}>
         <ArrowLeft className="h-4 w-4" /> Voltar
       </Button>
@@ -194,7 +178,8 @@ const UserProfile = () => {
           )}
           {isOwnProfile && (
             <>
-              <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadCover(e.target.files[0])} />
+              <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
+                onChange={(e) => { if (e.target.files?.[0]) uploadCover(e.target.files[0]); e.target.value = ''; }} />
               <Button
                 variant="secondary"
                 size="sm"
@@ -209,14 +194,15 @@ const UserProfile = () => {
 
         <CardContent className="relative pt-0 px-6 pb-6">
           {/* Avatar */}
-          <div className="relative -mt-16 mb-4">
+          <div className="relative -mt-16 mb-4 w-fit">
             <Avatar className="h-28 w-28 ring-4 ring-card">
               {profile.avatar_url && <AvatarImage src={profile.avatar_url} />}
               <AvatarFallback className="text-2xl font-bold">{initials}</AvatarFallback>
             </Avatar>
             {isOwnProfile && (
               <>
-                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && uploadAvatar(e.target.files[0])} />
+                <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => { if (e.target.files?.[0]) uploadAvatar(e.target.files[0]); e.target.value = ''; }} />
                 <button
                   className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors"
                   onClick={() => avatarInputRef.current?.click()}
@@ -295,83 +281,19 @@ const UserProfile = () => {
             </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Award className="h-4 w-4 shrink-0 text-primary/60" />
-              <span className="font-medium text-foreground">{badges.length}</span> conquistas
+              <span className="font-medium text-foreground">0</span> conquistas
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left column: Groups & Badges */}
-        <div className="space-y-6">
-          {/* Groups */}
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3">
-                <Users className="h-4 w-4 text-primary/60" /> Grupos
-              </h3>
-              {groups.length > 0 ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {groups.map((g: any) => (
-                    <Badge key={g.id} variant="outline" className="text-xs cursor-pointer hover:bg-accent" onClick={() => navigate(`/corp/groups/${g.id}`)}>
-                      {g.name}
-                    </Badge>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Nenhum grupo</p>
-              )}
-            </CardContent>
-          </Card>
+      {/* 3-column layout */}
+      <div className="grid grid-cols-1 md:grid-cols-[260px_1fr] gap-6">
+        {/* Left column */}
+        <UserProfileLeftSidebar targetUserId={targetUserId!} />
 
-          {/* Badges */}
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="text-sm font-semibold flex items-center gap-1.5 mb-3">
-                <Award className="h-4 w-4 text-primary/60" /> Conquistas
-              </h3>
-              {badges.length > 0 ? (
-                <div className="space-y-2">
-                  {badges.map((b: any) => (
-                    <div key={b.id} className="flex items-center gap-2 text-xs">
-                      <span className="text-lg">{b.icon || '🏆'}</span>
-                      <div>
-                        <p className="font-medium">{b.title}</p>
-                        {b.description && <p className="text-muted-foreground">{b.description}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Nenhuma conquista ainda</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Right column: Recent Posts */}
-        <div className="md:col-span-2">
-          <Card>
-            <CardContent className="p-4">
-              <h3 className="text-sm font-semibold mb-3">Publicações recentes</h3>
-              {recentPosts.length > 0 ? (
-                <div className="space-y-3">
-                  {recentPosts.map((post: any) => (
-                    <div key={post.id} className="border-b border-border pb-3 last:border-0 last:pb-0">
-                      {post.title && <p className="text-sm font-medium">{post.title}</p>}
-                      <p className="text-sm text-muted-foreground line-clamp-2">{post.content}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        {formatDistanceToNow(new Date(post.created_at), { addSuffix: true, locale: ptBR })}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">Nenhuma publicação ainda</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* Center column: shared posts */}
+        <UserProfileSharedPosts targetUserId={targetUserId!} />
       </div>
     </div>
   );

@@ -127,6 +127,9 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
             {role && <Badge variant="secondary" className="text-[10px] h-5">{ROLE_LABELS[role] || role}</Badge>}
           </div>
           {user?.id && companyId && <FeedUserLevel userId={user.id} companyId={companyId} />}
+          <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 mt-1" onClick={() => navigate(`/corp/profile/${user?.id}`)}>
+            <Users className="h-3.5 w-3.5" /> Ver meu perfil
+          </Button>
         </div>
 
         <Separator />
