@@ -194,7 +194,7 @@ const UserProfile = () => {
             <img src={coverUrl} alt="Capa" className="w-full h-full object-cover" />
           )}
           {isOwnProfile && (
-            <div className="absolute bottom-3 right-3 z-10 relative h-8 px-3 rounded-md bg-secondary text-secondary-foreground flex items-center gap-1.5 select-none cursor-pointer">
+            <div className="absolute bottom-3 right-3 z-10 h-8 px-3 rounded-md bg-secondary text-secondary-foreground inline-flex items-center gap-1.5 select-none cursor-pointer">
               <Camera className="h-3.5 w-3.5" />
               <span className="text-sm">Alterar capa</span>
               <input
