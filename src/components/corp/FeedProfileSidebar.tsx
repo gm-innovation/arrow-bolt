@@ -164,22 +164,23 @@ const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps)
             </div>
 
             {/* Groups */}
-            {myGroups.length > 0 && (
-              <>
-                <Separator />
-                <div className="px-4 py-3">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Meus Grupos</p>
-                  <div className="flex flex-wrap gap-1">
-                    {myGroups.map((g: any) => (
-                      <Badge key={g.id} variant="outline" className="text-[10px] h-5 gap-1 cursor-pointer hover:bg-accent transition-colors"
-                        onClick={() => navigate(`/corp/groups/${g.id}`)}>
-                        <Users className="h-2.5 w-2.5" />{g.name}
-                      </Badge>
-                    ))}
-                  </div>
+            <Separator />
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Meus Grupos</p>
+              {myGroups.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {myGroups.map((g: any) => (
+                    <Badge key={g.id} variant="outline" className="text-[10px] h-5 gap-1 cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => navigate(`/corp/groups/${g.id}`)}>
+                      <Users className="h-2.5 w-2.5" />{g.name}
+                    </Badge>
+                  ))}
                 </div>
-              </>
-            )}
+              )}
+              <Button variant="outline" size="sm" className="w-full text-xs gap-1.5" onClick={() => setShowCreateGroup(true)}>
+                <Plus className="h-3.5 w-3.5" /> Criar Grupo
+              </Button>
+            </div>
 
             {/* Poll Section */}
             <Separator />
