@@ -11,6 +11,7 @@ import { ptBR } from 'date-fns/locale';
 import { useCorpGroups } from '@/hooks/useCorpGroups';
 import { useNavigate } from 'react-router-dom';
 import FeedBadgesCard from './FeedBadgesCard';
+import FeedColleaguesList from './FeedColleaguesList';
 
 interface FeedRightSidebarProps {
   companyId: string;
@@ -104,6 +105,9 @@ const FeedRightSidebar = ({ companyId }: FeedRightSidebarProps) => {
     <div className="space-y-4 sticky top-4">
       {/* Badges */}
       <FeedBadgesCard companyId={companyId} />
+
+      {/* Colleagues */}
+      <FeedColleaguesList companyId={companyId} />
 
       {/* Work Anniversaries */}
       {workAnniversaries.length > 0 && (
