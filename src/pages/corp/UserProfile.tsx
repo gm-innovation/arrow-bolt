@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Camera, Pencil, Check, X, Briefcase, Calendar, Users, MessageCircle, Award, ArrowLeft, Image, Film, FileIcon } from 'lucide-react';
+import { Camera, Pencil, Check, X, Briefcase, Calendar, MessageCircle, Award, ArrowLeft } from 'lucide-react';
 import { formatDistanceToNow, differenceInYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
