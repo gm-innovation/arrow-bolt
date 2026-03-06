@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useDebounce } from '@/hooks/useDebounce';
-import { Users, User } from 'lucide-react';
+import { Users, User, Shield, UsersRound } from 'lucide-react';
 
 export interface MentionItem {
   type: 'role' | 'user' | 'group';
@@ -21,6 +22,15 @@ const ROLE_OPTIONS: MentionItem[] = [
   { type: 'role', value: 'compras', displayName: 'Suprimentos' },
   { type: 'role', value: 'financeiro', displayName: 'Financeiro' },
   { type: 'role', value: 'super_admin', displayName: 'Super Admin' },
+];
+
+type FilterTab = 'all' | 'people' | 'roles' | 'groups';
+
+const TABS: { key: FilterTab; label: string; icon: React.ElementType }[] = [
+  { key: 'all', label: 'Todos', icon: Users },
+  { key: 'people', label: 'Pessoas', icon: User },
+  { key: 'roles', label: 'Funções', icon: Shield },
+  { key: 'groups', label: 'Grupos', icon: UsersRound },
 ];
 
 interface FeedMentionInputProps {
@@ -46,20 +56,46 @@ const FeedMentionInput = ({
 }: FeedMentionInputProps) => {
   const { user } = useAuth();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [cursorMentionStart, setCursorMentionStart] = useState<number | null>(null);
   const [userResults, setUserResults] = useState<MentionItem[]>([]);
   const [groupResults, setGroupResults] = useState<MentionItem[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState<FilterTab>('all');
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null);
   const debouncedSearch = useDebounce(searchQuery, 300);
+
+  // Calculate dropdown position
+  const updateDropdownPosition = useCallback(() => {
+    if (!textareaRef.current) return;
+    const rect = textareaRef.current.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const dropdownHeight = 340;
+    const openBelow = spaceBelow >= dropdownHeight;
+    setDropdownPos({
+      top: openBelow ? rect.bottom + 4 : rect.top - dropdownHeight - 4,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, []);
+
+  useEffect(() => {
+    if (showDropdown) {
+      updateDropdownPosition();
+      window.addEventListener('scroll', updateDropdownPosition, true);
+      window.addEventListener('resize', updateDropdownPosition);
+      return () => {
+        window.removeEventListener('scroll', updateDropdownPosition, true);
+        window.removeEventListener('resize', updateDropdownPosition);
+      };
+    }
+  }, [showDropdown, updateDropdownPosition]);
 
   // Fetch users when search changes
   useEffect(() => {
     if (!showDropdown || !user) return;
     const fetchResults = async () => {
-      // Fetch users (show initial suggestions even without search text)
       let usersQuery = supabase.from('profiles').select('id, full_name').limit(8);
       if (debouncedSearch.length > 0) {
         usersQuery = usersQuery.ilike('full_name', `%${debouncedSearch}%`);
@@ -72,7 +108,6 @@ const FeedMentionInput = ({
           displayName: p.full_name || 'Sem nome',
         }))
       );
-      // Fetch groups
       let groupsQuery = supabase.from('corp_groups').select('id, name').limit(6);
       if (debouncedSearch.length > 0) {
         groupsQuery = groupsQuery.ilike('name', `%${debouncedSearch}%`);
@@ -93,23 +128,35 @@ const FeedMentionInput = ({
     r.displayName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const allOptions = [...filteredRoles, ...groupResults, ...userResults];
+  const getFilteredOptions = (): MentionItem[] => {
+    switch (activeTab) {
+      case 'people': return userResults;
+      case 'roles': return filteredRoles;
+      case 'groups': return groupResults;
+      default: return [...filteredRoles, ...groupResults, ...userResults];
+    }
+  };
+
+  const allOptions = getFilteredOptions();
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [searchQuery]);
+  }, [searchQuery, activeTab]);
 
   // Close dropdown on outside click
   useEffect(() => {
+    if (!showDropdown) return;
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
-          textareaRef.current && !textareaRef.current.contains(e.target as Node)) {
-        setShowDropdown(false);
-      }
+      const target = e.target as Node;
+      if (textareaRef.current?.contains(target)) return;
+      // Check if click is inside the portal dropdown
+      const portalEl = document.getElementById('mention-dropdown-portal');
+      if (portalEl?.contains(target)) return;
+      setShowDropdown(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  }, [showDropdown]);
 
   const insertMention = useCallback((item: MentionItem) => {
     if (cursorMentionStart === null) return;
@@ -119,7 +166,6 @@ const FeedMentionInput = ({
     const newValue = before + mentionText + after;
     onChange(newValue);
 
-    // Add to mentions if not already there
     if (!mentions.some((m) => m.type === item.type && m.value === item.value)) {
       onMentionsChange([...mentions, item]);
     }
@@ -128,7 +174,6 @@ const FeedMentionInput = ({
     setCursorMentionStart(null);
     setSearchQuery('');
 
-    // Focus back and set cursor
     setTimeout(() => {
       const ta = textareaRef.current;
       if (ta) {
@@ -163,7 +208,6 @@ const FeedMentionInput = ({
     onChange(newValue);
 
     const pos = e.target.selectionStart;
-    // Check if we're typing after an @
     const textBefore = newValue.slice(0, pos);
     const atMatch = textBefore.match(/(^|\s)@(\S*)$/);
 
@@ -171,6 +215,7 @@ const FeedMentionInput = ({
       setCursorMentionStart(textBefore.lastIndexOf('@'));
       setSearchQuery(atMatch[2]);
       setShowDropdown(true);
+      setActiveTab('all');
     } else {
       setShowDropdown(false);
       setCursorMentionStart(null);
@@ -181,11 +226,134 @@ const FeedMentionInput = ({
   const removeMention = (index: number) => {
     const m = mentions[index];
     const mentionText = `@${m.displayName}`;
-    // Remove from text
     const newValue = value.replace(mentionText, '').replace(/\s{2,}/g, ' ').trim();
     onChange(newValue);
     onMentionsChange(mentions.filter((_, i) => i !== index));
   };
+
+  const getItemIcon = (item: MentionItem) => {
+    if (item.type === 'user') {
+      const initials = item.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      return (
+        <span className="flex items-center justify-center h-8 w-8 rounded-full bg-muted text-xs font-semibold text-muted-foreground shrink-0">
+          {initials}
+        </span>
+      );
+    }
+    if (item.type === 'role') {
+      return (
+        <span className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 shrink-0">
+          <Shield className="h-4 w-4 text-primary" />
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 shrink-0">
+        <UsersRound className="h-4 w-4 text-primary" />
+      </span>
+    );
+  };
+
+  const getTypeLabel = (type: MentionItem['type']) => {
+    switch (type) {
+      case 'role': return 'Função';
+      case 'group': return 'Grupo';
+      case 'user': return 'Pessoa';
+    }
+  };
+
+  const dropdown = showDropdown && allOptions.length > 0 && dropdownPos && createPortal(
+    <div
+      id="mention-dropdown-portal"
+      className="fixed z-[9999] rounded-xl border border-border bg-popover shadow-xl animate-in fade-in-0 zoom-in-95"
+      style={{
+        top: dropdownPos.top,
+        left: dropdownPos.left,
+        width: Math.max(dropdownPos.width, 320),
+      }}
+    >
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-0.5 px-2 pt-2 pb-1 border-b border-border/60">
+        {TABS.map((tab) => {
+          const Icon = tab.icon;
+          const count = tab.key === 'all'
+            ? filteredRoles.length + groupResults.length + userResults.length
+            : tab.key === 'people' ? userResults.length
+            : tab.key === 'roles' ? filteredRoles.length
+            : groupResults.length;
+          return (
+            <button
+              key={tab.key}
+              type="button"
+              onMouseDown={(e) => { e.preventDefault(); setActiveTab(tab.key); }}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                activeTab === tab.key
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {tab.label}
+              {count > 0 && (
+                <span className={cn(
+                  'text-[10px] min-w-[16px] text-center rounded-full px-1',
+                  activeTab === tab.key ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-muted text-muted-foreground'
+                )}>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Results List */}
+      <div className="max-h-[260px] overflow-y-auto p-1.5">
+        {allOptions.map((item, idx) => (
+          <button
+            key={`${item.type}-${item.value}`}
+            type="button"
+            className={cn(
+              'flex items-center gap-3 w-full rounded-lg px-2.5 py-2 text-sm cursor-pointer transition-colors',
+              selectedIndex === idx
+                ? 'bg-primary text-primary-foreground'
+                : 'hover:bg-accent'
+            )}
+            onMouseDown={(e) => { e.preventDefault(); insertMention(item); }}
+            onMouseEnter={() => setSelectedIndex(idx)}
+          >
+            {getItemIcon(item)}
+            <div className="flex flex-col items-start min-w-0">
+              <span className={cn(
+                'font-medium truncate',
+                selectedIndex === idx ? 'text-primary-foreground' : 'text-foreground'
+              )}>
+                {item.displayName}
+              </span>
+              <span className={cn(
+                'text-[11px]',
+                selectedIndex === idx ? 'text-primary-foreground/70' : 'text-muted-foreground'
+              )}>
+                {getTypeLabel(item.type)}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Footer hint */}
+      <div className="px-3 py-1.5 border-t border-border/60 flex items-center gap-2 text-[10px] text-muted-foreground">
+        <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono">↑↓</kbd>
+        navegar
+        <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono">↵</kbd>
+        selecionar
+        <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono">esc</kbd>
+        fechar
+      </div>
+    </div>,
+    document.body
+  );
 
   return (
     <div className="relative">
@@ -226,87 +394,7 @@ const FeedMentionInput = ({
         </div>
       )}
 
-      {/* Dropdown */}
-      {showDropdown && allOptions.length > 0 && (
-        <div
-          ref={dropdownRef}
-          className="absolute z-50 left-0 right-0 top-full mt-1 max-h-64 overflow-y-auto rounded-xl border border-border/60 bg-popover p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95 no-scrollbar"
-        >
-          {filteredRoles.length > 0 && (
-            <div className="pb-1">
-              <p className="px-3 pt-1.5 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Funções</p>
-              {filteredRoles.map((r, i) => (
-                <button
-                  key={r.value}
-                  type="button"
-                  className={cn(
-                    'flex items-center gap-2.5 w-full rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors',
-                    selectedIndex === i ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent/60'
-                  )}
-                  onMouseDown={(e) => { e.preventDefault(); insertMention(r); }}
-                  onMouseEnter={() => setSelectedIndex(i)}
-                >
-                  <span className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/15 shrink-0">
-                    <Users className="h-3.5 w-3.5 text-primary" />
-                  </span>
-                  <span>{r.displayName}</span>
-                </button>
-              ))}
-            </div>
-          )}
-          {groupResults.length > 0 && (
-            <div className={cn(filteredRoles.length > 0 && 'border-t border-border/40 pt-1')}>
-              <p className="px-3 pt-1.5 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Grupos</p>
-              {groupResults.map((g, idx) => {
-                const globalIdx = filteredRoles.length + idx;
-                return (
-                  <button
-                    key={g.value}
-                    type="button"
-                    className={cn(
-                      'flex items-center gap-2.5 w-full rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors',
-                      selectedIndex === globalIdx ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent/60'
-                    )}
-                    onMouseDown={(e) => { e.preventDefault(); insertMention(g); }}
-                    onMouseEnter={() => setSelectedIndex(globalIdx)}
-                  >
-                    <span className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/15 shrink-0">
-                      <Users className="h-3.5 w-3.5 text-primary" />
-                    </span>
-                    <span>{g.displayName}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {userResults.length > 0 && (
-            <div className={cn((filteredRoles.length > 0 || groupResults.length > 0) && 'border-t border-border/40 pt-1')}>
-              <p className="px-3 pt-1.5 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pessoas</p>
-              {userResults.map((u, idx) => {
-                const globalIdx = filteredRoles.length + groupResults.length + idx;
-                const initials = u.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
-                return (
-                  <button
-                    key={u.value}
-                    type="button"
-                    className={cn(
-                      'flex items-center gap-2.5 w-full rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors',
-                      selectedIndex === globalIdx ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent/60'
-                    )}
-                    onMouseDown={(e) => { e.preventDefault(); insertMention(u); }}
-                    onMouseEnter={() => setSelectedIndex(globalIdx)}
-                  >
-                    <span className="flex items-center justify-center h-7 w-7 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground shrink-0">
-                      {initials}
-                    </span>
-                    <span>{u.displayName}</span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+      {dropdown}
     </div>
   );
 };
