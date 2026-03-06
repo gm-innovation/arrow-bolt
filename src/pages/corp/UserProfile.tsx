@@ -32,6 +32,7 @@ const UserProfile = () => {
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState('');
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const targetUserId = userId || user?.id;
   const isOwnProfile = targetUserId === user?.id;
@@ -92,27 +93,50 @@ const UserProfile = () => {
 
   // Upload cover — path must start with userId for RLS
   const uploadCover = async (file: File) => {
-    const ext = file.name.split('.').pop();
-    const timestamp = Date.now();
-    const path = `${user!.id}/cover-${timestamp}.${ext}`;
-    
-    // Delete old cover files
-    const { data: oldFiles } = await supabase.storage.from('user-avatars').list(user!.id, { search: 'cover-' });
-    if (oldFiles?.length) {
-      await supabase.storage.from('user-avatars').remove(oldFiles.map(f => `${user!.id}/${f.name}`));
-    }
-
-    const { error: uploadError } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true, cacheControl: '0' });
-    if (uploadError) {
-      console.error('Cover upload error:', uploadError);
-      toast({ title: 'Erro ao enviar capa', description: uploadError.message, variant: 'destructive' });
+    // Validate file type and size
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({ title: 'Tipo de arquivo inválido', description: 'Use JPEG, PNG, WEBP ou GIF', variant: 'destructive' });
       return;
     }
-    const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path);
-    const versionedUrl = `${publicUrl}?v=${timestamp}`;
-    await supabase.from('profiles').update({ cover_url: versionedUrl } as any).eq('id', user!.id);
-    queryClient.invalidateQueries({ queryKey: ['user-profile', targetUserId] });
-    toast({ title: 'Capa atualizada' });
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Arquivo muito grande', description: 'Máximo 5MB', variant: 'destructive' });
+      return;
+    }
+
+    setUploadingCover(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const timestamp = Date.now();
+      const path = `${user!.id}/cover-${timestamp}.${ext}`;
+      
+      // Delete old cover files
+      const { data: oldFiles } = await supabase.storage.from('user-avatars').list(user!.id, { search: 'cover-' });
+      if (oldFiles?.length) {
+        await supabase.storage.from('user-avatars').remove(oldFiles.map(f => `${user!.id}/${f.name}`));
+      }
+
+      const { error: uploadError } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true, cacheControl: '0' });
+      if (uploadError) {
+        console.error('Cover upload error:', uploadError);
+        toast({ title: 'Erro ao enviar capa', description: uploadError.message, variant: 'destructive' });
+        return;
+      }
+      const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path);
+      const versionedUrl = `${publicUrl}?v=${timestamp}`;
+      const { error: updateError } = await supabase.from('profiles').update({ cover_url: versionedUrl } as any).eq('id', user!.id);
+      if (updateError) {
+        toast({ title: 'Erro ao salvar capa', description: updateError.message, variant: 'destructive' });
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ['user-profile', targetUserId] });
+      toast({ title: 'Capa atualizada' });
+    } catch (err: any) {
+      console.error('Cover upload error:', err);
+      toast({ title: 'Erro ao enviar capa', description: err?.message || 'Erro desconhecido', variant: 'destructive' });
+    } finally {
+      setUploadingCover(false);
+    }
   };
 
   // Upload avatar
@@ -178,15 +202,38 @@ const UserProfile = () => {
           )}
           {isOwnProfile && (
             <>
-              <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
-                onChange={(e) => { if (e.target.files?.[0]) uploadCover(e.target.files[0]); e.target.value = ''; }} />
+              <input
+                ref={coverInputRef}
+                id="cover-upload-input"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadCover(file);
+                  e.target.value = '';
+                }}
+              />
               <Button
                 variant="secondary"
                 size="sm"
                 className="absolute bottom-3 right-3 gap-1.5 opacity-80 hover:opacity-100"
-                onClick={() => coverInputRef.current?.click()}
+                disabled={uploadingCover}
+                onClick={() => {
+                  coverInputRef.current?.click();
+                }}
+                asChild={false}
               >
-                <Camera className="h-3.5 w-3.5" /> Alterar capa
+                {uploadingCover ? (
+                  <>
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Camera className="h-3.5 w-3.5" /> Alterar capa
+                  </>
+                )}
               </Button>
             </>
           )}
