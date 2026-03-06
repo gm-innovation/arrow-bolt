@@ -35,6 +35,42 @@ const UserProfile = () => {
   const targetUserId = userId || user?.id;
   const isOwnProfile = targetUserId === user?.id;
 
+  // Fetch current user's role for chat navigation
+  const { data: currentUserRole } = useQuery({
+    queryKey: ['current-user-role', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id && !isOwnProfile,
+  });
+
+  const getRoleChatPath = (role: string | undefined) => {
+    const roleMap: Record<string, string> = {
+      super_admin: '/super-admin/chat',
+      admin: '/admin/chat',
+      manager: '/manager/chat',
+      technician: '/tech/chat',
+      hr: '/hr/chat',
+      commercial: '/commercial/chat',
+      corp: '/corp/chat',
+      director: '/admin/chat',
+      qualidade: '/admin/chat',
+      compras: '/admin/chat',
+      financeiro: '/admin/chat',
+    };
+    return roleMap[role || ''] || '/corp/chat';
+  };
+
+  const handleSendMessage = () => {
+    const chatPath = getRoleChatPath(currentUserRole?.role);
+    navigate(`${chatPath}?to=${targetUserId}`);
+  };
+
   // Fetch profile
   const { data: profile, isLoading } = useQuery({
     queryKey: ['user-profile', targetUserId],
@@ -234,7 +270,14 @@ const UserProfile = () => {
 
           {/* Name & Role */}
           <div className="space-y-1 mb-4">
-            <h1 className="text-xl font-bold">{profile.full_name || 'Usuário'}</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold">{profile.full_name || 'Usuário'}</h1>
+              {!isOwnProfile && (
+                <Button size="sm" className="gap-1.5" onClick={handleSendMessage}>
+                  <MessageCircle className="h-4 w-4" /> Enviar mensagem
+                </Button>
+              )}
+            </div>
             <div className="flex items-center gap-2">
               {role && <Badge variant="secondary" className="text-xs">{ROLE_LABELS[role] || role}</Badge>}
               {profile.company_id && targetUserId && (
@@ -311,8 +354,23 @@ const UserProfile = () => {
         {/* Left column */}
         <UserProfileLeftSidebar targetUserId={targetUserId!} />
 
-        {/* Center column: shared posts */}
-        <UserProfileSharedPosts targetUserId={targetUserId!} />
+        {/* Center column */}
+        {isOwnProfile ? (
+          <UserProfileSharedPosts targetUserId={targetUserId!} />
+        ) : (
+          <Card>
+            <CardContent className="p-6 flex flex-col items-center gap-4 text-center">
+              <MessageCircle className="h-10 w-10 text-primary/40" />
+              <div>
+                <h3 className="font-semibold mb-1">Enviar mensagem para {profile.full_name?.split(' ')[0]}</h3>
+                <p className="text-sm text-muted-foreground">Inicie uma conversa direta com este colaborador</p>
+              </div>
+              <Button className="gap-1.5" onClick={handleSendMessage}>
+                <MessageCircle className="h-4 w-4" /> Enviar mensagem
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
