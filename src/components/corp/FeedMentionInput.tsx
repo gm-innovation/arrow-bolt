@@ -230,7 +230,7 @@ const FeedMentionInput = ({
       {showDropdown && allOptions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 left-0 right-0 bottom-full mb-2 max-h-64 overflow-y-auto rounded-xl border border-border/60 bg-popover p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95 no-scrollbar"
+          className="absolute z-50 left-0 right-0 top-full mt-1 max-h-64 overflow-y-auto rounded-xl border border-border/60 bg-popover p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95 no-scrollbar"
         >
           {filteredRoles.length > 0 && (
             <div className="pb-1">
