@@ -198,37 +198,21 @@ const UserProfile = () => {
             <>
               <input
                 ref={coverInputRef}
-                id="cover-upload-input"
                 type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif"
+                accept="image/*"
                 className="hidden"
                 onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) uploadCover(file);
+                  if (e.target.files?.[0]) uploadCover(e.target.files[0]);
                   e.target.value = '';
                 }}
               />
-              <Button
-                variant="secondary"
-                size="sm"
-                className="absolute bottom-3 right-3 gap-1.5 opacity-80 hover:opacity-100"
-                disabled={uploadingCover}
-                onClick={() => {
-                  coverInputRef.current?.click();
-                }}
-                asChild={false}
+              <button
+                type="button"
+                className="absolute bottom-3 right-3 h-8 px-3 rounded-md bg-secondary text-secondary-foreground flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+                onClick={() => coverInputRef.current?.click()}
               >
-                {uploadingCover ? (
-                  <>
-                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Camera className="h-3.5 w-3.5" /> Alterar capa
-                  </>
-                )}
-              </Button>
+                <Camera className="h-3.5 w-3.5" /> Alterar capa
+              </button>
             </>
           )}
         </div>
