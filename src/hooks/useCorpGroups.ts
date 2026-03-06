@@ -148,7 +148,8 @@ export const useCorpGroups = (companyId?: string) => {
           description: group.description || null,
           group_type: 'custom',
           created_by: user!.id,
-        })
+          admin_user_id: user!.id,
+        } as any)
         .select()
         .single();
       if (error) throw error;
