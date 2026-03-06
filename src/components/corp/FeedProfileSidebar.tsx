@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Briefcase, Calendar, Heart, FileText, Users, MessageSquareText, BarChart3, StopCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Briefcase, Calendar, Heart, FileText, Users, MessageSquareText, BarChart3, StopCircle, Plus } from 'lucide-react';
+import { useCorpGroups } from '@/hooks/useCorpGroups';
 import { formatDistanceToNow, differenceInYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
