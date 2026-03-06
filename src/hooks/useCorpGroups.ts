@@ -27,6 +27,7 @@ export const useCorpGroups = (companyId?: string) => {
         })),
         member_count: g.corp_group_members?.length || 0,
         is_member: g.corp_group_members?.some((m: any) => m.user_id === user?.id) || false,
+        is_admin: g.admin_user_id === user?.id,
       }));
     },
     enabled: !!user && !!companyId,
@@ -148,7 +149,8 @@ export const useCorpGroups = (companyId?: string) => {
           description: group.description || null,
           group_type: 'custom',
           created_by: user!.id,
-        })
+          admin_user_id: user!.id,
+        } as any)
         .select()
         .single();
       if (error) throw error;
@@ -173,6 +175,29 @@ export const useCorpGroups = (companyId?: string) => {
     },
   });
 
+  const addMember = useMutation({
+    mutationFn: async ({ groupId, userId }: { groupId: string; userId: string }) => {
+      const { error } = await supabase.from('corp_group_members').insert({ group_id: groupId, user_id: userId });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corp-groups'] });
+      toast({ title: 'Membro adicionado' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao adicionar membro', description: e.message, variant: 'destructive' }),
+  });
+
+  const removeMember = useMutation({
+    mutationFn: async ({ groupId, userId }: { groupId: string; userId: string }) => {
+      const { error } = await supabase.from('corp_group_members').delete().eq('group_id', groupId).eq('user_id', userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corp-groups'] });
+      toast({ title: 'Membro removido' });
+    },
+  });
+
   return {
     groups,
     isLoading,
@@ -185,5 +210,7 @@ export const useCorpGroups = (companyId?: string) => {
     leaveGroup,
     createGroup,
     deleteGroup,
+    addMember,
+    removeMember,
   };
 };

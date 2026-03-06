@@ -40,10 +40,13 @@ const GroupInfoSidebar = ({
 
         <div className="px-4 pt-3 pb-3 space-y-2">
           <h3 className="font-semibold text-sm">{group.name}</h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <Badge variant={group.group_type === 'role_based' ? 'secondary' : 'outline'} className="text-[10px] h-4">
               {group.group_type === 'role_based' ? 'Automático' : 'Personalizado'}
             </Badge>
+            {group.is_admin && (
+              <Badge variant="default" className="text-[10px] h-4">Administrador</Badge>
+            )}
             <span className="text-xs text-muted-foreground">{group.member_count} membros</span>
           </div>
           {group.description && (

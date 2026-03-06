@@ -1,41 +1,74 @@
 
 
-## Plano: Remover SESMT, adicionar criação de grupo com admin do grupo
+## Gamificação do Sistema de Conquistas
 
-### Problema
-1. O grupo "SESMT" é criado automaticamente mas não deveria existir
-2. Não há como criar grupos customizados a partir da sidebar do feed
-3. O criador do grupo deve ser administrador do mesmo, podendo convidar e remover membros
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-### Mudanças
+### Modelo de Dados
 
-**Migration SQL**:
-- Deletar grupos SESMT existentes (`DELETE FROM corp_groups WHERE name = 'SESMT'`)
-- Remover SESMT da function `auto_create_corp_groups_for_company()` (recriar sem a linha do SESMT)
-- Adicionar coluna `admin_user_id` na tabela `corp_groups` para registrar quem é o administrador do grupo
-- Criar tabela `corp_group_invites` (ou reutilizar `corp_group_members` com insert direto) para o admin convidar membros
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-**`src/components/corp/FeedProfileSidebar.tsx`**:
-- Na seção "Meus Grupos" (linhas 161-177): sempre mostrar a seção (mesmo sem grupos), adicionar botão "+ Criar Grupo"
-- Ao clicar, abrir dialog para nome + descrição
-- Usar `createGroup` do `useCorpGroups` (que já adiciona o criador como membro)
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
+```
 
-**`src/hooks/useCorpGroups.ts`**:
-- No `createGroup`, salvar `created_by` como `admin_user_id` do grupo
-- Adicionar mutation `addMember(groupId, userId)` — admin convida diretamente (insert em `corp_group_members`)
-- Adicionar mutation `removeMember(groupId, userId)` — admin remove membro (delete de `corp_group_members`)
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
 
-**`src/pages/corp/GroupDetail.tsx`** e **`src/components/corp/GroupMembersSidebar.tsx`**:
-- Verificar se o user logado é o `admin_user_id` do grupo
-- Se sim, mostrar botão de remover ao lado de cada membro
-- Adicionar botão "Convidar Membro" que abre dialog com busca de colaboradores da empresa para adicionar
+### Conquistas Automáticas (por categoria)
 
-**`src/components/corp/GroupInfoSidebar.tsx`**:
-- Mostrar badge "Administrador" se o user é admin do grupo
+Definir um conjunto fixo no código (sem tabela extra):
 
-### Detalhes técnicos
-- A coluna `admin_user_id` referencia `auth.users(id)`, default null (grupos automáticos não têm admin de usuário)
-- Para grupos custom criados pelo usuário, `admin_user_id = created_by`
-- O admin pode adicionar membros sem necessidade de aprovação (bypass do fluxo de join request)
-- RLS: permitir que o admin do grupo faça insert/delete em `corp_group_members` para seu grupo
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+
+### Mudanças nos Componentes
+
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
+
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
 

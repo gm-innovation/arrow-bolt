@@ -1,9 +1,14 @@
+import { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Briefcase, Calendar, Heart, FileText, Users, MessageSquareText, BarChart3, StopCircle } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Briefcase, Calendar, Heart, FileText, Users, MessageSquareText, BarChart3, StopCircle, Plus } from 'lucide-react';
+import { useCorpGroups } from '@/hooks/useCorpGroups';
 import { formatDistanceToNow, differenceInYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -36,6 +41,9 @@ const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps)
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDesc, setNewGroupDesc] = useState('');
 
   const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
   const tenure = profile?.hire_date ? formatDistanceToNow(new Date(profile.hire_date), { locale: ptBR }) : null;
@@ -112,7 +120,22 @@ const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps)
     enabled: !!user,
   });
 
+  const { createGroup } = useCorpGroups(companyId);
+
+  const handleCreateGroup = () => {
+    if (!newGroupName.trim()) return;
+    createGroup.mutate({ name: newGroupName.trim(), description: newGroupDesc.trim() || undefined }, {
+      onSuccess: () => {
+        setShowCreateGroup(false);
+        setNewGroupName('');
+        setNewGroupDesc('');
+        queryClient.invalidateQueries({ queryKey: ['my-corp-groups'] });
+      },
+    });
+  };
+
   return (
+    <>
     <Card className="sticky top-4">
       <CardContent className="p-0">
         <div className="h-16 rounded-t-lg overflow-hidden relative">
@@ -159,22 +182,23 @@ const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps)
             </div>
 
             {/* Groups */}
-            {myGroups.length > 0 && (
-              <>
-                <Separator />
-                <div className="px-4 py-3">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Meus Grupos</p>
-                  <div className="flex flex-wrap gap-1">
-                    {myGroups.map((g: any) => (
-                      <Badge key={g.id} variant="outline" className="text-[10px] h-5 gap-1 cursor-pointer hover:bg-accent transition-colors"
-                        onClick={() => navigate(`/corp/groups/${g.id}`)}>
-                        <Users className="h-2.5 w-2.5" />{g.name}
-                      </Badge>
-                    ))}
-                  </div>
+            <Separator />
+            <div className="px-4 py-3">
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">Meus Grupos</p>
+              {myGroups.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-2">
+                  {myGroups.map((g: any) => (
+                    <Badge key={g.id} variant="outline" className="text-[10px] h-5 gap-1 cursor-pointer hover:bg-accent transition-colors"
+                      onClick={() => navigate(`/corp/groups/${g.id}`)}>
+                      <Users className="h-2.5 w-2.5" />{g.name}
+                    </Badge>
+                  ))}
                 </div>
-              </>
-            )}
+              )}
+              <Button variant="outline" size="sm" className="w-full text-xs gap-1.5" onClick={() => setShowCreateGroup(true)}>
+                <Plus className="h-3.5 w-3.5" /> Criar Grupo
+              </Button>
+            </div>
 
             {/* Poll Section */}
             <Separator />
@@ -251,6 +275,25 @@ const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps)
         )}
       </CardContent>
     </Card>
+
+    <Dialog open={showCreateGroup} onOpenChange={setShowCreateGroup}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Criar Grupo</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input placeholder="Nome do grupo" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
+          <Textarea placeholder="Descrição (opcional)" value={newGroupDesc} onChange={(e) => setNewGroupDesc(e.target.value)} rows={3} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowCreateGroup(false)}>Cancelar</Button>
+          <Button onClick={handleCreateGroup} disabled={!newGroupName.trim() || createGroup.isPending}>
+            {createGroup.isPending ? 'Criando...' : 'Criar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 
