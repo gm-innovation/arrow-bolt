@@ -90,51 +90,46 @@ const UserProfile = () => {
     },
   });
 
-  // Upload cover — path must start with userId for RLS
+  // Upload cover — same logic as avatar
   const uploadCover = async (file: File) => {
-    // Validate file type and size
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      toast({ title: 'Tipo de arquivo inválido', description: 'Use JPEG, PNG, WEBP ou GIF', variant: 'destructive' });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast({ title: 'Arquivo muito grande', description: 'Máximo 5MB', variant: 'destructive' });
-      return;
-    }
+    const ext = file.name.split('.').pop();
+    const timestamp = Date.now();
+    const path = `${user!.id}/cover-${timestamp}.${ext}`;
 
-    setUploadingCover(true);
     try {
-      const ext = file.name.split('.').pop();
-      const timestamp = Date.now();
-      const path = `${user!.id}/cover-${timestamp}.${ext}`;
-      
       // Delete old cover files
       const { data: oldFiles } = await supabase.storage.from('user-avatars').list(user!.id, { search: 'cover-' });
       if (oldFiles?.length) {
         await supabase.storage.from('user-avatars').remove(oldFiles.map(f => `${user!.id}/${f.name}`));
       }
 
-      const { error: uploadError } = await supabase.storage.from('user-avatars').upload(path, file, { upsert: true, cacheControl: '0' });
+      const { error: uploadError } = await supabase.storage.from('user-avatars').upload(path, file, {
+        upsert: true,
+        cacheControl: '0',
+      });
+
       if (uploadError) {
-        console.error('Cover upload error:', uploadError);
         toast({ title: 'Erro ao enviar capa', description: uploadError.message, variant: 'destructive' });
         return;
       }
+
       const { data: { publicUrl } } = supabase.storage.from('user-avatars').getPublicUrl(path);
       const versionedUrl = `${publicUrl}?v=${timestamp}`;
-      const { error: updateError } = await supabase.from('profiles').update({ cover_url: versionedUrl } as any).eq('id', user!.id);
+
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ cover_url: versionedUrl } as any)
+        .eq('id', user!.id);
+
       if (updateError) {
         toast({ title: 'Erro ao salvar capa', description: updateError.message, variant: 'destructive' });
         return;
       }
+
       queryClient.invalidateQueries({ queryKey: ['user-profile', targetUserId] });
       toast({ title: 'Capa atualizada' });
     } catch (err: any) {
-      console.error('Cover upload error:', err);
       toast({ title: 'Erro ao enviar capa', description: err?.message || 'Erro desconhecido', variant: 'destructive' });
-    } finally {
-      setUploadingCover(false);
     }
   };
 
