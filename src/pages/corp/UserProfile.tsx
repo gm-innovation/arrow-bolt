@@ -28,7 +28,6 @@ const UserProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState('');
