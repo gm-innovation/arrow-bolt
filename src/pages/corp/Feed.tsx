@@ -46,7 +46,7 @@ const CorpFeed = () => {
       <div className={isMobile ? 'space-y-4' : 'grid grid-cols-[260px_1fr_260px] gap-5 items-start'}>
         <div className="sticky top-4 self-start"><FeedProfileSidebar profile={profile} role={userRole} /></div>
 
-        <div className="space-y-4 min-w-0 overflow-y-auto max-h-[calc(100vh-2rem)]">
+        <div className="space-y-4 min-w-0 overflow-y-auto max-h-[calc(100vh-2rem)] no-scrollbar">
           <FeedCreatePost companyId={effectiveCompanyId} userProfile={profile} userRole={userRole} />
 
           {effectiveCompanyId && <FeedBirthdayCard companyId={effectiveCompanyId} />}
