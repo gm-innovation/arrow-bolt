@@ -41,6 +41,9 @@ const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps)
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDesc, setNewGroupDesc] = useState('');
 
   const initials = profile?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??';
   const tenure = profile?.hire_date ? formatDistanceToNow(new Date(profile.hire_date), { locale: ptBR }) : null;
