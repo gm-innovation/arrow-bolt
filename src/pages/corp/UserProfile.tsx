@@ -194,24 +194,20 @@ const UserProfile = () => {
             <img src={coverUrl} alt="Capa" className="w-full h-full object-cover" />
           )}
           {isOwnProfile && (
-            <>
+            <div className="absolute bottom-3 right-3 z-10 relative h-8 px-3 rounded-md bg-secondary text-secondary-foreground flex items-center gap-1.5 select-none cursor-pointer">
+              <Camera className="h-3.5 w-3.5" />
+              <span className="text-sm">Alterar capa</span>
               <input
-                id="cover-file-input"
                 type="file"
                 accept="image/*"
-                className="hidden"
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                aria-label="Alterar capa"
                 onChange={(e) => {
                   if (e.target.files?.[0]) uploadCover(e.target.files[0]);
                   e.target.value = '';
                 }}
               />
-              <label
-                htmlFor="cover-file-input"
-                className="absolute bottom-3 right-3 h-8 px-3 rounded-md bg-secondary text-secondary-foreground flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer"
-              >
-                <Camera className="h-3.5 w-3.5" /> Alterar capa
-              </label>
-            </>
+            </div>
           )}
         </div>
 
