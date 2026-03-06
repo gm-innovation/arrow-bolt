@@ -342,6 +342,7 @@ const App = () => {
                     <Route path="/finance/reimbursements" element={<FinanceReimbursements />} />
                     <Route path="/finance/reports" element={<FinanceReports />} />
                     <Route path="/finance/settings" element={<FinanceSettings />} />
+                    <Route path="/finance/profile" element={<CorpUserProfile />} />
                   </Route>
 
                   {/* Catch all */}
