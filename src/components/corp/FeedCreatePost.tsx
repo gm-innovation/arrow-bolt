@@ -103,9 +103,6 @@ const FeedCreatePost = ({ companyId, userProfile, userRole }: FeedCreatePostProp
                 <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs px-2" onClick={() => handleFileSelect('video/*')}>
                   <Film className="h-4 w-4 text-blue-600" /><span className="hidden sm:inline">Vídeo</span>
                 </Button>
-                <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs px-2" onClick={() => handleFileSelect('audio/*')}>
-                  <Music className="h-4 w-4 text-orange-600" /><span className="hidden sm:inline">Áudio</span>
-                </Button>
                 <Button type="button" variant="ghost" size="sm" className="h-8 gap-1 text-xs px-2" onClick={() => handleFileSelect('*/*')}>
                   <Paperclip className="h-4 w-4 text-muted-foreground" /><span className="hidden sm:inline">Arquivo</span>
                 </Button>
