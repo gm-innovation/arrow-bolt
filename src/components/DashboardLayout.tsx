@@ -278,7 +278,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
                 variant="ghost"
                 className={cn(
                   "w-full justify-start gap-3 h-10",
-                (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/') && !location.pathname.startsWith('/corp/feed')))
+                (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/') && !location.pathname.startsWith('/corp/feed') && !location.pathname.startsWith('/corp/profile')) || (item.path === '/corp/feed' && location.pathname.startsWith('/corp/profile')))
                     ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
                     : "text-gray-600 hover:bg-gray-100"
                 )}
