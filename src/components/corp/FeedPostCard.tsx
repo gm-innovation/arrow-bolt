@@ -77,6 +77,7 @@ const renderContentWithMentions = (content: string, mentions: any[]) => {
 const FeedPostCard = ({ post, comments }: FeedPostCardProps) => {
   const { user } = useAuth();
   const { reactToPost, removeReaction, deletePost } = useCorpFeed();
+  const navigate = useNavigate();
   const [showComments, setShowComments] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
