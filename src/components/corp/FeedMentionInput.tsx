@@ -59,17 +59,12 @@ const FeedMentionInput = ({
   useEffect(() => {
     if (!showDropdown || !user) return;
     const fetchResults = async () => {
-      if (debouncedSearch.length < 1) {
-        setUserResults([]);
-        setGroupResults([]);
-        return;
+      // Fetch users (show initial suggestions even without search text)
+      let usersQuery = supabase.from('profiles').select('id, full_name').limit(8);
+      if (debouncedSearch.length > 0) {
+        usersQuery = usersQuery.ilike('full_name', `%${debouncedSearch}%`);
       }
-      // Fetch users
-      const { data: usersData } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .ilike('full_name', `%${debouncedSearch}%`)
-        .limit(8);
+      const { data: usersData } = await usersQuery;
       setUserResults(
         (usersData || []).map((p) => ({
           type: 'user' as const,
@@ -78,11 +73,11 @@ const FeedMentionInput = ({
         }))
       );
       // Fetch groups
-      const { data: groupsData } = await supabase
-        .from('corp_groups')
-        .select('id, name')
-        .ilike('name', `%${debouncedSearch}%`)
-        .limit(6);
+      let groupsQuery = supabase.from('corp_groups').select('id, name').limit(6);
+      if (debouncedSearch.length > 0) {
+        groupsQuery = groupsQuery.ilike('name', `%${debouncedSearch}%`);
+      }
+      const { data: groupsData } = await groupsQuery;
       setGroupResults(
         (groupsData || []).map((g) => ({
           type: 'group' as const,
