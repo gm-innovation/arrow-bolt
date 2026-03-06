@@ -14,7 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 const CorpFeed = () => {
   const { user } = useAuth();
   const { posts, isLoading, comments } = useCorpFeed();
-  const isMobile = useIsMobile();
+  
   const companyId = (posts as any[])?.[0]?.company_id || '';
 
   const { data: profile } = useQuery({
