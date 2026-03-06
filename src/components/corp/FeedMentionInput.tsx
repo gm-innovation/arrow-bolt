@@ -59,17 +59,12 @@ const FeedMentionInput = ({
   useEffect(() => {
     if (!showDropdown || !user) return;
     const fetchResults = async () => {
-      if (debouncedSearch.length < 1) {
-        setUserResults([]);
-        setGroupResults([]);
-        return;
+      // Fetch users (show initial suggestions even without search text)
+      let usersQuery = supabase.from('profiles').select('id, full_name').limit(8);
+      if (debouncedSearch.length > 0) {
+        usersQuery = usersQuery.ilike('full_name', `%${debouncedSearch}%`);
       }
-      // Fetch users
-      const { data: usersData } = await supabase
-        .from('profiles')
-        .select('id, full_name')
-        .ilike('full_name', `%${debouncedSearch}%`)
-        .limit(8);
+      const { data: usersData } = await usersQuery;
       setUserResults(
         (usersData || []).map((p) => ({
           type: 'user' as const,
@@ -78,11 +73,11 @@ const FeedMentionInput = ({
         }))
       );
       // Fetch groups
-      const { data: groupsData } = await supabase
-        .from('corp_groups')
-        .select('id, name')
-        .ilike('name', `%${debouncedSearch}%`)
-        .limit(6);
+      let groupsQuery = supabase.from('corp_groups').select('id, name').limit(6);
+      if (debouncedSearch.length > 0) {
+        groupsQuery = groupsQuery.ilike('name', `%${debouncedSearch}%`);
+      }
+      const { data: groupsData } = await groupsQuery;
       setGroupResults(
         (groupsData || []).map((g) => ({
           type: 'group' as const,
@@ -235,31 +230,33 @@ const FeedMentionInput = ({
       {showDropdown && allOptions.length > 0 && (
         <div
           ref={dropdownRef}
-          className="absolute z-50 left-0 right-0 mt-1 max-h-52 overflow-y-auto rounded-md border bg-popover p-1 shadow-md animate-in fade-in-0 zoom-in-95"
+          className="absolute z-50 left-0 right-0 bottom-full mb-2 max-h-64 overflow-y-auto rounded-xl border border-border/60 bg-popover p-1.5 shadow-lg animate-in fade-in-0 zoom-in-95 no-scrollbar"
         >
           {filteredRoles.length > 0 && (
-            <>
-              <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Funções</p>
+            <div className="pb-1">
+              <p className="px-3 pt-1.5 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Funções</p>
               {filteredRoles.map((r, i) => (
                 <button
                   key={r.value}
                   type="button"
                   className={cn(
-                    'flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm cursor-pointer transition-colors',
-                    selectedIndex === i ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+                    'flex items-center gap-2.5 w-full rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors',
+                    selectedIndex === i ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent/60'
                   )}
                   onMouseDown={(e) => { e.preventDefault(); insertMention(r); }}
                   onMouseEnter={() => setSelectedIndex(i)}
                 >
-                  <Users className="h-3.5 w-3.5 text-primary" />
-                  {r.displayName}
+                  <span className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/15 shrink-0">
+                    <Users className="h-3.5 w-3.5 text-primary" />
+                  </span>
+                  <span>{r.displayName}</span>
                 </button>
               ))}
-            </>
+            </div>
           )}
           {groupResults.length > 0 && (
-            <>
-              <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">Grupos</p>
+            <div className={cn(filteredRoles.length > 0 && 'border-t border-border/40 pt-1')}>
+              <p className="px-3 pt-1.5 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Grupos</p>
               {groupResults.map((g, idx) => {
                 const globalIdx = filteredRoles.length + idx;
                 return (
@@ -267,41 +264,46 @@ const FeedMentionInput = ({
                     key={g.value}
                     type="button"
                     className={cn(
-                      'flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm cursor-pointer transition-colors',
-                      selectedIndex === globalIdx ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+                      'flex items-center gap-2.5 w-full rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors',
+                      selectedIndex === globalIdx ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent/60'
                     )}
                     onMouseDown={(e) => { e.preventDefault(); insertMention(g); }}
                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                   >
-                    <Users className="h-3.5 w-3.5 text-primary" />
-                    {g.displayName}
+                    <span className="flex items-center justify-center h-7 w-7 rounded-full bg-primary/15 shrink-0">
+                      <Users className="h-3.5 w-3.5 text-primary" />
+                    </span>
+                    <span>{g.displayName}</span>
                   </button>
                 );
               })}
-            </>
+            </div>
           )}
           {userResults.length > 0 && (
-            <>
-              <p className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-1">Pessoas</p>
+            <div className={cn((filteredRoles.length > 0 || groupResults.length > 0) && 'border-t border-border/40 pt-1')}>
+              <p className="px-3 pt-1.5 pb-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Pessoas</p>
               {userResults.map((u, idx) => {
                 const globalIdx = filteredRoles.length + groupResults.length + idx;
+                const initials = u.displayName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
                 return (
                   <button
                     key={u.value}
                     type="button"
                     className={cn(
-                      'flex items-center gap-2 w-full rounded-sm px-2 py-1.5 text-sm cursor-pointer transition-colors',
-                      selectedIndex === globalIdx ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50'
+                      'flex items-center gap-2.5 w-full rounded-lg px-3 py-2 text-sm cursor-pointer transition-colors',
+                      selectedIndex === globalIdx ? 'bg-primary/10 text-primary font-medium' : 'hover:bg-accent/60'
                     )}
                     onMouseDown={(e) => { e.preventDefault(); insertMention(u); }}
                     onMouseEnter={() => setSelectedIndex(globalIdx)}
                   >
-                    <User className="h-3.5 w-3.5 text-muted-foreground" />
-                    {u.displayName}
+                    <span className="flex items-center justify-center h-7 w-7 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground shrink-0">
+                      {initials}
+                    </span>
+                    <span>{u.displayName}</span>
                   </button>
                 );
               })}
-            </>
+            </div>
           )}
         </div>
       )}
