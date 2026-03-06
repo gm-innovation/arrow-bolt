@@ -29,6 +29,7 @@ interface FeedProfileSidebarProps {
     full_name?: string; avatar_url?: string; hire_date?: string; birth_date?: string; company_id?: string; cover_url?: string;
   } | null;
   role?: string;
+  compact?: boolean;
 }
 
 const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
