@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Separator } from '@/components/ui/separator';
-import { Camera, Pencil, Check, X, Briefcase, Calendar, Users, MessageCircle, Award, ArrowLeft, Image, Film, FileIcon } from 'lucide-react';
+import { Camera, Pencil, Check, X, Briefcase, Calendar, MessageCircle, Award, ArrowLeft } from 'lucide-react';
 import { formatDistanceToNow, differenceInYears } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
@@ -28,7 +28,6 @@ const UserProfile = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const coverInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState('');
@@ -197,7 +196,7 @@ const UserProfile = () => {
           {isOwnProfile && (
             <>
               <input
-                ref={coverInputRef}
+                id="cover-file-input"
                 type="file"
                 accept="image/*"
                 className="hidden"
@@ -206,13 +205,12 @@ const UserProfile = () => {
                   e.target.value = '';
                 }}
               />
-              <button
-                type="button"
-                className="absolute bottom-3 right-3 h-8 px-3 rounded-md bg-secondary text-secondary-foreground flex items-center gap-1.5 hover:opacity-90 transition-opacity"
-                onClick={() => coverInputRef.current?.click()}
+              <label
+                htmlFor="cover-file-input"
+                className="absolute bottom-3 right-3 h-8 px-3 rounded-md bg-secondary text-secondary-foreground flex items-center gap-1.5 hover:opacity-90 transition-opacity cursor-pointer"
               >
                 <Camera className="h-3.5 w-3.5" /> Alterar capa
-              </button>
+              </label>
             </>
           )}
         </div>

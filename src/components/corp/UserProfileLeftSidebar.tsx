@@ -8,35 +8,16 @@ import { Users, Award, FileText, Download, Film, FileIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
-import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface Props {
   targetUserId: string;
 }
 
-// ─── Proxy helpers (reuse pattern from FeedMediaPreview) ───
-
-const fetchAsBlob = async (url: string): Promise<Blob> => {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Falha ao baixar');
-  return res.blob();
-};
-
-const fetchViaProxy = async (attachmentId: string): Promise<Blob> => {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error('Not authenticated');
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const url = `https://${projectId}.supabase.co/functions/v1/corp-feed-media-proxy?attachmentId=${encodeURIComponent(attachmentId)}`;
-  const res = await fetch(url, {
-    headers: { Authorization: `Bearer ${session.access_token}` },
-  });
-  if (!res.ok) throw new Error('Proxy failed');
-  return res.blob();
-};
-
 const downloadFile = async (url: string, name: string) => {
   try {
-    const blob = await fetchAsBlob(url);
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Falha ao baixar');
+    const blob = await res.blob();
     const blobUrl = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = blobUrl;
@@ -48,61 +29,6 @@ const downloadFile = async (url: string, name: string) => {
   } catch {
     toast({ title: 'Erro ao baixar arquivo', variant: 'destructive' });
   }
-};
-
-// ─── Mini video player with proxy fallback ───
-
-const MiniVideoPlayer = ({ att }: { att: any }) => {
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
-  const [failed, setFailed] = useState(false);
-  const triedDirect = useRef(false);
-  const triedProxy = useRef(false);
-
-  useEffect(() => {
-    return () => { if (blobUrl) URL.revokeObjectURL(blobUrl); };
-  }, [blobUrl]);
-
-  const handleError = useCallback(async () => {
-    if (!triedDirect.current) {
-      triedDirect.current = true;
-      try {
-        const blob = await fetchAsBlob(att.file_url);
-        setBlobUrl(URL.createObjectURL(blob));
-        return;
-      } catch { /* continue */ }
-    }
-    if (!triedProxy.current && att.id) {
-      triedProxy.current = true;
-      try {
-        const blob = await fetchViaProxy(att.id);
-        setBlobUrl(URL.createObjectURL(blob));
-        return;
-      } catch { /* fall through */ }
-    }
-    setFailed(true);
-  }, [att.file_url, att.id]);
-
-  if (failed) {
-    return (
-      <div className="flex items-center gap-2 p-1.5 rounded border border-border bg-muted/30">
-        <Film className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="text-[10px] text-muted-foreground truncate flex-1">{att.file_name}</span>
-        <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => downloadFile(att.file_url, att.file_name)}>
-          <Download className="h-3 w-3" />
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <video
-      controls
-      className="w-full rounded max-h-24"
-      preload="metadata"
-      src={blobUrl || att.file_url}
-      onError={handleError}
-    />
-  );
 };
 
 // ─── Component ───
@@ -184,9 +110,15 @@ const UserProfileLeftSidebar = ({ targetUserId }: Props) => {
                       </div>
                     )}
 
-                    {/* Video mini players */}
+                    {/* Video cards */}
                     {videos.map((vid: any) => (
-                      <MiniVideoPlayer key={vid.id} att={vid} />
+                      <div key={vid.id} className="flex items-center gap-2 p-1.5 rounded border border-border bg-muted/30">
+                        <Film className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <span className="text-[11px] font-medium truncate flex-1">{vid.file_name}</span>
+                        <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => downloadFile(vid.file_url, vid.file_name)}>
+                          <Download className="h-3 w-3" />
+                        </Button>
+                      </div>
                     ))}
 
                     {/* File cards */}

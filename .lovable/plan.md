@@ -1,30 +1,74 @@
 
 
-## Plano: Corrigir botão "Alterar capa" e media preview
+## Gamificação do Sistema de Conquistas
 
-### Diagnóstico do botão de capa
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-Confirmado: o avatar funciona, a capa não. Ambos usam o mesmo padrão `ref.click()` + `className="hidden"`. A diferença estrutural é que o input da capa está dentro de um `<Card className="overflow-hidden">` → `<div className="relative h-48">`, enquanto o input do avatar está em outra parte do DOM (dentro do `CardContent`).
+### Modelo de Dados
 
-O problema é que `coverInputRef.current?.click()` não abre o seletor de arquivo neste contexto específico. Isso pode acontecer por interação com `overflow-hidden` ou pelo posicionamento absoluto do botão sobre a área do cover.
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-**Solução definitiva**: Usar `<label htmlFor="cover-file-input">` em vez de `ref.click()`. Este é o mecanismo nativo do HTML — clicar em um `<label>` associado a um `<input type="file">` abre o seletor sem depender de JavaScript. É 100% confiável em todos os navegadores e contextos.
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
+```
 
-### Mudanças
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
 
-**1. `src/pages/corp/UserProfile.tsx` — Trocar ref.click() por label/htmlFor**
-- Remover `coverInputRef`
-- Dar um `id="cover-file-input"` ao input hidden
-- Trocar o `<button onClick={ref.click()}>` por um `<label htmlFor="cover-file-input">` estilizado como botão
-- Manter toda a lógica de upload inalterada
-- Aplicar a mesma abordagem de `label` no avatar por consistência (opcional, já que funciona)
+### Conquistas Automáticas (por categoria)
 
-**2. `src/components/corp/UserProfileLeftSidebar.tsx` — Corrigir exibição de vídeo e arquivo**
-- O `MiniVideoPlayer` falha silenciosamente com erro de CORS (confirmado pelo runtime error `Failed to fetch` no `fetchAsBlob`)
-- Simplificar: em vez de tentar reproduzir o vídeo inline (que falha por CORS na sidebar), mostrar um thumbnail/card clicável com ícone de play + nome do arquivo
-- Para arquivos (PDF, etc.): garantir que o card com ícone + nome + botão de download está visível e funcional
+Definir um conjunto fixo no código (sem tabela extra):
 
-### Arquivos afetados
-- `src/pages/corp/UserProfile.tsx` — label htmlFor no cover input
-- `src/components/corp/UserProfileLeftSidebar.tsx` — media rendering simplificado
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+
+### Mudanças nos Componentes
+
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
+
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
 
