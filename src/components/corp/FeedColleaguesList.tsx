@@ -28,6 +28,7 @@ interface FeedColleaguesListProps {
 const FeedColleaguesList = ({ companyId }: FeedColleaguesListProps) => {
   const [search, setSearch] = useState('');
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const { data: colleagues = [], isLoading } = useQuery({
     queryKey: ['feed-colleagues', companyId],
