@@ -220,7 +220,7 @@ const UserProfile = () => {
 
   return (
     <div className="max-w-[1100px] mx-auto space-y-6 pb-8 px-2">
-      <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => navigate(-1)}>
+      <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => navigate('/corp/feed')}>
         <ArrowLeft className="h-4 w-4" /> Voltar
       </Button>
 
