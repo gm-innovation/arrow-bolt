@@ -35,6 +35,42 @@ const UserProfile = () => {
   const targetUserId = userId || user?.id;
   const isOwnProfile = targetUserId === user?.id;
 
+  // Fetch current user's role for chat navigation
+  const { data: currentUserRole } = useQuery({
+    queryKey: ['current-user-role', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user!.id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id && !isOwnProfile,
+  });
+
+  const getRoleChatPath = (role: string | undefined) => {
+    const roleMap: Record<string, string> = {
+      super_admin: '/super-admin/chat',
+      admin: '/admin/chat',
+      manager: '/manager/chat',
+      technician: '/tech/chat',
+      hr: '/hr/chat',
+      commercial: '/commercial/chat',
+      corp: '/corp/chat',
+      director: '/admin/chat',
+      qualidade: '/admin/chat',
+      compras: '/admin/chat',
+      financeiro: '/admin/chat',
+    };
+    return roleMap[role || ''] || '/corp/chat';
+  };
+
+  const handleSendMessage = () => {
+    const chatPath = getRoleChatPath(currentUserRole?.role);
+    navigate(`${chatPath}?to=${targetUserId}`);
+  };
+
   // Fetch profile
   const { data: profile, isLoading } = useQuery({
     queryKey: ['user-profile', targetUserId],
