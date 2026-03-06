@@ -27,6 +27,7 @@ export const useCorpGroups = (companyId?: string) => {
         })),
         member_count: g.corp_group_members?.length || 0,
         is_member: g.corp_group_members?.some((m: any) => m.user_id === user?.id) || false,
+        is_admin: g.admin_user_id === user?.id,
       }));
     },
     enabled: !!user && !!companyId,

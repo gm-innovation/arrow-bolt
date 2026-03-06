@@ -275,6 +275,25 @@ const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps)
         )}
       </CardContent>
     </Card>
+
+    <Dialog open={showCreateGroup} onOpenChange={setShowCreateGroup}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Criar Grupo</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <Input placeholder="Nome do grupo" value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} />
+          <Textarea placeholder="Descrição (opcional)" value={newGroupDesc} onChange={(e) => setNewGroupDesc(e.target.value)} rows={3} />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setShowCreateGroup(false)}>Cancelar</Button>
+          <Button onClick={handleCreateGroup} disabled={!newGroupName.trim() || createGroup.isPending}>
+            {createGroup.isPending ? 'Criando...' : 'Criar'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 };
 

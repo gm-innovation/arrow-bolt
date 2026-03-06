@@ -157,7 +157,14 @@ const GroupDetail = () => {
 
       {/* Right sidebar */}
       <aside className="hidden lg:block w-[260px] shrink-0">
-        <GroupMembersSidebar members={group.members} memberCount={group.member_count} />
+        <GroupMembersSidebar
+          members={group.members}
+          memberCount={group.member_count}
+          isAdmin={group.is_admin}
+          groupId={group.id}
+          onAddMember={(userId) => addMember.mutate({ groupId: group.id, userId })}
+          onRemoveMember={(userId) => removeMember.mutate({ groupId: group.id, userId })}
+        />
       </aside>
     </div>
   );
