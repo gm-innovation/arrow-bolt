@@ -16,6 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import FeedUserLevel from '@/components/corp/FeedUserLevel';
 import UserProfileLeftSidebar from '@/components/corp/UserProfileLeftSidebar';
 import UserProfileSharedPosts from '@/components/corp/UserProfileSharedPosts';
+import UserProfilePosts from '@/components/corp/UserProfilePosts';
 
 const ROLE_LABELS: Record<string, string> = {
   technician: 'Técnico', admin: 'Administrador', hr: 'RH', manager: 'Gerente',
