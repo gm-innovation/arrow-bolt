@@ -210,7 +210,7 @@ const FeedProfileSidebar = ({ profile, role }: FeedProfileSidebarProps) => {
         </div>
 
         {/* Award Badge (Admin/HR only) */}
-        {isAdminOrHR && companyId && (
+        {canAwardBadge && companyId && (
           <>
             <Separator />
             <div className="px-4 py-3">
