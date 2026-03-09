@@ -329,7 +329,10 @@ const Clients = () => {
                     </Button>
                     <Dialog open={editClientDialogOpen && selectedClient?.id === client.id} onOpenChange={(open) => {
                       setEditClientDialogOpen(open);
-                      if (!open) setSelectedClient(null);
+                      if (!open) {
+                        setSelectedClient(null);
+                        fetchClients();
+                      }
                     }}>
                       <DialogTrigger asChild>
                         <Button 
