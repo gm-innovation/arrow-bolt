@@ -309,6 +309,17 @@ const Clients = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => {
+                        setViewClient(client);
+                        setViewDialogOpen(true);
+                      }}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Visualizar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
                         setSelectedClientForHistory({ id: client.id, name: client.name });
                         setHistoryDialogOpen(true);
                       }}
