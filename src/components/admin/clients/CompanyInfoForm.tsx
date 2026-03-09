@@ -14,9 +14,9 @@ import { AddressesSection } from "./AddressesSection";
 
 const formSchema = z.object({
   name: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(200),
-  email: z.string().trim().email("Email inválido").max(255).optional().or(z.literal("")),
-  phone: z.string().trim().max(20).regex(/^$|^[\d\s\(\)\-\+]+$/, "Telefone inválido").optional(),
-  contact_person: z.string().trim().max(200).optional(),
+  email: z.string().trim().max(255).optional().or(z.literal("")),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+  contact_person: z.string().trim().max(200).optional().or(z.literal("")),
 });
 
 type CompanyFormData = z.infer<typeof formSchema>;
