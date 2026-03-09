@@ -1,28 +1,74 @@
 
 
-## Plano: Corrigir validação do formulário de edição de cliente
+## Gamificação do Sistema de Conquistas
 
-### Diagnóstico
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-O formulário **não está enviando a requisição de update** ao banco — nenhuma requisição PATCH aparece nos logs de rede. Isso confirma que a validação do Zod está falhando e bloqueando o `onSubmit`. Mesmo com o handler `onError` adicionado, o toast pode não estar sendo percebido ou o código pode não ter sido recarregado.
+### Modelo de Dados
 
-O campo mais provável de estar falhando é o `phone`, cuja regex `^[\d\s\(\)\-\+]+$` pode não comportar todos os formatos armazenados. A validação `.optional()` no final não aceita `""` (string vazia) como `undefined`, forçando o valor a passar pelo regex.
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-### Correção
-
-**`src/components/admin/clients/CompanyInfoForm.tsx`** — 2 mudanças:
-
-1. **Relaxar o schema do Zod** para que `phone` e `email` com valor vazio não bloqueiem o submit:
-```ts
-const formSchema = z.object({
-  name: z.string().trim().min(2, "Nome deve ter pelo menos 2 caracteres").max(200),
-  email: z.string().trim().max(255).optional().or(z.literal("")),
-  phone: z.string().trim().max(30).optional().or(z.literal("")),
-  contact_person: z.string().trim().max(200).optional().or(z.literal("")),
-});
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
 ```
-   - Remove `.email()` (validação rigorosa desnecessária) e `.regex()` do phone
-   - Aumenta `max(20)` para `max(30)` pois telefones com código do país passam de 20
 
-2. **Adicionar `console.log`** no início do `onSubmit` e no `onError` para diagnóstico imediato se o problema persistir
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
+
+### Conquistas Automáticas (por categoria)
+
+Definir um conjunto fixo no código (sem tabela extra):
+
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+
+### Mudanças nos Componentes
+
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
+
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
 
