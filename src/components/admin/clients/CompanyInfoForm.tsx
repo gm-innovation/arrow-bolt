@@ -86,7 +86,10 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
   return (
     <div className="space-y-6">
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+          const firstError = Object.values(errors)[0];
+          toast({ title: "Erro de validação", description: firstError?.message as string, variant: "destructive" });
+        })} className="space-y-4">
           <FormField control={form.control} name="name" render={({ field }) => (
             <FormItem>
               <FormLabel>Nome Fantasia</FormLabel>
