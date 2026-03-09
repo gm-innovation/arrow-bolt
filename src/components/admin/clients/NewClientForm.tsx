@@ -29,7 +29,11 @@ export const NewClientForm = ({ clientData, onSuccess }: NewClientFormProps) => 
 
   const handleCompanySuccess = (id: string) => {
     setClientId(id);
-    setActiveTab("vessels");
+    if (clientData) {
+      onSuccess?.();
+    } else {
+      setActiveTab("vessels");
+    }
   };
 
   const handleVesselsSuccess = () => {
@@ -68,11 +72,6 @@ export const NewClientForm = ({ clientData, onSuccess }: NewClientFormProps) => 
         </TabsContent>
       </Tabs>
       
-      {clientData && (
-        <div className="flex justify-end pt-4">
-          <Button onClick={onSuccess}>Concluir</Button>
-        </div>
-      )}
     </div>
   );
 };

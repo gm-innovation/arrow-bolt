@@ -1,45 +1,74 @@
 
 
-## Plano: Corrigir edição do nome fantasia -- causa raiz real
+## Gamificação do Sistema de Conquistas
 
-### Problema real identificado
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-Analisando o replay da sessão, o fluxo do usuário é:
-1. Clica "Editar" no cliente
-2. Altera o "Nome Fantasia" no campo do formulário
-3. **Rola a página para baixo** e clica no botão **"Concluir"**
+### Modelo de Dados
 
-O botão "Concluir" (linha 73 de `NewClientForm.tsx`) **NÃO salva os dados** -- ele simplesmente fecha o dialog chamando `onSuccess()`. O botão que realmente salva é o "Atualizar Informações" dentro do `CompanyInfoForm`, que fica mais acima na página.
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-Resultado: o usuário edita o nome, clica "Concluir" pensando que está salvando, mas o dado nunca é enviado ao banco.
-
-### Correção
-
-**`src/components/admin/clients/NewClientForm.tsx`**:
-
-1. Remover o botão "Concluir" separado quando em modo de edição, pois o dialog já tem o botão X para fechar
-2. Alterar o `handleCompanySuccess` para que, em modo de edição, **não mude de aba automaticamente** -- apenas exiba o toast de sucesso (que o `CompanyInfoForm` já faz)
-
-Alternativa (melhor UX): manter o "Concluir" mas **só como fechamento** e renomear para "Fechar", tornando claro que **não é** um botão de salvar. E adicionar um aviso se houver mudanças não salvas.
-
-**Abordagem escolhida** (mais simples e efetiva):
-- Em modo de edição, o `handleCompanySuccess` chama `onSuccess()` diretamente (fecha o dialog e recarrega a lista) em vez de mudar para a aba "Embarcações"
-- Remover o botão "Concluir" redundante
-
-```tsx
-const handleCompanySuccess = (id: string) => {
-  setClientId(id);
-  if (clientData) {
-    // Edit mode: close dialog after saving
-    onSuccess?.();
-  } else {
-    // Create mode: navigate to vessels tab
-    setActiveTab("vessels");
-  }
-};
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
 ```
 
-E remover as linhas 71-75 (botão "Concluir").
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
 
-Duas mudanças no mesmo arquivo, ~5 linhas alteradas.
+### Conquistas Automáticas (por categoria)
+
+Definir um conjunto fixo no código (sem tabela extra):
+
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+
+### Mudanças nos Componentes
+
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
+
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
 
