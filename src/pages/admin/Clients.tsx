@@ -1,12 +1,13 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash, Download } from "lucide-react";
+import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash, Download, Eye } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV } from "@/lib/exportUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NewClientForm } from "@/components/admin/clients/NewClientForm";
 import { ClientHistoryDialog } from "@/components/admin/clients/ClientHistoryDialog";
+import { ClientViewDialog } from "@/components/admin/clients/ClientViewDialog";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -48,6 +49,8 @@ const Clients = () => {
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewClient, setViewClient] = useState<Client | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -306,6 +309,17 @@ const Clients = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => {
+                        setViewClient(client);
+                        setViewDialogOpen(true);
+                      }}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      Visualizar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
                         setSelectedClientForHistory({ id: client.id, name: client.name });
                         setHistoryDialogOpen(true);
                       }}
@@ -370,6 +384,12 @@ const Clients = () => {
           onOpenChange={setHistoryDialogOpen}
         />
       )}
+
+      <ClientViewDialog
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        client={viewClient}
+      />
 
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>

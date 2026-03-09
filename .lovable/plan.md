@@ -1,62 +1,74 @@
 
 
-## Plano: Reestruturar cadastro de clientes
+## Gamificação do Sistema de Conquistas
+
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
+
+### Modelo de Dados
+
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
+
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
+```
+
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
+
+### Conquistas Automáticas (por categoria)
+
+Definir um conjunto fixo no código (sem tabela extra):
+
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+
+### Mudanças nos Componentes
+
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
 
 ### Resumo
-Permitir múltiplas razões sociais/CNPJs, múltiplos endereços, vincular contatos a embarcações, e adicionar botão de visualização na lista de clientes (admin).
-
-### Mudanças no banco de dados
-
-**Nova tabela `client_legal_entities`** — armazena razões sociais e CNPJs:
-```
-id, client_id (FK clients), legal_name, cnpj, is_primary, created_at, updated_at
-```
-
-**Nova tabela `client_addresses`** — múltiplos endereços:
-```
-id, client_id (FK clients), label (ex: "Sede", "Filial"), cep, street, street_number, city, state, complement, is_primary, created_at, updated_at
-```
-
-**Nova tabela `contact_vessel_links`** — vincula contatos a embarcações (N:N):
-```
-id, contact_id (FK client_contacts), vessel_id (FK vessels)
-UNIQUE(contact_id, vessel_id)
-```
-
-**Coluna na `client_contacts`**: adicionar `is_general boolean DEFAULT true` (indica se é contato geral ou vinculado a embarcações específicas)
-
-**Campo `clients.name`**: passa a ser o "Nome Fantasia" da empresa. Os campos `cnpj` existentes na tabela `clients` permanecem por compatibilidade mas a UI passa a usar a nova tabela.
-
-RLS em todas as novas tabelas seguindo o padrão existente (verificar `company_id` via join com `clients`).
-
-### Mudanças na UI
-
-**`CompanyInfoForm.tsx`** (admin) e **`NewClientDialog.tsx`** (commercial):
-- Campo "Nome Fantasia" (clients.name) como campo principal
-- Seção "Razões Sociais / CNPJs" com lista de cards e botão "+" para adicionar itens (legal_name + cnpj)
-- Seção "Endereços" com lista e botão "+" para adicionar endereços (label, cep, logradouro, nº, cidade, UF)
-- Cada item pode ser marcado como principal, editado ou removido
-
-**`ContactsForm.tsx`**:
-- No dialog de adicionar/editar contato, adicionar campo multi-select de embarcações do cliente (via vessels do client)
-- Checkbox "Contato geral" (sem vínculo específico) — quando desmarcado, mostra selector de embarcações
-- Exibir badges das embarcações vinculadas no card do contato
-
-**`src/pages/admin/Clients.tsx`**:
-- Adicionar botão "Visualizar" (ícone Eye) na lista de clientes, que abre um Sheet/Dialog de detalhes somente leitura (similar ao `ClientDetailSheet` do módulo comercial, mas adaptado para o admin)
-
-### Hooks novos
-- `useClientLegalEntities(clientId)` — CRUD para razões sociais
-- `useClientAddresses(clientId)` — CRUD para endereços
-- Estender `useClientContacts` para incluir vessel links
-
-### Componentes novos
-- `LegalEntitiesSection` — lista + botão add + dialog inline para razão social/CNPJ
-- `AddressesSection` — lista + botão add + dialog inline para endereços
-- `ClientViewDialog` — visualização somente leitura dos dados do cliente (admin)
-
-### Detalhes técnicos
-- As novas tabelas seguem o padrão de RLS via `user_company_id(auth.uid())` com join em `clients`
-- Triggers de `update_updated_at` nas novas tabelas
-- O campo `clients.cnpj` existente permanece para não quebrar queries existentes; a UI prioriza `client_legal_entities`
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
 
