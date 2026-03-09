@@ -29,7 +29,11 @@ export const NewClientForm = ({ clientData, onSuccess }: NewClientFormProps) => 
 
   const handleCompanySuccess = (id: string) => {
     setClientId(id);
-    setActiveTab("vessels");
+    if (clientData) {
+      onSuccess?.();
+    } else {
+      setActiveTab("vessels");
+    }
   };
 
   const handleVesselsSuccess = () => {
