@@ -7,6 +7,7 @@ import { exportToCSV } from "@/lib/exportUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NewClientForm } from "@/components/admin/clients/NewClientForm";
 import { ClientHistoryDialog } from "@/components/admin/clients/ClientHistoryDialog";
+import { ClientViewDialog } from "@/components/admin/clients/ClientViewDialog";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
