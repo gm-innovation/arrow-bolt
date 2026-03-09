@@ -72,11 +72,6 @@ export const NewClientForm = ({ clientData, onSuccess }: NewClientFormProps) => 
         </TabsContent>
       </Tabs>
       
-      {clientData && (
-        <div className="flex justify-end pt-4">
-          <Button onClick={onSuccess}>Concluir</Button>
-        </div>
-      )}
     </div>
   );
 };
