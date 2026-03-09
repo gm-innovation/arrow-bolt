@@ -49,6 +49,8 @@ const Clients = () => {
   const [editClientDialogOpen, setEditClientDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewClient, setViewClient] = useState<Client | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
