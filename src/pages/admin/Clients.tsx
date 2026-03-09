@@ -385,6 +385,12 @@ const Clients = () => {
         />
       )}
 
+      <ClientViewDialog
+        open={viewDialogOpen}
+        onOpenChange={setViewDialogOpen}
+        client={viewClient}
+      />
+
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
