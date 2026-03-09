@@ -30,26 +30,44 @@ const CommercialClients = () => {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async ({ formData, buyer }: { formData: Record<string, any>; buyer?: Record<string, any> | null }) => {
+    mutationFn: async ({ formData, buyer, legalEntities, addresses }: { formData: Record<string, any>; buyer?: Record<string, any> | null; legalEntities?: any[]; addresses?: any[] }) => {
       const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user!.id).single();
       if (!profile?.company_id) throw new Error('Empresa não encontrada');
+
+      let clientId: string;
 
       if (editingClient) {
         const { id, company_id, created_at, updated_at, ...updates } = formData;
         const { error } = await supabase.from('clients').update(updates).eq('id', editingClient.id);
         if (error) throw error;
+        clientId = editingClient.id;
       } else {
         const { data: newClient, error } = await supabase.from('clients').insert({ ...formData, company_id: profile.company_id } as any).select('id').single();
         if (error) throw error;
+        clientId = newClient.id;
         
-        // Create associated buyer if provided
-        if (buyer && buyer.name?.trim() && newClient) {
+        if (buyer && buyer.name?.trim()) {
           await supabase.from('crm_buyers').insert({
-            ...buyer,
-            client_id: newClient.id,
-            company_id: profile.company_id,
-            is_primary: true,
-            is_active: true,
+            ...buyer, client_id: clientId, company_id: profile.company_id, is_primary: true, is_active: true,
+          } as any);
+        }
+      }
+
+      // Save legal entities
+      if (legalEntities && legalEntities.length > 0) {
+        for (const le of legalEntities) {
+          await supabase.from('client_legal_entities').insert({
+            client_id: clientId, legal_name: le.legal_name, cnpj: le.cnpj || null, is_primary: le.is_primary,
+          } as any);
+        }
+      }
+
+      // Save addresses
+      if (addresses && addresses.length > 0) {
+        for (const addr of addresses) {
+          await supabase.from('client_addresses').insert({
+            client_id: clientId, label: addr.label, cep: addr.cep || null, street: addr.street || null,
+            street_number: addr.street_number || null, city: addr.city || null, state: addr.state || null, is_primary: addr.is_primary,
           } as any);
         }
       }
