@@ -103,7 +103,7 @@ const CommercialClients = () => {
       <NewClientDialog
         open={dialogOpen}
         onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingClient(null); }}
-        onSave={(data, buyer) => saveMutation.mutate({ formData: data, buyer })}
+        onSave={(data, buyer, legalEntities, addresses) => saveMutation.mutate({ formData: data, buyer, legalEntities, addresses })}
         initialData={editingClient}
         isLoading={saveMutation.isPending}
       />
