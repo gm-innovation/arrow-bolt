@@ -588,7 +588,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             single_report: data.singleReport !== false,
             description: data.description?.trim() || null,
             status: "pending",
-          })
+            is_docking: isDocking,
+          } as any)
           .select()
           .single();
 
