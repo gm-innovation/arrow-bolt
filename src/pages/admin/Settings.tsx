@@ -6,7 +6,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsAppSettingsTab } from "@/components/admin/settings/WhatsAppSettingsTab";
-import { Bell, MessageCircle, Palette } from "lucide-react";
+import { Bell, MessageCircle, Palette, Link } from "lucide-react";
+import { OmieSettingsTab } from "@/components/admin/settings/OmieSettingsTab";
 
 const AdminSettings = () => {
   const { toast } = useToast();
