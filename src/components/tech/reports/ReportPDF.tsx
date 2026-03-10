@@ -500,6 +500,7 @@ export const MultiTaskReportPDFContent = ({ tasks, serviceOrder, photoBase64Data
         
         <ServiceOrderInfo
           orderNumber={serviceOrder.id}
+          clientReference={serviceOrder.clientReference}
           date={serviceOrder.date}
           location={serviceOrder.vesselName || serviceOrder.location}
           access={serviceOrder.access}
