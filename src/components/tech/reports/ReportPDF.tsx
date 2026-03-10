@@ -182,6 +182,7 @@ interface ReportPDFProps {
   taskId: string;
   serviceOrder: {
     id: string;
+    clientReference?: string;
     date: Date;
     location: string;
     access: string;
