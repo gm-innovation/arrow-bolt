@@ -7,6 +7,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetails } from "./ServiceDetails";
 import { TechniciansSelection } from "./TechniciansSelection";
 import { LocationAccessSection } from "./LocationAccessSection";
+import { DockingTasksSection, type DockingActivity } from "./DockingTasksSection";
 import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
 import { useNotificationService } from "@/hooks/useNotificationService";
 
