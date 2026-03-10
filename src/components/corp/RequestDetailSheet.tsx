@@ -29,8 +29,9 @@ interface RequestDetailSheetProps {
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info' }> = {
   open: { label: 'Aberta', variant: 'info' },
-  pending_manager: { label: 'Pendente Gerente', variant: 'warning' },
   pending_director: { label: 'Pendente Diretoria', variant: 'warning' },
+  pending_department: { label: 'Pendente Departamento', variant: 'info' },
+  in_progress: { label: 'Em Andamento', variant: 'warning' },
   approved: { label: 'Aprovada', variant: 'success' },
   rejected: { label: 'Rejeitada', variant: 'destructive' },
   cancelled: { label: 'Cancelada', variant: 'secondary' },
