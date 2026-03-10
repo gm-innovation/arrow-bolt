@@ -74,6 +74,7 @@ type TimeEntry = {
 
 type ServiceOrderInfoProps = {
   orderNumber: string;
+  clientReference?: string;
   date: Date;
   location: string;
   access: string;
