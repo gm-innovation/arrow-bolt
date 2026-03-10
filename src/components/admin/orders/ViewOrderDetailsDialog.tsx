@@ -3,17 +3,12 @@ import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/c
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { VisitHistoryList } from "./VisitHistoryList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuditTrailViewer } from "./AuditTrailViewer";
-import { FileText, Plus } from "lucide-react";
-import { useMeasurements } from "@/hooks/useMeasurements";
-import { Dialog } from "@/components/ui/dialog";
-import { MeasurementDialog } from "../measurements/MeasurementDialog";
 import { formatLocalDate } from "@/lib/utils";
 
 interface ViewOrderDetailsDialogProps {
