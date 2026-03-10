@@ -286,7 +286,8 @@ const ServiceOrders = () => {
                           >
                             {order.orderNumber}
                           </Button>
-                        </TableCell>
+                        <TableCell>{order.client}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{order.clientReference || '-'}</TableCell>
                         <TableCell>{order.client}</TableCell>
                         <TableCell>{order.vessel}</TableCell>
                         <TableCell>

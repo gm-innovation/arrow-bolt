@@ -239,6 +239,12 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                 <dt className="text-sm font-medium text-muted-foreground">Cliente:</dt>
                 <dd className="text-sm">{orderDetails.clients?.name || "N/A"}</dd>
               </div>
+              {orderDetails.client_reference && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-muted-foreground">Ref. Cliente:</dt>
+                  <dd className="text-sm font-medium">{orderDetails.client_reference}</dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-sm font-medium text-muted-foreground">Embarcação:</dt>
                 <dd className="text-sm">
