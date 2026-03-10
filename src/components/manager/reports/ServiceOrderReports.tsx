@@ -14,12 +14,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, FileText, Download, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Eye, FileText, Download, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Layers } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
-import { TaskReport } from "@/components/tech/reports/types";
-import { loadPhotosFromStorage, generateReportPdfBlob } from "@/components/tech/reports/ReportPDF";
+import { TaskReport, TaskReportWithInfo } from "@/components/tech/reports/types";
+import { loadPhotosFromStorage, generateReportPdfBlob, generateMultiTaskReportPdfBlob } from "@/components/tech/reports/ReportPDF";
 import { useToast } from "@/hooks/use-toast";
 
 interface ServiceOrderReportsProps {
