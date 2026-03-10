@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Wrench, ListOrdered, Camera, FileText } from "lucide-react";
+import { Wrench, ListOrdered, Camera, FileText, RefreshCw, DollarSign } from "lucide-react";
 
 interface TaskType {
   id: string;
