@@ -289,7 +289,7 @@ const App = () => {
                   </Route>
 
                   {/* Commercial Admin Routes - separate layout */}
-                  <Route element={<ProtectedRoute allowedRoles={['commercial', 'admin']} />}>
+                  <Route element={<ProtectedRoute allowedRoles={['commercial']} />}>
                     <Route path="/commercial/admin" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminDashboard /></CommercialAdminLayout></Suspense>} />
                     <Route path="/commercial/admin/users" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminUsers /></CommercialAdminLayout></Suspense>} />
                     <Route path="/commercial/admin/services" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminServices /></CommercialAdminLayout></Suspense>} />

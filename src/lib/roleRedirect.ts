@@ -1,7 +1,7 @@
 // Helper para redirecionamento por role - centraliza a lógica em um único lugar
 export const roleRedirects: Record<string, string> = {
   super_admin: "/super-admin/dashboard",
-  admin: "/admin/dashboard",
+  coordinator: "/admin/dashboard",
   manager: "/manager/dashboard",
   technician: "/tech/dashboard",
   hr: "/hr/dashboard",
