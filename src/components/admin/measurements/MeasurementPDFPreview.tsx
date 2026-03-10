@@ -157,16 +157,8 @@ export const MeasurementPDFPreview = ({
                   <p className="text-sm text-muted-foreground">Gerando preview...</p>
                 </div>
               </div>
-            ) : pdfUrl ? (
-              <iframe
-                src={pdfUrl}
-                className="w-full h-full"
-                title="PDF Preview"
-              />
             ) : (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">Nenhum preview disponível</p>
-              </div>
+              <PDFCanvasViewer blob={pdfBlob} />
             )}
           </div>
 
