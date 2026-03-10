@@ -270,6 +270,7 @@ const ReportFormContent = () => {
         .select(`
           id,
           order_number,
+          client_reference,
           scheduled_date,
           service_date_time,
           location,
