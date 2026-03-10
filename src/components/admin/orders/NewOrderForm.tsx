@@ -791,6 +791,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       setSelectedTechnicians([]);
       setLeadTechId("");
       setTaskOrderNumbers({});
+      setIsDocking(false);
+      setDockingActivities([]);
       onSuccess?.();
     } catch (error: any) {
       toast({
