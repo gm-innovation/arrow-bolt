@@ -983,7 +983,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
       </div>
       
       {isGenerating ? (
-        <div className="flex items-center justify-center h-96 border border-gray-200 rounded">
+        <div className="flex items-center justify-center h-96 border border-border rounded">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Gerando PDF...</p>
