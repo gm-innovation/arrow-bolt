@@ -268,7 +268,7 @@ const App = () => {
                   </Route>
 
                   {/* Commercial - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial" /></ProtectedRoute>}>
+                  <Route element={<ProtectedRoute allowedRoles={['commercial']}><DashboardLayout userType="commercial" /></ProtectedRoute>}>
                     <Route path="/commercial/dashboard" element={<CommercialDashboard />} />
                     <Route path="/commercial/clients" element={<CommercialClients />} />
                     <Route path="/commercial/opportunities" element={<CommercialOpportunities />} />
