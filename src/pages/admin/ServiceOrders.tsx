@@ -260,7 +260,7 @@ const ServiceOrders = () => {
               <TableBody>
                 {filteredOrders.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="h-32">
+                    <TableCell colSpan={9} className="h-32">
                       <div className="flex flex-col items-center justify-center p-8">
                         <FileText className="h-12 w-12 text-muted-foreground mb-3" />
                         <h3 className="text-lg font-medium">Nenhuma ordem de serviço encontrada</h3>
