@@ -51,6 +51,7 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
   const [newStep, setNewStep] = useState("");
   const [photoLabels, setPhotoLabels] = useState<string[]>([]);
   const [newPhotoLabel, setNewPhotoLabel] = useState("");
+  const [isRecurrent, setIsRecurrent] = useState(false);
 
   useEffect(() => {
     fetchCategories();
