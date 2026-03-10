@@ -565,6 +565,9 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                   <TableRow key={report.id}>
                     <TableCell className="font-medium">
                       {report.task.service_order.order_number}
+                      {report.task.service_order.is_docking && (
+                        <Badge variant="outline" className="ml-2 text-xs">Docagem</Badge>
+                      )}
                     </TableCell>
                     <TableCell>{report.task.service_order.client?.name || 'N/A'}</TableCell>
                     <TableCell>{report.task.service_order.vessel?.name || 'N/A'}</TableCell>
