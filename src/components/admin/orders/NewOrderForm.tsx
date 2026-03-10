@@ -55,10 +55,11 @@ interface NewOrderFormProps {
   isEditing?: boolean;
   orderId?: string;
   orderNumber?: string;
+  clientReference?: string;
   onSuccess?: () => void;
 }
 
-export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: NewOrderFormProps) => {
+export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference, onSuccess }: NewOrderFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendTaskAssignmentNotification, sendScheduleChangeNotification } = useWhatsAppNotification();
