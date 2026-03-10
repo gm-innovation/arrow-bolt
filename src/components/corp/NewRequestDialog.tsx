@@ -128,8 +128,10 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   };
 
   const determineStatus = () => {
-    if (!selectedType || !selectedType.requires_approval) return 'open';
-    return 'pending_manager';
+    if (!selectedType) return 'open';
+    if (selectedType.requires_director_approval) return 'pending_director';
+    if (selectedType.department_id) return 'pending_department';
+    return 'open';
   };
 
   const uploadFilesForRequest = async (requestId: string, files: File[], subfolder?: string) => {
