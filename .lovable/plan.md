@@ -98,3 +98,43 @@ ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
 
 **Admin Reports.tsx:**
 - Query atualizada para incluir `is_docking` e `parent_docking_id`
+
+## Fluxo de Aprovação Revisado (Diretoria Direta + Roteamento)
+
+### Implementado ✅
+
+**Regras de negócio:**
+
+```text
+PRODUTO / ASSINATURA (com valor):
+  Criação → pending_director
+  Diretoria aprova → pending_department (Suprimentos / Financeiro)
+  Se departamento alterar valor → volta para pending_director
+  Diretoria re-aprova → pending_department novamente
+
+REEMBOLSO:
+  Criação → pending_department (Financeiro direto)
+  Financeiro pode escalar → pending_director
+  Diretoria aprova → retorna para pending_department
+
+DOCUMENTO / FOLGA:
+  Criação → pending_department (RH direto)
+```
+
+**Banco de dados:**
+- `corp_requests.approved_amount` (numeric) — rastreia valor aprovado pela diretoria
+- `corp_request_types` atualizados:
+  - Produto → `requires_director_approval = true`, `department_id = Suprimentos`
+  - Assinatura → `requires_director_approval = true`, `department_id = Financeiro`
+  - Reembolso → direto para `department_id = Financeiro`
+  - Folga/Férias → direto para `department_id = RH`
+  - Documento → direto para `department_id = RH`
+
+**Status disponíveis:** `open`, `pending_director`, `pending_department`, `in_progress`, `approved`, `rejected`, `cancelled`, `completed`
+
+**Código alterado:**
+- `useCorpRequests.ts` — removido `approveAsManager`, adicionadas mutations: `approveAsDirector` (com `approved_amount`), `escalateToDirector`, `updateDepartmentAmount`, `startDepartmentWork`, `completeDepartmentWork`
+- `ApprovalActions.tsx` — ações por role: Diretoria (aprovar/rejeitar), Departamentos (iniciar/concluir/escalar/alterar valor)
+- `RequestDetailSheet.tsx` — novos status no mapa, timeline sem gerente
+- `NewRequestDialog.tsx` — `determineStatus()` usa `requires_director_approval` e `department_id`
+- `Requests.tsx` — aba Recebidas filtra por role e categoria do tipo
