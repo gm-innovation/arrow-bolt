@@ -139,6 +139,10 @@ const AdminSettings = () => {
           <WhatsAppSettingsTab />
         </TabsContent>
 
+        <TabsContent value="omie">
+          <OmieSettingsTab />
+        </TabsContent>
+
         <TabsContent value="appearance">
           <Card>
             <CardHeader>
