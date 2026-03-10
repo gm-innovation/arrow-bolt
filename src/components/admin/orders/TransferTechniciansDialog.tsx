@@ -160,10 +160,15 @@ export const TransferTechniciansDialog = ({ orderId, onClose }: TransferTechnici
     [teamMembers, alreadyReplacedTechIds]
   );
 
-  const availableNewTechnicians = useMemo(
-    () => allTechnicians.filter(t => t.id !== techToReplace),
-    [allTechnicians, techToReplace]
-  );
+  const availableNewTechnicians = useMemo(() => {
+    const usedAsTarget = new Set(pendingTransfers.map(t => t.toTechId));
+    const currentTeamIds = new Set(teamMembers.map(m => m.technicianId));
+    return allTechnicians.filter(t =>
+      t.id !== techToReplace &&
+      !usedAsTarget.has(t.id) &&
+      (!currentTeamIds.has(t.id) || t.id === techToReplace)
+    );
+  }, [allTechnicians, techToReplace, pendingTransfers, teamMembers]);
 
   const handleAddTransfer = () => {
     if (!techToReplace || !newTechnicianId || !selectedMember) return;
