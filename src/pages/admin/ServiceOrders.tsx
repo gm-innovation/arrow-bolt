@@ -47,6 +47,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type FormData = {
   orderNumber: string;
+  clientReference: string;
 };
 
 const ServiceOrders = () => {
