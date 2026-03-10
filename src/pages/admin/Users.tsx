@@ -177,7 +177,7 @@ const Users = () => {
             <SelectContent>
               <SelectItem value="all-roles">Todas</SelectItem>
               <SelectItem value="super_admin">Super Admin</SelectItem>
-              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="coordinator">Coordenador</SelectItem>
               <SelectItem value="manager">Gerente</SelectItem>
               <SelectItem value="hr">RH</SelectItem>
               <SelectItem value="commercial">Comercial</SelectItem>
