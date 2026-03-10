@@ -973,30 +973,55 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
         <LocationAccessSection form={form} />
 
-        <ServiceDetails 
-          form={form} 
-          taskTypes={taskTypes} 
-          taskOrderNumbers={taskOrderNumbers}
-          onTaskOrderNumberChange={handleTaskOrderNumberChange}
-        />
+        {/* Docking Mode Toggle */}
+        <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5">
+            <FormLabel className="text-base">Modo Docagem</FormLabel>
+            <div className="text-sm text-muted-foreground">
+              Permite criar múltiplas atividades com equipes e datas independentes
+            </div>
+          </div>
+          <Switch
+            checked={isDocking}
+            onCheckedChange={setIsDocking}
+          />
+        </div>
 
-        <TechniciansSelection
-          technicians={technicians}
-          selectedTechnicians={selectedTechnicians}
-          onTechnicianToggle={(techId) => {
-            setSelectedTechnicians([...selectedTechnicians, techId]);
-          }}
-          leadTechId={leadTechId}
-          onLeadTechChange={setLeadTechId}
-          onRemoveTechnician={(techId) => {
-            setSelectedTechnicians(selectedTechnicians.filter(id => id !== techId));
-          }}
-          scheduledDate={(() => {
-            const serviceDateTime = form.watch("serviceDateTime");
-            if (serviceDateTime) return new Date(serviceDateTime);
-            return undefined;
-          })()}
-        />
+        {isDocking ? (
+          <DockingTasksSection
+            activities={dockingActivities}
+            onActivitiesChange={setDockingActivities}
+            taskTypes={taskTypes}
+            technicians={technicians}
+          />
+        ) : (
+          <>
+            <ServiceDetails 
+              form={form} 
+              taskTypes={taskTypes} 
+              taskOrderNumbers={taskOrderNumbers}
+              onTaskOrderNumberChange={handleTaskOrderNumberChange}
+            />
+
+            <TechniciansSelection
+              technicians={technicians}
+              selectedTechnicians={selectedTechnicians}
+              onTechnicianToggle={(techId) => {
+                setSelectedTechnicians([...selectedTechnicians, techId]);
+              }}
+              leadTechId={leadTechId}
+              onLeadTechChange={setLeadTechId}
+              onRemoveTechnician={(techId) => {
+                setSelectedTechnicians(selectedTechnicians.filter(id => id !== techId));
+              }}
+              scheduledDate={(() => {
+                const serviceDateTime = form.watch("serviceDateTime");
+                if (serviceDateTime) return new Date(serviceDateTime);
+                return undefined;
+              })()}
+            />
+          </>
+        )}
 
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Criando..." : isEditing ? "Atualizar" : "Criar"} Ordem de Serviço
