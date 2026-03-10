@@ -342,6 +342,12 @@ const ServiceOrders = () => {
                                 Agendar Retorno
                                 {!canEdit && <Badge variant="outline" className="ml-2 text-xs">Somente Leitura</Badge>}
                               </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleAction("measurement", order.id)}
+                              >
+                                <ClipboardList className="mr-2 h-4 w-4" />
+                                Medição Final
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
