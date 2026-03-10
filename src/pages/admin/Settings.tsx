@@ -34,7 +34,7 @@ const AdminSettings = () => {
       </div>
 
       <Tabs defaultValue="notifications" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             Notificações
@@ -42,6 +42,10 @@ const AdminSettings = () => {
           <TabsTrigger value="whatsapp" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
             WhatsApp
+          </TabsTrigger>
+          <TabsTrigger value="omie" className="flex items-center gap-2">
+            <Link className="h-4 w-4" />
+            Omie
           </TabsTrigger>
           <TabsTrigger value="appearance" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
