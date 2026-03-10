@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Download, ExternalLink, Save, Loader2 } from 'lucide-react';
 import { TechnicianTimeEntry } from './MeasurementForm';
+import { PDFCanvasViewer } from '@/components/ui/PDFCanvasViewer';
 
 interface MeasurementPDFPreviewProps {
   measurement: any;
@@ -23,6 +24,7 @@ export const MeasurementPDFPreview = ({
   open,
   onOpenChange,
 }: MeasurementPDFPreviewProps) => {
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,6 +44,7 @@ export const MeasurementPDFPreview = ({
     setIsGenerating(true);
     try {
       const blob = await generatePdfBlob();
+      setPdfBlob(blob);
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
     } catch (error) {
@@ -127,12 +130,13 @@ export const MeasurementPDFPreview = ({
     if (!newOpen && pdfUrl) {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
+      setPdfBlob(null);
     }
     onOpenChange(newOpen);
   };
 
   // Generate preview when dialog opens
-  if (open && !pdfUrl && !isGenerating) {
+  if (open && !pdfBlob && !isGenerating) {
     handleGeneratePreview();
   }
 
@@ -153,16 +157,8 @@ export const MeasurementPDFPreview = ({
                   <p className="text-sm text-muted-foreground">Gerando preview...</p>
                 </div>
               </div>
-            ) : pdfUrl ? (
-              <iframe
-                src={pdfUrl}
-                className="w-full h-full"
-                title="PDF Preview"
-              />
             ) : (
-              <div className="h-full flex items-center justify-center">
-                <p className="text-sm text-muted-foreground">Nenhum preview disponível</p>
-              </div>
+              <PDFCanvasViewer blob={pdfBlob} />
             )}
           </div>
 

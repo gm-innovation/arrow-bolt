@@ -6,6 +6,7 @@ import { ServiceOrderInfo } from './pdf/ServiceOrderInfo';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo } from 'react';
+import { PDFCanvasViewer } from '@/components/ui/PDFCanvasViewer';
 import { Button } from '@/components/ui/button';
 import { Download, Save, Eye, Image as ImageIcon } from 'lucide-react';
 import { PhotoGalleryDialog } from './PhotoGalleryDialog';
@@ -726,6 +727,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [photoBase64Data, setPhotoBase64Data] = useState<PhotoWithBase64[]>([]);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -843,6 +845,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
       
       console.log("Generating PDF with", base64Photos.length, "photos");
       const blob = await generatePdfBlob(base64Photos);
+      setPdfBlob(blob);
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
       console.log("PDF preview generated successfully");
@@ -980,23 +983,15 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
       </div>
       
       {isGenerating ? (
-        <div className="flex items-center justify-center h-96 border border-gray-200 rounded">
+        <div className="flex items-center justify-center h-96 border border-border rounded">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Gerando PDF...</p>
           </div>
         </div>
-      ) : pdfUrl ? (
-        <div className="border border-gray-200 rounded overflow-hidden">
-          <iframe
-            src={pdfUrl}
-            style={{ width: '100%', height: '600px', border: 'none' }}
-            title="Visualização do PDF"
-          />
-        </div>
       ) : (
-        <div className="flex items-center justify-center h-96 border border-gray-200 rounded">
-          <p className="text-muted-foreground">Erro ao carregar o PDF</p>
+        <div className="border border-border rounded overflow-hidden" style={{ height: '600px' }}>
+          <PDFCanvasViewer blob={pdfBlob} />
         </div>
       )}
 
