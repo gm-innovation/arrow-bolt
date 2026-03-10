@@ -150,8 +150,9 @@ const CorpRequests = () => {
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="open">Aberta</SelectItem>
-              <SelectItem value="pending_manager">Pend. Gerente</SelectItem>
               <SelectItem value="pending_director">Pend. Diretoria</SelectItem>
+              <SelectItem value="pending_department">Pend. Departamento</SelectItem>
+              <SelectItem value="in_progress">Em Andamento</SelectItem>
               <SelectItem value="approved">Aprovada</SelectItem>
               <SelectItem value="rejected">Rejeitada</SelectItem>
               <SelectItem value="completed">Concluída</SelectItem>
