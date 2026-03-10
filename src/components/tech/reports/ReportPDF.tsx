@@ -6,6 +6,7 @@ import { ServiceOrderInfo } from './pdf/ServiceOrderInfo';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo } from 'react';
+import { PDFCanvasViewer } from '@/components/ui/PDFCanvasViewer';
 import { Button } from '@/components/ui/button';
 import { Download, Save, Eye, Image as ImageIcon } from 'lucide-react';
 import { PhotoGalleryDialog } from './PhotoGalleryDialog';
