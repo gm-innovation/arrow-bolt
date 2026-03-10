@@ -38,6 +38,7 @@ export const DockingTasksSection = ({
       ...activities,
       {
         id: generateId(),
+        orderNumber: "",
         taskTypeIds: [],
         scheduledDateTime: "",
         technicians: [],
