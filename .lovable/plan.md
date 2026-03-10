@@ -1,5 +1,3 @@
-
-
 ## Gamificação do Sistema de Conquistas
 
 O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
@@ -72,3 +70,31 @@ ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
 - Integrar nível no `FeedProfileSidebar`
 - Melhorar `FeedBadgesCard` com indicador de XP
 
+## Modo Docagem - OS individual por atividade + Relatórios
+
+### Implementado ✅
+
+**Banco de dados:**
+- `tasks.docking_activity_group` (uuid) — agrupa tasks da mesma atividade
+- `service_orders.parent_docking_id` (uuid, FK → service_orders) — OS filha aponta para OS mãe
+
+**DockingTasksSection.tsx:**
+- Campo opcional "Nº OS" por atividade — se preenchido, cria OS filha separada
+
+**NewOrderForm.tsx (submit):**
+- Cada atividade gera um `docking_activity_group` UUID
+- Se atividade tem `orderNumber`, cria OS filha com `parent_docking_id` → OS mãe
+- OS filha recebe sua própria visita e visit_technicians
+
+**ReportForm.tsx:**
+- Query de tasks agora inclui `docking_activity_group` e `scheduled_date`
+- Sem deduplicação por task_type para OS de docagem (`is_docking = true`)
+- Cada task/atividade gera sua própria aba de relatório
+
+**ServiceOrderReports.tsx (Manager):**
+- Badge "Docagem" na coluna de OS para identificar
+- Botão de "Relatório Consolidado" (ícone Layers) para OS de docagem
+- Gera PDF unificado com `generateMultiTaskReportPdfBlob`
+
+**Admin Reports.tsx:**
+- Query atualizada para incluir `is_docking` e `parent_docking_id`
