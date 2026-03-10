@@ -3,6 +3,9 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -20,6 +23,11 @@ const formSchema = z.object({
   tools: z.array(z.string()),
   steps: z.array(z.string()),
   photoLabels: z.array(z.string()),
+  is_recurrent: z.boolean().default(false),
+  recurrence_type: z.string().optional(),
+  pricing_type: z.string().optional(),
+  default_periodicity: z.number().optional(),
+  default_estimated_value: z.number().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -43,6 +51,7 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
   const [newStep, setNewStep] = useState("");
   const [photoLabels, setPhotoLabels] = useState<string[]>([]);
   const [newPhotoLabel, setNewPhotoLabel] = useState("");
+  const [isRecurrent, setIsRecurrent] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -90,6 +99,11 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
       tools: [],
       steps: [],
       photoLabels: [],
+      is_recurrent: false,
+      recurrence_type: undefined,
+      pricing_type: undefined,
+      default_periodicity: undefined,
+      default_estimated_value: undefined,
     },
   });
 
@@ -144,6 +158,7 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
       setSteps([]);
       setPhotoLabels([]);
       setCategoryInput("");
+      setIsRecurrent(false);
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
@@ -330,6 +345,87 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
               </FormItem>
             )}
           />
+
+          {/* Recurrence Section */}
+          <div className="space-y-4 rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base font-medium">Tarefa Recorrente</Label>
+                <p className="text-sm text-muted-foreground">
+                  Marcar para gerar recorrências automaticamente na área comercial
+                </p>
+              </div>
+              <Switch
+                checked={isRecurrent}
+                onCheckedChange={(checked) => {
+                  setIsRecurrent(checked);
+                  form.setValue("is_recurrent", checked);
+                  if (!checked) {
+                    form.setValue("recurrence_type", undefined);
+                    form.setValue("pricing_type", undefined);
+                    form.setValue("default_periodicity", undefined);
+                    form.setValue("default_estimated_value", undefined);
+                  }
+                }}
+              />
+            </div>
+            {isRecurrent && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Tipo de Recorrência</Label>
+                  <Select
+                    value={form.watch("recurrence_type") || ""}
+                    onValueChange={(v) => form.setValue("recurrence_type", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="maintenance">Manutenção</SelectItem>
+                      <SelectItem value="renewal">Renovação</SelectItem>
+                      <SelectItem value="recurring_service">Serviço Recorrente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo de Valor</Label>
+                  <Select
+                    value={form.watch("pricing_type") || ""}
+                    onValueChange={(v) => form.setValue("pricing_type", v)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">Valor Fechado</SelectItem>
+                      <SelectItem value="hourly">Homem-Hora (HH)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Periodicidade padrão (meses)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="Ex: 6"
+                    value={form.watch("default_periodicity") ?? ""}
+                    onChange={(e) => form.setValue("default_periodicity", e.target.value ? Number(e.target.value) : undefined)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor estimado padrão (R$)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="Ex: 5000.00"
+                    value={form.watch("default_estimated_value") ?? ""}
+                    onChange={(e) => form.setValue("default_estimated_value", e.target.value ? Number(e.target.value) : undefined)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
 
           <div className="space-y-4">
             <FormLabel>Checklist de Ferramentas e Equipamentos</FormLabel>

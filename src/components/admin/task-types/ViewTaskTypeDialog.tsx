@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Wrench, ListOrdered, Camera, FileText } from "lucide-react";
+import { Wrench, ListOrdered, Camera, FileText, RefreshCw, DollarSign } from "lucide-react";
 
 interface TaskType {
   id: string;
@@ -15,6 +15,11 @@ interface TaskType {
   tools?: string[];
   steps?: string[];
   photo_labels?: string[];
+  is_recurrent?: boolean;
+  recurrence_type?: string;
+  pricing_type?: string;
+  default_periodicity?: number;
+  default_estimated_value?: number;
 }
 
 interface ViewTaskTypeDialogProps {
@@ -52,6 +57,41 @@ export const ViewTaskTypeDialog = ({ taskType }: ViewTaskTypeDialogProps) => {
               </div>
             )}
           </div>
+
+          {/* Recurrence */}
+          {taskType.is_recurrent && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <RefreshCw className="h-4 w-4" />
+                Recorrência
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div>
+                  <span className="text-muted-foreground">Tipo:</span>{" "}
+                  {taskType.recurrence_type === "maintenance" ? "Manutenção" :
+                   taskType.recurrence_type === "renewal" ? "Renovação" :
+                   taskType.recurrence_type === "recurring_service" ? "Serviço Recorrente" : "-"}
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Valor:</span>{" "}
+                  {taskType.pricing_type === "fixed" ? "Valor Fechado" :
+                   taskType.pricing_type === "hourly" ? "Homem-Hora (HH)" : "-"}
+                </div>
+                {taskType.default_periodicity && (
+                  <div>
+                    <span className="text-muted-foreground">Periodicidade:</span>{" "}
+                    {taskType.default_periodicity} meses
+                  </div>
+                )}
+                {taskType.default_estimated_value != null && (
+                  <div>
+                    <span className="text-muted-foreground">Valor estimado:</span>{" "}
+                    R$ {taskType.default_estimated_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Tools */}
           {taskType.tools && taskType.tools.length > 0 && (

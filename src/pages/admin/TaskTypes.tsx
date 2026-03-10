@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Edit } from "lucide-react";
+import { Plus, Eye, Edit, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { NewTaskTypeDialog } from "@/components/admin/task-types/NewTaskTypeDialog";
 import { ViewTaskTypeDialog } from "@/components/admin/task-types/ViewTaskTypeDialog";
@@ -34,6 +35,11 @@ interface TaskType {
   tools?: string[];
   steps?: string[];
   photo_labels?: string[];
+  is_recurrent?: boolean;
+  recurrence_type?: string;
+  pricing_type?: string;
+  default_periodicity?: number;
+  default_estimated_value?: number;
 }
 
 const TaskTypes = () => {
@@ -144,6 +150,11 @@ const TaskTypes = () => {
         steps: data.steps || [],
         photo_labels: data.photoLabels || [],
         company_id: profileData.company_id,
+        is_recurrent: data.is_recurrent || false,
+        recurrence_type: data.recurrence_type || null,
+        pricing_type: data.pricing_type || null,
+        default_periodicity: data.default_periodicity || null,
+        default_estimated_value: data.default_estimated_value || null,
       });
 
       if (error) throw error;
@@ -238,14 +249,15 @@ const TaskTypes = () => {
                   <TableHead>Descrição</TableHead>
                   <TableHead className="text-center">Ferramentas</TableHead>
                   <TableHead className="text-center">Passos</TableHead>
-                  <TableHead className="text-center">Legendas</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                   <TableHead className="text-center">Legendas</TableHead>
+                   <TableHead className="text-center">Recorrente</TableHead>
+                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTaskTypes.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                       Nenhum tipo de tarefa encontrado
                     </TableCell>
                   </TableRow>
@@ -263,10 +275,22 @@ const TaskTypes = () => {
                       <TableCell className="text-center">
                         {taskType.steps?.length || 0}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {taskType.photo_labels?.length || 0}
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
+                       <TableCell className="text-center">
+                         {taskType.photo_labels?.length || 0}
+                       </TableCell>
+                       <TableCell className="text-center">
+                         {taskType.is_recurrent ? (
+                           <div className="flex flex-col items-center gap-1">
+                             <RefreshCw className="h-4 w-4 text-primary" />
+                             <span className="text-xs text-muted-foreground">
+                               {taskType.default_periodicity ? `${taskType.default_periodicity}m` : ""}
+                             </span>
+                           </div>
+                         ) : (
+                           <span className="text-muted-foreground">-</span>
+                         )}
+                       </TableCell>
+                       <TableCell className="text-right space-x-2">
                         <Button
                           variant="ghost"
                           size="icon"

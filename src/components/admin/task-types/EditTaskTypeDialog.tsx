@@ -11,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Plus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -23,6 +25,11 @@ interface TaskType {
   tools?: string[];
   steps?: string[];
   photo_labels?: string[];
+  is_recurrent?: boolean;
+  recurrence_type?: string;
+  pricing_type?: string;
+  default_periodicity?: number;
+  default_estimated_value?: number;
 }
 
 interface EditTaskTypeDialogProps {
@@ -43,6 +50,11 @@ export const EditTaskTypeDialog = ({ taskType, onSuccess, onCancel }: EditTaskTy
   const [newTool, setNewTool] = useState("");
   const [newStep, setNewStep] = useState("");
   const [newPhotoLabel, setNewPhotoLabel] = useState("");
+  const [isRecurrent, setIsRecurrent] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState("");
+  const [pricingType, setPricingType] = useState("");
+  const [defaultPeriodicity, setDefaultPeriodicity] = useState<number | undefined>();
+  const [defaultEstimatedValue, setDefaultEstimatedValue] = useState<number | undefined>();
 
   useEffect(() => {
     if (taskType) {
@@ -52,6 +64,11 @@ export const EditTaskTypeDialog = ({ taskType, onSuccess, onCancel }: EditTaskTy
       setTools(taskType.tools || []);
       setSteps(taskType.steps || []);
       setPhotoLabels(taskType.photo_labels || []);
+      setIsRecurrent(taskType.is_recurrent || false);
+      setRecurrenceType(taskType.recurrence_type || "");
+      setPricingType(taskType.pricing_type || "");
+      setDefaultPeriodicity(taskType.default_periodicity);
+      setDefaultEstimatedValue(taskType.default_estimated_value);
     }
   }, [taskType]);
 
@@ -109,6 +126,11 @@ export const EditTaskTypeDialog = ({ taskType, onSuccess, onCancel }: EditTaskTy
           tools,
           steps,
           photo_labels: photoLabels,
+          is_recurrent: isRecurrent,
+          recurrence_type: isRecurrent ? recurrenceType || null : null,
+          pricing_type: isRecurrent ? pricingType || null : null,
+          default_periodicity: isRecurrent ? defaultPeriodicity || null : null,
+          default_estimated_value: isRecurrent ? defaultEstimatedValue || null : null,
         })
         .eq("id", taskType.id);
 
@@ -172,6 +194,80 @@ export const EditTaskTypeDialog = ({ taskType, onSuccess, onCancel }: EditTaskTy
               placeholder="Descrição do tipo de tarefa"
               rows={3}
             />
+          </div>
+
+          {/* Recurrence */}
+          <div className="space-y-4 rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base font-medium">Tarefa Recorrente</Label>
+                <p className="text-sm text-muted-foreground">
+                  Gerar recorrências automaticamente na área comercial
+                </p>
+              </div>
+              <Switch
+                checked={isRecurrent}
+                onCheckedChange={(checked) => {
+                  setIsRecurrent(checked);
+                  if (!checked) {
+                    setRecurrenceType("");
+                    setPricingType("");
+                    setDefaultPeriodicity(undefined);
+                    setDefaultEstimatedValue(undefined);
+                  }
+                }}
+              />
+            </div>
+            {isRecurrent && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Tipo de Recorrência</Label>
+                  <Select value={recurrenceType} onValueChange={setRecurrenceType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="maintenance">Manutenção</SelectItem>
+                      <SelectItem value="renewal">Renovação</SelectItem>
+                      <SelectItem value="recurring_service">Serviço Recorrente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo de Valor</Label>
+                  <Select value={pricingType} onValueChange={setPricingType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">Valor Fechado</SelectItem>
+                      <SelectItem value="hourly">Homem-Hora (HH)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Periodicidade padrão (meses)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="Ex: 6"
+                    value={defaultPeriodicity ?? ""}
+                    onChange={(e) => setDefaultPeriodicity(e.target.value ? Number(e.target.value) : undefined)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor estimado padrão (R$)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="Ex: 5000.00"
+                    value={defaultEstimatedValue ?? ""}
+                    onChange={(e) => setDefaultEstimatedValue(e.target.value ? Number(e.target.value) : undefined)}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Tools */}
