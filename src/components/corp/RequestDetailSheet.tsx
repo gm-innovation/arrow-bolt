@@ -29,8 +29,9 @@ interface RequestDetailSheetProps {
 
 const statusMap: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info' }> = {
   open: { label: 'Aberta', variant: 'info' },
-  pending_manager: { label: 'Pendente Gerente', variant: 'warning' },
   pending_director: { label: 'Pendente Diretoria', variant: 'warning' },
+  pending_department: { label: 'Pendente Departamento', variant: 'info' },
+  in_progress: { label: 'Em Andamento', variant: 'warning' },
   approved: { label: 'Aprovada', variant: 'success' },
   rejected: { label: 'Rejeitada', variant: 'destructive' },
   cancelled: { label: 'Cancelada', variant: 'secondary' },
@@ -107,17 +108,6 @@ const RequestDetailSheet = ({ request, open, onOpenChange }: RequestDetailSheetP
           <div>
             <p className="text-sm font-medium mb-2">Fluxo de Aprovação</p>
             <div className="space-y-2 text-sm">
-              {request.manager_approver && (
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-green-500" />
-                  <span>Gerente: {request.manager_approver.full_name}</span>
-                  {request.manager_approved_at && (
-                    <span className="text-muted-foreground text-xs">
-                      ({format(new Date(request.manager_approved_at), "dd/MM/yyyy HH:mm")})
-                    </span>
-                  )}
-                </div>
-              )}
               {request.director_approver && (
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-green-500" />
@@ -129,16 +119,28 @@ const RequestDetailSheet = ({ request, open, onOpenChange }: RequestDetailSheetP
                   )}
                 </div>
               )}
-              {request.status === 'pending_manager' && (
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-                  <span className="text-muted-foreground">Aguardando aprovação do gerente</span>
-                </div>
-              )}
               {request.status === 'pending_director' && (
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
                   <span className="text-muted-foreground">Aguardando aprovação da diretoria</span>
+                </div>
+              )}
+              {request.status === 'pending_department' && (
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+                  <span className="text-muted-foreground">Aguardando atendimento do departamento</span>
+                </div>
+              )}
+              {request.status === 'in_progress' && (
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-blue-500" />
+                  <span className="text-muted-foreground">Em atendimento pelo departamento</span>
+                </div>
+              )}
+              {request.approved_amount != null && (
+                <div className="flex items-center gap-2">
+                  <div className="h-2 w-2 rounded-full bg-green-500" />
+                  <span>Valor aprovado: R$ {Number(request.approved_amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
               {request.rejection_reason && (

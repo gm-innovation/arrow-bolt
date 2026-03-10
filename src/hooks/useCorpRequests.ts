@@ -29,7 +29,7 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
           *,
           requester:profiles!corp_requests_requester_id_fkey(id, full_name, email),
           department:departments(id, name),
-          type:corp_request_types(id, name, requires_approval, requires_director_approval, director_threshold_value),
+          type:corp_request_types(id, name, requires_approval, requires_director_approval, director_threshold_value, department_id),
           manager_approver:profiles!corp_requests_manager_approver_id_fkey(id, full_name),
           director_approver:profiles!corp_requests_director_approver_id_fkey(id, full_name),
           target:profiles!corp_requests_target_user_id_fkey(id, full_name, email)
@@ -83,34 +83,18 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
     },
   });
 
-  const approveAsManager = useMutation({
-    mutationFn: async ({ id, requiresDirector }: { id: string; requiresDirector: boolean }) => {
-      const updates: any = {
-        manager_approver_id: user!.id,
-        manager_approved_at: new Date().toISOString(),
-        status: requiresDirector ? 'pending_director' : 'approved',
-      };
-      const { data, error } = await supabase.from('corp_requests').update(updates).eq('id', id).select().single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
-      queryClient.invalidateQueries({ queryKey: ['corp-dashboard'] });
-      toast({ title: 'Solicitação aprovada' });
-    },
-    onError: (error: any) => {
-      toast({ title: 'Erro ao aprovar', description: error.message, variant: 'destructive' });
-    },
-  });
-
+  // Diretoria aprova → pending_department (se tipo tem department_id) ou approved
   const approveAsDirector = useMutation({
-    mutationFn: async (id: string) => {
-      const { data, error } = await supabase.from('corp_requests').update({
+    mutationFn: async ({ id, typeDepartmentId, amount }: { id: string; typeDepartmentId?: string; amount?: number }) => {
+      const updates: any = {
         director_approver_id: user!.id,
         director_approved_at: new Date().toISOString(),
-        status: 'approved',
-      }).eq('id', id).select().single();
+        status: typeDepartmentId ? 'pending_department' : 'approved',
+      };
+      if (amount !== undefined) {
+        updates.approved_amount = amount;
+      }
+      const { data, error } = await supabase.from('corp_requests').update(updates).eq('id', id).select().single();
       if (error) throw error;
       return data;
     },
@@ -121,6 +105,90 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
     },
     onError: (error: any) => {
       toast({ title: 'Erro ao aprovar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Financeiro escala reembolso para diretoria
+  const escalateToDirector = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.from('corp_requests').update({
+        status: 'pending_director',
+      }).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
+      toast({ title: 'Solicitação encaminhada para a diretoria' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao encaminhar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Departamento atualiza valor → se diferente do approved_amount, volta para pending_director
+  const updateDepartmentAmount = useMutation({
+    mutationFn: async ({ id, newAmount, approvedAmount }: { id: string; newAmount: number; approvedAmount?: number }) => {
+      const needsReapproval = approvedAmount !== undefined && approvedAmount !== null && newAmount !== approvedAmount;
+      const updates: any = {
+        amount: newAmount,
+      };
+      if (needsReapproval) {
+        updates.status = 'pending_director';
+        updates.director_approver_id = null;
+        updates.director_approved_at = null;
+      }
+      const { data, error } = await supabase.from('corp_requests').update(updates).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
+      if (data.status === 'pending_director') {
+        toast({ title: 'Valor alterado — solicitação retornou para aprovação da diretoria' });
+      } else {
+        toast({ title: 'Valor atualizado' });
+      }
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao atualizar valor', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Departamento inicia atendimento
+  const startDepartmentWork = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.from('corp_requests').update({
+        status: 'in_progress',
+      }).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
+      toast({ title: 'Atendimento iniciado' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao iniciar atendimento', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Departamento conclui
+  const completeDepartmentWork = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.from('corp_requests').update({
+        status: 'completed',
+      }).eq('id', id).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['corp-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['corp-dashboard'] });
+      toast({ title: 'Solicitação concluída' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Erro ao concluir', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -146,6 +214,8 @@ export const useCorpRequests = (filters?: { status?: string; department_id?: str
   return {
     requests, isLoading,
     createRequest, updateRequest,
-    approveAsManager, approveAsDirector, rejectRequest,
+    approveAsDirector, rejectRequest,
+    escalateToDirector, updateDepartmentAmount,
+    startDepartmentWork, completeDepartmentWork,
   };
 };

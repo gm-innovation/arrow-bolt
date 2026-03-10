@@ -128,8 +128,10 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   };
 
   const determineStatus = () => {
-    if (!selectedType || !selectedType.requires_approval) return 'open';
-    return 'pending_manager';
+    if (!selectedType) return 'open';
+    if (selectedType.requires_director_approval) return 'pending_director';
+    if (selectedType.department_id) return 'pending_department';
+    return 'open';
   };
 
   const uploadFilesForRequest = async (requestId: string, files: File[], subfolder?: string) => {
@@ -527,11 +529,14 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
                 </div>
               )}
 
-              {selectedType?.requires_approval && (
+              {selectedType?.requires_director_approval && (
                 <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
-                  ⓘ Este tipo requer aprovação
-                  {selectedType.requires_director_approval && ' do gerente e da diretoria'}
-                  {!selectedType.requires_director_approval && ' do gerente'}.
+                  ⓘ Este tipo requer aprovação da diretoria antes de seguir para o departamento executor.
+                </p>
+              )}
+              {!selectedType?.requires_director_approval && selectedType?.department_id && (
+                <p className="text-sm text-muted-foreground bg-muted p-2 rounded">
+                  ⓘ Esta solicitação será enviada diretamente ao departamento responsável.
                 </p>
               )}
 
