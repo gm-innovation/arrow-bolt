@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Bell, Smartphone, Palette, Shield, Loader2 } from "lucide-react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
+import { OmieSettingsTab } from "@/components/admin/settings/OmieSettingsTab";
 
 const Settings = () => {
   const { settings, isLoading, updateSetting, exportAuditLogs } = useSystemSettings();
@@ -193,6 +194,8 @@ const Settings = () => {
           </CardContent>
         </Card>
       </div>
+
+      <OmieSettingsTab />
     </div>
   );
 };
