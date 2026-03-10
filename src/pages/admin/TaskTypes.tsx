@@ -35,6 +35,11 @@ interface TaskType {
   tools?: string[];
   steps?: string[];
   photo_labels?: string[];
+  is_recurrent?: boolean;
+  recurrence_type?: string;
+  pricing_type?: string;
+  default_periodicity?: number;
+  default_estimated_value?: number;
 }
 
 const TaskTypes = () => {
