@@ -57,6 +57,7 @@ interface Report {
     title?: string;
     service_order?: {
       order_number: string;
+      client_reference?: string;
       location?: string;
       access?: string;
       description?: string;
