@@ -37,7 +37,7 @@ export function AIAssistant({ context }: AIAssistantProps) {
     switch (userRole) {
       case 'technician':
         return 'technician';
-      case 'admin':
+      case 'coordinator':
         return 'admin';
       case 'manager':
         return 'manager';

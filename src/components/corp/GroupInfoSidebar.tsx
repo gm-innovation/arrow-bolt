@@ -21,7 +21,7 @@ const GroupInfoSidebar = ({
   requestJoin, leaveGroup, approveRequest, rejectRequest,
 }: GroupInfoSidebarProps) => {
   const { userRole } = useAuth();
-  const isAdminOrHR = userRole === 'admin' || userRole === 'hr' || userRole === 'super_admin';
+  const isAdminOrHR = userRole === 'hr' || userRole === 'super_admin';
 
   const getInitials = (name?: string) =>
     name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || '??';

@@ -93,7 +93,7 @@ export const useManagerReports = (filters: ReportFilters = {}) => {
       const { data: adminRoles } = await supabase
         .from('user_roles')
         .select('user_id')
-        .eq('role', 'admin');
+        .eq('role', 'coordinator');
 
       if (!adminRoles) return [];
 

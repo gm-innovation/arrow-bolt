@@ -13,7 +13,7 @@ const CorpLayout = ({ children }: CorpLayoutProps) => {
   const location = useLocation();
   const { userRole } = useAuth();
 
-  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+  const isAdmin = userRole === 'super_admin';
   const isHR = userRole === 'hr';
   const isDirector = userRole === 'director';
   const canViewReports = isAdmin || isHR || isDirector;

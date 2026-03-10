@@ -54,7 +54,7 @@ const CorpRequests = () => {
   );
 
   // Solicitações recebidas: direcionadas ao usuário OU pendentes de aprovação/atendimento conforme role
-  const isAdmin = userRole === 'admin' || userRole === 'super_admin';
+  const isAdmin = userRole === 'super_admin';
   const isHR = userRole === 'hr';
   const isDirector = userRole === 'director';
   const isFinanceiro = userRole === 'financeiro';

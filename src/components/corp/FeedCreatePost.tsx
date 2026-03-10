@@ -10,7 +10,7 @@ import FeedMediaPreview from './FeedMediaPreview';
 import FeedMentionInput, { MentionItem } from './FeedMentionInput';
 
 const ROLE_LABELS: Record<string, string> = {
-  technician: 'Técnico', admin: 'Administrador', hr: 'RH', manager: 'Gerente',
+  technician: 'Técnico', coordinator: 'Coordenador', hr: 'RH', manager: 'Gerente',
   commercial: 'Comercial', qualidade: 'Qualidade', compras: 'Suprimentos',
   financeiro: 'Financeiro', super_admin: 'Super Admin', director: 'Diretor', corp: 'Corporativo',
 };

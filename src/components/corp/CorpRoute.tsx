@@ -19,7 +19,7 @@ const ContentSkeleton = () => (
 
 const roleToUserType: Record<string, "super-admin" | "admin" | "manager" | "tech" | "hr" | "commercial" | "director" | "compras" | "qualidade" | "financeiro"> = {
   super_admin: "super-admin",
-  admin: "admin",
+  coordinator: "admin",
   manager: "manager",
   technician: "tech",
   hr: "hr",
@@ -35,7 +35,7 @@ export const CorpRoute = ({ children, pageTitle }: { children: React.ReactNode; 
   const userType = roleToUserType[userRole || ''] || 'admin';
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'super_admin', 'manager', 'technician', 'hr', 'commercial', 'director', 'compras', 'qualidade', 'financeiro']}>
+    <ProtectedRoute allowedRoles={['coordinator', 'super_admin', 'manager', 'technician', 'hr', 'commercial', 'director', 'compras', 'qualidade', 'financeiro']}>
       <DashboardLayout userType={userType} pageTitle={pageTitle}>
         <Suspense fallback={<ContentSkeleton />}>{children}</Suspense>
       </DashboardLayout>
@@ -48,7 +48,7 @@ export const CorpAdminRoute = ({ children, pageTitle }: { children: React.ReactN
   const userType = roleToUserType[userRole || ''] || 'admin';
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+    <ProtectedRoute allowedRoles={['super_admin']}>
       <DashboardLayout userType={userType} pageTitle={pageTitle}>
         <Suspense fallback={<ContentSkeleton />}>{children}</Suspense>
       </DashboardLayout>
@@ -61,7 +61,7 @@ export const CorpReportsRoute = ({ children, pageTitle }: { children: React.Reac
   const userType = roleToUserType[userRole || ''] || 'admin';
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'super_admin', 'hr', 'director']}>
+    <ProtectedRoute allowedRoles={['super_admin', 'hr', 'director']}>
       <DashboardLayout userType={userType} pageTitle={pageTitle}>
         <Suspense fallback={<ContentSkeleton />}>{children}</Suspense>
       </DashboardLayout>

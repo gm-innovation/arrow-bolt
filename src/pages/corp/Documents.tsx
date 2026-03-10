@@ -22,7 +22,7 @@ const docTypeLabels: Record<string, string> = {
 const CorpDocuments = () => {
   const { user, userRole } = useAuth();
   const { documents, isLoading, deleteDocument } = useCorpDocuments();
-  const isHR = userRole === 'hr' || userRole === 'admin' || userRole === 'super_admin';
+  const isHR = userRole === 'hr' || userRole === 'super_admin';
 
   const myDocs = documents.filter((d: any) => d.uploaded_by === user?.id);
   const receivedDocs = documents.filter((d: any) => d.uploaded_by !== user?.id && d.owner_user_id === user?.id);

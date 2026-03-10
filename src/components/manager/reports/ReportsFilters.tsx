@@ -25,8 +25,8 @@ export function ReportsFilters({ onFilterChange, onExport }: ReportsFiltersProps
   const [coordinatorId, setCoordinatorId] = useState<string | null>(null);
   const { users } = useUsers();
 
-  // Filter only coordinators (admin role)
-  const coordinators = users.filter(u => u.role === 'admin');
+  // Filter only coordinators (coordinator role)
+  const coordinators = users.filter(u => u.role === 'coordinator');
 
   const handleApplyFilters = () => {
     onFilterChange({

@@ -211,7 +211,7 @@ const App = () => {
                   </Route>
 
                   {/* Admin - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin" /></ProtectedRoute>}>
+                  <Route element={<ProtectedRoute allowedRoles={['coordinator']}><DashboardLayout userType="admin" /></ProtectedRoute>}>
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
                     <Route path="/admin/orders" element={<ServiceOrders />} />
                     <Route path="/admin/calendar" element={<ServiceCalendar />} />
@@ -268,7 +268,7 @@ const App = () => {
                   </Route>
 
                   {/* Commercial - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['commercial', 'admin']}><DashboardLayout userType="commercial" /></ProtectedRoute>}>
+                  <Route element={<ProtectedRoute allowedRoles={['commercial']}><DashboardLayout userType="commercial" /></ProtectedRoute>}>
                     <Route path="/commercial/dashboard" element={<CommercialDashboard />} />
                     <Route path="/commercial/clients" element={<CommercialClients />} />
                     <Route path="/commercial/opportunities" element={<CommercialOpportunities />} />
@@ -289,7 +289,7 @@ const App = () => {
                   </Route>
 
                   {/* Commercial Admin Routes - separate layout */}
-                  <Route element={<ProtectedRoute allowedRoles={['commercial', 'admin']} />}>
+                  <Route element={<ProtectedRoute allowedRoles={['commercial']} />}>
                     <Route path="/commercial/admin" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminDashboard /></CommercialAdminLayout></Suspense>} />
                     <Route path="/commercial/admin/users" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminUsers /></CommercialAdminLayout></Suspense>} />
                     <Route path="/commercial/admin/services" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminServices /></CommercialAdminLayout></Suspense>} />

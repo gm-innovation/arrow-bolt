@@ -84,7 +84,7 @@ const Users = () => {
       const exportData = filteredUsers.map(user => ({
         nome: user.full_name,
         email: user.email,
-        funcao: user.role === "admin" ? "Administrador" : 
+        funcao: user.role === "coordinator" ? "Coordenador" : 
                 user.role === "technician" ? "Técnico" : 
                 user.role === "super_admin" ? "Super Admin" : "-",
         status: formatBooleanForExport(user.active),
@@ -177,7 +177,7 @@ const Users = () => {
             <SelectContent>
               <SelectItem value="all-roles">Todas</SelectItem>
               <SelectItem value="super_admin">Super Admin</SelectItem>
-              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="coordinator">Coordenador</SelectItem>
               <SelectItem value="manager">Gerente</SelectItem>
               <SelectItem value="hr">RH</SelectItem>
               <SelectItem value="commercial">Comercial</SelectItem>
@@ -233,7 +233,7 @@ const Users = () => {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    {user.role === "admin" ? "Administrador" : 
+                    {user.role === "coordinator" ? "Coordenador" : 
                      user.role === "technician" ? "Técnico" : 
                      user.role === "super_admin" ? "Super Admin" :
                      user.role === "manager" ? "Gerente" :

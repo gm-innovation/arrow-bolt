@@ -17,13 +17,13 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 const ROLES = [
-  { value: "admin", label: "Administrador" },
+  { value: "coordinator", label: "Coordenador" },
   { value: "commercial", label: "Comercial" },
   { value: "manager", label: "Gerente" },
 ];
 
 const roleLabels: Record<string, string> = {
-  admin: "Administrador",
+  coordinator: "Coordenador",
   commercial: "Comercial",
   manager: "Gerente",
   technician: "Técnico",

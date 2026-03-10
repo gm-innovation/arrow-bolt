@@ -24,10 +24,10 @@ const ApprovalActions = ({ request }: ApprovalActionsProps) => {
   const [amountOpen, setAmountOpen] = useState(false);
   const [newAmount, setNewAmount] = useState('');
 
-  const isDirector = userRole === 'director' || userRole === 'admin' || userRole === 'super_admin';
-  const isFinanceiro = userRole === 'financeiro' || userRole === 'admin' || userRole === 'super_admin';
-  const isSuprimentos = userRole === 'compras' || userRole === 'admin' || userRole === 'super_admin';
-  const isHR = userRole === 'hr' || userRole === 'admin' || userRole === 'super_admin';
+  const isDirector = userRole === 'director' || userRole === 'super_admin';
+  const isFinanceiro = userRole === 'financeiro' || userRole === 'super_admin';
+  const isSuprimentos = userRole === 'compras' || userRole === 'super_admin';
+  const isHR = userRole === 'hr' || userRole === 'super_admin';
 
   const typeDepartmentId = request.type?.department_id;
   const typeCategory = request.type?.category || (request as any).category;

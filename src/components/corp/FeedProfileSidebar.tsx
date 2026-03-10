@@ -24,7 +24,7 @@ import FeedUserLevel from './FeedUserLevel';
 import { toast } from '@/hooks/use-toast';
 
 const ROLE_LABELS: Record<string, string> = {
-  technician: 'Técnico', admin: 'Administrador', hr: 'RH', manager: 'Gerente',
+  technician: 'Técnico', coordinator: 'Coordenador', hr: 'RH', manager: 'Gerente',
   commercial: 'Comercial', qualidade: 'Qualidade', compras: 'Suprimentos',
   financeiro: 'Financeiro', super_admin: 'Super Admin', director: 'Diretor', corp: 'Corporativo',
 };
@@ -50,7 +50,7 @@ const FeedProfileSidebar = ({ profile, role, compact }: FeedProfileSidebarProps)
   const age = profile?.birth_date ? differenceInYears(new Date(), new Date(profile.birth_date)) : null;
   const companyId = profile?.company_id || '';
 
-  const isAdminOrHR = role === 'admin' || role === 'hr' || role === 'super_admin';
+  const isAdminOrHR = role === 'hr' || role === 'super_admin';
   const canAwardBadge = role === 'hr' || role === 'director' || role === 'super_admin';
 
   const { discussions } = useCorpFeedDiscussions(companyId);

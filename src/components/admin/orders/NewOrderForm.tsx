@@ -149,7 +149,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       const { data: adminRoles } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "admin");
+        .eq("role", "coordinator");
 
       const adminUserIds = adminRoles?.map(r => r.user_id) || [];
 
