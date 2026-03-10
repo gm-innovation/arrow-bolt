@@ -80,8 +80,12 @@ export const useOsMaterials = (serviceOrderId?: string) => {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['os-materials', serviceOrderId] });
+      // Also upsert into stock_products catalog
+      if (onEvaMaterialsSynced && variables.materials.length > 0) {
+        onEvaMaterialsSynced(variables.materials);
+      }
       toast({
         title: "Materiais sincronizados",
         description: "Materiais do Eva foram importados com sucesso",
