@@ -278,6 +278,7 @@ const ReportFormContent = () => {
           supervisor_id,
           company_id,
           single_report,
+          is_docking,
           vessels:vessel_id (name),
           clients:client_id (name, contact_person)
         `)
@@ -308,6 +309,8 @@ const ReportFormContent = () => {
           description,
           status,
           task_type_id,
+          docking_activity_group,
+          scheduled_date,
           task_types:task_type_id (name, photo_labels)
         `)
         .eq('service_order_id', osId)
@@ -324,9 +327,11 @@ const ReportFormContent = () => {
       }));
       
       // CRITICAL: Deduplicate tasks by task_type_id when single_report=true
-      // This handles legacy data where multiple tasks exist per type
+      // But NOT for docking OS - each docking activity task is individual
       const isSingleReport = (soData as any).single_report !== false;
-      if (isSingleReport) {
+      const isDockingOS = (soData as any).is_docking === true;
+      
+      if (isSingleReport && !isDockingOS) {
         const seenTaskTypes = new Set<string>();
         const deduplicatedTasks: TaskInfo[] = [];
         

@@ -14,12 +14,12 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Eye, FileText, Download, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Eye, FileText, Download, Clock, CheckCircle, XCircle, AlertCircle, Loader2, Layers } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { PDFPreviewDialog } from "@/components/tech/reports/PDFPreviewDialog";
-import { TaskReport } from "@/components/tech/reports/types";
-import { loadPhotosFromStorage, generateReportPdfBlob } from "@/components/tech/reports/ReportPDF";
+import { TaskReport, TaskReportWithInfo } from "@/components/tech/reports/types";
+import { loadPhotosFromStorage, generateReportPdfBlob, generateMultiTaskReportPdfBlob } from "@/components/tech/reports/ReportPDF";
 import { useToast } from "@/hooks/use-toast";
 
 interface ServiceOrderReportsProps {
@@ -53,6 +53,8 @@ interface ReportData {
       scheduled_date?: string;
       service_date_time?: string;
       company_id?: string;
+      is_docking?: boolean;
+      parent_docking_id?: string;
       client: { name: string } | null;
       vessel: { name: string } | null;
     };
@@ -87,6 +89,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
   const [selectedReport, setSelectedReport] = useState<ReportData | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [consolidatingId, setConsolidatingId] = useState<string | null>(null);
 
   const { data: reports, isLoading } = useQuery({
     queryKey: ['manager-service-reports', user?.id, filters],
@@ -130,6 +133,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
               id,
               title,
               assigned_to,
+              docking_activity_group,
               service_orders!inner (
                 id,
                 order_number,
@@ -143,6 +147,8 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 supervisor_id,
                 created_at,
                 created_by,
+                is_docking,
+                parent_docking_id,
                 clients (name),
                 vessels (name)
               )
@@ -246,6 +252,8 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 scheduled_date: taskData.service_orders.scheduled_date,
                 service_date_time: taskData.service_orders.service_date_time,
                 company_id: taskData.service_orders.company_id,
+                is_docking: (taskData.service_orders as any).is_docking,
+                parent_docking_id: (taskData.service_orders as any).parent_docking_id,
                 client: taskData.service_orders.clients,
                 vessel: taskData.service_orders.vessels,
               },
@@ -339,6 +347,83 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
       });
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  // Handle consolidated docking report download
+  const handleConsolidatedDownload = async (report: ReportData) => {
+    const serviceOrder = report.task?.service_order;
+    if (!serviceOrder) return;
+
+    try {
+      setConsolidatingId(report.id);
+
+      // Find all reports from the same docking (parent + children)
+      const parentId = serviceOrder.parent_docking_id || serviceOrder.order_number;
+      
+      // Get all related reports from our loaded data
+      const relatedReports = (reports || []).filter(r => {
+        const so = r.task?.service_order;
+        if (!so) return false;
+        // Same OS or parent/child relationship
+        return so.order_number === serviceOrder.order_number ||
+          (so as any).parent_docking_id === serviceOrder.order_number ||
+          serviceOrder.parent_docking_id === so.order_number;
+      });
+
+      if (relatedReports.length === 0) {
+        toast({ title: "Nenhum relatório encontrado para consolidar", variant: "destructive" });
+        return;
+      }
+
+      // Build multi-task report data
+      const taskReportsWithInfo: TaskReportWithInfo[] = [];
+      const allPhotoBase64: Record<string, any[]> = {};
+
+      for (const r of relatedReports) {
+        const reportData = extractReportData(r);
+        const taskId = r.task_id;
+        
+        taskReportsWithInfo.push({
+          taskId,
+          taskName: r.task?.title || 'Tarefa',
+          orderNumber: r.task?.service_order?.order_number,
+          report: reportData,
+        });
+
+        // Load photos
+        const photos = reportData.photos || [];
+        const base64Photos = await loadPhotosFromStorage(photos);
+        allPhotoBase64[taskId] = base64Photos;
+      }
+
+      const serviceOrderData = getServiceOrderData(report);
+      const blob = await generateMultiTaskReportPdfBlob(
+        taskReportsWithInfo,
+        serviceOrderData,
+        allPhotoBase64
+      );
+
+      // Download
+      const vesselName = serviceOrder.vessel?.name || 'Embarcacao';
+      const date = format(new Date(), 'dd-MM-yyyy', { locale: ptBR });
+      const fileName = `Relatório Consolidado - ${serviceOrder.order_number} - ${vesselName} - ${date}.pdf`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Relatório consolidado baixado com sucesso!" });
+    } catch (error: any) {
+      console.error('Erro ao gerar relatório consolidado:', error);
+      toast({ title: "Erro ao gerar relatório consolidado", description: error.message, variant: "destructive" });
+    } finally {
+      setConsolidatingId(null);
     }
   };
 
@@ -480,6 +565,9 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                   <TableRow key={report.id}>
                     <TableCell className="font-medium">
                       {report.task.service_order.order_number}
+                      {report.task.service_order.is_docking && (
+                        <Badge variant="outline" className="ml-2 text-xs">Docagem</Badge>
+                      )}
                     </TableCell>
                     <TableCell>{report.task.service_order.client?.name || 'N/A'}</TableCell>
                     <TableCell>{report.task.service_order.vessel?.name || 'N/A'}</TableCell>
@@ -498,7 +586,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                       {format(new Date(report.created_at), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -520,6 +608,21 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                             <Download className="w-4 h-4" />
                           )}
                         </Button>
+                        {report.task.service_order.is_docking && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleConsolidatedDownload(report)}
+                            disabled={consolidatingId === report.id}
+                            title="Baixar Relatório Consolidado da Docagem"
+                          >
+                            {consolidatingId === report.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Layers className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

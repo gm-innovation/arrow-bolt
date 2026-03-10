@@ -628,47 +628,88 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             if (vtError) throw vtError;
           }
 
-          // Create tasks for each activity
-          const dockingTasks: any[] = [];
+          // Create tasks for each activity - with docking_activity_group and optional child OS
           for (const activity of dockingActivities) {
             const actDate = activity.scheduledDateTime.split('T')[0];
             const actTime = activity.scheduledDateTime.split('T')[1] || null;
             const actLead = activity.leadTechId || activity.technicians[0];
+            const activityGroupId = crypto.randomUUID();
 
-            if (data.singleReport) {
-              for (const taskTypeId of activity.taskTypeIds) {
-                dockingTasks.push({
-                  service_order_id: serviceOrder.id,
-                  task_type_id: taskTypeId,
-                  title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
-                  status: "pending",
-                  assigned_to: actLead,
+            let targetServiceOrderId = serviceOrder.id;
+
+            // If activity has its own order number, create a child OS
+            if (activity.orderNumber && activity.orderNumber.trim()) {
+              const { data: childOS, error: childError } = await supabase
+                .from("service_orders")
+                .insert({
+                  order_number: activity.orderNumber.trim(),
+                  client_reference: clientReference?.trim() || null,
+                  company_id: profileData.company_id,
+                  created_by: user?.id,
+                  client_id: data.clientId,
+                  vessel_id: data.vesselId,
+                  supervisor_id: data.supervisorId || null,
+                  coordinator_id: data.coordinatorId || null,
+                  requester_contact_id: data.requesterId || null,
                   scheduled_date: actDate,
-                  scheduled_time: actTime,
-                });
-              }
-            } else {
-              for (const techId of activity.technicians) {
-                for (const taskTypeId of activity.taskTypeIds) {
-                  dockingTasks.push({
-                    service_order_id: serviceOrder.id,
-                    task_type_id: taskTypeId,
-                    title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
-                    status: "pending",
-                    assigned_to: techId,
-                    scheduled_date: actDate,
-                    scheduled_time: actTime,
-                  });
-                }
+                  service_date_time: activity.scheduledDateTime || null,
+                  planned_location: data.plannedLocation?.trim() || null,
+                  access_point_id: data.accessPointId && data.accessPointId !== 'none' ? data.accessPointId : null,
+                  access_instructions: data.accessInstructions?.trim() || null,
+                  expected_context: data.expectedContext || null,
+                  boarding_method: data.boardingMethod || null,
+                  single_report: false,
+                  description: data.description?.trim() || null,
+                  status: "pending",
+                  is_docking: true,
+                  parent_docking_id: serviceOrder.id,
+                } as any)
+                .select()
+                .single();
+
+              if (childError) throw childError;
+              targetServiceOrderId = childOS.id;
+
+              // Create visit for child OS
+              const { data: childVisit } = await supabase
+                .from("service_visits")
+                .select("id")
+                .eq("service_order_id", childOS.id)
+                .eq("visit_type", "initial")
+                .single();
+
+              if (childVisit) {
+                const childVT = activity.technicians.map(techId => ({
+                  visit_id: childVisit.id,
+                  technician_id: techId,
+                  is_lead: techId === actLead,
+                  assigned_by: user?.id,
+                }));
+                await supabase.from("visit_technicians").insert(childVT);
               }
             }
-          }
 
-          if (dockingTasks.length > 0) {
-            const { error: tasksError } = await supabase
-              .from("tasks")
-              .insert(dockingTasks);
-            if (tasksError) throw tasksError;
+            // Create tasks for this activity
+            const activityTasks: any[] = [];
+            for (const taskTypeId of activity.taskTypeIds) {
+              activityTasks.push({
+                service_order_id: targetServiceOrderId,
+                task_type_id: taskTypeId,
+                title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+                status: "pending",
+                assigned_to: actLead,
+                scheduled_date: actDate,
+                scheduled_time: actTime,
+                docking_activity_group: activityGroupId,
+              });
+            }
+
+            if (activityTasks.length > 0) {
+              const { error: tasksError } = await supabase
+                .from("tasks")
+                .insert(activityTasks);
+              if (tasksError) throw tasksError;
+            }
           }
 
           // Notify all technicians
