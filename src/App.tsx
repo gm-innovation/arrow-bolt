@@ -211,7 +211,7 @@ const App = () => {
                   </Route>
 
                   {/* Admin - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['admin']}><DashboardLayout userType="admin" /></ProtectedRoute>}>
+                  <Route element={<ProtectedRoute allowedRoles={['coordinator']}><DashboardLayout userType="admin" /></ProtectedRoute>}>
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
                     <Route path="/admin/orders" element={<ServiceOrders />} />
                     <Route path="/admin/calendar" element={<ServiceCalendar />} />
