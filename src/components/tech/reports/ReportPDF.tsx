@@ -845,6 +845,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
       
       console.log("Generating PDF with", base64Photos.length, "photos");
       const blob = await generatePdfBlob(base64Photos);
+      setPdfBlob(blob);
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
       console.log("PDF preview generated successfully");
