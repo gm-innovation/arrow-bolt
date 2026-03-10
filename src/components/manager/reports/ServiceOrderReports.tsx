@@ -250,6 +250,8 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 scheduled_date: taskData.service_orders.scheduled_date,
                 service_date_time: taskData.service_orders.service_date_time,
                 company_id: taskData.service_orders.company_id,
+                is_docking: (taskData.service_orders as any).is_docking,
+                parent_docking_id: (taskData.service_orders as any).parent_docking_id,
                 client: taskData.service_orders.clients,
                 vessel: taskData.service_orders.vessels,
               },
