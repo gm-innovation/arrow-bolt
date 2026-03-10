@@ -80,7 +80,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   const { requestTypes } = useCorpRequestTypes();
   const { departments } = useDepartments();
   const { members: departmentMembers } = useDepartmentMembers(departmentId || undefined);
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
 
   const selectedType = requestTypes.find((t: any) => t.id === selectedTypeId);
   const category = selectedType?.category || 'general';
