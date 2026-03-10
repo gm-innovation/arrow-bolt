@@ -154,6 +154,8 @@ const Reports = () => {
               service_date_time,
               supervisor_id,
               company_id,
+              is_docking,
+              parent_docking_id,
               vessel:vessels (name),
               client:clients (name)
             )
