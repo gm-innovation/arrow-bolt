@@ -168,43 +168,13 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
     return acc;
   }, []) || [];
 
-  const isCompleted = orderDetails.status === 'completed';
-  const hasMeasurement = !!measurement;
-
   return (
-    <>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <DialogTitle>Detalhes da Ordem de Serviço</DialogTitle>
-              <DialogDescription>
-                {orderDetails.order_number}
-              </DialogDescription>
-            </div>
-            <div className="flex gap-2">
-              {isCompleted && !hasMeasurement && (
-                <Button
-                  size="sm"
-                  onClick={handleCreateMeasurement}
-                  disabled={createMeasurement.isPending}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Criar Medição Final
-                </Button>
-              )}
-              {hasMeasurement && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowMeasurementDialog(true)}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Ver Medição
-                </Button>
-              )}
-            </div>
-          </div>
+          <DialogTitle>Detalhes da Ordem de Serviço</DialogTitle>
+          <DialogDescription>
+            {orderDetails.order_number}
+          </DialogDescription>
         </DialogHeader>
       
       <Tabs defaultValue="details" className="w-full">
