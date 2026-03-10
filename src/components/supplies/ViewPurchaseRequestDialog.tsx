@@ -64,7 +64,7 @@ const ViewPurchaseRequestDialog = ({ request, open, onOpenChange }: ViewPurchase
   if (!request) return null;
 
   const canApprove =
-    (request.status === "pending_manager" && (userRole === "manager" || userRole === "admin" || userRole === "super_admin" || userRole === "director")) ||
+    (request.status === "pending_manager" && (userRole === "manager" || userRole === "super_admin" || userRole === "director")) ||
     (request.status === "pending_director" && (userRole === "director" || userRole === "super_admin"));
 
   const canReject = canApprove;
