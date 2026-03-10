@@ -34,8 +34,7 @@ const orderFormSchema = z.object({
     .optional(),
   expectedContext: z.string().optional(),
   boardingMethod: z.string().optional(),
-  taskTypes: z.array(z.string())
-    .min(1, "Selecione pelo menos um tipo de tarefa"),
+  taskTypes: z.array(z.string()),
   singleReport: z.boolean().optional(),
   description: z.string()
     .trim()
