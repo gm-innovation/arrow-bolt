@@ -381,6 +381,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
         const { error: orderError } = await supabase
           .from("service_orders")
           .update({
+            order_number: orderNumber?.trim() || undefined,
+            client_reference: clientReference?.trim() || null,
             client_id: data.clientId,
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
