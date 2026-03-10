@@ -278,6 +278,7 @@ const ReportFormContent = () => {
           supervisor_id,
           company_id,
           single_report,
+          is_docking,
           vessels:vessel_id (name),
           clients:client_id (name, contact_person)
         `)
