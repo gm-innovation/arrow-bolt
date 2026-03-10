@@ -44,6 +44,7 @@ import { useServiceOrders } from "@/hooks/useServiceOrders";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ScheduleReturnDialog } from "@/components/admin/orders/ScheduleReturnDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { MeasurementDialog } from "@/components/admin/measurements/MeasurementDialog";
 
 type FormData = {
   orderNumber: string;
