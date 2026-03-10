@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Download, ExternalLink, Save, Loader2 } from 'lucide-react';
 import { TechnicianTimeEntry } from './MeasurementForm';
+import { PDFCanvasViewer } from '@/components/ui/PDFCanvasViewer';
 
 interface MeasurementPDFPreviewProps {
   measurement: any;
