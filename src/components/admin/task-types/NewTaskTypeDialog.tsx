@@ -99,6 +99,11 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
       tools: [],
       steps: [],
       photoLabels: [],
+      is_recurrent: false,
+      recurrence_type: undefined,
+      pricing_type: undefined,
+      default_periodicity: undefined,
+      default_estimated_value: undefined,
     },
   });
 
