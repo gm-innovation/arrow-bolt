@@ -129,7 +129,8 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
 
   const determineStatus = () => {
     if (!selectedType) return 'open';
-    if (selectedType.requires_director_approval) return 'pending_director';
+    const isDirector = userRole === 'director' || userRole === 'admin' || userRole === 'super_admin';
+    if (selectedType.requires_director_approval && !isDirector) return 'pending_director';
     if (selectedType.department_id) return 'pending_department';
     return 'open';
   };
