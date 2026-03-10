@@ -309,6 +309,8 @@ const ReportFormContent = () => {
           description,
           status,
           task_type_id,
+          docking_activity_group,
+          scheduled_date,
           task_types:task_type_id (name, photo_labels)
         `)
         .eq('service_order_id', osId)
