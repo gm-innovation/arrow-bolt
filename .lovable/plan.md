@@ -1,74 +1,70 @@
 
 
-## Gamificação do Sistema de Conquistas
+## Plano: Modo Docagem com múltiplas tarefas por atividade
 
-O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
+### Conceito
+Cada "atividade de docagem" é um grupo com **data/hora + equipe + múltiplas tarefas**. O coordenador monta atividades onde cada uma pode ter N tipos de tarefa, sua própria data e sua própria equipe.
 
-### Modelo de Dados
+### Alterações no banco de dados
 
-Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
+**Migração SQL:**
+- Adicionar `is_docking` (boolean, default false) na tabela `service_orders`
+- Adicionar `scheduled_date` (date, nullable) e `scheduled_time` (time, nullable) na tabela `tasks` para data individual por tarefa
 
+### Novo componente: `DockingTasksSection.tsx`
+
+Estrutura de cada atividade:
 ```text
-Tier         | XP necessário | Ícone
-─────────────┼───────────────┼──────
-Bronze       | 0             | 🥉
-Prata        | 100           | 🥈
-Ouro         | 300           | 🥇
-Diamante     | 600           | 💎
-Rubi         | 1000          | ❤️‍🔥
+┌─────────────────────────────────────────────┐
+│ Atividade #1                          [🗑️]  │
+│                                             │
+│ Data/Hora: [datetime-local input]           │
+│                                             │
+│ Tarefas: [Select múltiplo - badges]         │
+│   ┌──────────┐ ┌──────────┐                │
+│   │ Tarefa A × │ Tarefa B × │              │
+│   └──────────┘ └──────────┘                │
+│                                             │
+│ Equipe: [Select técnico]                    │
+│   ○ Técnico 1 (Responsável)          [×]   │
+│   ○ Técnico 2 (Auxiliar)             [×]   │
+└─────────────────────────────────────────────┘
+
+         [+ Adicionar Atividade]
 ```
 
-Alterações na tabela `corp_badges`:
-- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
-- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
-
-### Conquistas Automáticas (por categoria)
-
-Definir um conjunto fixo no código (sem tabela extra):
-
-**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
-**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
-**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
-
-Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
-
-### Mudanças nos Componentes
-
-**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
-- Substituir `BADGE_TYPES` por categorias com sub-opções:
-  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
-  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
-  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
-- Cada opção define XP (5, 10, 15, 25 conforme importância)
-- Manter seletor de ícone para tipo Personalizada
-- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
-
-**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
-- Recebe `userId` e `companyId`
-- Query: contar total de badges do usuário e somar `xp_value`
-- Calcular tier atual e progresso para o próximo
-- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
-- Usado no `FeedProfileSidebar` abaixo do nome
-
-**3. `FeedProfileSidebar.tsx` — Integrar nível**
-- Adicionar `FeedUserLevel` abaixo do badge de role
-- Mostrar contagem de conquistas do usuário
-
-**4. `FeedBadgesCard.tsx` — Melhorar visual**
-- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
-- Agrupar visualmente por categoria com ícone
-
-### Migration SQL
-
-```sql
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+**Interface do state:**
+```typescript
+interface DockingActivity {
+  id: string; // uuid local
+  taskTypeIds: string[]; // múltiplas tarefas
+  scheduledDateTime: string;
+  technicians: string[];
+  leadTechId: string;
+}
 ```
 
-### Resumo
-- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
-- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
-- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
-- Integrar nível no `FeedProfileSidebar`
-- Melhorar `FeedBadgesCard` com indicador de XP
+### Alterações em `NewOrderForm.tsx`
+
+- Adicionar state `isDocking` (boolean) e `dockingActivities` (array)
+- Toggle "Modo Docagem" abaixo da descrição
+- Quando `isDocking = true`:
+  - Esconder `ServiceDetails` e `TechniciansSelection` globais
+  - Mostrar `DockingTasksSection`
+  - A validação do zod para `taskTypes` fica condicional (não obrigatório em modo docagem)
+- No `onSubmit` com `isDocking = true`:
+  - Salvar `is_docking = true` na OS
+  - Para cada atividade, criar 1 task por tipo de tarefa, com `scheduled_date` individual e `assigned_to` do lead
+  - Se `singleReport = false`, criar 1 task por técnico por tipo
+  - Consolidar todos os técnicos de todas as atividades em `visit_technicians`
+  - Notificações individuais por atividade (cada técnico recebe a data da sua atividade)
+
+### Alterações em `ServiceDetails.tsx`
+- Receber prop `isDocking` para esconder o seletor de tarefas quando em modo docagem (as tarefas ficam dentro de cada atividade)
+
+### Fluxo do usuário
+1. Preenche dados básicos (cliente, embarcação, data geral de início)
+2. Ativa toggle "Docagem"
+3. Adiciona atividades, cada uma com data, múltiplas tarefas e equipe própria
+4. Salva -- todas as atividades viram tasks independentes com datas e técnicos específicos
 
