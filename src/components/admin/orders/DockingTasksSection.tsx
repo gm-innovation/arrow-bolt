@@ -133,6 +133,25 @@ export const DockingTasksSection = ({
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Order Number (optional) */}
+            <div>
+              <FormLabel className="text-sm">Nº OS (opcional)</FormLabel>
+              <Input
+                type="text"
+                placeholder="Ex: OS-2026-0015"
+                value={activity.orderNumber || ""}
+                onChange={(e) =>
+                  updateActivity(activity.id, {
+                    orderNumber: e.target.value,
+                  })
+                }
+                className="mt-1"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Se preenchido, cria uma OS filha separada para esta atividade
+              </p>
+            </div>
+
             {/* Date/Time */}
             <div>
               <FormLabel className="text-sm">Data e Hora</FormLabel>
