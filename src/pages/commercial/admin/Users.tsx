@@ -17,7 +17,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 
 const ROLES = [
-  { value: "admin", label: "Administrador" },
+  { value: "coordinator", label: "Coordenador" },
   { value: "commercial", label: "Comercial" },
   { value: "manager", label: "Gerente" },
 ];
