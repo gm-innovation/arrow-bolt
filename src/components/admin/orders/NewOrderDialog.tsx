@@ -2,7 +2,9 @@ import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { NewOrderForm } from "./NewOrderForm";
+import { OmieImportDialog } from "./OmieImportDialog";
 import { UseFormReturn } from "react-hook-form";
+import { useOmieIntegration } from "@/hooks/useOmieIntegration";
 
 type FormData = {
   orderNumber: string;
@@ -17,6 +19,17 @@ interface NewOrderDialogProps {
 export const NewOrderDialog = ({ form, onSuccess }: NewOrderDialogProps) => {
   const orderNumber = form.watch("orderNumber");
   const clientReference = form.watch("clientReference");
+  const { isOmieEnabled } = useOmieIntegration();
+
+  const handleOmieImport = (order: {
+    orderNumber: string;
+    omieOsId: number;
+    omieIntegrationCode: string;
+    clientOmieId?: number;
+    clientName?: string;
+  }) => {
+    form.setValue("orderNumber", order.orderNumber);
+  };
 
   return (
     <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
@@ -60,6 +73,9 @@ export const NewOrderDialog = ({ form, onSuccess }: NewOrderDialogProps) => {
                 </FormItem>
               )}
             />
+            {isOmieEnabled && (
+              <OmieImportDialog onSelectOrder={handleOmieImport} />
+            )}
           </div>
         </Form>
       </DialogHeader>
