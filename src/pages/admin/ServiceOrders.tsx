@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { MoreHorizontal, Plus, Loader2, Download, FileText, Eye, Pencil, Users, Calendar } from "lucide-react";
+import { MoreHorizontal, Plus, Loader2, Download, FileText, Eye, Pencil, Users, Calendar, ClipboardList } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
 import { format } from "date-fns";
@@ -44,6 +44,7 @@ import { useServiceOrders } from "@/hooks/useServiceOrders";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ScheduleReturnDialog } from "@/components/admin/orders/ScheduleReturnDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { MeasurementDialog } from "@/components/admin/measurements/MeasurementDialog";
 
 type FormData = {
   orderNumber: string;
@@ -62,7 +63,7 @@ const ServiceOrders = () => {
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>("");
-  const [activeDialog, setActiveDialog] = useState<"edit" | "transfer" | "view" | "return" | null>(null);
+  const [activeDialog, setActiveDialog] = useState<"edit" | "transfer" | "view" | "return" | "measurement" | null>(null);
   const form = useForm<FormData>();
 
   // Check for id parameter in URL and open details dialog
@@ -92,7 +93,7 @@ const ServiceOrders = () => {
     });
   }, [orders, debouncedSearch, vessel, status]);
 
-  const handleAction = (action: "edit" | "transfer" | "view" | "return", orderId: string, orderNumber?: string) => {
+  const handleAction = (action: "edit" | "transfer" | "view" | "return" | "measurement", orderId: string, orderNumber?: string) => {
     setSelectedOrderId(orderId);
     if (orderNumber) setSelectedOrderNumber(orderNumber);
     setActiveDialog(action);
@@ -341,6 +342,12 @@ const ServiceOrders = () => {
                                 Agendar Retorno
                                 {!canEdit && <Badge variant="outline" className="ml-2 text-xs">Somente Leitura</Badge>}
                               </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleAction("measurement", order.id)}
+                              >
+                                <ClipboardList className="mr-2 h-4 w-4" />
+                                Medição Final
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -380,6 +387,10 @@ const ServiceOrders = () => {
           onClose={handleCloseDialog}
         />
       )}
+
+      <Dialog open={activeDialog === "measurement"} onOpenChange={() => handleCloseDialog()}>
+        {selectedOrderId && <MeasurementDialog serviceOrderId={selectedOrderId} onClose={handleCloseDialog} />}
+      </Dialog>
     </div>
   );
 };
