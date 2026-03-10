@@ -35,7 +35,7 @@ export const CorpRoute = ({ children, pageTitle }: { children: React.ReactNode; 
   const userType = roleToUserType[userRole || ''] || 'admin';
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'super_admin', 'manager', 'technician', 'hr', 'commercial', 'director', 'compras', 'qualidade', 'financeiro']}>
+    <ProtectedRoute allowedRoles={['coordinator', 'super_admin', 'manager', 'technician', 'hr', 'commercial', 'director', 'compras', 'qualidade', 'financeiro']}>
       <DashboardLayout userType={userType} pageTitle={pageTitle}>
         <Suspense fallback={<ContentSkeleton />}>{children}</Suspense>
       </DashboardLayout>
