@@ -989,17 +989,9 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
             <p className="text-muted-foreground">Gerando PDF...</p>
           </div>
         </div>
-      ) : pdfUrl ? (
-        <div className="border border-gray-200 rounded overflow-hidden">
-          <iframe
-            src={pdfUrl}
-            style={{ width: '100%', height: '600px', border: 'none' }}
-            title="Visualização do PDF"
-          />
-        </div>
       ) : (
-        <div className="flex items-center justify-center h-96 border border-gray-200 rounded">
-          <p className="text-muted-foreground">Erro ao carregar o PDF</p>
+        <div className="border border-border rounded overflow-hidden" style={{ height: '600px' }}>
+          <PDFCanvasViewer blob={pdfBlob} />
         </div>
       )}
 
