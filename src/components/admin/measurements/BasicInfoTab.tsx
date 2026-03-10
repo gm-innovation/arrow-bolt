@@ -21,6 +21,7 @@ export const BasicInfoTab = ({ measurement, serviceOrderId, disabled }: BasicInf
         .from('service_orders')
         .select(`
           order_number,
+          client_reference,
           scheduled_date,
           completed_date,
           clients:client_id (name),
