@@ -50,6 +50,11 @@ export const EditTaskTypeDialog = ({ taskType, onSuccess, onCancel }: EditTaskTy
   const [newTool, setNewTool] = useState("");
   const [newStep, setNewStep] = useState("");
   const [newPhotoLabel, setNewPhotoLabel] = useState("");
+  const [isRecurrent, setIsRecurrent] = useState(false);
+  const [recurrenceType, setRecurrenceType] = useState("");
+  const [pricingType, setPricingType] = useState("");
+  const [defaultPeriodicity, setDefaultPeriodicity] = useState<number | undefined>();
+  const [defaultEstimatedValue, setDefaultEstimatedValue] = useState<number | undefined>();
 
   useEffect(() => {
     if (taskType) {
