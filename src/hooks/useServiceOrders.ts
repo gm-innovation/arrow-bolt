@@ -22,6 +22,7 @@ export const useServiceOrders = () => {
         .select(`
           id,
           order_number,
+          client_reference,
           status,
           scheduled_date,
           created_at,
