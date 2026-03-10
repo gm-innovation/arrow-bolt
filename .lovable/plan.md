@@ -1,74 +1,88 @@
 
 
-## Gamificação do Sistema de Conquistas
+## Plano: OS individual por atividade de docagem + Relatórios individuais e consolidado
 
-O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
+### Contexto
+Atualmente, no modo docagem, todas as atividades ficam dentro de uma única OS. O coordenador precisa de:
+1. Poder associar **OS diferentes** a cada atividade (opcionalmente)
+2. Cada atividade gerar um **relatório individual**
+3. Poder gerar um **relatório consolidado** agrupando todas as atividades da docagem
 
-### Modelo de Dados
+### Alterações no banco de dados
 
-Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
+**Migração SQL:**
+```sql
+-- Coluna para agrupar atividades de uma mesma docagem
+ALTER TABLE tasks ADD COLUMN docking_activity_group uuid;
+-- Referência de docagem mãe (para consolidação)
+ALTER TABLE service_orders ADD COLUMN parent_docking_id uuid REFERENCES service_orders(id);
+```
+
+- `docking_activity_group`: UUID compartilhado por tasks da mesma atividade (mesmo grupo data+equipe)
+- `parent_docking_id`: quando o coordenador cria OS separadas por atividade, todas apontam para a OS "mãe" da docagem, permitindo consolidação
+
+### Alterações em `DockingTasksSection.tsx`
+
+Adicionar campo opcional de **número de OS** por atividade:
 
 ```text
-Tier         | XP necessário | Ícone
-─────────────┼───────────────┼──────
-Bronze       | 0             | 🥉
-Prata        | 100           | 🥈
-Ouro         | 300           | 🥇
-Diamante     | 600           | 💎
-Rubi         | 1000          | ❤️‍🔥
+┌─────────────────────────────────────────────┐
+│ Atividade #1                          [🗑️]  │
+│                                             │
+│ Nº OS (opcional): [____________]            │
+│ Data/Hora: [datetime-local]                 │
+│ Tarefas: [badges]                           │
+│ Equipe: [técnicos]                          │
+└─────────────────────────────────────────────┘
 ```
 
-Alterações na tabela `corp_badges`:
-- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
-- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
-
-### Conquistas Automáticas (por categoria)
-
-Definir um conjunto fixo no código (sem tabela extra):
-
-**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
-**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
-**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
-
-Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
-
-### Mudanças nos Componentes
-
-**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
-- Substituir `BADGE_TYPES` por categorias com sub-opções:
-  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
-  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
-  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
-- Cada opção define XP (5, 10, 15, 25 conforme importância)
-- Manter seletor de ícone para tipo Personalizada
-- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
-
-**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
-- Recebe `userId` e `companyId`
-- Query: contar total de badges do usuário e somar `xp_value`
-- Calcular tier atual e progresso para o próximo
-- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
-- Usado no `FeedProfileSidebar` abaixo do nome
-
-**3. `FeedProfileSidebar.tsx` — Integrar nível**
-- Adicionar `FeedUserLevel` abaixo do badge de role
-- Mostrar contagem de conquistas do usuário
-
-**4. `FeedBadgesCard.tsx` — Melhorar visual**
-- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
-- Agrupar visualmente por categoria com ícone
-
-### Migration SQL
-
-```sql
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+Nova propriedade na interface `DockingActivity`:
+```typescript
+interface DockingActivity {
+  id: string;
+  orderNumber?: string; // OS específica (opcional)
+  taskTypeIds: string[];
+  scheduledDateTime: string;
+  technicians: string[];
+  leadTechId: string;
+}
 ```
 
-### Resumo
-- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
-- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
-- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
-- Integrar nível no `FeedProfileSidebar`
-- Melhorar `FeedBadgesCard` com indicador de XP
+Se o coordenador **não preencher** o nº de OS, todas as atividades ficam na OS principal (comportamento atual). Se **preencher**, o sistema cria uma OS filha separada para aquela atividade.
+
+### Alterações em `NewOrderForm.tsx` (submit)
+
+No `onSubmit` com `isDocking = true`:
+1. Criar a OS "mãe" normalmente (OS principal da docagem)
+2. Para cada atividade:
+   - Se tem `orderNumber` próprio: criar uma nova OS filha com `parent_docking_id` apontando para a mãe, criar visita, visit_technicians e tasks nessa OS filha
+   - Se não tem `orderNumber`: criar tasks na OS mãe (comportamento atual), com `docking_activity_group` preenchido
+3. Sempre preencher `docking_activity_group` em todas as tasks
+
+### Alterações no sistema de relatórios
+
+**`ReportForm.tsx`:**
+- Ao carregar tasks de uma OS de docagem (`is_docking = true`), agrupar por `docking_activity_group`
+- Cada grupo = uma "aba" de relatório individual (em vez de agrupar por task_type)
+- Cada grupo gera seu próprio relatório com suas próprias fotos, horários, etc.
+
+**Novo: Botão "Relatório Consolidado" no admin/coordenador:**
+- Na lista de relatórios (`Reports.tsx` / `ServiceOrderReports.tsx`), quando a OS é `is_docking = true` ou tem `parent_docking_id`:
+  - Mostrar botão "Relatório Consolidado"
+  - Buscar todas as OS filhas + OS mãe via `parent_docking_id`
+  - Usar `generateMultiTaskReportPdfBlob` (já existente) para gerar PDF unificado com todas as atividades
+
+### Fluxo do coordenador
+1. Cria OS de docagem (OS mãe)
+2. Adiciona atividades -- opcionalmente com nº de OS diferente para cada uma
+3. Atividades com OS própria geram OS filhas automaticamente
+4. Técnicos veem suas tasks normalmente e preenchem relatórios individuais por atividade
+5. Coordenador pode baixar relatório individual de cada atividade OU o consolidado da docagem inteira
+
+### Resumo de arquivos alterados
+- **DB**: `tasks.docking_activity_group`, `service_orders.parent_docking_id`
+- **`DockingTasksSection.tsx`**: campo opcional de nº OS por atividade
+- **`NewOrderForm.tsx`**: lógica de criação de OS filhas + preenchimento de `docking_activity_group`
+- **`ReportForm.tsx`**: agrupar tabs por `docking_activity_group` em OS de docagem
+- **`Reports.tsx` / `ServiceOrderReports.tsx`**: botão de relatório consolidado para docagens
 
