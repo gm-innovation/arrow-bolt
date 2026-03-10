@@ -842,7 +842,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             name="coordinatorId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Coordenador (Opcional)</FormLabel>
+                <FormLabel>Coordenador</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
