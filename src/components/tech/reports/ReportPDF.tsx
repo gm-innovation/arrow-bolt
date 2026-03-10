@@ -727,6 +727,7 @@ export const ReportPDFViewer = ({ report, taskId, serviceOrder }: ReportPDFProps
   const [isSaving, setIsSaving] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [photoBase64Data, setPhotoBase64Data] = useState<PhotoWithBase64[]>([]);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
