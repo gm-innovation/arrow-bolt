@@ -145,6 +145,7 @@ const Reports = () => {
             title,
             service_order:service_orders (
               order_number,
+              client_reference,
               location,
               access,
               description,
