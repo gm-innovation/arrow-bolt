@@ -93,7 +93,7 @@ const ServiceOrders = () => {
     });
   }, [orders, debouncedSearch, vessel, status]);
 
-  const handleAction = (action: "edit" | "transfer" | "view" | "return", orderId: string, orderNumber?: string) => {
+  const handleAction = (action: "edit" | "transfer" | "view" | "return" | "measurement", orderId: string, orderNumber?: string) => {
     setSelectedOrderId(orderId);
     if (orderNumber) setSelectedOrderNumber(orderNumber);
     setActiveDialog(action);
