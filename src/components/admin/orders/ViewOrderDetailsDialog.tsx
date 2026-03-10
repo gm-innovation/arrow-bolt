@@ -120,13 +120,6 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
     }
   };
 
-  const handleCreateMeasurement = async () => {
-    await createMeasurement.mutateAsync({
-      service_order_id: orderId,
-      category: 'EXTERNO',
-    });
-    setShowMeasurementDialog(true);
-  };
 
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; variant: any }> = {
