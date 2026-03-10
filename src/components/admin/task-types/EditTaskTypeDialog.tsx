@@ -126,6 +126,11 @@ export const EditTaskTypeDialog = ({ taskType, onSuccess, onCancel }: EditTaskTy
           tools,
           steps,
           photo_labels: photoLabels,
+          is_recurrent: isRecurrent,
+          recurrence_type: isRecurrent ? recurrenceType || null : null,
+          pricing_type: isRecurrent ? pricingType || null : null,
+          default_periodicity: isRecurrent ? defaultPeriodicity || null : null,
+          default_estimated_value: isRecurrent ? defaultEstimatedValue || null : null,
         })
         .eq("id", taskType.id);
 
