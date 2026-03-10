@@ -84,7 +84,7 @@ const Users = () => {
       const exportData = filteredUsers.map(user => ({
         nome: user.full_name,
         email: user.email,
-        funcao: user.role === "admin" ? "Administrador" : 
+        funcao: user.role === "coordinator" ? "Coordenador" : 
                 user.role === "technician" ? "Técnico" : 
                 user.role === "super_admin" ? "Super Admin" : "-",
         status: formatBooleanForExport(user.active),
