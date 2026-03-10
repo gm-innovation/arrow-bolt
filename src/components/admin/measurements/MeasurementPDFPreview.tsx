@@ -24,6 +24,7 @@ export const MeasurementPDFPreview = ({
   open,
   onOpenChange,
 }: MeasurementPDFPreviewProps) => {
+  const [pdfBlob, setPdfBlob] = useState<Blob | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,6 +44,7 @@ export const MeasurementPDFPreview = ({
     setIsGenerating(true);
     try {
       const blob = await generatePdfBlob();
+      setPdfBlob(blob);
       const url = URL.createObjectURL(blob);
       setPdfUrl(url);
     } catch (error) {
