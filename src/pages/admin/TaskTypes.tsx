@@ -249,8 +249,9 @@ const TaskTypes = () => {
                   <TableHead>Descrição</TableHead>
                   <TableHead className="text-center">Ferramentas</TableHead>
                   <TableHead className="text-center">Passos</TableHead>
-                  <TableHead className="text-center">Legendas</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
+                   <TableHead className="text-center">Legendas</TableHead>
+                   <TableHead className="text-center">Recorrente</TableHead>
+                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
