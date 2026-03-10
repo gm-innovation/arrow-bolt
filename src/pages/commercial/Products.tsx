@@ -141,10 +141,10 @@ const Products = () => {
                       <div className="flex items-center gap-2">
                         {p.name}
                         {p.current_quantity <= p.min_quantity && p.current_quantity > 0 && (
-                          <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" title="Estoque baixo" />
+                          <span title="Estoque baixo"><AlertTriangle className="h-3.5 w-3.5 text-warning" /></span>
                         )}
                         {p.current_quantity <= 0 && (
-                          <AlertTriangle className="h-3.5 w-3.5 text-destructive" title="Sem estoque" />
+                          <span title="Sem estoque"><AlertTriangle className="h-3.5 w-3.5 text-destructive" /></span>
                         )}
                       </div>
                     </TableCell>
