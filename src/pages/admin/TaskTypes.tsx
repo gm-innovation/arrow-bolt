@@ -17,7 +17,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Edit } from "lucide-react";
+import { Plus, Eye, Edit, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import { NewTaskTypeDialog } from "@/components/admin/task-types/NewTaskTypeDialog";
 import { ViewTaskTypeDialog } from "@/components/admin/task-types/ViewTaskTypeDialog";
