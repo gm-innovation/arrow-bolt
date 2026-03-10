@@ -1,83 +1,100 @@
+## Gamificação do Sistema de Conquistas
 
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-## Plano: Integração com Omie ERP
+### Modelo de Dados
 
-### Escopo
-1. Credenciais Omie por empresa (armazenadas no banco)
-2. Edge function para proxy de chamadas à API do Omie
-3. Sincronização de clientes (Omie → Sistema)
-4. Consulta/importação de OS do Omie
-5. Upload de relatórios/medições como anexos na OS do Omie
-6. Aba "Omie" nas Configurações do admin
-7. Logs de sincronização (reusa `crm_integration_logs`)
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-### Migração SQL
-
-```sql
--- Credenciais Omie na tabela companies
-ALTER TABLE companies ADD COLUMN omie_app_key text;
-ALTER TABLE companies ADD COLUMN omie_app_secret text;
-ALTER TABLE companies ADD COLUMN omie_sync_enabled boolean DEFAULT false;
-
--- Vínculo Omie nas tabelas existentes
-ALTER TABLE service_orders ADD COLUMN omie_os_id bigint;
-ALTER TABLE service_orders ADD COLUMN omie_os_integration_code text;
-ALTER TABLE clients ADD COLUMN omie_client_id bigint;
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
 ```
 
-### Edge Function: `omie-proxy`
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
 
-Uma única edge function que serve como proxy para a API do Omie. Recebe `action` no body e roteia para o endpoint correto.
+### Conquistas Automáticas (por categoria)
 
-**Ações suportadas:**
-- `list_clients` → `POST https://app.omie.com.br/api/v1/geral/clientes/` (`ListarClientes`)
-- `list_orders` → `POST https://app.omie.com.br/api/v1/servicos/os/` (`ListarOS`)
-- `consult_order` → `POST https://app.omie.com.br/api/v1/servicos/os/` (`ConsultarOS`)
-- `attach_file` → `POST https://app.omie.com.br/api/v1/servicos/os/` (`IncluirAnexo`) - envia PDF base64
-- `sync_clients` → busca todos clientes do Omie e upsert na tabela `clients`
-- `test_connection` → chama `ListarClientes` com página 1 e 1 registro para validar credenciais
+Definir um conjunto fixo no código (sem tabela extra):
 
-A function busca `omie_app_key` e `omie_app_secret` da tabela `companies` usando o `company_id` do usuário autenticado. Sem necessidade de secrets manuais.
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
 
-### Frontend: Aba Omie nas Configurações
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
 
-**Novo componente `OmieSettingsTab.tsx`:**
-- Toggle ativar/desativar sincronização Omie
-- Campos App Key e App Secret (salvos na tabela `companies`)
-- Botão "Testar Conexão" (chama `omie-proxy` com action `test_connection`)
-- Botão "Sincronizar Clientes" (chama `omie-proxy` com action `sync_clients`)
-- Badge de status (conectado/erro)
-- Logs recentes de sincronização (reusa `crm_integration_logs` com entity_type `omie`)
+### Mudanças nos Componentes
 
-**Alteração em `Settings.tsx`:**
-- Adicionar 4ª aba "Omie" com ícone `Link` no TabsList (grid-cols-4)
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
 
-### Frontend: Importar OS do Omie
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
 
-**No `NewOrderForm.tsx`:**
-- Se `omie_sync_enabled`, mostrar botão "Importar do Omie" ao lado do campo Nº OS
-- Abre dialog com lista de OS do Omie (chama `omie-proxy` com `list_orders`)
-- Ao selecionar, preenche automaticamente: nº da OS, cliente (via `omie_client_id`), e salva `omie_os_id`/`omie_os_integration_code`
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
 
-### Upload de Relatórios ao Omie
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
 
-**Nos componentes de download de relatório (`ServiceOrderReports.tsx`):**
-- Se a OS tem `omie_os_id`, após gerar PDF, oferecer botão "Enviar ao Omie"
-- Converte PDF para base64 e chama `omie-proxy` com action `attach_file`
-- Registra log de sincronização
+### Migration SQL
 
-### Arquivos criados/alterados
-- **DB Migration**: adicionar colunas `omie_*` em `companies`, `service_orders`, `clients`
-- **`supabase/functions/omie-proxy/index.ts`**: edge function proxy
-- **`src/components/admin/settings/OmieSettingsTab.tsx`**: nova aba de config
-- **`src/pages/admin/Settings.tsx`**: adicionar aba Omie
-- **`src/hooks/useOmieIntegration.ts`**: hook para chamadas à edge function
-- **`src/components/admin/orders/OmieImportDialog.tsx`**: dialog de importação de OS
-- **`src/components/admin/orders/NewOrderForm.tsx`**: botão de importar OS do Omie
-- **`src/components/manager/reports/ServiceOrderReports.tsx`**: botão enviar ao Omie
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
 
-### Segurança
-- Credenciais ficam no banco (colunas da empresa), não em secrets globais
-- Edge function valida JWT e busca credenciais com base no `company_id` do perfil
-- RLS existente protege acesso às colunas de credenciais (somente admin/manager da empresa)
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
 
+## Modo Docagem - OS individual por atividade + Relatórios
+
+### Implementado ✅
+
+**Banco de dados:**
+- `tasks.docking_activity_group` (uuid) — agrupa tasks da mesma atividade
+- `service_orders.parent_docking_id` (uuid, FK → service_orders) — OS filha aponta para OS mãe
+
+**DockingTasksSection.tsx:**
+- Campo opcional "Nº OS" por atividade — se preenchido, cria OS filha separada
+
+**NewOrderForm.tsx (submit):**
+- Cada atividade gera um `docking_activity_group` UUID
+- Se atividade tem `orderNumber`, cria OS filha com `parent_docking_id` → OS mãe
+- OS filha recebe sua própria visita e visit_technicians
+
+**ReportForm.tsx:**
+- Query de tasks agora inclui `docking_activity_group` e `scheduled_date`
+- Sem deduplicação por task_type para OS de docagem (`is_docking = true`)
+- Cada task/atividade gera sua própria aba de relatório
+
+**ServiceOrderReports.tsx (Manager):**
+- Badge "Docagem" na coluna de OS para identificar
+- Botão de "Relatório Consolidado" (ícone Layers) para OS de docagem
+- Gera PDF unificado com `generateMultiTaskReportPdfBlob`
+
+**Admin Reports.tsx:**
+- Query atualizada para incluir `is_docking` e `parent_docking_id`

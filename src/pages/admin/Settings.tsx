@@ -6,7 +6,8 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsAppSettingsTab } from "@/components/admin/settings/WhatsAppSettingsTab";
-import { Bell, MessageCircle, Palette } from "lucide-react";
+import { Bell, MessageCircle, Palette, Link } from "lucide-react";
+import { OmieSettingsTab } from "@/components/admin/settings/OmieSettingsTab";
 
 const AdminSettings = () => {
   const { toast } = useToast();
@@ -33,7 +34,7 @@ const AdminSettings = () => {
       </div>
 
       <Tabs defaultValue="notifications" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             Notificações
@@ -41,6 +42,10 @@ const AdminSettings = () => {
           <TabsTrigger value="whatsapp" className="flex items-center gap-2">
             <MessageCircle className="h-4 w-4" />
             WhatsApp
+          </TabsTrigger>
+          <TabsTrigger value="omie" className="flex items-center gap-2">
+            <Link className="h-4 w-4" />
+            Omie
           </TabsTrigger>
           <TabsTrigger value="appearance" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
@@ -132,6 +137,10 @@ const AdminSettings = () => {
 
         <TabsContent value="whatsapp">
           <WhatsAppSettingsTab />
+        </TabsContent>
+
+        <TabsContent value="omie">
+          <OmieSettingsTab />
         </TabsContent>
 
         <TabsContent value="appearance">
