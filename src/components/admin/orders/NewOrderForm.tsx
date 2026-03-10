@@ -367,9 +367,27 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       const formTaskTypes = data.taskTypes || [];
 
       // Validações de negócio
-      if (formTaskTypes.length === 0) {
+      if (!isDocking && formTaskTypes.length === 0) {
         throw new Error("Selecione pelo menos um tipo de tarefa");
       }
+
+      if (isDocking && dockingActivities.length === 0) {
+        throw new Error("Adicione pelo menos uma atividade de docagem");
+      }
+
+      if (isDocking) {
+        for (let i = 0; i < dockingActivities.length; i++) {
+          const act = dockingActivities[i];
+          if (act.taskTypeIds.length === 0) {
+            throw new Error(`Atividade #${i + 1}: selecione pelo menos uma tarefa`);
+          }
+          if (!act.scheduledDateTime) {
+            throw new Error(`Atividade #${i + 1}: defina a data e hora`);
+          }
+          if (act.technicians.length === 0) {
+            throw new Error(`Atividade #${i + 1}: selecione pelo menos um técnico`);
+          }
+        }
 
       // Técnico agora é opcional - permite criar OS de serviço fechado sem técnico
 
