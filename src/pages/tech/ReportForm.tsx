@@ -270,6 +270,7 @@ const ReportFormContent = () => {
         .select(`
           id,
           order_number,
+          client_reference,
           scheduled_date,
           service_date_time,
           location,
@@ -437,6 +438,7 @@ const ReportFormContent = () => {
       const serviceOrderDataObj = {
         id: orderNumber,
         orderNumber: orderNumber,
+        clientReference: so.client_reference || undefined,
         serviceOrderId: so.id,
         vesselName: so.vessels?.name || '',
         date: so.service_date_time 

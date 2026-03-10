@@ -57,6 +57,7 @@ interface Report {
     title?: string;
     service_order?: {
       order_number: string;
+      client_reference?: string;
       location?: string;
       access?: string;
       description?: string;
@@ -145,6 +146,7 @@ const Reports = () => {
             title,
             service_order:service_orders (
               order_number,
+              client_reference,
               location,
               access,
               description,
@@ -556,11 +558,12 @@ const Reports = () => {
 
   // Prepare service order data for PDF
   const getServiceOrderData = (report: Report) => {
-    const serviceOrder = report.task?.service_order;
+    const serviceOrder = report.task?.service_order as any;
     const company = (report as any).company;
     
     return {
       id: serviceOrder?.order_number || 'N/A',
+      clientReference: serviceOrder?.client_reference || undefined,
       date: serviceOrder?.service_date_time 
         ? new Date(serviceOrder.service_date_time) 
         : serviceOrder?.scheduled_date 

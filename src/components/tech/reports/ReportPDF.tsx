@@ -182,6 +182,7 @@ interface ReportPDFProps {
   taskId: string;
   serviceOrder: {
     id: string;
+    clientReference?: string;
     date: Date;
     location: string;
     access: string;
@@ -499,6 +500,7 @@ export const MultiTaskReportPDFContent = ({ tasks, serviceOrder, photoBase64Data
         
         <ServiceOrderInfo
           orderNumber={serviceOrder.id}
+          clientReference={serviceOrder.clientReference}
           date={serviceOrder.date}
           location={serviceOrder.vesselName || serviceOrder.location}
           access={serviceOrder.access}
@@ -586,6 +588,7 @@ export const ReportPDFContent = ({ report, taskId, serviceOrder, photoBase64Data
       
       <ServiceOrderInfo
         orderNumber={serviceOrder.id}
+        clientReference={serviceOrder.clientReference}
         date={serviceOrder.date}
         location={serviceOrder.vesselName || serviceOrder.location}
         access={serviceOrder.access}

@@ -74,6 +74,7 @@ type TimeEntry = {
 
 type ServiceOrderInfoProps = {
   orderNumber: string;
+  clientReference?: string;
   date: Date;
   location: string;
   access: string;
@@ -118,6 +119,7 @@ const calculateHours = (startTime: string, endTime: string): string => {
 
 export const ServiceOrderInfo = ({
   orderNumber,
+  clientReference,
   date,
   location,
   access,
@@ -131,6 +133,12 @@ export const ServiceOrderInfo = ({
     <View style={styles.infoBlock} wrap={false}>
       <Text style={styles.sectionTitle}>Ordem de Serviço - {orderNumber}</Text>
       
+      {clientReference && (
+        <View style={styles.row}>
+          <Text style={styles.label}>Ref. Cliente:</Text>
+          <Text style={styles.value}>{clientReference}</Text>
+        </View>
+      )}
       <View style={styles.row}>
         <Text style={styles.label}>Data:</Text>
         <Text style={styles.value}>{format(date, 'dd/MM/yyyy')}</Text>

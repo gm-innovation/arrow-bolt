@@ -55,10 +55,11 @@ interface NewOrderFormProps {
   isEditing?: boolean;
   orderId?: string;
   orderNumber?: string;
+  clientReference?: string;
   onSuccess?: () => void;
 }
 
-export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: NewOrderFormProps) => {
+export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference, onSuccess }: NewOrderFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendTaskAssignmentNotification, sendScheduleChangeNotification } = useWhatsAppNotification();
@@ -380,6 +381,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
         const { error: orderError } = await supabase
           .from("service_orders")
           .update({
+            order_number: orderNumber?.trim() || undefined,
+            client_reference: clientReference?.trim() || null,
             client_id: data.clientId,
             vessel_id: data.vesselId,
             supervisor_id: data.supervisorId || null,
@@ -551,6 +554,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, onSuccess }: New
           .from("service_orders")
           .insert({
             order_number: orderNumber.trim(),
+            client_reference: clientReference?.trim() || null,
             company_id: profileData.company_id,
             created_by: user?.id,
             client_id: data.clientId,

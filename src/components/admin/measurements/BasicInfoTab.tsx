@@ -21,6 +21,7 @@ export const BasicInfoTab = ({ measurement, serviceOrderId, disabled }: BasicInf
         .from('service_orders')
         .select(`
           order_number,
+          client_reference,
           scheduled_date,
           completed_date,
           clients:client_id (name),
@@ -50,6 +51,13 @@ export const BasicInfoTab = ({ measurement, serviceOrderId, disabled }: BasicInf
           <Label>Número da OS</Label>
           <div className="text-sm font-medium">{orderData.order_number}</div>
         </div>
+
+        {orderData.client_reference && (
+          <div className="space-y-2">
+            <Label>Ref. Cliente</Label>
+            <div className="text-sm font-medium">{orderData.client_reference}</div>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label>Cliente</Label>

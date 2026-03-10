@@ -133,6 +133,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
               service_orders!inner (
                 id,
                 order_number,
+                client_reference,
                 company_id,
                 location,
                 access,
@@ -394,11 +395,12 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
 
   // Prepare service order data for PDF
   const getServiceOrderData = (report: ReportData) => {
-    const serviceOrder = report.task?.service_order;
+    const serviceOrder = report.task?.service_order as any;
     const company = report.company;
     
     return {
       id: serviceOrder?.order_number || 'N/A',
+      clientReference: serviceOrder?.client_reference || undefined,
       date: serviceOrder?.service_date_time 
         ? new Date(serviceOrder.service_date_time) 
         : serviceOrder?.scheduled_date 
