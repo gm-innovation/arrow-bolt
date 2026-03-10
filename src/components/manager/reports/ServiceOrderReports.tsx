@@ -350,6 +350,83 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
     }
   };
 
+  // Handle consolidated docking report download
+  const handleConsolidatedDownload = async (report: ReportData) => {
+    const serviceOrder = report.task?.service_order;
+    if (!serviceOrder) return;
+
+    try {
+      setConsolidatingId(report.id);
+
+      // Find all reports from the same docking (parent + children)
+      const parentId = serviceOrder.parent_docking_id || serviceOrder.order_number;
+      
+      // Get all related reports from our loaded data
+      const relatedReports = (reports || []).filter(r => {
+        const so = r.task?.service_order;
+        if (!so) return false;
+        // Same OS or parent/child relationship
+        return so.order_number === serviceOrder.order_number ||
+          (so as any).parent_docking_id === serviceOrder.order_number ||
+          serviceOrder.parent_docking_id === so.order_number;
+      });
+
+      if (relatedReports.length === 0) {
+        toast({ title: "Nenhum relatório encontrado para consolidar", variant: "destructive" });
+        return;
+      }
+
+      // Build multi-task report data
+      const taskReportsWithInfo: TaskReportWithInfo[] = [];
+      const allPhotoBase64: Record<string, any[]> = {};
+
+      for (const r of relatedReports) {
+        const reportData = extractReportData(r);
+        const taskId = r.task_id;
+        
+        taskReportsWithInfo.push({
+          taskId,
+          taskName: r.task?.title || 'Tarefa',
+          orderNumber: r.task?.service_order?.order_number,
+          report: reportData,
+        });
+
+        // Load photos
+        const photos = reportData.photos || [];
+        const base64Photos = await loadPhotosFromStorage(photos);
+        allPhotoBase64[taskId] = base64Photos;
+      }
+
+      const serviceOrderData = getServiceOrderData(report);
+      const blob = await generateMultiTaskReportPdfBlob(
+        taskReportsWithInfo,
+        serviceOrderData,
+        allPhotoBase64
+      );
+
+      // Download
+      const vesselName = serviceOrder.vessel?.name || 'Embarcacao';
+      const date = format(new Date(), 'dd-MM-yyyy', { locale: ptBR });
+      const fileName = `Relatório Consolidado - ${serviceOrder.order_number} - ${vesselName} - ${date}.pdf`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast({ title: "Relatório consolidado baixado com sucesso!" });
+    } catch (error: any) {
+      console.error('Erro ao gerar relatório consolidado:', error);
+      toast({ title: "Erro ao gerar relatório consolidado", description: error.message, variant: "destructive" });
+    } finally {
+      setConsolidatingId(null);
+    }
+  };
+
   // Helper function to extract report data from nested structure
   const extractReportData = (report: ReportData): TaskReport => {
     if (!report.report_data) {
