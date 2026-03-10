@@ -37,7 +37,7 @@ export const useCoordinatorProductivity = (dateRange?: { start: Date; end: Date 
       const { data: coordinators } = await supabase
         .from('user_roles')
         .select('user_id')
-        .eq('role', 'admin');
+        .eq('role', 'coordinator');
 
       if (!coordinators || coordinators.length === 0) return [];
 

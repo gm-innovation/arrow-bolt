@@ -26,7 +26,7 @@ export const CoordinatorFilter = ({ selectedCoordinator, onCoordinatorChange }: 
       const { data: adminRoles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "admin");
+        .eq("role", "coordinator");
 
       if (rolesError) throw rolesError;
       if (!adminRoles || adminRoles.length === 0) return [];

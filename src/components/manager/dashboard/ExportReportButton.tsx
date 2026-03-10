@@ -59,7 +59,7 @@ export const ExportReportButton = ({ filters }: ExportReportButtonProps) => {
       const { count: coordinatorCount } = await supabase
         .from("user_roles")
         .select("*", { count: "exact", head: true })
-        .eq("role", "admin");
+        .eq("role", "coordinator");
 
       return { 
         total, 
