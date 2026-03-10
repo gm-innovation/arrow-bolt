@@ -275,10 +275,22 @@ const TaskTypes = () => {
                       <TableCell className="text-center">
                         {taskType.steps?.length || 0}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {taskType.photo_labels?.length || 0}
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
+                       <TableCell className="text-center">
+                         {taskType.photo_labels?.length || 0}
+                       </TableCell>
+                       <TableCell className="text-center">
+                         {taskType.is_recurrent ? (
+                           <div className="flex flex-col items-center gap-1">
+                             <RefreshCw className="h-4 w-4 text-primary" />
+                             <span className="text-xs text-muted-foreground">
+                               {taskType.default_periodicity ? `${taskType.default_periodicity}m` : ""}
+                             </span>
+                           </div>
+                         ) : (
+                           <span className="text-muted-foreground">-</span>
+                         )}
+                       </TableCell>
+                       <TableCell className="text-right space-x-2">
                         <Button
                           variant="ghost"
                           size="icon"

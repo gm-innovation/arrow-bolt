@@ -196,6 +196,80 @@ export const EditTaskTypeDialog = ({ taskType, onSuccess, onCancel }: EditTaskTy
             />
           </div>
 
+          {/* Recurrence */}
+          <div className="space-y-4 rounded-lg border p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-0.5">
+                <Label className="text-base font-medium">Tarefa Recorrente</Label>
+                <p className="text-sm text-muted-foreground">
+                  Gerar recorrências automaticamente na área comercial
+                </p>
+              </div>
+              <Switch
+                checked={isRecurrent}
+                onCheckedChange={(checked) => {
+                  setIsRecurrent(checked);
+                  if (!checked) {
+                    setRecurrenceType("");
+                    setPricingType("");
+                    setDefaultPeriodicity(undefined);
+                    setDefaultEstimatedValue(undefined);
+                  }
+                }}
+              />
+            </div>
+            {isRecurrent && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div className="space-y-2">
+                  <Label>Tipo de Recorrência</Label>
+                  <Select value={recurrenceType} onValueChange={setRecurrenceType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="maintenance">Manutenção</SelectItem>
+                      <SelectItem value="renewal">Renovação</SelectItem>
+                      <SelectItem value="recurring_service">Serviço Recorrente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Tipo de Valor</Label>
+                  <Select value={pricingType} onValueChange={setPricingType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="fixed">Valor Fechado</SelectItem>
+                      <SelectItem value="hourly">Homem-Hora (HH)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Periodicidade padrão (meses)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    placeholder="Ex: 6"
+                    value={defaultPeriodicity ?? ""}
+                    onChange={(e) => setDefaultPeriodicity(e.target.value ? Number(e.target.value) : undefined)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Valor estimado padrão (R$)</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    placeholder="Ex: 5000.00"
+                    value={defaultEstimatedValue ?? ""}
+                    onChange={(e) => setDefaultEstimatedValue(e.target.value ? Number(e.target.value) : undefined)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Tools */}
           <div className="space-y-2">
             <Label>Ferramentas</Label>
