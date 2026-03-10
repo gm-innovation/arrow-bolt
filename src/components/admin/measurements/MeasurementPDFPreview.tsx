@@ -130,12 +130,13 @@ export const MeasurementPDFPreview = ({
     if (!newOpen && pdfUrl) {
       URL.revokeObjectURL(pdfUrl);
       setPdfUrl(null);
+      setPdfBlob(null);
     }
     onOpenChange(newOpen);
   };
 
   // Generate preview when dialog opens
-  if (open && !pdfUrl && !isGenerating) {
+  if (open && !pdfBlob && !isGenerating) {
     handleGeneratePreview();
   }
 
