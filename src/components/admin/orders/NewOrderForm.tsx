@@ -388,6 +388,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             throw new Error(`Atividade #${i + 1}: selecione pelo menos um técnico`);
           }
         }
+      }
 
       // Técnico agora é opcional - permite criar OS de serviço fechado sem técnico
 
