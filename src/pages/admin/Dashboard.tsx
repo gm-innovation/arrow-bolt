@@ -18,9 +18,10 @@ const AdminDashboard = () => {
   const [isNewOrderOpen, setIsNewOrderOpen] = useState(false);
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(false);
   const [isCalendarFullscreen, setIsCalendarFullscreen] = useState(false);
-  const form = useForm<{ orderNumber: string }>({
+  const form = useForm<{ orderNumber: string; clientReference: string }>({
     defaultValues: {
       orderNumber: "",
+      clientReference: "",
     },
   });
 
