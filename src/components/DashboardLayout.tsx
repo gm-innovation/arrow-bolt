@@ -164,6 +164,11 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
   ];
 
   const directorMenuItems = [
+    { title: "Dashboard", icon: LayoutDashboard, path: "/manager/dashboard" },
+    { title: "Coordenadores", icon: Users, path: "/manager/coordinators" },
+    { title: "Ordens de Serviço", icon: ClipboardList, path: "/manager/orders" },
+    { title: "Relatórios", icon: FileText, path: "/manager/reports" },
+    { title: "Config. Medição", icon: Calculator, path: "/manager/measurement-settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
