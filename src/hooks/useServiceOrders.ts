@@ -45,6 +45,7 @@ export const useServiceOrders = () => {
       return data?.map((order: any) => ({
         id: order.id,
         orderNumber: order.order_number,
+        clientReference: order.client_reference,
         vessel: order.vessels?.name || 'N/A',
         client: order.clients?.name || 'N/A',
         status: order.status,

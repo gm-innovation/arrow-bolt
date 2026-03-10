@@ -554,6 +554,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
           .from("service_orders")
           .insert({
             order_number: orderNumber.trim(),
+            client_reference: clientReference?.trim() || null,
             company_id: profileData.company_id,
             created_by: user?.id,
             client_id: data.clientId,
