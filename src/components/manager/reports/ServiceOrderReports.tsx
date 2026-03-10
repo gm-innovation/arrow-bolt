@@ -133,6 +133,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
               service_orders!inner (
                 id,
                 order_number,
+                client_reference,
                 company_id,
                 location,
                 access,
