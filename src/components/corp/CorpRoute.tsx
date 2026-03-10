@@ -19,7 +19,7 @@ const ContentSkeleton = () => (
 
 const roleToUserType: Record<string, "super-admin" | "admin" | "manager" | "tech" | "hr" | "commercial" | "director" | "compras" | "qualidade" | "financeiro"> = {
   super_admin: "super-admin",
-  admin: "admin",
+  coordinator: "admin",
   manager: "manager",
   technician: "tech",
   hr: "hr",
