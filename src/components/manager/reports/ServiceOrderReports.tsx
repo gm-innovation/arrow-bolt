@@ -87,6 +87,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
   const [selectedReport, setSelectedReport] = useState<ReportData | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [consolidatingId, setConsolidatingId] = useState<string | null>(null);
 
   const { data: reports, isLoading } = useQuery({
     queryKey: ['manager-service-reports', user?.id, filters],
