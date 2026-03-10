@@ -53,6 +53,8 @@ interface ReportData {
       scheduled_date?: string;
       service_date_time?: string;
       company_id?: string;
+      is_docking?: boolean;
+      parent_docking_id?: string;
       client: { name: string } | null;
       vessel: { name: string } | null;
     };
