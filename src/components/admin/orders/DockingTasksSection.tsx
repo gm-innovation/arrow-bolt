@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export interface DockingActivity {
   id: string;
+  orderNumber?: string;
   taskTypeIds: string[];
   scheduledDateTime: string;
   technicians: string[];
