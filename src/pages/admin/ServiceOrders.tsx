@@ -381,6 +381,10 @@ const ServiceOrders = () => {
           onClose={handleCloseDialog}
         />
       )}
+
+      <Dialog open={activeDialog === "measurement"} onOpenChange={() => handleCloseDialog()}>
+        {selectedOrderId && <MeasurementDialog serviceOrderId={selectedOrderId} onClose={handleCloseDialog} />}
+      </Dialog>
     </div>
   );
 };

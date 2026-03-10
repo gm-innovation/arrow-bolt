@@ -360,13 +360,5 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         </TabsContent>
       </Tabs>
       </DialogContent>
-
-      <Dialog open={showMeasurementDialog} onOpenChange={setShowMeasurementDialog}>
-        <MeasurementDialog 
-          serviceOrderId={orderId}
-          onClose={() => setShowMeasurementDialog(false)}
-        />
-      </Dialog>
-    </>
   );
 };
