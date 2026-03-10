@@ -52,6 +52,13 @@ export const BasicInfoTab = ({ measurement, serviceOrderId, disabled }: BasicInf
           <div className="text-sm font-medium">{orderData.order_number}</div>
         </div>
 
+        {orderData.client_reference && (
+          <div className="space-y-2">
+            <Label>Ref. Cliente</Label>
+            <div className="text-sm font-medium">{orderData.client_reference}</div>
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label>Cliente</Label>
           <div className="text-sm font-medium">{orderData.clients?.name || 'N/A'}</div>

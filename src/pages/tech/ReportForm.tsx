@@ -438,6 +438,7 @@ const ReportFormContent = () => {
       const serviceOrderDataObj = {
         id: orderNumber,
         orderNumber: orderNumber,
+        clientReference: so.client_reference || undefined,
         serviceOrderId: so.id,
         vesselName: so.vessels?.name || '',
         date: so.service_date_time 

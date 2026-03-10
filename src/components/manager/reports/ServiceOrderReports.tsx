@@ -400,6 +400,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
     
     return {
       id: serviceOrder?.order_number || 'N/A',
+      clientReference: serviceOrder?.client_reference || undefined,
       date: serviceOrder?.service_date_time 
         ? new Date(serviceOrder.service_date_time) 
         : serviceOrder?.scheduled_date 
