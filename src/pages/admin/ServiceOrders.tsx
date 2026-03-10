@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { MoreHorizontal, Plus, Loader2, Download, FileText, Eye, Pencil, Users, Calendar } from "lucide-react";
+import { MoreHorizontal, Plus, Loader2, Download, FileText, Eye, Pencil, Users, Calendar, ClipboardList } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV, formatDateForExport } from "@/lib/exportUtils";
 import { format } from "date-fns";
