@@ -64,6 +64,11 @@ export const EditTaskTypeDialog = ({ taskType, onSuccess, onCancel }: EditTaskTy
       setTools(taskType.tools || []);
       setSteps(taskType.steps || []);
       setPhotoLabels(taskType.photo_labels || []);
+      setIsRecurrent(taskType.is_recurrent || false);
+      setRecurrenceType(taskType.recurrence_type || "");
+      setPricingType(taskType.pricing_type || "");
+      setDefaultPeriodicity(taskType.default_periodicity);
+      setDefaultEstimatedValue(taskType.default_estimated_value);
     }
   }, [taskType]);
 
