@@ -19,8 +19,6 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
   const { toast } = useToast();
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [showMeasurementDialog, setShowMeasurementDialog] = useState(false);
-  const { measurement, createMeasurement } = useMeasurements(orderId);
 
   useEffect(() => {
     fetchOrderDetails();
