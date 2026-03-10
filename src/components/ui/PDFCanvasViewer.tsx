@@ -54,7 +54,7 @@ export const PDFCanvasViewer = ({ blob, className }: PDFCanvasViewerProps) => {
           const ctx = canvas.getContext('2d');
           if (!ctx) continue;
 
-          await page.render({ canvasContext: ctx, viewport }).promise;
+          await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
 
           if (!cancelled && containerRef.current) {
             containerRef.current.appendChild(canvas);
