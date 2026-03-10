@@ -23,6 +23,11 @@ const formSchema = z.object({
   tools: z.array(z.string()),
   steps: z.array(z.string()),
   photoLabels: z.array(z.string()),
+  is_recurrent: z.boolean().default(false),
+  recurrence_type: z.string().optional(),
+  pricing_type: z.string().optional(),
+  default_periodicity: z.number().optional(),
+  default_estimated_value: z.number().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
