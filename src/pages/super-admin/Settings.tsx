@@ -194,6 +194,8 @@ const Settings = () => {
           </CardContent>
         </Card>
       </div>
+
+      <OmieSettingsTab />
     </div>
   );
 };
