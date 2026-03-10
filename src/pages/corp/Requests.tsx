@@ -53,25 +53,27 @@ const CorpRequests = () => {
     (!search || r.title.toLowerCase().includes(search.toLowerCase()))
   );
 
-  // Solicitações recebidas: direcionadas ao usuário OU pendentes de aprovação conforme role
+  // Solicitações recebidas: direcionadas ao usuário OU pendentes de aprovação/atendimento conforme role
   const isAdmin = userRole === 'admin' || userRole === 'super_admin';
   const isHR = userRole === 'hr';
   const isDirector = userRole === 'director';
-  const isManager = userRole === 'manager';
-
-  const managedDepartment = departments.find((d: any) => d.manager_id === user?.id);
+  const isFinanceiro = userRole === 'financeiro';
+  const isSuprimentos = userRole === 'compras';
 
   const receivedRequests = requests.filter(r => {
     if (r.requester_id === user?.id) return false;
     // Direcionadas ao usuário
     if ((r as any).target_user_id === user?.id) return true;
-    // Fluxo de aprovação
+    // Admin vê tudo
     if (isAdmin) return true;
-    if (isHR) return true;
-    if (isDirector) return r.status === 'pending_director';
-    if (isManager && managedDepartment) {
-      return r.status === 'pending_manager' && r.department_id === managedDepartment.id;
-    }
+    // Diretoria vê pending_director
+    if (isDirector && r.status === 'pending_director') return true;
+    // Departamentos executores veem suas solicitações
+    const typeCategory = (r as any).type?.category;
+    const deptStatuses = ['pending_department', 'in_progress'];
+    if (isFinanceiro && deptStatuses.includes(r.status) && ['subscription', 'reimbursement'].includes(typeCategory)) return true;
+    if (isSuprimentos && deptStatuses.includes(r.status) && typeCategory === 'product') return true;
+    if (isHR && deptStatuses.includes(r.status) && ['document', 'time_off'].includes(typeCategory)) return true;
     return false;
   }).filter(r => !search || r.title.toLowerCase().includes(search.toLowerCase()));
 
