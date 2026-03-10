@@ -22,13 +22,7 @@ const orderFormSchema = z.object({
   vesselId: z.string().min(1, "Embarcação é obrigatória"),
   requesterId: z.string().optional(),
   serviceDateTime: z.string()
-    .min(1, "Data e hora do serviço é obrigatória")
-    .refine((date) => {
-      const selectedDate = new Date(date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return selectedDate >= today;
-    }, "Data não pode ser no passado"),
+    .min(1, "Data e hora do serviço é obrigatória"),
   plannedLocation: z.string()
     .max(200, "Local deve ter no máximo 200 caracteres")
     .optional(),
@@ -784,7 +778,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             name="requesterId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Solicitante (Opcional)</FormLabel>
+                <FormLabel>Solicitante</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -823,7 +817,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             name="supervisorId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Supervisor (Opcional)</FormLabel>
+                <FormLabel>Supervisor</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
@@ -848,7 +842,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             name="coordinatorId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Coordenador (Opcional)</FormLabel>
+                <FormLabel>Coordenador</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger>
