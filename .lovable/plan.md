@@ -1,43 +1,74 @@
 
 
-## Plano: Redesenhar interface de Transferência de Técnicos
+## Gamificação do Sistema de Conquistas
 
-### Problema atual
-O dialog mostra uma lista plana de tarefas com checkboxes e um único seletor de "novo técnico". Não fica claro quem é o responsável (lead) vs auxiliar, e a experiência de "selecionar tarefas" é confusa para o usuário.
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-### Nova interface proposta
+### Modelo de Dados
 
-A ideia é reorganizar o dialog em duas seções claras:
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-**Seção 1 - Equipe Atual** (somente leitura, informativa)
-- Exibir o **Técnico Responsável** (lead) com badge destacado
-- Listar os **Auxiliares** com suas respectivas tarefas
-- Buscar dados de `visit_technicians` (is_lead) para distinguir lead de auxiliares
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
+```
 
-**Seção 2 - Transferência**
-- Dropdown "Técnico a substituir": lista os técnicos atualmente na OS (lead e auxiliares)
-- Dropdown "Novo técnico": lista técnicos disponíveis (excluindo o selecionado acima)
-- Ao selecionar o técnico a substituir, mostrar automaticamente as tarefas que serão transferidas (pré-selecionadas)
-- Campo de motivo (opcional)
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
 
-### Fluxo do usuário
-1. Abre o dialog e vê a equipe completa da OS
-2. Seleciona qual técnico quer substituir
-3. Seleciona o novo técnico
-4. Vê quais tarefas serão afetadas
-5. Confirma
+### Conquistas Automáticas (por categoria)
 
-### Alterações técnicas
+Definir um conjunto fixo no código (sem tabela extra):
 
-#### `src/components/admin/orders/TransferTechniciansDialog.tsx`
-- No `fetchData`, buscar também `visit_technicians` com `is_lead` para identificar lead vs auxiliares
-- Agrupar tarefas por técnico atribuído
-- Substituir a UI:
-  - Seção "Equipe Atual": cards mostrando lead (com badge "Responsável") e auxiliares (com badge "Auxiliar"), cada um com suas tarefas listadas abaixo
-  - Select "Técnico a substituir": populado com técnicos da OS
-  - Select "Substituir por": populado com técnicos disponíveis (excluindo o selecionado)
-  - Preview das tarefas afetadas (automático, baseado no técnico selecionado)
-  - Textarea de motivo
-- Na lógica de submit, selecionar automaticamente todas as tarefas do técnico escolhido (sem checkboxes manuais)
-- Se o técnico substituído for o lead, atualizar `visit_technicians.is_lead` também
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+
+### Mudanças nos Componentes
+
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
+
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
 
