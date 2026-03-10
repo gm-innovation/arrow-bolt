@@ -1,22 +1,31 @@
 
 
-## Plano: Alterar Role do Usuário Diretor
+## Plano: Mesclar role "manager" em "director"
 
-### Problema
-O usuário "Diretor" (`diretor@googlemarine.com.br`, ID `65ccda05-986a-483f-a9a3-cd6f0c9cb666`) está com role `manager` no banco. Precisa ser `director` para receber solicitações corporativas na aba "Recebidas".
+### Contexto
+A área que estava aparecendo como "Gerente" (com Dashboard, Coordenadores, Ordens de Serviço, etc.) é na verdade a área da Diretoria. Não teremos role de gerência por enquanto.
 
-### Alteração
-Uma única operação de UPDATE no banco de dados:
+### Alterações
 
-```sql
-UPDATE user_roles 
-SET role = 'director' 
-WHERE user_id = '65ccda05-986a-483f-a9a3-cd6f0c9cb666' 
-  AND role = 'manager';
-```
+**1. Atualizar rotas do manager para aceitar `director`** (src/App.tsx)
+- Mudar `allowedRoles` das rotas `/manager/*` de `['manager']` para `['manager', 'director']`
 
-### Resultado
-Após a alteração, ao fazer login com `diretor@googlemarine.com.br`:
-- O usuário será redirecionado para `/corp/dashboard` (dashboard do diretor)
-- Na página de Solicitações, a aba **"Recebidas"** mostrará solicitações com status `pending_director` para aprovação/rejeição
+**2. Atualizar redirecionamento do director** (src/lib/roleRedirect.ts)
+- Mudar `director: "/corp/dashboard"` para `director: "/manager/dashboard"`
+
+**3. Atualizar menu do director** (src/components/DashboardLayout.tsx)
+- Substituir `directorMenuItems` (que só tem Feed e Solicitações) pelo mesmo conteúdo do `managerMenuItems` (Dashboard, Coordenadores, OS, Relatórios, Config. Medição, Feed, Solicitações)
+
+**4. Atualizar labels de "Gerente" para "Diretor"** (src/components/UserMenu.tsx, DashboardLayout.tsx)
+- Onde o userType `"director"` aparece, garantir que mostre "Diretor" (já está correto no UserMenu)
+- No DashboardLayout, mapear `director` para usar os mesmos menu items do manager
+
+**5. Atualizar mapeamento no CorpRoute** (src/components/corp/CorpRoute.tsx)
+- `director` já mapeia para `"director"` userType — OK
+
+**6. Atualizar roleToUserType no CorpRoute**
+- Manter `director: "director"` mas garantir que o DashboardLayout trate `director` como tendo o menu completo
+
+### Resumo
+O director passará a ter acesso completo às mesmas telas do manager (Dashboard operacional, Coordenadores, Ordens de Serviço, Relatórios, Config. Medição), além de Feed e Solicitações Corp. A role `manager` continuará existindo no banco mas sem uso ativo.
 
