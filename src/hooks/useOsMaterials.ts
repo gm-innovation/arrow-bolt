@@ -17,7 +17,7 @@ export interface OsMaterial {
   updated_at: string;
 }
 
-export const useOsMaterials = (serviceOrderId?: string) => {
+export const useOsMaterials = (serviceOrderId?: string, onEvaMaterialsSynced?: (materials: Array<{ external_product_id: number; external_product_code: string; name: string; unit_value: number; quantity: number }>) => void) => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
