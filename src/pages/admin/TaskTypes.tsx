@@ -150,6 +150,11 @@ const TaskTypes = () => {
         steps: data.steps || [],
         photo_labels: data.photoLabels || [],
         company_id: profileData.company_id,
+        is_recurrent: data.is_recurrent || false,
+        recurrence_type: data.recurrence_type || null,
+        pricing_type: data.pricing_type || null,
+        default_periodicity: data.default_periodicity || null,
+        default_estimated_value: data.default_estimated_value || null,
       });
 
       if (error) throw error;
