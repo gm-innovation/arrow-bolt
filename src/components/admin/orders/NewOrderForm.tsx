@@ -71,6 +71,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
   const [originalScheduledDate, setOriginalScheduledDate] = useState<string>("");
   const [originalOrderNumber, setOriginalOrderNumber] = useState<string>("");
   const [taskOrderNumbers, setTaskOrderNumbers] = useState<Record<string, string>>({});
+  const [isDocking, setIsDocking] = useState(false);
+  const [dockingActivities, setDockingActivities] = useState<DockingActivity[]>([]);
 
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderFormSchema),
