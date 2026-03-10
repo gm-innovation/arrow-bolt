@@ -14,7 +14,7 @@ export interface MentionItem {
 
 const ROLE_OPTIONS: MentionItem[] = [
   { type: 'role', value: 'technician', displayName: 'Técnicos' },
-  { type: 'role', value: 'admin', displayName: 'Administradores' },
+  { type: 'role', value: 'coordinator', displayName: 'Coordenadores' },
   { type: 'role', value: 'hr', displayName: 'RH' },
   { type: 'role', value: 'manager', displayName: 'Gerentes' },
   { type: 'role', value: 'commercial', displayName: 'Comercial' },

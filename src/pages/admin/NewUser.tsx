@@ -268,7 +268,7 @@ const NewUser = () => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="admin">Administrador</SelectItem>
+                      <SelectItem value="coordinator">Coordenador</SelectItem>
                       <SelectItem value="technician">Técnico</SelectItem>
                     </SelectContent>
                   </Select>

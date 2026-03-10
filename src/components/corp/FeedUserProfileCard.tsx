@@ -8,7 +8,7 @@ import { ReactNode } from 'react';
 
 const ROLE_LABELS: Record<string, string> = {
   technician: 'Técnico',
-  admin: 'Administrador',
+  coordinator: 'Coordenador',
   hr: 'RH',
   manager: 'Gerente',
   commercial: 'Comercial',

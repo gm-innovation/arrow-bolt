@@ -233,7 +233,7 @@ const Users = () => {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell>
-                    {user.role === "admin" ? "Administrador" : 
+                    {user.role === "coordinator" ? "Coordenador" : 
                      user.role === "technician" ? "Técnico" : 
                      user.role === "super_admin" ? "Super Admin" :
                      user.role === "manager" ? "Gerente" :

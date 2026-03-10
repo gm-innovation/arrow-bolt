@@ -23,7 +23,7 @@ const ROLES = [
 ];
 
 const roleLabels: Record<string, string> = {
-  admin: "Administrador",
+  coordinator: "Coordenador",
   commercial: "Comercial",
   manager: "Gerente",
   technician: "Técnico",
