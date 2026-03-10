@@ -7,6 +7,7 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ServiceDetails } from "./ServiceDetails";
 import { TechniciansSelection } from "./TechniciansSelection";
 import { LocationAccessSection } from "./LocationAccessSection";
+import { DockingTasksSection, type DockingActivity } from "./DockingTasksSection";
 import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
 import { useNotificationService } from "@/hooks/useNotificationService";
 
@@ -32,8 +34,7 @@ const orderFormSchema = z.object({
     .optional(),
   expectedContext: z.string().optional(),
   boardingMethod: z.string().optional(),
-  taskTypes: z.array(z.string())
-    .min(1, "Selecione pelo menos um tipo de tarefa"),
+  taskTypes: z.array(z.string()),
   singleReport: z.boolean().optional(),
   description: z.string()
     .trim()
@@ -70,6 +71,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
   const [originalScheduledDate, setOriginalScheduledDate] = useState<string>("");
   const [originalOrderNumber, setOriginalOrderNumber] = useState<string>("");
   const [taskOrderNumbers, setTaskOrderNumbers] = useState<Record<string, string>>({});
+  const [isDocking, setIsDocking] = useState(false);
+  const [dockingActivities, setDockingActivities] = useState<DockingActivity[]>([]);
 
   const form = useForm<OrderFormData>({
     resolver: zodResolver(orderFormSchema),
@@ -364,8 +367,27 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       const formTaskTypes = data.taskTypes || [];
 
       // Validações de negócio
-      if (formTaskTypes.length === 0) {
+      if (!isDocking && formTaskTypes.length === 0) {
         throw new Error("Selecione pelo menos um tipo de tarefa");
+      }
+
+      if (isDocking && dockingActivities.length === 0) {
+        throw new Error("Adicione pelo menos uma atividade de docagem");
+      }
+
+      if (isDocking) {
+        for (let i = 0; i < dockingActivities.length; i++) {
+          const act = dockingActivities[i];
+          if (act.taskTypeIds.length === 0) {
+            throw new Error(`Atividade #${i + 1}: selecione pelo menos uma tarefa`);
+          }
+          if (!act.scheduledDateTime) {
+            throw new Error(`Atividade #${i + 1}: defina a data e hora`);
+          }
+          if (act.technicians.length === 0) {
+            throw new Error(`Atividade #${i + 1}: selecione pelo menos um técnico`);
+          }
+        }
       }
 
       // Técnico agora é opcional - permite criar OS de serviço fechado sem técnico
@@ -566,7 +588,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             single_report: data.singleReport !== false,
             description: data.description?.trim() || null,
             status: "pending",
-          })
+            is_docking: isDocking,
+          } as any)
           .select()
           .single();
 
@@ -585,88 +608,153 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
           throw new Error("Erro ao buscar visita para atribuir técnicos");
         }
 
-        if (visitData && selectedTechnicians.length > 0) {
-          // Insert visit technicians
-          const visitTechniciansToInsert = selectedTechnicians.map(techId => ({
-            visit_id: visitData.id,
-            technician_id: techId,
-            is_lead: techId === leadTechId,
-            assigned_by: user?.id,
-          }));
+        if (isDocking) {
+          // DOCKING MODE: consolidate all technicians from all activities
+          const allTechIds = new Set<string>();
+          dockingActivities.forEach(act => act.technicians.forEach(id => allTechIds.add(id)));
+          const allTechIdsArray = Array.from(allTechIds);
 
-          const { error: vtError } = await supabase
-            .from("visit_technicians")
-            .insert(visitTechniciansToInsert);
-
-          if (vtError) throw vtError;
-        }
-
-        // Create tasks
-        // If singleReport = true: ONE task per type assigned to lead
-        // If singleReport = false: One task per technician per type
-        if (formTaskTypes.length > 0 && serviceOrder && selectedTechnicians.length > 0) {
-          let tasksToInsert;
-          
-          if (data.singleReport) {
-            // Single report mode: create only 1 task per type, assigned to lead technician
-            const assignedTo = leadTechId || selectedTechnicians[0];
-            tasksToInsert = formTaskTypes.map(taskTypeId => ({
-              service_order_id: serviceOrder.id,
-              task_type_id: taskTypeId,
-              title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
-              status: "pending" as const,
-              assigned_to: assignedTo,
-              task_order_number: null,
+          if (visitData && allTechIdsArray.length > 0) {
+            const visitTechniciansToInsert = allTechIdsArray.map(techId => ({
+              visit_id: visitData.id,
+              technician_id: techId,
+              is_lead: dockingActivities.some(a => a.leadTechId === techId),
+              assigned_by: user?.id,
             }));
-          } else {
-            // Multiple reports mode: one task per technician per type
-            tasksToInsert = selectedTechnicians.flatMap(techId => 
-              formTaskTypes.map(taskTypeId => ({
-                service_order_id: serviceOrder.id,
-                task_type_id: taskTypeId,
-                title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
-                status: "pending" as const,
-                assigned_to: techId,
-                task_order_number: taskOrderNumbers[taskTypeId] || null,
-              }))
-            );
+
+            const { error: vtError } = await supabase
+              .from("visit_technicians")
+              .insert(visitTechniciansToInsert);
+            if (vtError) throw vtError;
           }
 
-          const { error: tasksError } = await supabase
-            .from("tasks")
-            .insert(tasksToInsert);
+          // Create tasks for each activity
+          const dockingTasks: any[] = [];
+          for (const activity of dockingActivities) {
+            const actDate = activity.scheduledDateTime.split('T')[0];
+            const actTime = activity.scheduledDateTime.split('T')[1] || null;
+            const actLead = activity.leadTechId || activity.technicians[0];
 
-          if (tasksError) throw tasksError;
-
-          // Send WhatsApp notifications to assigned technicians
-          const taskTitles = formTaskTypes
-            .map(taskTypeId => taskTypes.find(t => t.id === taskTypeId)?.name)
-            .filter(Boolean)
-            .join(", ");
-
-          for (const techId of selectedTechnicians) {
-            const tech = technicians.find(t => t.id === techId);
-            const phoneNumber = tech?.profiles?.phone;
-            const techName = tech?.profiles?.full_name || "Técnico";
-
-            if (phoneNumber) {
-              // Send WhatsApp notification (fire and forget - don't block the main flow)
-              sendTaskAssignmentNotification(
-                phoneNumber,
-                techName,
-                taskTitles,
-                orderNumber!
-              ).catch(err => console.error("WhatsApp notification failed:", err));
+            if (data.singleReport) {
+              for (const taskTypeId of activity.taskTypeIds) {
+                dockingTasks.push({
+                  service_order_id: serviceOrder.id,
+                  task_type_id: taskTypeId,
+                  title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+                  status: "pending",
+                  assigned_to: actLead,
+                  scheduled_date: actDate,
+                  scheduled_time: actTime,
+                });
+              }
+            } else {
+              for (const techId of activity.technicians) {
+                for (const taskTypeId of activity.taskTypeIds) {
+                  dockingTasks.push({
+                    service_order_id: serviceOrder.id,
+                    task_type_id: taskTypeId,
+                    title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+                    status: "pending",
+                    assigned_to: techId,
+                    scheduled_date: actDate,
+                    scheduled_time: actTime,
+                  });
+                }
+              }
             }
           }
 
-          // Send push notifications to technicians
+          if (dockingTasks.length > 0) {
+            const { error: tasksError } = await supabase
+              .from("tasks")
+              .insert(dockingTasks);
+            if (tasksError) throw tasksError;
+          }
+
+          // Notify all technicians
           notifyTechniciansAboutOrder(
-            selectedTechnicians,
+            allTechIdsArray,
             orderNumber!,
             serviceOrder.id,
             true
           ).catch(err => console.error("Push notification failed:", err));
+
+        } else {
+          // NORMAL MODE
+          if (visitData && selectedTechnicians.length > 0) {
+            const visitTechniciansToInsert = selectedTechnicians.map(techId => ({
+              visit_id: visitData.id,
+              technician_id: techId,
+              is_lead: techId === leadTechId,
+              assigned_by: user?.id,
+            }));
+
+            const { error: vtError } = await supabase
+              .from("visit_technicians")
+              .insert(visitTechniciansToInsert);
+            if (vtError) throw vtError;
+          }
+
+          // Create tasks
+          if (formTaskTypes.length > 0 && serviceOrder && selectedTechnicians.length > 0) {
+            let tasksToInsert;
+            
+            if (data.singleReport) {
+              const assignedTo = leadTechId || selectedTechnicians[0];
+              tasksToInsert = formTaskTypes.map(taskTypeId => ({
+                service_order_id: serviceOrder.id,
+                task_type_id: taskTypeId,
+                title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+                status: "pending" as const,
+                assigned_to: assignedTo,
+                task_order_number: null,
+              }));
+            } else {
+              tasksToInsert = selectedTechnicians.flatMap(techId => 
+                formTaskTypes.map(taskTypeId => ({
+                  service_order_id: serviceOrder.id,
+                  task_type_id: taskTypeId,
+                  title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
+                  status: "pending" as const,
+                  assigned_to: techId,
+                  task_order_number: taskOrderNumbers[taskTypeId] || null,
+                }))
+              );
+            }
+
+            const { error: tasksError } = await supabase
+              .from("tasks")
+              .insert(tasksToInsert);
+            if (tasksError) throw tasksError;
+
+            // Send WhatsApp notifications
+            const taskTitles = formTaskTypes
+              .map(taskTypeId => taskTypes.find(t => t.id === taskTypeId)?.name)
+              .filter(Boolean)
+              .join(", ");
+
+            for (const techId of selectedTechnicians) {
+              const tech = technicians.find(t => t.id === techId);
+              const phoneNumber = tech?.profiles?.phone;
+              const techName = tech?.profiles?.full_name || "Técnico";
+
+              if (phoneNumber) {
+                sendTaskAssignmentNotification(
+                  phoneNumber,
+                  techName,
+                  taskTitles,
+                  orderNumber!
+                ).catch(err => console.error("WhatsApp notification failed:", err));
+              }
+            }
+
+            notifyTechniciansAboutOrder(
+              selectedTechnicians,
+              orderNumber!,
+              serviceOrder.id,
+              true
+            ).catch(err => console.error("Push notification failed:", err));
+          }
         }
 
         // Notify coordinator/supervisor about the new OS
@@ -703,6 +791,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       setSelectedTechnicians([]);
       setLeadTechId("");
       setTaskOrderNumbers({});
+      setIsDocking(false);
+      setDockingActivities([]);
       onSuccess?.();
     } catch (error: any) {
       toast({
@@ -883,30 +973,55 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
         <LocationAccessSection form={form} />
 
-        <ServiceDetails 
-          form={form} 
-          taskTypes={taskTypes} 
-          taskOrderNumbers={taskOrderNumbers}
-          onTaskOrderNumberChange={handleTaskOrderNumberChange}
-        />
+        {/* Docking Mode Toggle */}
+        <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5">
+            <FormLabel className="text-base">Modo Docagem</FormLabel>
+            <div className="text-sm text-muted-foreground">
+              Permite criar múltiplas atividades com equipes e datas independentes
+            </div>
+          </div>
+          <Switch
+            checked={isDocking}
+            onCheckedChange={setIsDocking}
+          />
+        </div>
 
-        <TechniciansSelection
-          technicians={technicians}
-          selectedTechnicians={selectedTechnicians}
-          onTechnicianToggle={(techId) => {
-            setSelectedTechnicians([...selectedTechnicians, techId]);
-          }}
-          leadTechId={leadTechId}
-          onLeadTechChange={setLeadTechId}
-          onRemoveTechnician={(techId) => {
-            setSelectedTechnicians(selectedTechnicians.filter(id => id !== techId));
-          }}
-          scheduledDate={(() => {
-            const serviceDateTime = form.watch("serviceDateTime");
-            if (serviceDateTime) return new Date(serviceDateTime);
-            return undefined;
-          })()}
-        />
+        {isDocking ? (
+          <DockingTasksSection
+            activities={dockingActivities}
+            onActivitiesChange={setDockingActivities}
+            taskTypes={taskTypes}
+            technicians={technicians}
+          />
+        ) : (
+          <>
+            <ServiceDetails 
+              form={form} 
+              taskTypes={taskTypes} 
+              taskOrderNumbers={taskOrderNumbers}
+              onTaskOrderNumberChange={handleTaskOrderNumberChange}
+            />
+
+            <TechniciansSelection
+              technicians={technicians}
+              selectedTechnicians={selectedTechnicians}
+              onTechnicianToggle={(techId) => {
+                setSelectedTechnicians([...selectedTechnicians, techId]);
+              }}
+              leadTechId={leadTechId}
+              onLeadTechChange={setLeadTechId}
+              onRemoveTechnician={(techId) => {
+                setSelectedTechnicians(selectedTechnicians.filter(id => id !== techId));
+              }}
+              scheduledDate={(() => {
+                const serviceDateTime = form.watch("serviceDateTime");
+                if (serviceDateTime) return new Date(serviceDateTime);
+                return undefined;
+              })()}
+            />
+          </>
+        )}
 
         <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading ? "Criando..." : isEditing ? "Atualizar" : "Criar"} Ordem de Serviço
