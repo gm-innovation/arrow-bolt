@@ -586,7 +586,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                       {format(new Date(report.created_at), "dd/MM/yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-center gap-2">
+                      <div className="flex items-center justify-center gap-1">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -608,6 +608,21 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                             <Download className="w-4 h-4" />
                           )}
                         </Button>
+                        {report.task.service_order.is_docking && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleConsolidatedDownload(report)}
+                            disabled={consolidatingId === report.id}
+                            title="Baixar Relatório Consolidado da Docagem"
+                          >
+                            {consolidatingId === report.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Layers className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
