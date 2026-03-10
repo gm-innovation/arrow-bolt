@@ -63,7 +63,7 @@ const ServiceOrders = () => {
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedOrderNumber, setSelectedOrderNumber] = useState<string>("");
-  const [activeDialog, setActiveDialog] = useState<"edit" | "transfer" | "view" | "return" | null>(null);
+  const [activeDialog, setActiveDialog] = useState<"edit" | "transfer" | "view" | "return" | "measurement" | null>(null);
   const form = useForm<FormData>();
 
   // Check for id parameter in URL and open details dialog
