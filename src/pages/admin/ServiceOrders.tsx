@@ -247,6 +247,7 @@ const ServiceOrders = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Número da OS</TableHead>
+                  <TableHead>Ref. Cliente</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Embarcação</TableHead>
                   <TableHead>Coordenador</TableHead>
