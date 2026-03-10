@@ -557,7 +557,7 @@ const Reports = () => {
 
   // Prepare service order data for PDF
   const getServiceOrderData = (report: Report) => {
-    const serviceOrder = report.task?.service_order;
+    const serviceOrder = report.task?.service_order as any;
     const company = (report as any).company;
     
     return {

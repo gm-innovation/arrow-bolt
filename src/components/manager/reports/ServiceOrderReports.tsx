@@ -395,7 +395,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
 
   // Prepare service order data for PDF
   const getServiceOrderData = (report: ReportData) => {
-    const serviceOrder = report.task?.service_order;
+    const serviceOrder = report.task?.service_order as any;
     const company = report.company;
     
     return {
