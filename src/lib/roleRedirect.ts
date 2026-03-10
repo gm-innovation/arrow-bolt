@@ -6,7 +6,7 @@ export const roleRedirects: Record<string, string> = {
   technician: "/tech/dashboard",
   hr: "/hr/dashboard",
   commercial: "/commercial/dashboard",
-  director: "/corp/dashboard",
+  director: "/manager/dashboard",
   compras: "/supplies/dashboard",
   qualidade: "/quality/dashboard",
   financeiro: "/finance/dashboard",

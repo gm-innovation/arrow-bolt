@@ -198,7 +198,7 @@ const App = () => {
                   </Route>
 
                   {/* Manager - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['manager']}><DashboardLayout userType="manager" /></ProtectedRoute>}>
+                  <Route element={<ProtectedRoute allowedRoles={['manager', 'director']}><DashboardLayout userType="director" /></ProtectedRoute>}>
                     <Route path="/manager/dashboard" element={<ManagerDashboard />} />
                     <Route path="/manager/coordinators" element={<ManagerCoordinators />} />
                     <Route path="/manager/orders" element={<ManagerServiceOrders />} />
