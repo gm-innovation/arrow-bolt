@@ -48,7 +48,7 @@ export const CorpAdminRoute = ({ children, pageTitle }: { children: React.ReactN
   const userType = roleToUserType[userRole || ''] || 'admin';
 
   return (
-    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+    <ProtectedRoute allowedRoles={['super_admin']}>
       <DashboardLayout userType={userType} pageTitle={pageTitle}>
         <Suspense fallback={<ContentSkeleton />}>{children}</Suspense>
       </DashboardLayout>
