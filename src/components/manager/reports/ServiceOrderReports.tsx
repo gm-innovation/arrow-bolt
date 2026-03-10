@@ -131,6 +131,7 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
               id,
               title,
               assigned_to,
+              docking_activity_group,
               service_orders!inner (
                 id,
                 order_number,
@@ -144,6 +145,8 @@ export function ServiceOrderReports({ filters }: ServiceOrderReportsProps) {
                 supervisor_id,
                 created_at,
                 created_by,
+                is_docking,
+                parent_docking_id,
                 clients (name),
                 vessels (name)
               )
