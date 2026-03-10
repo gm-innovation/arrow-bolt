@@ -158,6 +158,7 @@ export const NewTaskTypeDialog = ({ onSubmit, onCancel }: NewTaskTypeDialogProps
       setSteps([]);
       setPhotoLabels([]);
       setCategoryInput("");
+      setIsRecurrent(false);
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally {
