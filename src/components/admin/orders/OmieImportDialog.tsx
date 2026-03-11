@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useOmieIntegration } from "@/hooks/useOmieIntegration";
-import { Loader2, Download, Search, AlertCircle, CheckCircle2, Ship } from "lucide-react";
+import { Loader2, Download, Search, AlertCircle, CheckCircle2, Ship, Users, Calendar, MapPin, ClipboardList } from "lucide-react";
 
 export interface OmieImportData {
   orderNumber: string;
