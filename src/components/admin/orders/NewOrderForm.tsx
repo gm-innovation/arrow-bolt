@@ -776,7 +776,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
                 .select("id")
                 .eq("service_order_id", childOS.id)
                 .eq("visit_type", "initial")
-                .single();
+                .maybeSingle();
 
               if (childVisit) {
                 const childVT = activity.technicians.map(techId => ({
