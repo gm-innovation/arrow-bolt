@@ -160,13 +160,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       form.setValue("plannedLocation", omieImportData.plannedLocation);
     }
 
-    if (omieImportData.matchedSupervisorId) {
-      form.setValue("supervisorId", omieImportData.matchedSupervisorId);
-    }
-
-    if (omieImportData.matchedCoordinatorId) {
-      form.setValue("coordinatorId", omieImportData.matchedCoordinatorId);
-    }
+    // supervisorId and coordinatorId are applied in Step 2 (after supervisors list loads)
 
     // Set technicians (not dependent on vessels/contacts loading)
     if (omieImportData.matchedTechnicianIds?.length) {
