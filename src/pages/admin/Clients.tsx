@@ -56,6 +56,9 @@ const Clients = () => {
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewClient, setViewClient] = useState<Client | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [groupLoading, setGroupLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
