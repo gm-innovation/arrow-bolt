@@ -31,7 +31,7 @@ const docTypeLabels: Record<string, string> = {
   other: 'Outro',
 };
 
-const hrTypes = ['payslip', 'benefits', 'declaration', 'institutional'];
+const hrTypes = ['payslip', 'benefits', 'declaration', 'institutional', 'income_report', 'contract'];
 const userTypes = ['medical_certificate', 'reimbursement_proof', 'signed_form', 'other'];
 
 const DocumentUploadDialog = ({ companyId, mode = 'self' }: DocumentUploadDialogProps) => {
