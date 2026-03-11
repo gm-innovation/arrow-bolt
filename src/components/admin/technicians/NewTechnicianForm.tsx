@@ -1026,8 +1026,8 @@ export const NewTechnicianForm = ({
           </div>
         )}
 
-        {isEditing && initialData && (
-          <ResetPasswordSection userId={(initialData as any).user_id} />
+        {isEditing && initialData?.user_id && (
+          <ResetPasswordSection userId={initialData.user_id} />
         )}
 
         <div className="space-y-4">
