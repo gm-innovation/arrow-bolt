@@ -18,6 +18,7 @@ import { LocationAccessSection } from "./LocationAccessSection";
 import { DockingTasksSection, type DockingActivity } from "./DockingTasksSection";
 import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
 import { useNotificationService } from "@/hooks/useNotificationService";
+import type { OmieImportData } from "./OmieImportDialog";
 
 const orderFormSchema = z.object({
   clientId: z.string().min(1, "Cliente é obrigatório"),
