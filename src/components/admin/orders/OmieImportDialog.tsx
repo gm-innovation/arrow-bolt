@@ -126,6 +126,10 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
     setOpen(false);
   };
 
+  // Extract raw AI data for display (before matching)
+  const rawAiData = foundOrder?.parsedData?._rawExtracted || {};
+  const aiExtracted = foundOrder?.parsedData || {};
+
   const cab = foundOrder?.Cabecalho || {};
   const info = foundOrder?.InformacoesAdicionais || {};
   const localClient = foundOrder?.localClient;
