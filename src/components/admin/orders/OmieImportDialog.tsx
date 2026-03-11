@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useOmieIntegration } from "@/hooks/useOmieIntegration";
-import { Loader2, Download, Search, AlertCircle, CheckCircle2, Ship } from "lucide-react";
+import { Loader2, Download, Search, AlertCircle, CheckCircle2, Ship, Users, Calendar, MapPin, ClipboardList } from "lucide-react";
 
 export interface OmieImportData {
   orderNumber: string;
@@ -22,6 +22,20 @@ export interface OmieImportData {
   localVesselId?: string;
   localVesselName?: string;
   serviceDescription?: string;
+  // AI-extracted fields
+  serviceDateTime?: string;
+  plannedLocation?: string;
+  matchedRequesterId?: string;
+  matchedRequesterName?: string;
+  matchedSupervisorId?: string;
+  matchedSupervisorName?: string;
+  matchedCoordinatorId?: string;
+  matchedCoordinatorName?: string;
+  matchedTechnicianIds?: string[];
+  matchedTechnicianNames?: string[];
+  matchedTaskTypeIds?: string[];
+  matchedTaskTypeNames?: string[];
+  scopeDescription?: string;
 }
 
 interface OmieImportDialogProps {
@@ -82,6 +96,7 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
     if (!foundOrder) return;
     const cab = foundOrder.Cabecalho || {};
     const info = foundOrder.InformacoesAdicionais || {};
+    const parsed = foundOrder.parsedData || {};
 
     onSelectOrder({
       orderNumber: cab.cNumOS || cab.nCodOS?.toString() || "",
@@ -93,6 +108,20 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
       localVesselId: foundOrder.localVessel?.id,
       localVesselName: foundOrder.localVessel?.name,
       serviceDescription: foundOrder.serviceDescription || "",
+      // AI-extracted fields
+      serviceDateTime: parsed.serviceDateTime,
+      plannedLocation: parsed.location,
+      matchedRequesterId: parsed.matchedRequester?.id,
+      matchedRequesterName: parsed.matchedRequester?.name,
+      matchedSupervisorId: parsed.matchedSupervisor?.id,
+      matchedSupervisorName: parsed.matchedSupervisor?.name,
+      matchedCoordinatorId: parsed.matchedCoordinator?.id,
+      matchedCoordinatorName: parsed.matchedCoordinator?.name,
+      matchedTechnicianIds: parsed.matchedTechnicians?.map((t: any) => t.id),
+      matchedTechnicianNames: parsed.matchedTechnicians?.map((t: any) => t.name),
+      matchedTaskTypeIds: parsed.matchedTaskTypes?.map((t: any) => t.id),
+      matchedTaskTypeNames: parsed.matchedTaskTypes?.map((t: any) => t.name),
+      scopeDescription: parsed.scopeDescription,
     });
     setOpen(false);
   };
@@ -102,6 +131,7 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
   const localClient = foundOrder?.localClient;
   const localVessel = foundOrder?.localVessel;
   const serviceDesc = foundOrder?.serviceDescription || "";
+  const parsed = foundOrder?.parsedData || {};
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
@@ -183,6 +213,59 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
                 <div className="mt-2 pt-2 border-t">
                   <strong className="text-foreground">Descrição do Serviço:</strong>
                   <p className="mt-1 text-xs whitespace-pre-line line-clamp-4">{serviceDesc}</p>
+                </div>
+              )}
+
+              {/* AI-extracted data preview */}
+              {Object.keys(parsed).length > 0 && (
+                <div className="mt-2 pt-2 border-t space-y-1">
+                  <strong className="text-foreground text-xs flex items-center gap-1">
+                    🤖 Dados extraídos por IA:
+                  </strong>
+                  {parsed.serviceDateTime && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Calendar className="h-3 w-3" />
+                      <span>{new Date(parsed.serviceDateTime).toLocaleString('pt-BR')}</span>
+                      <Badge variant="success" size="sm">Auto</Badge>
+                    </div>
+                  )}
+                  {parsed.location && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <MapPin className="h-3 w-3" />
+                      <span>{parsed.location}</span>
+                    </div>
+                  )}
+                  {parsed.matchedTechnicians?.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Users className="h-3 w-3" />
+                      <span>{parsed.matchedTechnicians.map((t: any) => t.name).join(", ")}</span>
+                      <Badge variant="success" size="sm">Vinculados</Badge>
+                    </div>
+                  )}
+                  {parsed.matchedRequester && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span>📋 Solicitante: {parsed.matchedRequester.name}</span>
+                      <Badge variant="success" size="sm">Vinculado</Badge>
+                    </div>
+                  )}
+                  {parsed.matchedSupervisor && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span>👷 Supervisor: {parsed.matchedSupervisor.name}</span>
+                      <Badge variant="success" size="sm">Vinculado</Badge>
+                    </div>
+                  )}
+                  {parsed.matchedCoordinator && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span>📌 Coordenador: {parsed.matchedCoordinator.name}</span>
+                      <Badge variant="success" size="sm">Vinculado</Badge>
+                    </div>
+                  )}
+                  {parsed.matchedTaskTypes?.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <ClipboardList className="h-3 w-3" />
+                      <span>{parsed.matchedTaskTypes.map((t: any) => t.name).join(", ")}</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
