@@ -193,6 +193,22 @@ export const ClientDetailSheet = ({ open, onOpenChange, client, onEdit }: Props)
           </Card>
         </div>
 
+        {/* Group companies */}
+        {groupChildren.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Empresas do Grupo ({groupChildren.length})</span>
+            </div>
+            {groupChildren.map((child: any) => (
+              <div key={child.id} className="rounded-md border p-3">
+                <p className="font-medium text-sm">{child.name}</p>
+                <p className="text-xs text-muted-foreground">{child.cnpj || 'Sem CNPJ'}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
         <Separator className="my-4" />
 
         {/* Tabs */}
