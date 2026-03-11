@@ -34,6 +34,8 @@ interface Client {
   phone: string | null;
   address: string | null;
   contact_person: string | null;
+  parent_client_id: string | null;
+  segment: string | null;
   vessels: Array<{
     id: string;
     name: string;
