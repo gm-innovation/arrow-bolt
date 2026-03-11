@@ -140,7 +140,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Controle de Ponto", icon: History, path: "/hr/time-control" },
     { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
     { title: "Feriados", icon: ClipboardList, path: "/hr/holidays" },
-    { title: "Relatórios", icon: FileText, path: "/hr/reports" },
+    { title: "Documentos", icon: FileText, path: "/hr/documents" },
+    { title: "Admissão", icon: Upload, path: "/hr/onboarding" },
+    { title: "Relatórios", icon: FileBarChart, path: "/hr/reports" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];

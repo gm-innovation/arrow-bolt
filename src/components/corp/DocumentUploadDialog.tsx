@@ -25,6 +25,8 @@ const docTypeLabels: Record<string, string> = {
   benefits: 'Benefícios',
   declaration: 'Declaração',
   institutional: 'Institucional',
+  income_report: 'Informe de Rendimentos',
+  contract: 'Contrato',
   medical_certificate: 'Atestado Médico',
   reimbursement_proof: 'Comprovante de Reembolso',
   signed_form: 'Formulário Assinado',
