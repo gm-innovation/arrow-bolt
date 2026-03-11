@@ -372,14 +372,34 @@ const Clients = () => {
               filteredClients.map((client) => (
                 <div
                   key={client.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
+                  className={`flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 ${
+                    client.parent_client_id ? "ml-8 border-dashed" : ""
+                  } ${selectedIds.has(client.id) ? "bg-accent/30" : ""}`}
                 >
                   <div className="flex items-center gap-4 flex-1">
+                    <Checkbox
+                      checked={selectedIds.has(client.id)}
+                      onCheckedChange={() => toggleSelect(client.id)}
+                    />
                     <div className="bg-primary p-2 rounded-full">
                       <Users className="h-4 w-4 text-primary-foreground" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold">{client.name}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold">{client.name}</h4>
+                        {childCountMap[client.id] > 0 && (
+                          <Badge variant="info" size="sm" className="gap-1">
+                            <Crown className="h-3 w-3" />
+                            {childCountMap[client.id]} vinculado{childCountMap[client.id] > 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                        {client.parent_client_id && (
+                          <Badge variant="outline" size="sm" className="gap-1">
+                            <Link2 className="h-3 w-3" />
+                            Vinculado
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                         {client.email && (
                           <span className="flex items-center gap-1">
