@@ -160,7 +160,30 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       form.setValue("plannedLocation", omieImportData.plannedLocation);
     }
 
-    // supervisorId and coordinatorId are applied in Step 2 (after supervisors list loads)
+    // Inject supervisor/coordinator into the supervisors list immediately so the Select has the option
+    // This avoids race conditions where setValue runs before the list is populated
+    setSupervisors(prev => {
+      let updated = [...prev];
+      if (omieImportData.matchedSupervisorId && omieImportData.matchedSupervisorName) {
+        if (!updated.some(s => s.id === omieImportData.matchedSupervisorId)) {
+          updated.push({ id: omieImportData.matchedSupervisorId, full_name: omieImportData.matchedSupervisorName });
+        }
+      }
+      if (omieImportData.matchedCoordinatorId && omieImportData.matchedCoordinatorName) {
+        if (!updated.some(s => s.id === omieImportData.matchedCoordinatorId)) {
+          updated.push({ id: omieImportData.matchedCoordinatorId, full_name: omieImportData.matchedCoordinatorName });
+        }
+      }
+      return updated;
+    });
+
+    // Now set supervisor/coordinator directly - the options are guaranteed to exist
+    if (omieImportData.matchedSupervisorId) {
+      form.setValue("supervisorId", omieImportData.matchedSupervisorId);
+    }
+    if (omieImportData.matchedCoordinatorId) {
+      form.setValue("coordinatorId", omieImportData.matchedCoordinatorId);
+    }
 
     // Set technicians (not dependent on vessels/contacts loading)
     if (omieImportData.matchedTechnicianIds?.length) {
@@ -177,11 +200,9 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
     const hasVesselToSet = pending.localVesselId && vessels.length > 0;
     const hasRequesterToSet = pending.matchedRequesterId && clientContacts.length > 0;
     const hasTaskTypesToSet = pending.matchedTaskTypeIds?.length && taskTypes.length > 0;
-    const hasSupervisorToSet = pending.matchedSupervisorId && supervisors.length > 0;
-    const hasCoordinatorToSet = pending.matchedCoordinatorId && supervisors.length > 0;
 
-    if (hasVesselToSet || hasRequesterToSet || hasTaskTypesToSet || hasSupervisorToSet || hasCoordinatorToSet) {
-      console.log("[OmieImport] Applying dependent fields - vessels:", vessels.length, "contacts:", clientContacts.length, "taskTypes:", taskTypes.length, "supervisors:", supervisors.length);
+    if (hasVesselToSet || hasRequesterToSet || hasTaskTypesToSet) {
+      console.log("[OmieImport] Applying dependent fields - vessels:", vessels.length, "contacts:", clientContacts.length, "taskTypes:", taskTypes.length);
 
       if (pending.localVesselId && vessels.some(v => v.id === pending.localVesselId)) {
         form.setValue("vesselId", pending.localVesselId);
@@ -195,19 +216,13 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
           form.setValue("taskTypes", validIds);
         }
       }
-      if (pending.matchedSupervisorId && supervisors.some(s => s.id === pending.matchedSupervisorId)) {
-        form.setValue("supervisorId", pending.matchedSupervisorId);
-      }
-      if (pending.matchedCoordinatorId && supervisors.some(s => s.id === pending.matchedCoordinatorId)) {
-        form.setValue("coordinatorId", pending.matchedCoordinatorId);
-      }
 
       // Clear pending after applying all dependent fields
-      if (vessels.length > 0 && clientContacts.length > 0 && taskTypes.length > 0 && supervisors.length > 0) {
+      if (vessels.length > 0 && clientContacts.length > 0 && taskTypes.length > 0) {
         pendingOmieData.current = null;
       }
     }
-  }, [vessels, clientContacts, taskTypes, supervisors, form]);
+  }, [vessels, clientContacts, taskTypes, form]);
 
   const fetchInitialData = async () => {
     try {
