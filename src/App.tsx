@@ -224,11 +224,7 @@ const App = () => {
                     <Route path="/admin/history" element={<ServiceHistory />} />
                     <Route path="/admin/vessels" element={<VesselHistory />} />
                     <Route path="/admin/task-types" element={<TaskTypes />} />
-                    <Route path="/admin/users" element={<AdminUsers />} />
-                    <Route path="/admin/users/new" element={<NewUser />} />
-                    <Route path="/admin/users/:userId" element={<EditUser />} />
                     <Route path="/admin/clients" element={<Clients />} />
-                    <Route path="/admin/technicians" element={<Technicians />} />
                     <Route path="/admin/profile" element={<AdminProfile />} />
                     <Route path="/admin/settings" element={<AdminSettings />} />
                     <Route path="/admin/measurement-settings" element={<MeasurementSettings />} />
