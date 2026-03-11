@@ -3,10 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Link2, Unlink } from "lucide-react";
 import { ClientsTable } from "@/components/commercial/clients/ClientsTable";
 import { NewClientDialog } from "@/components/commercial/clients/NewClientDialog";
 import { ClientDetailSheet } from "@/components/commercial/clients/ClientDetailSheet";
+import { ClientGroupDialog } from "@/components/commercial/clients/ClientGroupDialog";
 import { toast } from "sonner";
 
 const CommercialClients = () => {
@@ -16,6 +17,8 @@ const CommercialClients = () => {
   const [editingClient, setEditingClient] = useState<any>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailClient, setDetailClient] = useState<any>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
 
   const { data: clients = [], isLoading } = useQuery({
     queryKey: ['commercial-clients', user?.id],
@@ -53,7 +56,6 @@ const CommercialClients = () => {
         }
       }
 
-      // Save legal entities
       if (legalEntities && legalEntities.length > 0) {
         for (const le of legalEntities) {
           await supabase.from('client_legal_entities').insert({
@@ -62,7 +64,6 @@ const CommercialClients = () => {
         }
       }
 
-      // Save addresses
       if (addresses && addresses.length > 0) {
         for (const addr of addresses) {
           await supabase.from('client_addresses').insert({
@@ -81,6 +82,43 @@ const CommercialClients = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const groupMutation = useMutation({
+    mutationFn: async ({ parentId, childIds }: { parentId: string; childIds: string[] }) => {
+      for (const childId of childIds) {
+        const { error } = await supabase
+          .from('clients')
+          .update({ parent_client_id: parentId } as any)
+          .eq('id', childId);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['commercial-clients'] });
+      toast.success('Clientes agrupados com sucesso');
+      setGroupDialogOpen(false);
+      setSelectedIds(new Set());
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const ungroupMutation = useMutation({
+    mutationFn: async (clientIds: string[]) => {
+      for (const id of clientIds) {
+        const { error } = await supabase
+          .from('clients')
+          .update({ parent_client_id: null } as any)
+          .eq('id', id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['commercial-clients'] });
+      toast.success('Clientes desagrupados');
+      setSelectedIds(new Set());
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
   const handleEdit = (client: any) => {
     setEditingClient(client);
     setDialogOpen(true);
@@ -91,14 +129,45 @@ const CommercialClients = () => {
     setDialogOpen(true);
   };
 
+  const selectedClients = clients.filter((c: any) => selectedIds.has(c.id));
+  const canGroup = selectedIds.size >= 2;
+  const canUngroup = selectedClients.some((c: any) => c.parent_client_id);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-foreground">Clientes</h2>
-        <Button onClick={handleNew}><Plus className="h-4 w-4 mr-2" /> Novo Cliente</Button>
+        <div className="flex items-center gap-2">
+          {selectedIds.size > 0 && (
+            <>
+              {canGroup && (
+                <Button variant="outline" onClick={() => setGroupDialogOpen(true)} className="gap-1">
+                  <Link2 className="h-4 w-4" /> Agrupar ({selectedIds.size})
+                </Button>
+              )}
+              {canUngroup && (
+                <Button
+                  variant="outline"
+                  onClick={() => ungroupMutation.mutate(selectedClients.filter((c: any) => c.parent_client_id).map((c: any) => c.id))}
+                  className="gap-1"
+                >
+                  <Unlink className="h-4 w-4" /> Desagrupar
+                </Button>
+              )}
+            </>
+          )}
+          <Button onClick={handleNew}><Plus className="h-4 w-4 mr-2" /> Novo Cliente</Button>
+        </div>
       </div>
 
-      <ClientsTable clients={clients} isLoading={isLoading} onEdit={handleEdit} onRowClick={(c) => { setDetailClient(c); setDetailOpen(true); }} />
+      <ClientsTable
+        clients={clients}
+        isLoading={isLoading}
+        onEdit={handleEdit}
+        onRowClick={(c) => { setDetailClient(c); setDetailOpen(true); }}
+        selectedIds={selectedIds}
+        onSelectionChange={setSelectedIds}
+      />
 
       <NewClientDialog
         open={dialogOpen}
@@ -113,6 +182,14 @@ const CommercialClients = () => {
         onOpenChange={setDetailOpen}
         client={detailClient}
         onEdit={handleEdit}
+      />
+
+      <ClientGroupDialog
+        open={groupDialogOpen}
+        onOpenChange={setGroupDialogOpen}
+        selectedClients={selectedClients}
+        onConfirm={(parentId, childIds) => groupMutation.mutate({ parentId, childIds })}
+        isLoading={groupMutation.isPending}
       />
     </div>
   );
