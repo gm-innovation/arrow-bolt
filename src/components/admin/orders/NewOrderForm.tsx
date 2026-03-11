@@ -823,8 +823,9 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
         } else {
           // NORMAL MODE
-          if (visitData && selectedTechnicians.length > 0) {
-            const visitTechniciansToInsert = selectedTechnicians.map(techId => ({
+          const validNormalTechs = selectedTechnicians.filter(id => id && id.trim() !== '');
+          if (visitData && validNormalTechs.length > 0) {
+            const visitTechniciansToInsert = validNormalTechs.map(techId => ({
               visit_id: visitData.id,
               technician_id: techId,
               is_lead: techId === leadTechId,
