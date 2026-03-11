@@ -126,6 +126,10 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
     setOpen(false);
   };
 
+  // Extract raw AI data for display (before matching)
+  const rawAiData = foundOrder?.parsedData?._rawExtracted || {};
+  const aiExtracted = foundOrder?.parsedData || {};
+
   const cab = foundOrder?.Cabecalho || {};
   const info = foundOrder?.InformacoesAdicionais || {};
   const localClient = foundOrder?.localClient;
@@ -200,7 +204,11 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
                   <Ship className="h-3.5 w-3.5" />
                   <strong className="text-foreground">Embarcação:</strong>
                   <span>{localVessel.name}</span>
-                  <Badge variant="success" size="sm">Vinculada</Badge>
+                  {localVessel.autoCreated ? (
+                    <Badge variant="outline" size="sm" className="text-amber-600 border-amber-400">Cadastrada ✨</Badge>
+                  ) : (
+                    <Badge variant="success" size="sm">Vinculada</Badge>
+                  )}
                 </div>
               )}
               {cab.nCodCli && (
@@ -242,12 +250,16 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
                       <Badge variant="success" size="sm">Vinculados</Badge>
                     </div>
                   )}
-                  {parsed.matchedRequester && (
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span>📋 Solicitante: {parsed.matchedRequester.name}</span>
-                      <Badge variant="success" size="sm">Vinculado</Badge>
-                    </div>
-                  )}
+                    {parsed.matchedRequester && (
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span>📋 Solicitante: {parsed.matchedRequester.name}</span>
+                        {parsed.matchedRequester.autoCreated ? (
+                          <Badge variant="outline" size="sm" className="text-amber-600 border-amber-400">Cadastrado ✨</Badge>
+                        ) : (
+                          <Badge variant="success" size="sm">Vinculado</Badge>
+                        )}
+                      </div>
+                    )}
                   {parsed.matchedSupervisor && (
                     <div className="flex items-center gap-1.5 text-xs">
                       <span>👷 Supervisor: {parsed.matchedSupervisor.name}</span>
