@@ -1024,6 +1024,10 @@ export const NewTechnicianForm = ({
           </div>
         )}
 
+        {isEditing && initialData && (
+          <ResetPasswordSection userId={(initialData as any).user_id} />
+        )}
+
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">🩺 Dados Médicos (Opcional)</h3>
           
