@@ -10,17 +10,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useOmieIntegration } from "@/hooks/useOmieIntegration";
-import { Loader2, Download, Search, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, Download, Search, AlertCircle, CheckCircle2, Ship } from "lucide-react";
+
+export interface OmieImportData {
+  orderNumber: string;
+  omieOsId: number;
+  omieIntegrationCode: string;
+  clientOmieId?: number;
+  clientName?: string;
+  localClientId?: string;
+  localVesselId?: string;
+  localVesselName?: string;
+  serviceDescription?: string;
+}
 
 interface OmieImportDialogProps {
-  onSelectOrder: (order: {
-    orderNumber: string;
-    omieOsId: number;
-    omieIntegrationCode: string;
-    clientOmieId?: number;
-    clientName?: string;
-    localClientId?: string;
-  }) => void;
+  onSelectOrder: (order: OmieImportData) => void;
 }
 
 export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
@@ -50,7 +55,6 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
     setFoundOrder(null);
 
     try {
-      // Try as cNumOS (text number)
       const result = await consultOrder.mutateAsync({ cNumOS: term });
       setFoundOrder(result);
     } catch (err: any) {
@@ -86,6 +90,9 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
       clientOmieId: cab.nCodCli,
       clientName: foundOrder.localClient?.name || info.cNomeCliente || "",
       localClientId: foundOrder.localClient?.id,
+      localVesselId: foundOrder.localVessel?.id,
+      localVesselName: foundOrder.localVessel?.name,
+      serviceDescription: foundOrder.serviceDescription || "",
     });
     setOpen(false);
   };
@@ -93,6 +100,8 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
   const cab = foundOrder?.Cabecalho || {};
   const info = foundOrder?.InformacoesAdicionais || {};
   const localClient = foundOrder?.localClient;
+  const localVessel = foundOrder?.localVessel;
+  const serviceDesc = foundOrder?.serviceDescription || "";
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
@@ -156,11 +165,25 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
                 <span>{localClient?.name || info.cNomeCliente || "Não identificado"}</span>
                 {localClient && <Badge variant="success" size="sm">Vinculado</Badge>}
               </div>
+              {localVessel && (
+                <div className="flex items-center gap-2">
+                  <Ship className="h-3.5 w-3.5" />
+                  <strong className="text-foreground">Embarcação:</strong>
+                  <span>{localVessel.name}</span>
+                  <Badge variant="success" size="sm">Vinculada</Badge>
+                </div>
+              )}
               {cab.nCodCli && (
                 <p><strong className="text-foreground">Cód. Cliente:</strong> {cab.nCodCli}</p>
               )}
               {cab.cCodIntOS && (
                 <p><strong className="text-foreground">Cód. Integração:</strong> {cab.cCodIntOS}</p>
+              )}
+              {serviceDesc && (
+                <div className="mt-2 pt-2 border-t">
+                  <strong className="text-foreground">Descrição do Serviço:</strong>
+                  <p className="mt-1 text-xs whitespace-pre-line line-clamp-4">{serviceDesc}</p>
+                </div>
               )}
             </div>
 

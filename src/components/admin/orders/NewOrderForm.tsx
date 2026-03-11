@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,6 +18,7 @@ import { LocationAccessSection } from "./LocationAccessSection";
 import { DockingTasksSection, type DockingActivity } from "./DockingTasksSection";
 import { useWhatsAppNotification } from "@/hooks/useWhatsAppNotification";
 import { useNotificationService } from "@/hooks/useNotificationService";
+import type { OmieImportData } from "./OmieImportDialog";
 
 const orderFormSchema = z.object({
   clientId: z.string().min(1, "Cliente é obrigatório"),
@@ -52,9 +53,10 @@ interface NewOrderFormProps {
   orderNumber?: string;
   clientReference?: string;
   onSuccess?: () => void;
+  omieImportData?: OmieImportData | null;
 }
 
-export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference, onSuccess }: NewOrderFormProps) => {
+export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference, onSuccess, omieImportData }: NewOrderFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendTaskAssignmentNotification, sendScheduleChangeNotification } = useWhatsAppNotification();
@@ -125,6 +127,27 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       form.setValue("requesterId", "");
     }
   }, [selectedClient, isEditing]);
+
+  // Auto-fill from Omie import data
+  const omieImportRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!omieImportData || omieImportRef.current === omieImportData.orderNumber) return;
+    omieImportRef.current = omieImportData.orderNumber;
+
+    if (omieImportData.localClientId) {
+      form.setValue("clientId", omieImportData.localClientId);
+    }
+
+    if (omieImportData.serviceDescription) {
+      form.setValue("description", omieImportData.serviceDescription.substring(0, 500));
+    }
+
+    if (omieImportData.localVesselId) {
+      setTimeout(() => {
+        form.setValue("vesselId", omieImportData.localVesselId!);
+      }, 1000);
+    }
+  }, [omieImportData, form]);
 
   const fetchInitialData = async () => {
     try {
@@ -589,6 +612,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             description: data.description?.trim() || null,
             status: "pending",
             is_docking: isDocking,
+            omie_os_id: omieImportData?.omieOsId || null,
+            omie_os_integration_code: omieImportData?.omieIntegrationCode || null,
           } as any)
           .select()
           .single();
