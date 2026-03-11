@@ -952,20 +952,13 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Cliente</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o cliente" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <ClientSearchCombobox
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    companyId={companyId}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
