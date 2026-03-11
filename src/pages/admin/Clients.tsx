@@ -528,6 +528,14 @@ const Clients = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ClientGroupDialog
+        open={groupDialogOpen}
+        onOpenChange={setGroupDialogOpen}
+        selectedClients={selectedClients}
+        onConfirm={handleGroup}
+        isLoading={groupLoading}
+      />
     </div>
   );
 };
