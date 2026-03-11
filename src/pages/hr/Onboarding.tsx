@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -8,16 +8,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, UserPlus, Eye, Settings } from 'lucide-react';
+import { UserPlus, Eye, Settings, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useOnboardingProcesses, useOnboardingDocuments, useOnboardingDocumentTypes } from '@/hooks/useOnboarding';
-import { useDepartments } from '@/hooks/useDepartments';
-import { useDepartmentMembers } from '@/hooks/useDepartmentMembers';
+import { useOnboardingProcesses, useOnboardingDocumentTypes } from '@/hooks/useOnboarding';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import OnboardingDetailDialog from '@/components/hr/OnboardingDetailDialog';
+import { toast } from '@/hooks/use-toast';
 
 const statusLabels: Record<string, string> = {
   pending: 'Pendente', in_progress: 'Em Andamento', completed: 'Concluído', archived: 'Arquivado',
@@ -29,30 +27,51 @@ const statusColors: Record<string, string> = {
 const HROnboarding = () => {
   const { processes, isLoading, createProcess } = useOnboardingProcesses();
   const { docTypes } = useOnboardingDocumentTypes();
-  const { departments } = useDepartments();
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
-  const [departmentId, setDepartmentId] = useState('');
-  const [selectedUserId, setSelectedUserId] = useState('');
+  const [candidateName, setCandidateName] = useState('');
+  const [candidateEmail, setCandidateEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [detailProcess, setDetailProcess] = useState<any>(null);
-  const { members, isLoading: membersLoading } = useDepartmentMembers(departmentId || undefined);
+  const [createdLink, setCreatedLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const companyId = user?.user_metadata?.company_id || (processes as any[])?.[0]?.company_id || '';
 
   const handleCreate = () => {
-    if (!selectedUserId || !companyId) return;
-    createProcess.mutate({ company_id: companyId, user_id: selectedUserId, notes }, {
-      onSuccess: () => {
-        setOpen(false);
-        setDepartmentId('');
-        setSelectedUserId('');
-        setNotes('');
-      },
-    });
+    if (!candidateName.trim() || !candidateEmail.trim() || !companyId) return;
+    createProcess.mutate(
+      { company_id: companyId, candidate_name: candidateName.trim(), candidate_email: candidateEmail.trim(), notes },
+      {
+        onSuccess: (data: any) => {
+          const link = `${window.location.origin}/onboarding/${data.access_token}`;
+          setCreatedLink(link);
+          setCandidateName('');
+          setCandidateEmail('');
+          setNotes('');
+        },
+      }
+    );
   };
+
+  const handleCopyLink = (link: string) => {
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    toast({ title: 'Link copiado!' });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCloseDialog = (isOpen: boolean) => {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setCreatedLink(null);
+      setCopied(false);
+    }
+  };
+
+  const getProcessLink = (p: any) => `${window.location.origin}/onboarding/${p.access_token}`;
 
   return (
     <div className="space-y-4">
@@ -62,7 +81,7 @@ const HROnboarding = () => {
           <Button variant="outline" onClick={() => navigate('/hr/onboarding/settings')} className="gap-2">
             <Settings className="h-4 w-4" /> Configurar Docs
           </Button>
-          <Dialog open={open} onOpenChange={setOpen}>
+          <Dialog open={open} onOpenChange={handleCloseDialog}>
             <DialogTrigger asChild>
               <Button className="gap-2"><UserPlus className="h-4 w-4" /> Nova Admissão</Button>
             </DialogTrigger>
@@ -70,42 +89,43 @@ const HROnboarding = () => {
               <DialogHeader>
                 <DialogTitle>Novo Processo de Admissão</DialogTitle>
               </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label>Departamento *</Label>
-                  <Select value={departmentId} onValueChange={(val) => { setDepartmentId(val); setSelectedUserId(''); }}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {departments.map((d: any) => (
-                        <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                {departmentId && (
-                  <div>
-                    <Label>Colaborador *</Label>
-                    <Select value={selectedUserId} onValueChange={setSelectedUserId} disabled={membersLoading}>
-                      <SelectTrigger><SelectValue placeholder={membersLoading ? 'Carregando...' : 'Selecione'} /></SelectTrigger>
-                      <SelectContent>
-                        {members.map((m: any) => (
-                          <SelectItem key={m.user_id} value={m.user_id}>{m.profile?.full_name || m.profile?.email || m.user_id}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+              {createdLink ? (
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Processo criado com sucesso! Envie o link abaixo para o candidato acessar e enviar os documentos:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Input value={createdLink} readOnly className="text-xs" />
+                    <Button size="icon" variant="outline" onClick={() => handleCopyLink(createdLink)}>
+                      {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
                   </div>
-                )}
-                <div>
-                  <Label>Observações</Label>
-                  <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Observações sobre a admissão..." />
+                  <div className="flex justify-end">
+                    <Button variant="outline" onClick={() => handleCloseDialog(false)}>Fechar</Button>
+                  </div>
                 </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-                  <Button onClick={handleCreate} disabled={!selectedUserId || createProcess.isPending}>
-                    {createProcess.isPending ? 'Criando...' : 'Criar'}
-                  </Button>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <Label>Nome do candidato *</Label>
+                    <Input value={candidateName} onChange={e => setCandidateName(e.target.value)} placeholder="Nome completo" />
+                  </div>
+                  <div>
+                    <Label>Email do candidato *</Label>
+                    <Input type="email" value={candidateEmail} onChange={e => setCandidateEmail(e.target.value)} placeholder="email@exemplo.com" />
+                  </div>
+                  <div>
+                    <Label>Observações</Label>
+                    <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Observações sobre a admissão..." />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => handleCloseDialog(false)}>Cancelar</Button>
+                    <Button onClick={handleCreate} disabled={!candidateName.trim() || !candidateEmail.trim() || createProcess.isPending}>
+                      {createProcess.isPending ? 'Criando...' : 'Criar'}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </DialogContent>
           </Dialog>
         </div>
@@ -121,30 +141,33 @@ const HROnboarding = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Colaborador</TableHead>
+                  <TableHead>Candidato</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden md:table-cell">Documentos</TableHead>
-                  <TableHead className="hidden lg:table-cell">Iniciado em</TableHead>
+                  <TableHead className="hidden lg:table-cell">Criado em</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {processes.map((p: any) => (
                   <TableRow key={p.id}>
-                    <TableCell className="font-medium">{p.employee?.full_name || p.employee?.email || '—'}</TableCell>
+                    <TableCell className="font-medium">{p.candidate_name || '—'}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{p.candidate_email || '—'}</TableCell>
                     <TableCell>
                       <Badge variant={statusColors[p.status] as any}>{statusLabels[p.status] || p.status}</Badge>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell text-muted-foreground">
-                      {docTypes.length > 0 ? `${docTypes.length} tipos configurados` : '—'}
-                    </TableCell>
                     <TableCell className="hidden lg:table-cell text-muted-foreground">
-                      {format(new Date(p.started_at || p.created_at), "dd/MM/yy", { locale: ptBR })}
+                      {format(new Date(p.created_at), "dd/MM/yy", { locale: ptBR })}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" onClick={() => setDetailProcess(p)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon" onClick={() => handleCopyLink(getProcessLink(p))} title="Copiar link">
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDetailProcess(p)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

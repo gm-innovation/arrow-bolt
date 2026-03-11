@@ -101,6 +101,7 @@ const HRSettings = lazy(() => import("./pages/hr/Settings"));
 const HRDocumentsPage = lazy(() => import("./pages/hr/Documents"));
 const HROnboarding = lazy(() => import("./pages/hr/Onboarding"));
 const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"));
+const PublicOnboarding = lazy(() => import("./pages/onboarding/PublicOnboarding"));
 
 const CorpDashboard = lazy(() => import("./pages/corp/Dashboard"));
 const CorpRequests = lazy(() => import("./pages/corp/Requests"));
@@ -187,6 +188,7 @@ const App = () => {
                   <Route path="/forgot-password" element={<ForgotPassword />} />
                   <Route path="/reset-password" element={<ResetPassword />} />
                   <Route path="/install" element={<InstallApp />} />
+                  <Route path="/onboarding/:token" element={<Suspense fallback={<LoadingFallback />}><PublicOnboarding /></Suspense>} />
 
                   {/* Super Admin - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin" /></ProtectedRoute>}>

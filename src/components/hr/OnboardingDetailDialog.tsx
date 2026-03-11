@@ -3,13 +3,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, Clock, Download } from 'lucide-react';
+import { CheckCircle, XCircle, Clock, Download, Copy, Check } from 'lucide-react';
 import { useOnboardingDocuments, useOnboardingDocumentTypes } from '@/hooks/useOnboarding';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { toast } from '@/hooks/use-toast';
 
 interface OnboardingDetailDialogProps {
   process: any;
@@ -28,6 +26,16 @@ const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetai
   const { docTypes } = useOnboardingDocumentTypes();
   const [rejectionReason, setRejectionReason] = useState('');
   const [rejectingId, setRejectingId] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const link = `${window.location.origin}/onboarding/${process.access_token}`;
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    toast({ title: 'Link copiado!' });
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handleApprove = (docId: string) => {
     reviewDocument.mutate({ id: docId, status: 'approved' });
@@ -48,11 +56,22 @@ const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetai
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            Admissão — {process.employee?.full_name || 'Colaborador'}
+            Admissão — {process.candidate_name || 'Candidato'}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Link de acesso */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-1">Link de acesso do candidato:</p>
+            <div className="flex items-center gap-2">
+              <Input value={link} readOnly className="text-xs" />
+              <Button size="icon" variant="outline" onClick={handleCopyLink}>
+                {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+
           <div className="text-sm text-muted-foreground">
             {documents.length} de {docTypes.length} documentos enviados
           </div>
