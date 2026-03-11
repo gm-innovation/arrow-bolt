@@ -250,12 +250,16 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
                       <Badge variant="success" size="sm">Vinculados</Badge>
                     </div>
                   )}
-                  {parsed.matchedRequester && (
-                    <div className="flex items-center gap-1.5 text-xs">
-                      <span>📋 Solicitante: {parsed.matchedRequester.name}</span>
-                      <Badge variant="success" size="sm">Vinculado</Badge>
-                    </div>
-                  )}
+                    {parsed.matchedRequester && (
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <span>📋 Solicitante: {parsed.matchedRequester.name}</span>
+                        {parsed.matchedRequester.autoCreated ? (
+                          <Badge variant="outline" size="sm" className="text-amber-600 border-amber-400">Cadastrado ✨</Badge>
+                        ) : (
+                          <Badge variant="success" size="sm">Vinculado</Badge>
+                        )}
+                      </div>
+                    )}
                   {parsed.matchedSupervisor && (
                     <div className="flex items-center gap-1.5 text-xs">
                       <span>👷 Supervisor: {parsed.matchedSupervisor.name}</span>
