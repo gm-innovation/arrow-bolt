@@ -101,6 +101,7 @@ const HRSettings = lazy(() => import("./pages/hr/Settings"));
 const HRDocumentsPage = lazy(() => import("./pages/hr/Documents"));
 const HROnboarding = lazy(() => import("./pages/hr/Onboarding"));
 const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"));
+const PublicOnboarding = lazy(() => import("./pages/onboarding/PublicOnboarding"));
 
 const CorpDashboard = lazy(() => import("./pages/corp/Dashboard"));
 const CorpRequests = lazy(() => import("./pages/corp/Requests"));

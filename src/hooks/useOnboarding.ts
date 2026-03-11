@@ -71,24 +71,13 @@ export const useOnboardingProcesses = () => {
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      
-      // Fetch employee profiles
-      const userIds = [...new Set(data.map((p: any) => p.user_id))] as string[];
-      if (userIds.length === 0) return data;
-      
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', userIds);
-      
-      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
-      return data.map((p: any) => ({ ...p, employee: profileMap.get(p.user_id) || null }));
+      return data;
     },
     enabled: !!user,
   });
 
   const createProcess = useMutation({
-    mutationFn: async (p: { company_id: string; user_id: string; notes?: string }) => {
+    mutationFn: async (p: { company_id: string; candidate_name: string; candidate_email: string; notes?: string }) => {
       const { data, error } = await (supabase as any)
         .from('employee_onboarding')
         .insert({ ...p, created_by: user!.id, status: 'pending' })
@@ -213,4 +202,78 @@ export const useMyOnboarding = () => {
   });
 
   return { myOnboarding, isLoading };
+};
+
+// Public hook for candidate access via token (no auth required)
+export const usePublicOnboarding = (token?: string) => {
+  const queryClient = useQueryClient();
+
+  const { data: onboarding, isLoading: loadingOnboarding, error } = useQuery({
+    queryKey: ['public-onboarding', token],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('employee_onboarding')
+        .select('*')
+        .eq('access_token', token)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!token,
+  });
+
+  const { data: docTypes = [], isLoading: loadingTypes } = useQuery({
+    queryKey: ['public-onboarding-doc-types', onboarding?.company_id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('onboarding_document_types')
+        .select('*')
+        .eq('company_id', onboarding.company_id)
+        .order('sort_order');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!onboarding?.company_id,
+  });
+
+  const { data: documents = [], isLoading: loadingDocs } = useQuery({
+    queryKey: ['public-onboarding-documents', onboarding?.id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('onboarding_documents')
+        .select(`
+          *,
+          document_type:onboarding_document_types!onboarding_documents_document_type_id_fkey(id, name, is_required)
+        `)
+        .eq('onboarding_id', onboarding.id)
+        .order('uploaded_at', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!onboarding?.id,
+  });
+
+  const uploadDocument = useMutation({
+    mutationFn: async (doc: { onboarding_id: string; document_type_id: string; file_name: string; file_url: string }) => {
+      const { data, error } = await (supabase as any)
+        .from('onboarding_documents')
+        .insert(doc)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['public-onboarding-documents'] });
+    },
+  });
+
+  return {
+    onboarding,
+    docTypes,
+    documents,
+    isLoading: loadingOnboarding || loadingTypes || loadingDocs,
+    error,
+    uploadDocument,
+  };
 };
