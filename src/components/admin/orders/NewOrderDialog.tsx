@@ -1,8 +1,9 @@
+import { useState } from "react";
 import { DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { NewOrderForm } from "./NewOrderForm";
-import { OmieImportDialog } from "./OmieImportDialog";
+import { OmieImportDialog, type OmieImportData } from "./OmieImportDialog";
 import { UseFormReturn } from "react-hook-form";
 import { useOmieIntegration } from "@/hooks/useOmieIntegration";
 
@@ -20,15 +21,11 @@ export const NewOrderDialog = ({ form, onSuccess }: NewOrderDialogProps) => {
   const orderNumber = form.watch("orderNumber");
   const clientReference = form.watch("clientReference");
   const { isOmieEnabled } = useOmieIntegration();
+  const [omieImportData, setOmieImportData] = useState<OmieImportData | null>(null);
 
-  const handleOmieImport = (order: {
-    orderNumber: string;
-    omieOsId: number;
-    omieIntegrationCode: string;
-    clientOmieId?: number;
-    clientName?: string;
-  }) => {
+  const handleOmieImport = (order: OmieImportData) => {
     form.setValue("orderNumber", order.orderNumber);
+    setOmieImportData(order);
   };
 
   return (
@@ -80,7 +77,12 @@ export const NewOrderDialog = ({ form, onSuccess }: NewOrderDialogProps) => {
         </Form>
       </DialogHeader>
       <div className="flex-1 overflow-y-auto pr-2">
-        <NewOrderForm orderNumber={orderNumber} clientReference={clientReference} onSuccess={onSuccess} />
+        <NewOrderForm
+          orderNumber={orderNumber}
+          clientReference={clientReference}
+          onSuccess={onSuccess}
+          omieImportData={omieImportData}
+        />
       </div>
     </DialogContent>
   );
