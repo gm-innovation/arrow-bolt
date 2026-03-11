@@ -339,12 +339,17 @@ const Clients = () => {
               />
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
+            <Checkbox
+              checked={filteredClients.length > 0 && selectedIds.size === filteredClients.length}
+              onCheckedChange={toggleAll}
+            />
             <Input 
               placeholder="Buscar clientes..." 
               className="max-w-sm"
