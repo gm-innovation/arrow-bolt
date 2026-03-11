@@ -128,6 +128,27 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
     }
   }, [selectedClient, isEditing]);
 
+  // Auto-fill from Omie import data
+  const omieImportRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!omieImportData || omieImportRef.current === omieImportData.orderNumber) return;
+    omieImportRef.current = omieImportData.orderNumber;
+
+    if (omieImportData.localClientId) {
+      form.setValue("clientId", omieImportData.localClientId);
+    }
+
+    if (omieImportData.serviceDescription) {
+      form.setValue("description", omieImportData.serviceDescription.substring(0, 500));
+    }
+
+    if (omieImportData.localVesselId) {
+      setTimeout(() => {
+        form.setValue("vesselId", omieImportData.localVesselId!);
+      }, 1000);
+    }
+  }, [omieImportData, form]);
+
   const fetchInitialData = async () => {
     try {
       const { data: profileData } = await supabase
