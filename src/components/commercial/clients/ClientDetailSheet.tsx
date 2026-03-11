@@ -95,9 +95,9 @@ export const ClientDetailSheet = ({ open, onOpenChange, client, onEdit }: Props)
       const { data } = await supabase
         .from("clients")
         .select("id, name, cnpj, segment, commercial_status, annual_revenue")
-        .eq("parent_client_id" as any, client!.id)
+        .eq("parent_client_id", client!.id as any)
         .order("name");
-      return data || [];
+      return (data as any[]) || [];
     },
     enabled: !!client?.id && open,
   });
