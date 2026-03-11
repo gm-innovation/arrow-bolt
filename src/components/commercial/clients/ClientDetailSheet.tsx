@@ -88,6 +88,20 @@ export const ClientDetailSheet = ({ open, onOpenChange, client, onEdit }: Props)
     enabled: !!client?.id && open,
   });
 
+  // Group children
+  const { data: groupChildren = [] } = useQuery({
+    queryKey: ["client-group-children", client?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, name, cnpj, segment, commercial_status, annual_revenue")
+        .eq("parent_client_id" as any, client!.id)
+        .order("name");
+      return data || [];
+    },
+    enabled: !!client?.id && open,
+  });
+
   // KPIs
   const kpis = useMemo(() => {
     const wonOpps = opportunities.filter((o: any) => o.stage === "closed_won");
