@@ -93,6 +93,8 @@ const Clients = () => {
           phone,
           address,
           contact_person,
+          parent_client_id,
+          segment,
           vessels (
             id,
             name,
@@ -103,7 +105,7 @@ const Clients = () => {
         .order("name");
 
       if (error) throw error;
-      setClients(data || []);
+      setClients((data as Client[]) || []);
     } catch (error) {
       console.error("Error fetching clients:", error);
       toast({
