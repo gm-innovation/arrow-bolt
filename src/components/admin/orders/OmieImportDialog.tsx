@@ -215,6 +215,59 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
                   <p className="mt-1 text-xs whitespace-pre-line line-clamp-4">{serviceDesc}</p>
                 </div>
               )}
+
+              {/* AI-extracted data preview */}
+              {Object.keys(parsed).length > 0 && (
+                <div className="mt-2 pt-2 border-t space-y-1">
+                  <strong className="text-foreground text-xs flex items-center gap-1">
+                    🤖 Dados extraídos por IA:
+                  </strong>
+                  {parsed.serviceDateTime && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Calendar className="h-3 w-3" />
+                      <span>{new Date(parsed.serviceDateTime).toLocaleString('pt-BR')}</span>
+                      <Badge variant="success" size="sm">Auto</Badge>
+                    </div>
+                  )}
+                  {parsed.location && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <MapPin className="h-3 w-3" />
+                      <span>{parsed.location}</span>
+                    </div>
+                  )}
+                  {parsed.matchedTechnicians?.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <Users className="h-3 w-3" />
+                      <span>{parsed.matchedTechnicians.map((t: any) => t.name).join(", ")}</span>
+                      <Badge variant="success" size="sm">Vinculados</Badge>
+                    </div>
+                  )}
+                  {parsed.matchedRequester && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span>📋 Solicitante: {parsed.matchedRequester.name}</span>
+                      <Badge variant="success" size="sm">Vinculado</Badge>
+                    </div>
+                  )}
+                  {parsed.matchedSupervisor && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span>👷 Supervisor: {parsed.matchedSupervisor.name}</span>
+                      <Badge variant="success" size="sm">Vinculado</Badge>
+                    </div>
+                  )}
+                  {parsed.matchedCoordinator && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <span>📌 Coordenador: {parsed.matchedCoordinator.name}</span>
+                      <Badge variant="success" size="sm">Vinculado</Badge>
+                    </div>
+                  )}
+                  {parsed.matchedTaskTypes?.length > 0 && (
+                    <div className="flex items-center gap-1.5 text-xs">
+                      <ClipboardList className="h-3 w-3" />
+                      <span>{parsed.matchedTaskTypes.map((t: any) => t.name).join(", ")}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <Button onClick={handleImport} className="w-full">

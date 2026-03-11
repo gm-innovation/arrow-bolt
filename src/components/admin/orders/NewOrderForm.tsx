@@ -134,19 +134,51 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
     if (!omieImportData || omieImportRef.current === omieImportData.orderNumber) return;
     omieImportRef.current = omieImportData.orderNumber;
 
+    // Step 1: Set client (triggers vessel/contact loading)
     if (omieImportData.localClientId) {
       form.setValue("clientId", omieImportData.localClientId);
     }
 
-    if (omieImportData.serviceDescription) {
+    // Set direct fields immediately
+    if (omieImportData.scopeDescription) {
+      form.setValue("description", omieImportData.scopeDescription.substring(0, 500));
+    } else if (omieImportData.serviceDescription) {
       form.setValue("description", omieImportData.serviceDescription.substring(0, 500));
     }
 
-    if (omieImportData.localVesselId) {
-      setTimeout(() => {
-        form.setValue("vesselId", omieImportData.localVesselId!);
-      }, 1000);
+    if (omieImportData.serviceDateTime) {
+      form.setValue("serviceDateTime", omieImportData.serviceDateTime);
     }
+
+    if (omieImportData.plannedLocation) {
+      form.setValue("plannedLocation", omieImportData.plannedLocation);
+    }
+
+    if (omieImportData.matchedSupervisorId) {
+      form.setValue("supervisorId", omieImportData.matchedSupervisorId);
+    }
+
+    if (omieImportData.matchedCoordinatorId) {
+      form.setValue("coordinatorId", omieImportData.matchedCoordinatorId);
+    }
+
+    // Step 2: After client loads vessels/contacts (delay for dependent data)
+    setTimeout(() => {
+      if (omieImportData.localVesselId) {
+        form.setValue("vesselId", omieImportData.localVesselId);
+      }
+      if (omieImportData.matchedRequesterId) {
+        form.setValue("requesterId", omieImportData.matchedRequesterId);
+      }
+      if (omieImportData.matchedTaskTypeIds?.length) {
+        form.setValue("taskTypes", omieImportData.matchedTaskTypeIds);
+      }
+      // Set technicians
+      if (omieImportData.matchedTechnicianIds?.length) {
+        setSelectedTechnicians(omieImportData.matchedTechnicianIds);
+        setLeadTechId(omieImportData.matchedTechnicianIds[0]);
+      }
+    }, 1200);
   }, [omieImportData, form]);
 
   const fetchInitialData = async () => {
