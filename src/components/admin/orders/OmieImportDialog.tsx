@@ -19,6 +19,7 @@ interface OmieImportDialogProps {
     omieIntegrationCode: string;
     clientOmieId?: number;
     clientName?: string;
+    localClientId?: string;
   }) => void;
 }
 
@@ -83,13 +84,15 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
       omieOsId: cab.nCodOS || 0,
       omieIntegrationCode: cab.cCodIntOS || "",
       clientOmieId: cab.nCodCli,
-      clientName: info.cNomeCliente || "",
+      clientName: foundOrder.localClient?.name || info.cNomeCliente || "",
+      localClientId: foundOrder.localClient?.id,
     });
     setOpen(false);
   };
 
   const cab = foundOrder?.Cabecalho || {};
   const info = foundOrder?.InformacoesAdicionais || {};
+  const localClient = foundOrder?.localClient;
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
@@ -148,7 +151,11 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
             </div>
 
             <div className="text-sm space-y-1 text-muted-foreground">
-              <p><strong className="text-foreground">Cliente:</strong> {info.cNomeCliente || "Não identificado"}</p>
+              <div className="flex items-center gap-2">
+                <strong className="text-foreground">Cliente:</strong> 
+                <span>{localClient?.name || info.cNomeCliente || "Não identificado"}</span>
+                {localClient && <Badge variant="success" size="sm">Vinculado</Badge>}
+              </div>
               {cab.nCodCli && (
                 <p><strong className="text-foreground">Cód. Cliente:</strong> {cab.nCodCli}</p>
               )}
