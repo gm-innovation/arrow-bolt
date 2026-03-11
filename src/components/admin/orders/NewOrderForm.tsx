@@ -235,14 +235,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
       if (!profileData?.company_id) return;
 
-      // Fetch clients
-      const { data: clientsData } = await supabase
-        .from("clients")
-        .select("id, name")
-        .eq("company_id", profileData.company_id)
-        .order("name");
-
-      setClients(clientsData || []);
+      setCompanyId(profileData.company_id);
 
       // Fetch user IDs with operational roles (any can be supervisor)
       const { data: operationalRoles } = await supabase
