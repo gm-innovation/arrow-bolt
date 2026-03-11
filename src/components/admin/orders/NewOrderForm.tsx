@@ -53,6 +53,7 @@ interface NewOrderFormProps {
   orderNumber?: string;
   clientReference?: string;
   onSuccess?: () => void;
+  omieImportData?: OmieImportData | null;
 }
 
 export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference, onSuccess }: NewOrderFormProps) => {
