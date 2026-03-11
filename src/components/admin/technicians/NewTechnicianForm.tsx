@@ -16,6 +16,7 @@ import { useDocumentClassification, ClassificationResult } from "@/hooks/useDocu
 import { Eye, EyeOff, Sparkles, CheckCircle2, XCircle, Loader2, FileText, Trash2, Copy, KeyRound, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ResetPasswordSection } from "./ResetPasswordSection";
 
 const technicianFormSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200),
