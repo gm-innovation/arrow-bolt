@@ -7,14 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast as sonnerToast } from "sonner";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { DocumentUploadZone } from "./DocumentUploadZone";
 import { useDocumentClassification, ClassificationResult } from "@/hooks/useDocumentClassification";
-import { Eye, EyeOff, Sparkles, CheckCircle2, XCircle, Loader2, FileText, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Sparkles, CheckCircle2, XCircle, Loader2, FileText, Trash2, Copy, KeyRound, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ResetPasswordSection } from "./ResetPasswordSection";
 
 const technicianFormSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200),
@@ -64,6 +66,7 @@ interface NewTechnicianFormProps {
   onCancel: () => void;
   initialData?: Partial<TechnicianFormValues> & {
     avatar_url?: string;
+    user_id?: string;
     documents?: Array<{
       id: string;
       file_name: string;
@@ -1021,6 +1024,10 @@ export const NewTechnicianForm = ({
               />
             )}
           </div>
+        )}
+
+        {isEditing && initialData?.user_id && (
+          <ResetPasswordSection userId={initialData.user_id} />
         )}
 
         <div className="space-y-4">
