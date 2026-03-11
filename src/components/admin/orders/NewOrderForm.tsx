@@ -160,7 +160,30 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       form.setValue("plannedLocation", omieImportData.plannedLocation);
     }
 
-    // supervisorId and coordinatorId are applied in Step 2 (after supervisors list loads)
+    // Inject supervisor/coordinator into the supervisors list immediately so the Select has the option
+    // This avoids race conditions where setValue runs before the list is populated
+    setSupervisors(prev => {
+      let updated = [...prev];
+      if (omieImportData.matchedSupervisorId && omieImportData.matchedSupervisorName) {
+        if (!updated.some(s => s.id === omieImportData.matchedSupervisorId)) {
+          updated.push({ id: omieImportData.matchedSupervisorId, full_name: omieImportData.matchedSupervisorName });
+        }
+      }
+      if (omieImportData.matchedCoordinatorId && omieImportData.matchedCoordinatorName) {
+        if (!updated.some(s => s.id === omieImportData.matchedCoordinatorId)) {
+          updated.push({ id: omieImportData.matchedCoordinatorId, full_name: omieImportData.matchedCoordinatorName });
+        }
+      }
+      return updated;
+    });
+
+    // Now set supervisor/coordinator directly - the options are guaranteed to exist
+    if (omieImportData.matchedSupervisorId) {
+      form.setValue("supervisorId", omieImportData.matchedSupervisorId);
+    }
+    if (omieImportData.matchedCoordinatorId) {
+      form.setValue("coordinatorId", omieImportData.matchedCoordinatorId);
+    }
 
     // Set technicians (not dependent on vessels/contacts loading)
     if (omieImportData.matchedTechnicianIds?.length) {
