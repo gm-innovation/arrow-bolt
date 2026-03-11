@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,9 +9,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useOmieIntegration } from "@/hooks/useOmieIntegration";
-import { Loader2, Download, Search, AlertCircle } from "lucide-react";
+import { Loader2, Download, Search, AlertCircle, CheckCircle2 } from "lucide-react";
 
 interface OmieImportDialogProps {
   onSelectOrder: (order: {
@@ -24,60 +23,48 @@ interface OmieImportDialogProps {
 }
 
 export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
-  const { listOrders, searchOrders } = useOmieIntegration();
+  const { consultOrder } = useOmieIntegration();
   const [open, setOpen] = useState(false);
-  const [orders, setOrders] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
-  const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [foundOrder, setFoundOrder] = useState<any>(null);
 
-  const handleOpen = async (isOpen: boolean) => {
+  const handleOpen = (isOpen: boolean) => {
     setOpen(isOpen);
-    if (isOpen && !hasLoaded) {
-      await loadOrders();
-    }
     if (!isOpen) {
       setSearch("");
       setError(null);
+      setFoundOrder(null);
     }
   };
 
-  const loadOrders = useCallback(async () => {
+  const handleSearch = async () => {
+    const term = search.trim();
+    if (!term) return;
     if (loading) return;
+
     setLoading(true);
     setError(null);
+    setFoundOrder(null);
+
     try {
-      const result = await listOrders.mutateAsync({ page: 1 });
-      setOrders(result.orders || []);
-      setHasLoaded(true);
+      // Try as cNumOS (text number)
+      const result = await consultOrder.mutateAsync({ cNumOS: term });
+      setFoundOrder(result);
     } catch (err: any) {
-      setError(err.message || "Erro ao carregar ordens de serviço");
+      const msg = err.message || "Erro ao buscar OS";
+      if (msg.includes("não localizada") || msg.includes("não encontrada")) {
+        setError(`OS "${term}" não encontrada no Omie. Verifique o número e tente novamente.`);
+      } else if (msg.includes("REDUNDANT")) {
+        setError("API do Omie em rate-limit. Aguarde alguns segundos e tente novamente.");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
-  }, [loading, listOrders]);
-
-  const handleSearch = useCallback(async () => {
-    const term = search.trim();
-    if (!term) {
-      // Reset to initial list
-      await loadOrders();
-      return;
-    }
-    if (searching) return;
-    setSearching(true);
-    setError(null);
-    try {
-      const result = await searchOrders.mutateAsync({ search: term });
-      setOrders(result.orders || []);
-    } catch (err: any) {
-      setError(err.message || "Erro ao buscar ordens de serviço");
-    } finally {
-      setSearching(false);
-    }
-  }, [search, searching, searchOrders, loadOrders]);
+  };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
@@ -86,21 +73,23 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
     }
   };
 
-  const handleSelect = (order: any) => {
-    const cabecalho = order.Cabecalho || {};
-    const cliente = order.InformacoesAdicionais || {};
-    
+  const handleImport = () => {
+    if (!foundOrder) return;
+    const cab = foundOrder.Cabecalho || {};
+    const info = foundOrder.InformacoesAdicionais || {};
+
     onSelectOrder({
-      orderNumber: cabecalho.cNumOS || cabecalho.nCodOS?.toString() || "",
-      omieOsId: cabecalho.nCodOS || 0,
-      omieIntegrationCode: cabecalho.cCodIntOS || "",
-      clientOmieId: cabecalho.nCodCli,
-      clientName: cliente.cNomeCliente || "",
+      orderNumber: cab.cNumOS || cab.nCodOS?.toString() || "",
+      omieOsId: cab.nCodOS || 0,
+      omieIntegrationCode: cab.cCodIntOS || "",
+      clientOmieId: cab.nCodCli,
+      clientName: info.cNomeCliente || "",
     });
     setOpen(false);
   };
 
-  const isLoading = loading || searching;
+  const cab = foundOrder?.Cabecalho || {};
+  const info = foundOrder?.InformacoesAdicionais || {};
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
@@ -110,89 +99,70 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
           Importar do Omie
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Importar OS do Omie</DialogTitle>
         </DialogHeader>
+
+        <p className="text-sm text-muted-foreground">
+          Digite o número da OS no Omie para importar.
+        </p>
 
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nº OS ou cliente..."
+              placeholder="Nº da OS (ex: 12345)"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={handleKeyDown}
               className="pl-9"
+              autoFocus
             />
           </div>
           <Button
             type="button"
-            variant="secondary"
-            size="sm"
             onClick={handleSearch}
-            disabled={isLoading}
+            disabled={loading || !search.trim()}
             className="shrink-0"
           >
-            {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Buscar"}
           </Button>
         </div>
 
         {error && (
           <div className="flex items-center gap-2 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
             <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{error.includes("REDUNDANT") ? "API do Omie em rate-limit. Aguarde alguns segundos e tente novamente." : error}</span>
+            <span>{error}</span>
           </div>
         )}
 
-        <ScrollArea className="h-[300px]">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center h-full gap-2">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="text-sm text-muted-foreground">Carregando OS do Omie...</span>
+        {foundOrder && (
+          <div className="border rounded-lg p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary" />
+                <span className="font-semibold">OS #{cab.cNumOS || cab.nCodOS}</span>
+              </div>
+              <Badge variant="secondary">{cab.cEtapa || "—"}</Badge>
             </div>
-          ) : orders.length === 0 && hasLoaded && !error ? (
-            <p className="text-center text-muted-foreground py-8">
-              Nenhuma OS encontrada
-            </p>
-          ) : orders.length === 0 && !hasLoaded && !error ? (
-            <p className="text-center text-muted-foreground py-8">
-              Clique em recarregar para buscar as OS
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {orders.map((order: any, idx: number) => {
-                const cab = order.Cabecalho || {};
-                const info = order.InformacoesAdicionais || {};
-                return (
-                  <button
-                    key={cab.nCodOS || idx}
-                    type="button"
-                    onClick={() => handleSelect(order)}
-                    className="w-full text-left p-3 rounded-md border hover:bg-accent transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        OS #{cab.cNumOS || cab.nCodOS}
-                      </span>
-                      <Badge variant="secondary">
-                        {cab.cEtapa || "—"}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {info.cNomeCliente || "Cliente não identificado"}
-                    </p>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </ScrollArea>
 
-        <Button variant="outline" onClick={loadOrders} disabled={isLoading}>
-          <Loader2 className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-          Recarregar
-        </Button>
+            <div className="text-sm space-y-1 text-muted-foreground">
+              <p><strong className="text-foreground">Cliente:</strong> {info.cNomeCliente || "Não identificado"}</p>
+              {cab.nCodCli && (
+                <p><strong className="text-foreground">Cód. Cliente:</strong> {cab.nCodCli}</p>
+              )}
+              {cab.cCodIntOS && (
+                <p><strong className="text-foreground">Cód. Integração:</strong> {cab.cCodIntOS}</p>
+              )}
+            </div>
+
+            <Button onClick={handleImport} className="w-full">
+              <Download className="h-4 w-4 mr-2" />
+              Importar esta OS
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

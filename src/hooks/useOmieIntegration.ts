@@ -8,7 +8,17 @@ async function invokeOmie(action: string, params?: any) {
   const { data, error } = await supabase.functions.invoke("omie-proxy", {
     body: { action, params },
   });
-  if (error) throw new Error(error.message || "Erro ao chamar Omie");
+  if (error) {
+    // Try to extract real error message from edge function response
+    let msg = error.message || "Erro ao chamar Omie";
+    try {
+      if ((error as any).context) {
+        const body = await (error as any).context.json();
+        if (body?.error) msg = body.error;
+      }
+    } catch {}
+    throw new Error(msg);
+  }
   if (data?.error) throw new Error(data.error);
   return data;
 }
@@ -58,19 +68,10 @@ export const useOmieIntegration = () => {
     onError: (err: any) => toast.error("Erro na sincronização: " + err.message),
   });
 
-  const listOrders = useMutation({
-    mutationFn: (params?: { page?: number }) => invokeOmie("list_orders", params),
-    onError: (err: any) => toast.error("Erro ao listar OS: " + err.message),
-  });
-
-  const searchOrders = useMutation({
-    mutationFn: (params: { search: string }) => invokeOmie("search_orders", params),
-    onError: (err: any) => toast.error("Erro ao buscar OS: " + err.message),
-  });
-
   const consultOrder = useMutation({
-    mutationFn: (params: { nCodOS?: number; cCodIntOS?: string }) =>
+    mutationFn: (params: { nCodOS?: number; cCodIntOS?: string; cNumOS?: string }) =>
       invokeOmie("consult_order", params),
+    onError: (err: any) => toast.error("Erro ao consultar OS: " + err.message),
   });
 
   const attachFile = useMutation({
@@ -93,8 +94,6 @@ export const useOmieIntegration = () => {
     saveCredentials,
     testConnection,
     syncClients,
-    listOrders,
-    searchOrders,
     consultOrder,
     attachFile,
   };
