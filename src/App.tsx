@@ -114,6 +114,7 @@ const CorpFeedDiscussion = lazy(() => import("./pages/corp/FeedDiscussion"));
 const CorpGroupDetail = lazy(() => import("./pages/corp/GroupDetail"));
 const CorpGroupDiscussion = lazy(() => import("./pages/corp/GroupDiscussion"));
 const CorpUserProfile = lazy(() => import("./pages/corp/UserProfile"));
+const CorpMyDocuments = lazy(() => import("./pages/corp/MyDocuments"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
 const SuppliesRequests = lazy(() => import("./pages/supplies/Requests"));
