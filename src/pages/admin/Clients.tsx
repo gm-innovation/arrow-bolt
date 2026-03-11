@@ -1,14 +1,17 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash, Download, Eye } from "lucide-react";
+import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash, Download, Eye, Link2, Unlink, Crown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV } from "@/lib/exportUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { NewClientForm } from "@/components/admin/clients/NewClientForm";
 import { ClientHistoryDialog } from "@/components/admin/clients/ClientHistoryDialog";
 import { ClientViewDialog } from "@/components/admin/clients/ClientViewDialog";
-import { useEffect, useState } from "react";
+import { ClientGroupDialog } from "@/components/commercial/clients/ClientGroupDialog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
@@ -31,6 +34,8 @@ interface Client {
   phone: string | null;
   address: string | null;
   contact_person: string | null;
+  parent_client_id: string | null;
+  segment: string | null;
   vessels: Array<{
     id: string;
     name: string;
@@ -51,6 +56,9 @@ const Clients = () => {
   const [clientToDelete, setClientToDelete] = useState<string | null>(null);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [viewClient, setViewClient] = useState<Client | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [groupLoading, setGroupLoading] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -85,6 +93,8 @@ const Clients = () => {
           phone,
           address,
           contact_person,
+          parent_client_id,
+          segment,
           vessels (
             id,
             name,
@@ -95,7 +105,7 @@ const Clients = () => {
         .order("name");
 
       if (error) throw error;
-      setClients(data || []);
+      setClients((data as Client[]) || []);
     } catch (error) {
       console.error("Error fetching clients:", error);
       toast({
@@ -192,6 +202,76 @@ const Clients = () => {
     ""
   );
 
+  const childCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    clients.forEach(c => {
+      if (c.parent_client_id) {
+        map[c.parent_client_id] = (map[c.parent_client_id] || 0) + 1;
+      }
+    });
+    return map;
+  }, [clients]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === filteredClients.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredClients.map(c => c.id)));
+    }
+  };
+
+  const selectedClients = filteredClients.filter(c => selectedIds.has(c.id));
+
+  const handleGroup = async (parentId: string, childIds: string[]) => {
+    setGroupLoading(true);
+    try {
+      for (const childId of childIds) {
+        const { error } = await supabase
+          .from("clients")
+          .update({ parent_client_id: parentId })
+          .eq("id", childId);
+        if (error) throw error;
+      }
+      toast({ title: "Clientes agrupados com sucesso" });
+      setGroupDialogOpen(false);
+      setSelectedIds(new Set());
+      fetchClients();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Erro ao agrupar", variant: "destructive" });
+    } finally {
+      setGroupLoading(false);
+    }
+  };
+
+  const handleUngroup = async () => {
+    setGroupLoading(true);
+    try {
+      for (const id of selectedIds) {
+        await supabase
+          .from("clients")
+          .update({ parent_client_id: null })
+          .eq("id", id);
+      }
+      toast({ title: "Clientes desagrupados com sucesso" });
+      setSelectedIds(new Set());
+      fetchClients();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Erro ao desagrupar", variant: "destructive" });
+    } finally {
+      setGroupLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -222,11 +302,24 @@ const Clients = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Clientes</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport} disabled={filteredClients.length === 0}>
-            <Download className="mr-2 h-4 w-4" />
-            Exportar
-          </Button>
+        <div className="flex justify-between items-center">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport} disabled={filteredClients.length === 0}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar
+            </Button>
+            {selectedIds.size >= 2 && (
+              <Button variant="outline" onClick={() => setGroupDialogOpen(true)} disabled={groupLoading}>
+                <Link2 className="mr-2 h-4 w-4" />
+                Agrupar ({selectedIds.size})
+              </Button>
+            )}
+            {selectedIds.size >= 1 && selectedClients.some(c => c.parent_client_id) && (
+              <Button variant="outline" onClick={handleUngroup} disabled={groupLoading}>
+                <Unlink className="mr-2 h-4 w-4" />
+                Desagrupar
+              </Button>
+            )}
           <Dialog open={newClientDialogOpen} onOpenChange={setNewClientDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -246,12 +339,17 @@ const Clients = () => {
               />
             </DialogContent>
           </Dialog>
+          </div>
         </div>
       </div>
 
       <Card>
         <CardHeader>
           <div className="flex items-center gap-4">
+            <Checkbox
+              checked={filteredClients.length > 0 && selectedIds.size === filteredClients.length}
+              onCheckedChange={toggleAll}
+            />
             <Input 
               placeholder="Buscar clientes..." 
               className="max-w-sm"
@@ -274,14 +372,34 @@ const Clients = () => {
               filteredClients.map((client) => (
                 <div
                   key={client.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-slate-50"
+                  className={`flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 ${
+                    client.parent_client_id ? "ml-8 border-dashed" : ""
+                  } ${selectedIds.has(client.id) ? "bg-accent/30" : ""}`}
                 >
                   <div className="flex items-center gap-4 flex-1">
+                    <Checkbox
+                      checked={selectedIds.has(client.id)}
+                      onCheckedChange={() => toggleSelect(client.id)}
+                    />
                     <div className="bg-primary p-2 rounded-full">
                       <Users className="h-4 w-4 text-primary-foreground" />
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-semibold">{client.name}</h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold">{client.name}</h4>
+                        {childCountMap[client.id] > 0 && (
+                          <Badge variant="info" size="sm" className="gap-1">
+                            <Crown className="h-3 w-3" />
+                            {childCountMap[client.id]} vinculado{childCountMap[client.id] > 1 ? "s" : ""}
+                          </Badge>
+                        )}
+                        {client.parent_client_id && (
+                          <Badge variant="outline" size="sm" className="gap-1">
+                            <Link2 className="h-3 w-3" />
+                            Vinculado
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                         {client.email && (
                           <span className="flex items-center gap-1">
@@ -410,6 +528,14 @@ const Clients = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <ClientGroupDialog
+        open={groupDialogOpen}
+        onOpenChange={setGroupDialogOpen}
+        selectedClients={selectedClients}
+        onConfirm={handleGroup}
+        isLoading={groupLoading}
+      />
     </div>
   );
 };
