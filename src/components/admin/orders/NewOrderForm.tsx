@@ -541,9 +541,10 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             .delete()
             .eq("visit_id", visitData.id);
 
-          // Insert new visit technicians
-          if (selectedTechnicians.length > 0) {
-            const visitTechniciansToInsert = selectedTechnicians.map(techId => ({
+          // Insert new visit technicians (filter out any null/undefined IDs)
+          const validEditTechs = selectedTechnicians.filter(id => id && id.trim() !== '');
+          if (validEditTechs.length > 0) {
+            const visitTechniciansToInsert = validEditTechs.map(techId => ({
               visit_id: visitData.id,
               technician_id: techId,
               is_lead: techId === leadTechId,
@@ -711,7 +712,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
         if (isDocking) {
           // DOCKING MODE: consolidate all technicians from all activities
           const allTechIds = new Set<string>();
-          dockingActivities.forEach(act => act.technicians.forEach(id => allTechIds.add(id)));
+          dockingActivities.forEach(act => act.technicians.filter(id => id && id.trim() !== '').forEach(id => allTechIds.add(id)));
           const allTechIdsArray = Array.from(allTechIds);
 
           if (visitData && allTechIdsArray.length > 0) {
@@ -822,8 +823,9 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
         } else {
           // NORMAL MODE
-          if (visitData && selectedTechnicians.length > 0) {
-            const visitTechniciansToInsert = selectedTechnicians.map(techId => ({
+          const validNormalTechs = selectedTechnicians.filter(id => id && id.trim() !== '');
+          if (visitData && validNormalTechs.length > 0) {
+            const visitTechniciansToInsert = validNormalTechs.map(techId => ({
               visit_id: visitData.id,
               technician_id: techId,
               is_lead: techId === leadTechId,
