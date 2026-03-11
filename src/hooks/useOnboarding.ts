@@ -68,14 +68,21 @@ export const useOnboardingProcesses = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('employee_onboarding')
-        .select(`
-          *,
-          employee:profiles!employee_onboarding_user_id_fkey(id, full_name, email),
-          creator:profiles!employee_onboarding_created_by_fkey(id, full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      
+      // Fetch employee profiles
+      const userIds = [...new Set(data.map((p: any) => p.user_id))];
+      if (userIds.length === 0) return data;
+      
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, email')
+        .in('id', userIds);
+      
+      const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+      return data.map((p: any) => ({ ...p, employee: profileMap.get(p.user_id) || null }));
     },
     enabled: !!user,
   });
