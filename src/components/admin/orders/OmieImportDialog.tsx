@@ -22,6 +22,20 @@ export interface OmieImportData {
   localVesselId?: string;
   localVesselName?: string;
   serviceDescription?: string;
+  // AI-extracted fields
+  serviceDateTime?: string;
+  plannedLocation?: string;
+  matchedRequesterId?: string;
+  matchedRequesterName?: string;
+  matchedSupervisorId?: string;
+  matchedSupervisorName?: string;
+  matchedCoordinatorId?: string;
+  matchedCoordinatorName?: string;
+  matchedTechnicianIds?: string[];
+  matchedTechnicianNames?: string[];
+  matchedTaskTypeIds?: string[];
+  matchedTaskTypeNames?: string[];
+  scopeDescription?: string;
 }
 
 interface OmieImportDialogProps {
