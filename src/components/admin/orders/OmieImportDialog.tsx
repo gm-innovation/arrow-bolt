@@ -204,7 +204,11 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
                   <Ship className="h-3.5 w-3.5" />
                   <strong className="text-foreground">Embarcação:</strong>
                   <span>{localVessel.name}</span>
-                  <Badge variant="success" size="sm">Vinculada</Badge>
+                  {localVessel.autoCreated ? (
+                    <Badge variant="outline" size="sm" className="text-amber-600 border-amber-400">Cadastrada ✨</Badge>
+                  ) : (
+                    <Badge variant="success" size="sm">Vinculada</Badge>
+                  )}
                 </div>
               )}
               {cab.nCodCli && (
