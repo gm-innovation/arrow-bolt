@@ -265,6 +265,9 @@ const App = () => {
                     <Route path="/hr/on-call" element={<Navigate to="/hr/absences" replace />} />
                     <Route path="/hr/holidays" element={<HRHolidays />} />
                     <Route path="/hr/reports" element={<HRReports />} />
+                    <Route path="/hr/documents" element={<HRDocumentsPage />} />
+                    <Route path="/hr/onboarding" element={<HROnboarding />} />
+                    <Route path="/hr/onboarding/settings" element={<HROnboardingSettings />} />
                     <Route path="/hr/profile" element={<HRProfile />} />
                     <Route path="/hr/settings" element={<HRSettings />} />
                     <Route path="/hr/chat" element={<Chat />} />
