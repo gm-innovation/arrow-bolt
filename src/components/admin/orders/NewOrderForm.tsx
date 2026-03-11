@@ -285,14 +285,36 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
   const fetchVessels = async (clientId: string) => {
     try {
-      const { data, error } = await supabase
+      // Get vessels from this client
+      const { data: directVessels, error } = await supabase
         .from("vessels")
         .select("id, name")
         .eq("client_id", clientId)
         .order("name");
 
       if (error) throw error;
-      setVessels(data || []);
+
+      // Also fetch vessels from child clients (group)
+      const { data: childClients } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("parent_client_id", clientId);
+
+      let allVessels = directVessels || [];
+
+      if (childClients && childClients.length > 0) {
+        const childIds = childClients.map(c => c.id);
+        const { data: childVessels } = await supabase
+          .from("vessels")
+          .select("id, name")
+          .in("client_id", childIds)
+          .order("name");
+        if (childVessels) {
+          allVessels = [...allVessels, ...childVessels];
+        }
+      }
+
+      setVessels(allVessels);
     } catch (error: any) {
       console.error("Error fetching vessels:", error);
     }
