@@ -1,109 +1,140 @@
+## Gamificação do Sistema de Conquistas
 
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-## Plano: Gestão Documental do RH e Portal de Admissão
+### Modelo de Dados
 
-### Contexto
-Duas necessidades distintas mas complementares:
-1. **RH envia documentos proativamente** (holerites, informes de rendimentos, etc.) sem o funcionário solicitar
-2. **Portal de Admissão** onde novos funcionários enviam documentação obrigatória para o RH, com acompanhamento de status
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-### Parte 1 — Envio proativo de documentos pelo RH
-
-O sistema já possui `corp_documents` e o `DocumentUploadDialog` com mode `hr`. Ajustes necessários:
-
-**1.1 Adicionar tipos de documento faltantes**
-- Adicionar `income_report` (Informe de Rendimentos) e `contract` (Contrato) aos tipos disponíveis para HR
-
-**1.2 Nova página dedicada no menu HR: "Documentos"**
-- Rota `/hr/documents` com visão consolidada de todos documentos enviados pelo RH
-- Filtros por colaborador, tipo, departamento e período
-- Possibilidade de envio em lote (mesmo documento para vários colaboradores)
-- Adicionar item "Documentos" ao `hrMenuItems` no DashboardLayout
-
-### Parte 2 — Portal de Admissão (Onboarding)
-
-**2.1 Nova tabela `employee_onboarding`**
-```sql
-CREATE TABLE employee_onboarding (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id uuid NOT NULL REFERENCES companies(id),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  status text NOT NULL DEFAULT 'pending', -- pending, in_progress, completed, archived
-  started_at timestamptz DEFAULT now(),
-  completed_at timestamptz,
-  created_by uuid NOT NULL REFERENCES auth.users(id),
-  notes text
-);
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
 ```
 
-**2.2 Nova tabela `onboarding_document_types`**
-Define quais documentos são obrigatórios para admissão:
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
+
+### Conquistas Automáticas (por categoria)
+
+Definir um conjunto fixo no código (sem tabela extra):
+
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+
+### Mudanças nos Componentes
+
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
 ```sql
-CREATE TABLE onboarding_document_types (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  company_id uuid NOT NULL REFERENCES companies(id),
-  name text NOT NULL, -- "RG", "CPF", "Comprovante de Residência", etc.
-  description text,
-  is_required boolean DEFAULT true,
-  sort_order integer DEFAULT 0
-);
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
 ```
 
-**2.3 Nova tabela `onboarding_documents`**
-Documentos enviados pelo funcionário no processo de admissão:
-```sql
-CREATE TABLE onboarding_documents (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  onboarding_id uuid NOT NULL REFERENCES employee_onboarding(id) ON DELETE CASCADE,
-  document_type_id uuid NOT NULL REFERENCES onboarding_document_types(id),
-  file_name text NOT NULL,
-  file_url text NOT NULL,
-  uploaded_by uuid NOT NULL REFERENCES auth.users(id),
-  status text DEFAULT 'pending', -- pending, approved, rejected
-  rejection_reason text,
-  uploaded_at timestamptz DEFAULT now(),
-  reviewed_at timestamptz,
-  reviewed_by uuid REFERENCES auth.users(id)
-);
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
+
+## Modo Docagem - OS individual por atividade + Relatórios
+
+### Implementado ✅
+
+**Banco de dados:**
+- `tasks.docking_activity_group` (uuid) — agrupa tasks da mesma atividade
+- `service_orders.parent_docking_id` (uuid, FK → service_orders) — OS filha aponta para OS mãe
+
+**DockingTasksSection.tsx:**
+- Campo opcional "Nº OS" por atividade — se preenchido, cria OS filha separada
+
+**NewOrderForm.tsx (submit):**
+- Cada atividade gera um `docking_activity_group` UUID
+- Se atividade tem `orderNumber`, cria OS filha com `parent_docking_id` → OS mãe
+- OS filha recebe sua própria visita e visit_technicians
+
+**ReportForm.tsx:**
+- Query de tasks agora inclui `docking_activity_group` e `scheduled_date`
+- Sem deduplicação por task_type para OS de docagem (`is_docking = true`)
+- Cada task/atividade gera sua própria aba de relatório
+
+**ServiceOrderReports.tsx (Manager):**
+- Badge "Docagem" na coluna de OS para identificar
+- Botão de "Relatório Consolidado" (ícone Layers) para OS de docagem
+- Gera PDF unificado com `generateMultiTaskReportPdfBlob`
+
+**Admin Reports.tsx:**
+- Query atualizada para incluir `is_docking` e `parent_docking_id`
+
+## Fluxo de Aprovação Revisado (Diretoria Direta + Roteamento)
+
+### Implementado ✅
+
+**Regras de negócio:**
+
+```text
+PRODUTO / ASSINATURA (com valor):
+  Criação → pending_director
+  Diretoria aprova → pending_department (Suprimentos / Financeiro)
+  Se departamento alterar valor → volta para pending_director
+  Diretoria re-aprova → pending_department novamente
+
+REEMBOLSO:
+  Criação → pending_department (Financeiro direto)
+  Financeiro pode escalar → pending_director
+  Diretoria aprova → retorna para pending_department
+
+DOCUMENTO / FOLGA:
+  Criação → pending_department (RH direto)
 ```
 
-**2.4 Páginas e componentes**
+**Banco de dados:**
+- `corp_requests.approved_amount` (numeric) — rastreia valor aprovado pela diretoria
+- `corp_request_types` atualizados:
+  - Produto → `requires_director_approval = true`, `department_id = Suprimentos`
+  - Assinatura → `requires_director_approval = true`, `department_id = Financeiro`
+  - Reembolso → direto para `department_id = Financeiro`
+  - Folga/Férias → direto para `department_id = RH`
+  - Documento → direto para `department_id = RH`
 
-Para o **RH** (`/hr/onboarding`):
-- Lista de processos de admissão ativos com progresso (X de Y documentos enviados)
-- Criar novo processo de admissão (selecionar colaborador)
-- Visualizar documentos de cada funcionário, aprovar ou rejeitar com motivo
-- Configurar tipos de documentos obrigatórios (`/hr/onboarding/settings`)
+**Status disponíveis:** `open`, `pending_director`, `pending_department`, `in_progress`, `approved`, `rejected`, `cancelled`, `completed`
 
-Para o **Funcionário** (na área corp existente):
-- Nova aba "Meus Documentos" no `/corp/dashboard` ou página dedicada
-- Checklist visual mostrando quais documentos foram enviados e quais faltam
-- Upload direto por tipo de documento
-- Status de cada documento (Pendente, Aprovado, Rejeitado com motivo)
-
-**2.5 Menu e rotas**
-- Adicionar "Documentos" e "Admissão" ao menu HR
-- Adicionar rota `/hr/documents` e `/hr/onboarding`
-- Na área corp, link para a documentação pessoal do funcionário
-
-### Parte 3 — Área pessoal de documentos do funcionário
-
-Cada funcionário terá uma página `/corp/my-documents` com:
-- Todos os documentos recebidos do RH (holerites, informes, etc.)
-- Documentos de admissão com status
-- Histórico completo da documentação pessoal
-
-### Resumo de arquivos
-
-| Ação | Arquivo |
-|------|---------|
-| Migração | Nova tabela `employee_onboarding`, `onboarding_document_types`, `onboarding_documents` + RLS |
-| Criar | `src/pages/hr/Documents.tsx` — Gestão de documentos do RH |
-| Criar | `src/pages/hr/Onboarding.tsx` — Portal de admissão (lado RH) |
-| Criar | `src/pages/hr/OnboardingSettings.tsx` — Config. tipos de docs obrigatórios |
-| Criar | `src/pages/corp/MyDocuments.tsx` — Área pessoal do funcionário |
-| Criar | Componentes auxiliares (OnboardingChecklist, DocumentReviewDialog, etc.) |
-| Editar | `src/components/DashboardLayout.tsx` — Adicionar itens ao menu HR |
-| Editar | `src/App.tsx` — Novas rotas |
-| Editar | `src/components/corp/DocumentUploadDialog.tsx` — Novos tipos de doc |
-
+**Código alterado:**
+- `useCorpRequests.ts` — removido `approveAsManager`, adicionadas mutations: `approveAsDirector` (com `approved_amount`), `escalateToDirector`, `updateDepartmentAmount`, `startDepartmentWork`, `completeDepartmentWork`
+- `ApprovalActions.tsx` — ações por role: Diretoria (aprovar/rejeitar), Departamentos (iniciar/concluir/escalar/alterar valor)
+- `RequestDetailSheet.tsx` — novos status no mapa, timeline sem gerente
+- `NewRequestDialog.tsx` — `determineStatus()` usa `requires_director_approval` e `department_id`
+- `Requests.tsx` — aba Recebidas filtra por role e categoria do tipo

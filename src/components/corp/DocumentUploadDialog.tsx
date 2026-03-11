@@ -25,13 +25,15 @@ const docTypeLabels: Record<string, string> = {
   benefits: 'Benefícios',
   declaration: 'Declaração',
   institutional: 'Institucional',
+  income_report: 'Informe de Rendimentos',
+  contract: 'Contrato',
   medical_certificate: 'Atestado Médico',
   reimbursement_proof: 'Comprovante de Reembolso',
   signed_form: 'Formulário Assinado',
   other: 'Outro',
 };
 
-const hrTypes = ['payslip', 'benefits', 'declaration', 'institutional'];
+const hrTypes = ['payslip', 'benefits', 'declaration', 'institutional', 'income_report', 'contract'];
 const userTypes = ['medical_certificate', 'reimbursement_proof', 'signed_form', 'other'];
 
 const DocumentUploadDialog = ({ companyId, mode = 'self' }: DocumentUploadDialogProps) => {

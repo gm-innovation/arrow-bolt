@@ -98,6 +98,9 @@ const HRHolidays = lazy(() => import("./pages/hr/Holidays"));
 const HRReports = lazy(() => import("./pages/hr/Reports"));
 const HRProfile = lazy(() => import("./pages/hr/Profile"));
 const HRSettings = lazy(() => import("./pages/hr/Settings"));
+const HRDocumentsPage = lazy(() => import("./pages/hr/Documents"));
+const HROnboarding = lazy(() => import("./pages/hr/Onboarding"));
+const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"));
 
 const CorpDashboard = lazy(() => import("./pages/corp/Dashboard"));
 const CorpRequests = lazy(() => import("./pages/corp/Requests"));
@@ -111,6 +114,7 @@ const CorpFeedDiscussion = lazy(() => import("./pages/corp/FeedDiscussion"));
 const CorpGroupDetail = lazy(() => import("./pages/corp/GroupDetail"));
 const CorpGroupDiscussion = lazy(() => import("./pages/corp/GroupDiscussion"));
 const CorpUserProfile = lazy(() => import("./pages/corp/UserProfile"));
+const CorpMyDocuments = lazy(() => import("./pages/corp/MyDocuments"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
 const SuppliesRequests = lazy(() => import("./pages/supplies/Requests"));
@@ -261,6 +265,9 @@ const App = () => {
                     <Route path="/hr/on-call" element={<Navigate to="/hr/absences" replace />} />
                     <Route path="/hr/holidays" element={<HRHolidays />} />
                     <Route path="/hr/reports" element={<HRReports />} />
+                    <Route path="/hr/documents" element={<HRDocumentsPage />} />
+                    <Route path="/hr/onboarding" element={<HROnboarding />} />
+                    <Route path="/hr/onboarding/settings" element={<HROnboardingSettings />} />
                     <Route path="/hr/profile" element={<HRProfile />} />
                     <Route path="/hr/settings" element={<HRSettings />} />
                     <Route path="/hr/chat" element={<Chat />} />
@@ -312,6 +319,7 @@ const App = () => {
                   <Route path="/corp/admin/departments" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpDepartments /></CorpAdminRoute>} />
                   <Route path="/corp/admin/request-types" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpRequestTypes /></CorpAdminRoute>} />
                   <Route path="/corp/admin/audit-log" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpAuditLog /></CorpAdminRoute>} />
+                  <Route path="/corp/my-documents" element={<CorpRoute pageTitle="Meus Documentos"><CorpMyDocuments /></CorpRoute>} />
                   <Route path="/corp/profile/:userId" element={<CorpRoute pageTitle="Perfil"><CorpUserProfile /></CorpRoute>} />
                   <Route path="/corp/profile" element={<CorpRoute pageTitle="Meu Perfil"><CorpUserProfile /></CorpRoute>} />
 
