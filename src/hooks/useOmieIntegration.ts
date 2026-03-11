@@ -60,6 +60,12 @@ export const useOmieIntegration = () => {
 
   const listOrders = useMutation({
     mutationFn: (params?: { page?: number }) => invokeOmie("list_orders", params),
+    onError: (err: any) => toast.error("Erro ao listar OS: " + err.message),
+  });
+
+  const searchOrders = useMutation({
+    mutationFn: (params: { search: string }) => invokeOmie("search_orders", params),
+    onError: (err: any) => toast.error("Erro ao buscar OS: " + err.message),
   });
 
   const consultOrder = useMutation({
@@ -88,6 +94,7 @@ export const useOmieIntegration = () => {
     testConnection,
     syncClients,
     listOrders,
+    searchOrders,
     consultOrder,
     attachFile,
   };
