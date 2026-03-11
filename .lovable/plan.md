@@ -1,54 +1,140 @@
+## Gamificação do Sistema de Conquistas
 
+O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-## Diagnóstico: Por que só o cliente é preenchido
+### Modelo de Dados
 
-### Problemas identificados
+Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
 
-**1. `omie-proxy` não está registrada no `config.toml`**
-A função não tem entrada no `config.toml`, o que pode impedir o deploy correto. Precisa ser adicionada.
-
-**2. A extração de `serviceDescription` pode estar vazia**
-O campo `ServicosPrestados[].cDescricao` pode não ser o nome correto do campo retornado pela API Omie — o Omie usa variações como `cDescrServico`, `cDescricao`, `descricao`. Se estiver vazio, a IA nunca é chamada e `parsedData` fica `{}`.
-
-**3. Race condition no `useEffect` de import**
-O `useEffect` de import roda potencialmente antes do `fetchInitialData` terminar. Quando `form.setValue("clientId", ...)` é chamado, o watcher de `selectedClient` dispara `fetchVessels` de forma assíncrona. O `setTimeout(1200ms)` é frágil — se a busca demorar mais, o vessel/requester não são setados porque as listas ainda estão vazias.
-
-**4. Falta de logs de diagnóstico**
-Não há console.log no fluxo para identificar o que está chegando da API Omie e o que a IA retorna.
-
-### Plano de correção
-
-**1. Adicionar `omie-proxy` ao `config.toml`**
-```toml
-[functions.omie-proxy]
-verify_jwt = true
+```text
+Tier         | XP necessário | Ícone
+─────────────┼───────────────┼──────
+Bronze       | 0             | 🥉
+Prata        | 100           | 🥈
+Ouro         | 300           | 🥇
+Diamante     | 600           | 💎
+Rubi         | 1000          | ❤️‍🔥
 ```
 
-**2. Melhorar extração de `serviceDescription` no backend**
-- Adicionar logs extensivos: dados brutos do Omie, descrição extraída, resposta da IA
-- Buscar o campo correto em `ServicosPrestados` — verificar também `cDescrServico` e campos aninhados
-- Logar a resposta completa da IA para diagnóstico
+Alterações na tabela `corp_badges`:
+- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
+- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
 
-**3. Corrigir race condition no frontend**
-Substituir o `setTimeout(1200ms)` por uma abordagem reativa:
-- Guardar os dados pendentes do Omie em um ref
-- Quando `vessels` e `clientContacts` terminarem de carregar (via `useEffect` que observa esses states), aplicar os valores pendentes
-- Isso garante que vessel, requester etc. só são setados quando as listas estiverem prontas
+### Conquistas Automáticas (por categoria)
 
-**4. Adicionar campo `Observações` / `InformacoesAdicionais` como fallback**
-A descrição pode estar em `InformacoesAdicionais.cDadosAdicionaisNF` ou `Observacoes.cObsOS`. Incluir esses campos como fontes alternativas de texto.
+Definir um conjunto fixo no código (sem tabela extra):
 
-### Alterações por arquivo
+**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
+**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
+**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
 
-**`supabase/config.toml`** — Adicionar entrada para `omie-proxy`
+Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
 
-**`supabase/functions/omie-proxy/index.ts`**
-- Adicionar `console.log` detalhados em `handleConsultOrder` (dados brutos, descrição, resposta IA)
-- Expandir extração de `serviceDescription` para buscar em múltiplos campos do Omie
-- Logar estrutura completa de `ServicosPrestados` para debug
+### Mudanças nos Componentes
 
-**`src/components/admin/orders/NewOrderForm.tsx`**
-- Substituir `setTimeout(1200ms)` por `useEffect` reativo que observa `vessels` e `clientContacts`
-- Quando esses arrays carregam E existem dados pendentes do Omie, aplicar os valores
-- Adicionar `console.log` no import para debug frontend
+**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
+- Substituir `BADGE_TYPES` por categorias com sub-opções:
+  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
+  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
+  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
+- Cada opção define XP (5, 10, 15, 25 conforme importância)
+- Manter seletor de ícone para tipo Personalizada
+- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
 
+**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
+- Recebe `userId` e `companyId`
+- Query: contar total de badges do usuário e somar `xp_value`
+- Calcular tier atual e progresso para o próximo
+- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
+- Usado no `FeedProfileSidebar` abaixo do nome
+
+**3. `FeedProfileSidebar.tsx` — Integrar nível**
+- Adicionar `FeedUserLevel` abaixo do badge de role
+- Mostrar contagem de conquistas do usuário
+
+**4. `FeedBadgesCard.tsx` — Melhorar visual**
+- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
+- Agrupar visualmente por categoria com ícone
+
+### Migration SQL
+
+```sql
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
+ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
+```
+
+### Resumo
+- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
+- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
+- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
+- Integrar nível no `FeedProfileSidebar`
+- Melhorar `FeedBadgesCard` com indicador de XP
+
+## Modo Docagem - OS individual por atividade + Relatórios
+
+### Implementado ✅
+
+**Banco de dados:**
+- `tasks.docking_activity_group` (uuid) — agrupa tasks da mesma atividade
+- `service_orders.parent_docking_id` (uuid, FK → service_orders) — OS filha aponta para OS mãe
+
+**DockingTasksSection.tsx:**
+- Campo opcional "Nº OS" por atividade — se preenchido, cria OS filha separada
+
+**NewOrderForm.tsx (submit):**
+- Cada atividade gera um `docking_activity_group` UUID
+- Se atividade tem `orderNumber`, cria OS filha com `parent_docking_id` → OS mãe
+- OS filha recebe sua própria visita e visit_technicians
+
+**ReportForm.tsx:**
+- Query de tasks agora inclui `docking_activity_group` e `scheduled_date`
+- Sem deduplicação por task_type para OS de docagem (`is_docking = true`)
+- Cada task/atividade gera sua própria aba de relatório
+
+**ServiceOrderReports.tsx (Manager):**
+- Badge "Docagem" na coluna de OS para identificar
+- Botão de "Relatório Consolidado" (ícone Layers) para OS de docagem
+- Gera PDF unificado com `generateMultiTaskReportPdfBlob`
+
+**Admin Reports.tsx:**
+- Query atualizada para incluir `is_docking` e `parent_docking_id`
+
+## Fluxo de Aprovação Revisado (Diretoria Direta + Roteamento)
+
+### Implementado ✅
+
+**Regras de negócio:**
+
+```text
+PRODUTO / ASSINATURA (com valor):
+  Criação → pending_director
+  Diretoria aprova → pending_department (Suprimentos / Financeiro)
+  Se departamento alterar valor → volta para pending_director
+  Diretoria re-aprova → pending_department novamente
+
+REEMBOLSO:
+  Criação → pending_department (Financeiro direto)
+  Financeiro pode escalar → pending_director
+  Diretoria aprova → retorna para pending_department
+
+DOCUMENTO / FOLGA:
+  Criação → pending_department (RH direto)
+```
+
+**Banco de dados:**
+- `corp_requests.approved_amount` (numeric) — rastreia valor aprovado pela diretoria
+- `corp_request_types` atualizados:
+  - Produto → `requires_director_approval = true`, `department_id = Suprimentos`
+  - Assinatura → `requires_director_approval = true`, `department_id = Financeiro`
+  - Reembolso → direto para `department_id = Financeiro`
+  - Folga/Férias → direto para `department_id = RH`
+  - Documento → direto para `department_id = RH`
+
+**Status disponíveis:** `open`, `pending_director`, `pending_department`, `in_progress`, `approved`, `rejected`, `cancelled`, `completed`
+
+**Código alterado:**
+- `useCorpRequests.ts` — removido `approveAsManager`, adicionadas mutations: `approveAsDirector` (com `approved_amount`), `escalateToDirector`, `updateDepartmentAmount`, `startDepartmentWork`, `completeDepartmentWork`
+- `ApprovalActions.tsx` — ações por role: Diretoria (aprovar/rejeitar), Departamentos (iniciar/concluir/escalar/alterar valor)
+- `RequestDetailSheet.tsx` — novos status no mapa, timeline sem gerente
+- `NewRequestDialog.tsx` — `determineStatus()` usa `requires_director_approval` e `department_id`
+- `Requests.tsx` — aba Recebidas filtra por role e categoria do tipo

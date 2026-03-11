@@ -130,11 +130,17 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
   // Auto-fill from Omie import data
   const omieImportRef = useRef<string | null>(null);
+  const pendingOmieData = useRef<OmieImportData | null>(null);
+
+  // Step 1: Set client and direct fields when omieImportData arrives
   useEffect(() => {
     if (!omieImportData || omieImportRef.current === omieImportData.orderNumber) return;
     omieImportRef.current = omieImportData.orderNumber;
+    pendingOmieData.current = omieImportData;
 
-    // Step 1: Set client (triggers vessel/contact loading)
+    console.log("[OmieImport] Received import data:", JSON.stringify(omieImportData));
+
+    // Set client (triggers vessel/contact loading via selectedClient watcher)
     if (omieImportData.localClientId) {
       form.setValue("clientId", omieImportData.localClientId);
     }
@@ -162,24 +168,44 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
       form.setValue("coordinatorId", omieImportData.matchedCoordinatorId);
     }
 
-    // Step 2: After client loads vessels/contacts (delay for dependent data)
-    setTimeout(() => {
-      if (omieImportData.localVesselId) {
-        form.setValue("vesselId", omieImportData.localVesselId);
-      }
-      if (omieImportData.matchedRequesterId) {
-        form.setValue("requesterId", omieImportData.matchedRequesterId);
-      }
-      if (omieImportData.matchedTaskTypeIds?.length) {
-        form.setValue("taskTypes", omieImportData.matchedTaskTypeIds);
-      }
-      // Set technicians
-      if (omieImportData.matchedTechnicianIds?.length) {
-        setSelectedTechnicians(omieImportData.matchedTechnicianIds);
-        setLeadTechId(omieImportData.matchedTechnicianIds[0]);
-      }
-    }, 1200);
+    // Set technicians (not dependent on vessels/contacts loading)
+    if (omieImportData.matchedTechnicianIds?.length) {
+      setSelectedTechnicians(omieImportData.matchedTechnicianIds);
+      setLeadTechId(omieImportData.matchedTechnicianIds[0]);
+    }
   }, [omieImportData, form]);
+
+  // Step 2: Reactively apply dependent fields when vessels/contacts finish loading
+  useEffect(() => {
+    const pending = pendingOmieData.current;
+    if (!pending) return;
+
+    const hasVesselToSet = pending.localVesselId && vessels.length > 0;
+    const hasRequesterToSet = pending.matchedRequesterId && clientContacts.length > 0;
+    const hasTaskTypesToSet = pending.matchedTaskTypeIds?.length && taskTypes.length > 0;
+
+    if (hasVesselToSet || hasRequesterToSet || hasTaskTypesToSet) {
+      console.log("[OmieImport] Applying dependent fields - vessels:", vessels.length, "contacts:", clientContacts.length, "taskTypes:", taskTypes.length);
+
+      if (pending.localVesselId && vessels.some(v => v.id === pending.localVesselId)) {
+        form.setValue("vesselId", pending.localVesselId);
+      }
+      if (pending.matchedRequesterId && clientContacts.some(c => c.id === pending.matchedRequesterId)) {
+        form.setValue("requesterId", pending.matchedRequesterId);
+      }
+      if (pending.matchedTaskTypeIds?.length) {
+        const validIds = pending.matchedTaskTypeIds.filter(id => taskTypes.some(t => t.id === id));
+        if (validIds.length > 0) {
+          form.setValue("taskTypes", validIds);
+        }
+      }
+
+      // Clear pending after applying all dependent fields
+      if (vessels.length > 0 && clientContacts.length > 0 && taskTypes.length > 0) {
+        pendingOmieData.current = null;
+      }
+    }
+  }, [vessels, clientContacts, taskTypes, form]);
 
   const fetchInitialData = async () => {
     try {
