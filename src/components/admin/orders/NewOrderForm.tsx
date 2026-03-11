@@ -200,11 +200,9 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
     const hasVesselToSet = pending.localVesselId && vessels.length > 0;
     const hasRequesterToSet = pending.matchedRequesterId && clientContacts.length > 0;
     const hasTaskTypesToSet = pending.matchedTaskTypeIds?.length && taskTypes.length > 0;
-    const hasSupervisorToSet = pending.matchedSupervisorId && supervisors.length > 0;
-    const hasCoordinatorToSet = pending.matchedCoordinatorId && supervisors.length > 0;
 
-    if (hasVesselToSet || hasRequesterToSet || hasTaskTypesToSet || hasSupervisorToSet || hasCoordinatorToSet) {
-      console.log("[OmieImport] Applying dependent fields - vessels:", vessels.length, "contacts:", clientContacts.length, "taskTypes:", taskTypes.length, "supervisors:", supervisors.length);
+    if (hasVesselToSet || hasRequesterToSet || hasTaskTypesToSet) {
+      console.log("[OmieImport] Applying dependent fields - vessels:", vessels.length, "contacts:", clientContacts.length, "taskTypes:", taskTypes.length);
 
       if (pending.localVesselId && vessels.some(v => v.id === pending.localVesselId)) {
         form.setValue("vesselId", pending.localVesselId);
@@ -218,19 +216,13 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
           form.setValue("taskTypes", validIds);
         }
       }
-      if (pending.matchedSupervisorId && supervisors.some(s => s.id === pending.matchedSupervisorId)) {
-        form.setValue("supervisorId", pending.matchedSupervisorId);
-      }
-      if (pending.matchedCoordinatorId && supervisors.some(s => s.id === pending.matchedCoordinatorId)) {
-        form.setValue("coordinatorId", pending.matchedCoordinatorId);
-      }
 
       // Clear pending after applying all dependent fields
-      if (vessels.length > 0 && clientContacts.length > 0 && taskTypes.length > 0 && supervisors.length > 0) {
+      if (vessels.length > 0 && clientContacts.length > 0 && taskTypes.length > 0) {
         pendingOmieData.current = null;
       }
     }
-  }, [vessels, clientContacts, taskTypes, supervisors, form]);
+  }, [vessels, clientContacts, taskTypes, form]);
 
   const fetchInitialData = async () => {
     try {
