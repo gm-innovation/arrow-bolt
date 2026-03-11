@@ -1025,6 +1025,7 @@ const Technicians = () => {
                 medical_status: (selectedTechnician.medical_status as 'fit' | 'pending' | 'unfit') || 'pending',
                 avatar_url: selectedTechnician.profiles?.avatar_url || '',
                 documents: selectedTechnician.technician_documents || [],
+                user_id: selectedTechnician.user_id,
               }}
             />
           )}
