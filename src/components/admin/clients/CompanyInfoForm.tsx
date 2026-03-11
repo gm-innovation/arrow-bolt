@@ -127,10 +127,17 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
       </Form>
 
       <Separator />
-      <LegalEntitiesSection clientId={savedClientId} />
+      <LegalEntitiesSection
+        clientId={savedClientId}
+        legacyCnpj={clientData?.cnpj}
+        clientName={clientData?.name}
+      />
 
       <Separator />
-      <AddressesSection clientId={savedClientId} />
+      <AddressesSection
+        clientId={savedClientId}
+        legacyAddress={clientData?.address}
+      />
     </div>
   );
 };
