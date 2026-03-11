@@ -131,6 +131,7 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
   const localClient = foundOrder?.localClient;
   const localVessel = foundOrder?.localVessel;
   const serviceDesc = foundOrder?.serviceDescription || "";
+  const parsed = foundOrder?.parsedData || {};
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
