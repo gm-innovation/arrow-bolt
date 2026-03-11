@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   clientId: string | null;
+  legacyAddress?: string | null;
 }
 
 interface FormData {
@@ -25,11 +26,26 @@ interface FormData {
 
 const emptyForm: FormData = { label: "Sede", cep: "", street: "", street_number: "", city: "", state: "", complement: "" };
 
-export const AddressesSection = ({ clientId }: Props) => {
+export const AddressesSection = ({ clientId, legacyAddress }: Props) => {
   const { addresses, isLoading, create, update, remove } = useClientAddresses(clientId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+  const migratedRef = useRef(false);
+
+  // Auto-migrate legacy address to sub-table
+  useEffect(() => {
+    if (!clientId || isLoading || migratedRef.current) return;
+    if (addresses.length === 0 && legacyAddress) {
+      migratedRef.current = true;
+      create.mutate({
+        client_id: clientId,
+        label: "Sede",
+        street: legacyAddress,
+        is_primary: true,
+      } as any);
+    }
+  }, [clientId, isLoading, addresses.length, legacyAddress]);
 
   if (!clientId) return <p className="text-sm text-muted-foreground">Salve a empresa primeiro.</p>;
   if (isLoading) return <Skeleton className="h-20 w-full" />;

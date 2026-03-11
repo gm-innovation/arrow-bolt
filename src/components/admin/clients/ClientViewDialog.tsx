@@ -25,50 +25,73 @@ interface Props {
 }
 
 export const ClientViewDialog = ({ open, onOpenChange, client }: Props) => {
-  const { data: legalEntities = [], isLoading: loadingLE } = useQuery({
-    queryKey: ["client-legal-entities", client?.id],
+  // Fetch child clients for this parent
+  const { data: childClients = [] } = useQuery({
+    queryKey: ["client-children", client?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("client_legal_entities").select("*").eq("client_id", client!.id).order("is_primary", { ascending: false });
+      const { data } = await supabase.from("clients").select("id, name").eq("parent_client_id", client!.id).order("name");
       return data || [];
     },
     enabled: !!client?.id && open,
+  });
+
+  const allGroupIds = client ? [client.id, ...childClients.map(c => c.id)] : [];
+  const nameMap: Record<string, string> = {};
+  if (client) {
+    nameMap[client.id] = client.name;
+    childClients.forEach(c => { nameMap[c.id] = c.name; });
+  }
+
+  const { data: legalEntities = [], isLoading: loadingLE } = useQuery({
+    queryKey: ["client-legal-entities-group", allGroupIds.join(",")],
+    queryFn: async () => {
+      const { data } = await supabase.from("client_legal_entities").select("*").in("client_id", allGroupIds).order("is_primary", { ascending: false });
+      return data || [];
+    },
+    enabled: allGroupIds.length > 0 && open,
   });
 
   const { data: addresses = [], isLoading: loadingAddr } = useQuery({
-    queryKey: ["client-addresses", client?.id],
+    queryKey: ["client-addresses-group", allGroupIds.join(",")],
     queryFn: async () => {
-      const { data } = await supabase.from("client_addresses").select("*").eq("client_id", client!.id).order("is_primary", { ascending: false });
+      const { data } = await supabase.from("client_addresses").select("*").in("client_id", allGroupIds).order("is_primary", { ascending: false });
       return data || [];
     },
-    enabled: !!client?.id && open,
+    enabled: allGroupIds.length > 0 && open,
   });
 
   const { data: contacts = [], isLoading: loadingContacts } = useQuery({
-    queryKey: ["client-contacts", client?.id],
+    queryKey: ["client-contacts-group", allGroupIds.join(",")],
     queryFn: async () => {
-      const { data } = await supabase.from("client_contacts").select("*").eq("client_id", client!.id).order("is_primary", { ascending: false });
+      const { data } = await supabase.from("client_contacts").select("*").in("client_id", allGroupIds).order("is_primary", { ascending: false });
       return data || [];
     },
-    enabled: !!client?.id && open,
+    enabled: allGroupIds.length > 0 && open,
   });
 
   const { data: vessels = [] } = useQuery({
-    queryKey: ["client-vessels-view", client?.id],
+    queryKey: ["client-vessels-group", allGroupIds.join(",")],
     queryFn: async () => {
-      const { data } = await supabase.from("vessels").select("id, name, vessel_type").eq("client_id", client!.id).order("name");
+      const { data } = await supabase.from("vessels").select("id, name, vessel_type, client_id").in("client_id", allGroupIds).order("name");
       return data || [];
     },
-    enabled: !!client?.id && open,
+    enabled: allGroupIds.length > 0 && open,
   });
 
   if (!client) return null;
+
+  const hasGroup = childClients.length > 0;
+  const SourceBadge = ({ clientId }: { clientId: string }) => {
+    if (!hasGroup || clientId === client.id) return null;
+    return <Badge variant="outline" className="text-xs ml-1">{nameMap[clientId] || "—"}</Badge>;
+  };
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Detalhes do Cliente</SheetTitle>
-          <SheetDescription>Visualização completa dos dados cadastrais.</SheetDescription>
+          <SheetDescription>Visualização completa dos dados cadastrais{hasGroup ? ` (grupo com ${childClients.length} empresa${childClients.length > 1 ? "s" : ""} vinculada${childClients.length > 1 ? "s" : ""})` : ""}.</SheetDescription>
         </SheetHeader>
 
         <div className="space-y-4 mt-4">
@@ -86,6 +109,20 @@ export const ClientViewDialog = ({ open, onOpenChange, client }: Props) => {
           {client.email && <p className="text-sm flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" />{client.email}</p>}
           {client.phone && <p className="text-sm flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" />{client.phone}</p>}
 
+          {hasGroup && (
+            <>
+              <Separator />
+              <div>
+                <h3 className="text-sm font-semibold mb-2">Empresas do Grupo</h3>
+                <div className="flex flex-wrap gap-1">
+                  {childClients.map(c => (
+                    <Badge key={c.id} variant="secondary" className="text-xs">{c.name}</Badge>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
           <Separator />
 
           {/* Legal Entities */}
@@ -101,6 +138,7 @@ export const ClientViewDialog = ({ open, onOpenChange, client }: Props) => {
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm">{le.legal_name}</span>
                         {le.is_primary && <Badge variant="secondary" className="text-xs"><Star className="h-3 w-3 mr-1 fill-current" />Principal</Badge>}
+                        <SourceBadge clientId={le.client_id} />
                       </div>
                       {le.cnpj && <p className="text-xs text-muted-foreground">{le.cnpj}</p>}
                     </CardContent>
@@ -125,6 +163,7 @@ export const ClientViewDialog = ({ open, onOpenChange, client }: Props) => {
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm">{a.label || "Endereço"}</span>
                         {a.is_primary && <Badge variant="secondary" className="text-xs"><Star className="h-3 w-3 mr-1 fill-current" />Principal</Badge>}
+                        <SourceBadge clientId={a.client_id} />
                       </div>
                       <p className="text-xs text-muted-foreground">
                         {[a.street, a.street_number, a.complement, a.city, a.state].filter(Boolean).join(", ")}
@@ -153,6 +192,7 @@ export const ClientViewDialog = ({ open, onOpenChange, client }: Props) => {
                         <span className="font-medium text-sm">{c.name}</span>
                         {c.is_primary && <Badge variant="secondary" className="text-xs">Principal</Badge>}
                         {c.is_general && <Badge variant="outline" className="text-xs">Geral</Badge>}
+                        <SourceBadge clientId={c.client_id} />
                       </div>
                       {c.role && <p className="text-xs text-muted-foreground">{c.role}</p>}
                       <div className="flex gap-3 text-xs text-muted-foreground mt-1">
@@ -178,9 +218,10 @@ export const ClientViewDialog = ({ open, onOpenChange, client }: Props) => {
               <div className="space-y-2">
                 {vessels.map((v: any) => (
                   <Card key={v.id}>
-                    <CardContent className="p-3">
+                    <CardContent className="p-3 flex items-center gap-2">
                       <span className="font-medium text-sm">{v.name}</span>
-                      {v.vessel_type && <span className="text-xs text-muted-foreground ml-2">({v.vessel_type})</span>}
+                      {v.vessel_type && <span className="text-xs text-muted-foreground">({v.vessel_type})</span>}
+                      <SourceBadge clientId={v.client_id} />
                     </CardContent>
                   </Card>
                 ))}

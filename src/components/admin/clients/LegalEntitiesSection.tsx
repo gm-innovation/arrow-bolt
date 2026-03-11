@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 interface Props {
   clientId: string | null;
+  legacyCnpj?: string | null;
+  clientName?: string;
 }
 
 interface FormData {
@@ -20,11 +22,26 @@ interface FormData {
 
 const emptyForm: FormData = { legal_name: "", cnpj: "" };
 
-export const LegalEntitiesSection = ({ clientId }: Props) => {
+export const LegalEntitiesSection = ({ clientId, legacyCnpj, clientName }: Props) => {
   const { entities, isLoading, create, update, remove } = useClientLegalEntities(clientId);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData>(emptyForm);
+  const migratedRef = useRef(false);
+
+  // Auto-migrate legacy CNPJ to sub-table
+  useEffect(() => {
+    if (!clientId || isLoading || migratedRef.current) return;
+    if (entities.length === 0 && legacyCnpj) {
+      migratedRef.current = true;
+      create.mutate({
+        client_id: clientId,
+        legal_name: clientName || "Razão Social",
+        cnpj: legacyCnpj,
+        is_primary: true,
+      });
+    }
+  }, [clientId, isLoading, entities.length, legacyCnpj]);
 
   if (!clientId) return <p className="text-sm text-muted-foreground">Salve a empresa primeiro.</p>;
   if (isLoading) return <Skeleton className="h-20 w-full" />;
