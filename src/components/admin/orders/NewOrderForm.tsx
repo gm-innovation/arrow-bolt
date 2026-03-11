@@ -56,7 +56,7 @@ interface NewOrderFormProps {
   omieImportData?: OmieImportData | null;
 }
 
-export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference, onSuccess }: NewOrderFormProps) => {
+export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference, onSuccess, omieImportData }: NewOrderFormProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { sendTaskAssignmentNotification, sendScheduleChangeNotification } = useWhatsAppNotification();
