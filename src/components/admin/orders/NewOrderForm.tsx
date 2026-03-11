@@ -701,7 +701,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
           .select("id")
           .eq("service_order_id", serviceOrder.id)
           .eq("visit_type", "initial")
-          .single();
+          .maybeSingle();
 
         if (visitError) {
           console.error("Error fetching visit for technicians:", visitError);
