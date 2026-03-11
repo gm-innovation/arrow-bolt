@@ -66,6 +66,7 @@ interface NewTechnicianFormProps {
   onCancel: () => void;
   initialData?: Partial<TechnicianFormValues> & {
     avatar_url?: string;
+    user_id?: string;
     documents?: Array<{
       id: string;
       file_name: string;
