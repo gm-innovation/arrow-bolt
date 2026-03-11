@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, TrendingDown, BarChart3, Pencil, Plus, Sparkles, ThumbsUp, X, CalendarIcon, User } from "lucide-react";
+import { DollarSign, TrendingDown, BarChart3, Pencil, Plus, Sparkles, ThumbsUp, X, CalendarIcon, User, Building2 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
@@ -84,6 +84,20 @@ export const ClientDetailSheet = ({ open, onOpenChange, client, onEdit }: Props)
         .eq("client_id", client!.id)
         .order("name");
       return data || [];
+    },
+    enabled: !!client?.id && open,
+  });
+
+  // Group children
+  const { data: groupChildren = [] } = useQuery({
+    queryKey: ["client-group-children", client?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, name, cnpj, segment, commercial_status, annual_revenue")
+        .eq("parent_client_id", client!.id as any)
+        .order("name");
+      return (data as any[]) || [];
     },
     enabled: !!client?.id && open,
   });
@@ -178,6 +192,22 @@ export const ClientDetailSheet = ({ open, onOpenChange, client, onEdit }: Props)
             </CardContent>
           </Card>
         </div>
+
+        {/* Group companies */}
+        {groupChildren.length > 0 && (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="font-medium text-sm">Empresas do Grupo ({groupChildren.length})</span>
+            </div>
+            {groupChildren.map((child: any) => (
+              <div key={child.id} className="rounded-md border p-3">
+                <p className="font-medium text-sm">{child.name}</p>
+                <p className="text-xs text-muted-foreground">{child.cnpj || 'Sem CNPJ'}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         <Separator className="my-4" />
 

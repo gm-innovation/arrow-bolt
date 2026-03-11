@@ -3,8 +3,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Eye, Search, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Pencil, Eye, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Link2, Unlink, ChevronRight, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
@@ -39,6 +40,7 @@ interface Client {
   address: string | null;
   source: string | null;
   notes: string | null;
+  parent_client_id?: string | null;
 }
 
 interface Props {
@@ -46,6 +48,8 @@ interface Props {
   isLoading: boolean;
   onEdit: (client: Client) => void;
   onRowClick?: (client: Client) => void;
+  selectedIds: Set<string>;
+  onSelectionChange: (ids: Set<string>) => void;
 }
 
 type SortKey = 'name' | 'annual_revenue' | 'last_contact_date';
@@ -56,13 +60,14 @@ const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => {
   return dir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
 };
 
-export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick }: Props) => {
+export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedIds, onSelectionChange }: Props) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [segmentFilter, setSegmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [showGrouped, setShowGrouped] = useState(true);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -78,30 +83,55 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick }: Props) 
     return Array.from(unique) as string[];
   }, [clients]);
 
+  // Build parent-children map
+  const childrenMap = useMemo(() => {
+    const map = new Map<string, Client[]>();
+    clients.forEach(c => {
+      if (c.parent_client_id) {
+        const list = map.get(c.parent_client_id) || [];
+        list.push(c);
+        map.set(c.parent_client_id, list);
+      }
+    });
+    return map;
+  }, [clients]);
+
   const filtered = useMemo(() => {
     let result = clients.filter(c => {
       const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.cnpj || '').includes(search);
       const matchSegment = segmentFilter === 'all' || c.segment === segmentFilter;
       const matchStatus = statusFilter === 'all' || c.commercial_status === statusFilter;
-      return matchSearch && matchSegment && matchStatus;
+      // When grouped view, hide children (they show nested under parent)
+      const isChild = showGrouped && c.parent_client_id;
+      return matchSearch && matchSegment && matchStatus && !isChild;
     });
 
     if (sortKey) {
       result = [...result].sort((a, b) => {
         let cmp = 0;
-        if (sortKey === 'name') {
-          cmp = a.name.localeCompare(b.name);
-        } else if (sortKey === 'annual_revenue') {
-          cmp = (a.annual_revenue || 0) - (b.annual_revenue || 0);
-        } else if (sortKey === 'last_contact_date') {
-          cmp = (a.last_contact_date || '').localeCompare(b.last_contact_date || '');
-        }
+        if (sortKey === 'name') cmp = a.name.localeCompare(b.name);
+        else if (sortKey === 'annual_revenue') cmp = (a.annual_revenue || 0) - (b.annual_revenue || 0);
+        else if (sortKey === 'last_contact_date') cmp = (a.last_contact_date || '').localeCompare(b.last_contact_date || '');
         return sortDir === 'desc' ? -cmp : cmp;
       });
     }
 
     return result;
-  }, [clients, search, segmentFilter, statusFilter, sortKey, sortDir]);
+  }, [clients, search, segmentFilter, statusFilter, sortKey, sortDir, showGrouped]);
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    onSelectionChange(next);
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === filtered.length) {
+      onSelectionChange(new Set());
+    } else {
+      onSelectionChange(new Set(filtered.map(c => c.id)));
+    }
+  };
 
   const exportCSV = () => {
     const headers = ['Nome', 'CNPJ', 'Segmento', 'Status', 'Receita Anual', 'Email', 'Telefone'];
@@ -113,6 +143,64 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick }: Props) 
     a.href = url;
     a.download = `clientes_${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
+  };
+
+  const renderClientRow = (client: Client, isChild = false) => {
+    const children = childrenMap.get(client.id) || [];
+    const hasChildren = children.length > 0;
+
+    return (
+      <TableRow
+        key={client.id}
+        className={`${onRowClick ? "cursor-pointer" : ""} ${isChild ? "bg-muted/30" : ""}`}
+        onClick={() => onRowClick?.(client)}
+      >
+        <TableCell className="w-10" onClick={e => e.stopPropagation()}>
+          <Checkbox
+            checked={selectedIds.has(client.id)}
+            onCheckedChange={() => toggleSelect(client.id)}
+          />
+        </TableCell>
+        <TableCell className="font-medium">
+          <div className="flex items-center gap-2">
+            {isChild && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+            {client.name}
+            {hasChildren && showGrouped && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <Building2 className="h-3 w-3" />
+                {children.length}
+              </Badge>
+            )}
+            {client.parent_client_id && !showGrouped && (
+              <Badge variant="outline" className="text-xs gap-1">
+                <Link2 className="h-3 w-3" /> Agrupado
+              </Badge>
+            )}
+          </div>
+        </TableCell>
+        <TableCell className="hidden md:table-cell">{client.cnpj || '—'}</TableCell>
+        <TableCell className="hidden lg:table-cell">{client.segment || '—'}</TableCell>
+        <TableCell>
+          <Badge variant="secondary" className={STATUS_BADGES[client.commercial_status || ''] || ''}>
+            {STATUS_LABELS[client.commercial_status || ''] || 'N/A'}
+          </Badge>
+        </TableCell>
+        <TableCell className="hidden lg:table-cell text-right">{formatCurrency(client.annual_revenue)}</TableCell>
+        <TableCell className="hidden md:table-cell">
+          {client.last_contact_date ? format(new Date(client.last_contact_date), 'dd/MM/yyyy') : '—'}
+        </TableCell>
+        <TableCell className="text-right">
+          <div className="flex justify-end gap-1">
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(client); }} title="Editar">
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/commercial/opportunities?client=${client.id}`); }} title="Ver Oportunidades">
+              <Eye className="h-4 w-4" />
+            </Button>
+          </div>
+        </TableCell>
+      </TableRow>
+    );
   };
 
   return (
@@ -136,6 +224,16 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick }: Props) 
             {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Button
+          variant={showGrouped ? "default" : "outline"}
+          size="sm"
+          onClick={() => setShowGrouped(!showGrouped)}
+          title="Alternar visualização agrupada"
+          className="gap-1"
+        >
+          <Building2 className="h-4 w-4" />
+          <span className="hidden sm:inline">Agrupados</span>
+        </Button>
         <Button variant="outline" size="icon" onClick={exportCSV} title="Exportar CSV">
           <Download className="h-4 w-4" />
         </Button>
@@ -150,6 +248,12 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick }: Props) 
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-10">
+                  <Checkbox
+                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                    onCheckedChange={toggleAll}
+                  />
+                </TableHead>
                 <TableHead>
                   <button className="flex items-center font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('name')}>
                     Nome <SortIcon active={sortKey === 'name'} dir={sortDir} />
@@ -172,32 +276,15 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick }: Props) 
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(client => (
-                <TableRow key={client.id} className={onRowClick ? "cursor-pointer" : ""} onClick={() => onRowClick?.(client)}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell className="hidden md:table-cell">{client.cnpj || '—'}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{client.segment || '—'}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary" className={STATUS_BADGES[client.commercial_status || ''] || ''}>
-                      {STATUS_LABELS[client.commercial_status || ''] || 'N/A'}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="hidden lg:table-cell text-right">{formatCurrency(client.annual_revenue)}</TableCell>
-                  <TableCell className="hidden md:table-cell">
-                    {client.last_contact_date ? format(new Date(client.last_contact_date), 'dd/MM/yyyy') : '—'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); onEdit(client); }} title="Editar">
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/commercial/opportunities?client=${client.id}`); }} title="Ver Oportunidades">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {filtered.map(client => {
+                const children = showGrouped ? (childrenMap.get(client.id) || []) : [];
+                return (
+                  <>
+                    {renderClientRow(client)}
+                    {children.map(child => renderClientRow(child, true))}
+                  </>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
