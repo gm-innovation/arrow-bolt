@@ -319,6 +319,7 @@ const App = () => {
                   <Route path="/corp/admin/departments" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpDepartments /></CorpAdminRoute>} />
                   <Route path="/corp/admin/request-types" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpRequestTypes /></CorpAdminRoute>} />
                   <Route path="/corp/admin/audit-log" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpAuditLog /></CorpAdminRoute>} />
+                  <Route path="/corp/my-documents" element={<CorpRoute pageTitle="Meus Documentos"><CorpMyDocuments /></CorpRoute>} />
                   <Route path="/corp/profile/:userId" element={<CorpRoute pageTitle="Perfil"><CorpUserProfile /></CorpRoute>} />
                   <Route path="/corp/profile" element={<CorpRoute pageTitle="Meu Perfil"><CorpUserProfile /></CorpRoute>} />
 
