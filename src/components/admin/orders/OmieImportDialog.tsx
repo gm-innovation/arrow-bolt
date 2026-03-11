@@ -96,6 +96,7 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
     if (!foundOrder) return;
     const cab = foundOrder.Cabecalho || {};
     const info = foundOrder.InformacoesAdicionais || {};
+    const parsed = foundOrder.parsedData || {};
 
     onSelectOrder({
       orderNumber: cab.cNumOS || cab.nCodOS?.toString() || "",
@@ -107,6 +108,20 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
       localVesselId: foundOrder.localVessel?.id,
       localVesselName: foundOrder.localVessel?.name,
       serviceDescription: foundOrder.serviceDescription || "",
+      // AI-extracted fields
+      serviceDateTime: parsed.serviceDateTime,
+      plannedLocation: parsed.location,
+      matchedRequesterId: parsed.matchedRequester?.id,
+      matchedRequesterName: parsed.matchedRequester?.name,
+      matchedSupervisorId: parsed.matchedSupervisor?.id,
+      matchedSupervisorName: parsed.matchedSupervisor?.name,
+      matchedCoordinatorId: parsed.matchedCoordinator?.id,
+      matchedCoordinatorName: parsed.matchedCoordinator?.name,
+      matchedTechnicianIds: parsed.matchedTechnicians?.map((t: any) => t.id),
+      matchedTechnicianNames: parsed.matchedTechnicians?.map((t: any) => t.name),
+      matchedTaskTypeIds: parsed.matchedTaskTypes?.map((t: any) => t.id),
+      matchedTaskTypeNames: parsed.matchedTaskTypes?.map((t: any) => t.name),
+      scopeDescription: parsed.scopeDescription,
     });
     setOpen(false);
   };
