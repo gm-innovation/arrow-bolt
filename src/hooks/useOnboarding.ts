@@ -73,7 +73,7 @@ export const useOnboardingProcesses = () => {
       if (error) throw error;
       
       // Fetch employee profiles
-      const userIds = [...new Set(data.map((p: any) => p.user_id))];
+      const userIds = [...new Set(data.map((p: any) => p.user_id))] as string[];
       if (userIds.length === 0) return data;
       
       const { data: profiles } = await supabase
