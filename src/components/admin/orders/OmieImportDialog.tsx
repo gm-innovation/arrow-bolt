@@ -151,7 +151,11 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
             </div>
 
             <div className="text-sm space-y-1 text-muted-foreground">
-              <p><strong className="text-foreground">Cliente:</strong> {info.cNomeCliente || "Não identificado"}</p>
+              <div className="flex items-center gap-2">
+                <strong className="text-foreground">Cliente:</strong> 
+                <span>{localClient?.name || info.cNomeCliente || "Não identificado"}</span>
+                {localClient && <Badge variant="success" size="sm">Vinculado</Badge>}
+              </div>
               {cab.nCodCli && (
                 <p><strong className="text-foreground">Cód. Cliente:</strong> {cab.nCodCli}</p>
               )}
