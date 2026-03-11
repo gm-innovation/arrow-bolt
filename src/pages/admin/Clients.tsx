@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash, Download, Eye, Link2, Unlink, Crown, ChevronDown, ChevronRight } from "lucide-react";
+import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash, Download, Eye, Link2, Unlink, Crown, ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV } from "@/lib/exportUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -15,6 +15,7 @@ import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/components/ui/use-toast";
+import { useDebounce } from "@/hooks/useDebounce";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -43,10 +44,16 @@ interface Client {
   }>;
 }
 
+const PAGE_SIZE = 50;
+
 const Clients = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 400);
   const [clients, setClients] = useState<Client[]>([]);
   const [loading, setLoading] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(0);
+  const [companyId, setCompanyId] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedClientForHistory, setSelectedClientForHistory] = useState<{ id: string; name: string } | null>(null);
@@ -63,37 +70,60 @@ const Clients = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const fetchClients = async () => {
-    try {
-      setLoading(true);
-      const { data: profileData } = await supabase
+  // Get company_id once
+  useEffect(() => {
+    const getCompanyId = async () => {
+      const { data } = await supabase
         .from("profiles")
         .select("company_id")
         .eq("id", user?.id)
         .single();
+      if (data?.company_id) setCompanyId(data.company_id);
+    };
+    getCompanyId();
+  }, [user?.id]);
 
-      if (!profileData?.company_id) {
-        toast({ title: "Erro", description: "Empresa não encontrada", variant: "destructive" });
-        return;
-      }
+  const fetchClients = useCallback(async () => {
+    if (!companyId) return;
+    try {
+      setLoading(true);
 
-      const { data, error } = await supabase
+      // Build query with server-side search
+      let query = supabase
         .from("clients")
-        .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, vessels (id, name, vessel_type)`)
-        .eq("company_id", profileData.company_id)
+        .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, vessels (id, name, vessel_type)`, { count: "exact" })
+        .eq("company_id", companyId)
         .order("name");
 
+      if (debouncedSearch.length >= 2) {
+        query = query.ilike("name", `%${debouncedSearch}%`);
+      }
+
+      // Pagination
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      query = query.range(from, to);
+
+      const { data, error, count } = await query;
       if (error) throw error;
       setClients((data as Client[]) || []);
+      setTotalCount(count || 0);
     } catch (error) {
       console.error("Error fetching clients:", error);
       toast({ title: "Erro ao carregar clientes", description: "Não foi possível carregar a lista de clientes", variant: "destructive" });
     } finally {
       setLoading(false);
     }
-  };
+  }, [companyId, debouncedSearch, page]);
 
-  useEffect(() => { fetchClients(); }, []);
+  useEffect(() => {
+    fetchClients();
+  }, [fetchClients]);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(0);
+  }, [debouncedSearch]);
 
   // Build children map
   const childrenMap = useMemo(() => {
@@ -113,27 +143,15 @@ const Clients = () => {
     return clients.filter(c => !c.parent_client_id || !clientIds.has(c.parent_client_id));
   }, [clients]);
 
-  const filteredTopLevel = useMemo(() => {
-    if (!searchTerm) return topLevelClients;
-    const term = searchTerm.toLowerCase();
-    return topLevelClients.filter(client => {
-      // Match parent
-      if (client.name.toLowerCase().includes(term) || client.email?.toLowerCase().includes(term)) return true;
-      // Match any child
-      const children = childrenMap[client.id] || [];
-      return children.some(c => c.name.toLowerCase().includes(term) || c.email?.toLowerCase().includes(term));
-    });
-  }, [topLevelClients, childrenMap, searchTerm]);
-
   // For select all, include visible children too
   const allVisibleIds = useMemo(() => {
     const ids: string[] = [];
-    filteredTopLevel.forEach(p => {
+    topLevelClients.forEach(p => {
       ids.push(p.id);
       (childrenMap[p.id] || []).forEach(c => ids.push(c.id));
     });
     return ids;
-  }, [filteredTopLevel, childrenMap]);
+  }, [topLevelClients, childrenMap]);
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedIds(prev => {
@@ -236,6 +254,8 @@ const Clients = () => {
     }
   };
 
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+
   const renderClientRow = (client: Client, isChild: boolean = false) => (
     <div
       key={client.id}
@@ -309,7 +329,7 @@ const Clients = () => {
     </div>
   );
 
-  if (loading) {
+  if (loading && clients.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
@@ -364,15 +384,20 @@ const Clients = () => {
               onCheckedChange={toggleAll}
             />
             <Input placeholder="Buscar clientes..." className="max-w-sm" type="search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-            <Button variant="outline"><Search className="h-4 w-4" /></Button>
+            {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              {totalCount} cliente{totalCount !== 1 ? "s" : ""}
+            </span>
           </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {filteredTopLevel.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">Nenhum cliente encontrado</div>
+            {topLevelClients.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {debouncedSearch.length >= 2 ? "Nenhum cliente encontrado" : "Nenhum cliente cadastrado"}
+              </div>
             ) : (
-              filteredTopLevel.map((client) => {
+              topLevelClients.map((client) => {
                 const children = childrenMap[client.id] || [];
                 const isExpanded = expandedIds.has(client.id);
                 return (
@@ -388,6 +413,35 @@ const Clients = () => {
               })
             )}
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <span className="text-sm text-muted-foreground">
+                Página {page + 1} de {totalPages}
+              </span>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Anterior
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                >
+                  Próximo
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

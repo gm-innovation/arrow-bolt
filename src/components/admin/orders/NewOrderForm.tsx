@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { ClientSearchCombobox } from "./ClientSearchCombobox";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -61,7 +62,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
   const { user } = useAuth();
   const { sendTaskAssignmentNotification, sendScheduleChangeNotification } = useWhatsAppNotification();
   const { notifyTechniciansAboutOrder, notifyCoordinatorAboutOrder, notifyScheduleChange } = useNotificationService();
-  const [clients, setClients] = useState<any[]>([]);
+  const [companyId, setCompanyId] = useState<string>("");
   const [vessels, setVessels] = useState<any[]>([]);
   const [supervisors, setSupervisors] = useState<any[]>([]);
   const [clientContacts, setClientContacts] = useState<any[]>([]);
@@ -234,14 +235,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
       if (!profileData?.company_id) return;
 
-      // Fetch clients
-      const { data: clientsData } = await supabase
-        .from("clients")
-        .select("id, name")
-        .eq("company_id", profileData.company_id)
-        .order("name");
-
-      setClients(clientsData || []);
+      setCompanyId(profileData.company_id);
 
       // Fetch user IDs with operational roles (any can be supervisor)
       const { data: operationalRoles } = await supabase
@@ -291,14 +285,36 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
   const fetchVessels = async (clientId: string) => {
     try {
-      const { data, error } = await supabase
+      // Get vessels from this client
+      const { data: directVessels, error } = await supabase
         .from("vessels")
         .select("id, name")
         .eq("client_id", clientId)
         .order("name");
 
       if (error) throw error;
-      setVessels(data || []);
+
+      // Also fetch vessels from child clients (group)
+      const { data: childClients } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("parent_client_id", clientId);
+
+      let allVessels = directVessels || [];
+
+      if (childClients && childClients.length > 0) {
+        const childIds = childClients.map(c => c.id);
+        const { data: childVessels } = await supabase
+          .from("vessels")
+          .select("id, name")
+          .in("client_id", childIds)
+          .order("name");
+        if (childVessels) {
+          allVessels = [...allVessels, ...childVessels];
+        }
+      }
+
+      setVessels(allVessels);
     } catch (error: any) {
       console.error("Error fetching vessels:", error);
     }
@@ -958,20 +974,13 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Cliente</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione o cliente" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {clients.map((client) => (
-                      <SelectItem key={client.id} value={client.id}>
-                        {client.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <ClientSearchCombobox
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    companyId={companyId}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}
