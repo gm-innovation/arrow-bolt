@@ -591,6 +591,8 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             description: data.description?.trim() || null,
             status: "pending",
             is_docking: isDocking,
+            omie_os_id: omieImportData?.omieOsId || null,
+            omie_os_integration_code: omieImportData?.omieIntegrationCode || null,
           } as any)
           .select()
           .single();
