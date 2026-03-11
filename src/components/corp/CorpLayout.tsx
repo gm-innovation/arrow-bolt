@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LayoutDashboard, ClipboardList, FileText, BarChart3, Settings } from 'lucide-react';
+import { LayoutDashboard, ClipboardList, FileText, BarChart3, Settings, FolderOpen } from 'lucide-react';
 
 interface CorpLayoutProps {
   children: ReactNode;
