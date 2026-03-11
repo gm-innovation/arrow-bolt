@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DollarSign, TrendingDown, BarChart3, Pencil, Plus, Sparkles, ThumbsUp, X, CalendarIcon, User } from "lucide-react";
+import { DollarSign, TrendingDown, BarChart3, Pencil, Plus, Sparkles, ThumbsUp, X, CalendarIcon, User, Building2 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
