@@ -91,7 +91,15 @@ export const OmieSettingsTab = () => {
             <Switch
               id="omie-sync"
               checked={syncEnabled}
-              onCheckedChange={setSyncEnabled}
+              disabled={saveCredentials.isPending}
+              onCheckedChange={(checked) => {
+                setSyncEnabled(checked);
+                saveCredentials.mutate({
+                  app_key: appKey,
+                  app_secret: appSecret,
+                  sync_enabled: checked,
+                });
+              }}
             />
           </div>
 
