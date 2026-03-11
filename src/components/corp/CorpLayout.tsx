@@ -23,6 +23,7 @@ const CorpLayout = ({ children }: CorpLayoutProps) => {
     { value: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, path: '/corp/dashboard' },
     { value: 'requests', label: 'Solicitações', icon: ClipboardList, path: '/corp/requests' },
     { value: 'documents', label: 'Documentos', icon: FileText, path: '/corp/documents' },
+    { value: 'my-documents', label: 'Meus Documentos', icon: FolderOpen, path: '/corp/my-documents' },
     ...(canViewReports ? [{ value: 'reports', label: 'Relatórios', icon: BarChart3, path: '/corp/reports' }] : []),
     ...(canViewAdmin ? [{ value: 'admin', label: 'Admin', icon: Settings, path: '/corp/admin/departments' }] : []),
   ];
