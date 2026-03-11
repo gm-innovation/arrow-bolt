@@ -19,6 +19,7 @@ interface OmieImportDialogProps {
     omieIntegrationCode: string;
     clientOmieId?: number;
     clientName?: string;
+    localClientId?: string;
   }) => void;
 }
 
