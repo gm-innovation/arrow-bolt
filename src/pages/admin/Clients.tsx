@@ -202,6 +202,76 @@ const Clients = () => {
     ""
   );
 
+  const childCountMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    clients.forEach(c => {
+      if (c.parent_client_id) {
+        map[c.parent_client_id] = (map[c.parent_client_id] || 0) + 1;
+      }
+    });
+    return map;
+  }, [clients]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const toggleAll = () => {
+    if (selectedIds.size === filteredClients.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredClients.map(c => c.id)));
+    }
+  };
+
+  const selectedClients = filteredClients.filter(c => selectedIds.has(c.id));
+
+  const handleGroup = async (parentId: string, childIds: string[]) => {
+    setGroupLoading(true);
+    try {
+      for (const childId of childIds) {
+        const { error } = await supabase
+          .from("clients")
+          .update({ parent_client_id: parentId })
+          .eq("id", childId);
+        if (error) throw error;
+      }
+      toast({ title: "Clientes agrupados com sucesso" });
+      setGroupDialogOpen(false);
+      setSelectedIds(new Set());
+      fetchClients();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Erro ao agrupar", variant: "destructive" });
+    } finally {
+      setGroupLoading(false);
+    }
+  };
+
+  const handleUngroup = async () => {
+    setGroupLoading(true);
+    try {
+      for (const id of selectedIds) {
+        await supabase
+          .from("clients")
+          .update({ parent_client_id: null })
+          .eq("id", id);
+      }
+      toast({ title: "Clientes desagrupados com sucesso" });
+      setSelectedIds(new Set());
+      fetchClients();
+    } catch (error) {
+      console.error(error);
+      toast({ title: "Erro ao desagrupar", variant: "destructive" });
+    } finally {
+      setGroupLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
