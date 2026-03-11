@@ -226,13 +226,13 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
       setClients(clientsData || []);
 
-      // Fetch all admin user IDs
-      const { data: adminRoles } = await supabase
+      // Fetch user IDs with operational roles (any can be supervisor)
+      const { data: operationalRoles } = await supabase
         .from("user_roles")
         .select("user_id")
-        .eq("role", "coordinator");
+        .in("role", ["coordinator", "technician", "director", "super_admin"]);
 
-      const adminUserIds = adminRoles?.map(r => r.user_id) || [];
+      const adminUserIds = [...new Set(operationalRoles?.map(r => r.user_id) || [])];
 
       // Fetch profiles for those users in the company
       const { data: supervisorsData } = await supabase
