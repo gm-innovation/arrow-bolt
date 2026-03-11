@@ -712,7 +712,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
         if (isDocking) {
           // DOCKING MODE: consolidate all technicians from all activities
           const allTechIds = new Set<string>();
-          dockingActivities.forEach(act => act.technicians.forEach(id => allTechIds.add(id)));
+          dockingActivities.forEach(act => act.technicians.filter(id => id && id.trim() !== '').forEach(id => allTechIds.add(id)));
           const allTechIdsArray = Array.from(allTechIds);
 
           if (visitData && allTechIdsArray.length > 0) {
