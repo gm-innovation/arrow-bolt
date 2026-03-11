@@ -302,11 +302,24 @@ const Clients = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Clientes</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExport} disabled={filteredClients.length === 0}>
-            <Download className="mr-2 h-4 w-4" />
-            Exportar
-          </Button>
+        <div className="flex justify-between items-center">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleExport} disabled={filteredClients.length === 0}>
+              <Download className="mr-2 h-4 w-4" />
+              Exportar
+            </Button>
+            {selectedIds.size >= 2 && (
+              <Button variant="outline" onClick={() => setGroupDialogOpen(true)} disabled={groupLoading}>
+                <Link2 className="mr-2 h-4 w-4" />
+                Agrupar ({selectedIds.size})
+              </Button>
+            )}
+            {selectedIds.size >= 1 && selectedClients.some(c => c.parent_client_id) && (
+              <Button variant="outline" onClick={handleUngroup} disabled={groupLoading}>
+                <Unlink className="mr-2 h-4 w-4" />
+                Desagrupar
+              </Button>
+            )}
           <Dialog open={newClientDialogOpen} onOpenChange={setNewClientDialogOpen}>
             <DialogTrigger asChild>
               <Button>
