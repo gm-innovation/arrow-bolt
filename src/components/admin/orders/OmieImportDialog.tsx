@@ -84,13 +84,15 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
       omieOsId: cab.nCodOS || 0,
       omieIntegrationCode: cab.cCodIntOS || "",
       clientOmieId: cab.nCodCli,
-      clientName: info.cNomeCliente || "",
+      clientName: foundOrder.localClient?.name || info.cNomeCliente || "",
+      localClientId: foundOrder.localClient?.id,
     });
     setOpen(false);
   };
 
   const cab = foundOrder?.Cabecalho || {};
   const info = foundOrder?.InformacoesAdicionais || {};
+  const localClient = foundOrder?.localClient;
 
   return (
     <Dialog open={open} onOpenChange={handleOpen}>
