@@ -43,6 +43,8 @@ const MyLearning = () => {
         companyName={certUserData.companyName}
         companyLogoUrl={certUserData.companyLogoUrl}
         durationMinutes={cert.course?.duration_minutes}
+        hrSignerName={certUserData.hrSignerName}
+        directorSignerName={certUserData.directorSignerName}
       />
     ).toBlob();
   };

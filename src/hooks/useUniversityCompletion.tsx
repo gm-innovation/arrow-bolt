@@ -20,6 +20,8 @@ interface CertificateData {
   durationMinutes?: number | null;
   certificateCode: string;
   issuedAt: string;
+  hrSignerName?: string;
+  directorSignerName?: string;
 }
 
 const DEFAULTS: Record<string, RewardSetting> = {
@@ -70,6 +72,8 @@ export function useUniversityCompletion() {
           companyName={certData.companyName}
           companyLogoUrl={certData.companyLogoUrl}
           durationMinutes={certData.durationMinutes}
+          hrSignerName={certData.hrSignerName}
+          directorSignerName={certData.directorSignerName}
         />
       ).toBlob();
 

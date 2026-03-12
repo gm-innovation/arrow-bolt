@@ -10,18 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GraduationCap, Plus, Search, BookOpen, Users, Award, Pencil, Trash2, Eye, Upload, Route, X } from 'lucide-react';
+import { GraduationCap, Plus, Search, BookOpen, Users, Award, Pencil, Trash2, Eye, Upload, Route, X, FileText, Loader2 } from 'lucide-react';
 import {
   useUniversityCourses, useCreateCourse, useUpdateCourse, useDeleteCourse,
   useUniversityModules, useCreateModule, useDeleteModule,
   useUniversityTrails, useCreateTrail, useUpdateTrail, useDeleteTrail,
   useTrailCourses, useAddCourseToTrail, useRemoveCourseFromTrail,
+  useCertificateUserData,
 } from '@/hooks/useUniversity';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import HRUniversityEnrollments from '@/components/university/HRUniversityEnrollments';
 import HRUniversityAchievements from '@/components/university/HRUniversityAchievements';
+import { pdf } from '@react-pdf/renderer';
+import CertificatePDF from '@/components/university/CertificatePDF';
+import { PDFCanvasViewer } from '@/components/ui/PDFCanvasViewer';
 
 const CATEGORIES = ['geral', 'onboarding', 'tecnico', 'seguranca', 'compliance', 'lideranca'];
 
@@ -30,10 +34,14 @@ const University = () => {
   const createCourse = useCreateCourse();
   const updateCourse = useUpdateCourse();
   const deleteCourse = useDeleteCourse();
+  const { data: certUserData } = useCertificateUserData();
   const [search, setSearch] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editCourse, setEditCourse] = useState<any>(null);
   const [modulesDialogCourse, setModulesDialogCourse] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Create/Edit form state
   const [form, setForm] = useState({ title: '', description: '', category: 'geral', duration_minutes: 0 });
@@ -65,6 +73,32 @@ const University = () => {
     setEditCourse(course);
   };
 
+  const handlePreviewCertificate = async () => {
+    setPreviewLoading(true);
+    try {
+      const blob = await pdf(
+        <CertificatePDF
+          userName="João da Silva"
+          courseTitle="Curso de Exemplo"
+          issuedAt={new Date().toISOString()}
+          certificateCode="CERT-EXEMPLO-2026"
+          companyName={certUserData?.companyName || 'Empresa Exemplo'}
+          companyLogoUrl={certUserData?.companyLogoUrl}
+          durationMinutes={120}
+          hrSignerName={certUserData?.hrSignerName}
+          directorSignerName={certUserData?.directorSignerName}
+        />
+      ).toBlob();
+      setPreviewBlob(blob);
+      setPreviewOpen(true);
+    } catch (e) {
+      console.error('Erro ao gerar preview:', e);
+      toast({ title: 'Erro ao gerar preview', variant: 'destructive' });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -88,6 +122,10 @@ const University = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar cursos..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
             </div>
+            <Button variant="outline" onClick={handlePreviewCertificate} disabled={previewLoading}>
+              {previewLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
+              Pré-visualizar Certificado
+            </Button>
             <Button onClick={() => { setForm({ title: '', description: '', category: 'geral', duration_minutes: 0 }); setShowCreateDialog(true); }}>
               <Plus className="h-4 w-4 mr-2" /> Novo Curso
             </Button>
@@ -156,6 +194,18 @@ const University = () => {
       {modulesDialogCourse && (
         <ModulesDialog courseId={modulesDialogCourse} onClose={() => setModulesDialogCourse(null)} />
       )}
+
+      {/* Certificate Preview Modal */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Modelo de Certificado</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            <PDFCanvasViewer blob={previewBlob} className="h-full" />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
