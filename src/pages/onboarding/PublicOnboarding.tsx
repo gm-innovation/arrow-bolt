@@ -199,6 +199,7 @@ const PublicOnboarding = () => {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 };
