@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import {
   useUpdateEnrollmentStatus,
   useIssueCertificate,
 } from '@/hooks/useUniversity';
+import { useUniversityCompletion } from '@/hooks/useUniversityCompletion';
 import { useAuth } from '@/contexts/AuthContext';
 
 const UniversityCourse = () => {
@@ -28,7 +29,9 @@ const UniversityCourse = () => {
   const markComplete = useMarkModuleComplete();
   const updateStatus = useUpdateEnrollmentStatus();
   const issueCert = useIssueCertificate();
+  const { publishCourseCompletion } = useUniversityCompletion();
   const [activeModule, setActiveModule] = useState<string | null>(null);
+  const completionPostedRef = useRef(false);
 
   const completedModules = progress?.filter(p => p.completed)?.length || 0;
   const totalModules = modules?.length || 0;
@@ -45,11 +48,15 @@ const UniversityCourse = () => {
     }
   }, [activeModule, enrollment]);
 
-  // Auto-complete enrollment & issue certificate
+  // Auto-complete enrollment, issue certificate, post to feed & award badge
   useEffect(() => {
-    if (enrollment && completedModules === totalModules && totalModules > 0 && enrollment.status !== 'completed') {
+    if (enrollment && completedModules === totalModules && totalModules > 0 && enrollment.status !== 'completed' && !completionPostedRef.current) {
+      completionPostedRef.current = true;
       updateStatus.mutate({ id: enrollment.id, status: 'completed' });
       issueCert.mutate({ enrollment_id: enrollment.id, user_id: user!.id, course_id: id! });
+      if (course) {
+        publishCourseCompletion(course.title);
+      }
     }
   }, [completedModules, totalModules]);
 

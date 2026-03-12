@@ -1,10 +1,12 @@
+import { useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Route, Clock, Play, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Route, Clock, CheckCircle2 } from 'lucide-react';
 import { useUniversityTrail, useTrailCourses, useMyEnrollments } from '@/hooks/useUniversity';
+import { useUniversityCompletion } from '@/hooks/useUniversityCompletion';
 
 const UniversityTrail = () => {
   const { id } = useParams<{ id: string }>();
@@ -12,11 +14,21 @@ const UniversityTrail = () => {
   const { data: trail } = useUniversityTrail(id);
   const { data: trailCourses, isLoading } = useTrailCourses(id);
   const { data: enrollments } = useMyEnrollments();
+  const { publishTrailCompletion } = useUniversityCompletion();
+  const completionPostedRef = useRef(false);
 
   const getEnrollment = (courseId: string) => enrollments?.find(e => e.course_id === courseId);
   const completedCourses = trailCourses?.filter(tc => getEnrollment(tc.course_id)?.status === 'completed').length || 0;
   const totalCourses = trailCourses?.length || 0;
   const progressPercent = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
+
+  // Auto-post + badge when trail is 100% complete
+  useEffect(() => {
+    if (trail && completedCourses === totalCourses && totalCourses > 0 && !completionPostedRef.current) {
+      completionPostedRef.current = true;
+      publishTrailCompletion(trail.title);
+    }
+  }, [completedCourses, totalCourses, trail]);
 
   if (!trail) return <div className="py-12 text-center text-muted-foreground">Carregando...</div>;
 
