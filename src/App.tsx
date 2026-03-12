@@ -260,7 +260,7 @@ const App = () => {
                   {/* HR - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['hr']}><DashboardLayout userType="hr" /></ProtectedRoute>}>
                     <Route path="/hr/dashboard" element={<HRDashboard />} />
-                    <Route path="/hr/technicians" element={<HRTechnicians />} />
+                    <Route path="/hr/technicians" element={<Navigate to="/hr/employees" replace />} />
                     <Route path="/hr/time-control" element={<HRTimeControl />} />
                     <Route path="/hr/absences" element={<HRAbsences />} />
                     <Route path="/hr/on-call" element={<Navigate to="/hr/absences" replace />} />
