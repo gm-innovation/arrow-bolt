@@ -177,18 +177,20 @@ const App = () => {
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <AuthProvider>
-            <SidebarProvider>
-              <ErrorBoundary fallback={<ErrorFallback />}>
-                <Routes>
-                  {/* Auth routes - keep Suspense with spinner */}
-                  <Route path="/" element={<AuthLanding />} />
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/signup" element={<Signup />} />
-                  <Route path="/forgot-password" element={<ForgotPassword />} />
-                  <Route path="/reset-password" element={<ResetPassword />} />
-                  <Route path="/install" element={<InstallApp />} />
-                  <Route path="/onboarding/:token" element={<Suspense fallback={<LoadingFallback />}><PublicOnboarding /></Suspense>} />
+          <Routes>
+            <Route path="/onboarding/:token" element={<Suspense fallback={<LoadingFallback />}><PublicOnboarding /></Suspense>} />
+            <Route path="*" element={
+              <AuthProvider>
+                <SidebarProvider>
+                  <ErrorBoundary fallback={<ErrorFallback />}>
+                    <Routes>
+                      {/* Auth routes - keep Suspense with spinner */}
+                      <Route path="/" element={<AuthLanding />} />
+                      <Route path="/login" element={<Login />} />
+                      <Route path="/signup" element={<Signup />} />
+                      <Route path="/forgot-password" element={<ForgotPassword />} />
+                      <Route path="/reset-password" element={<ResetPassword />} />
+                      <Route path="/install" element={<InstallApp />} />
 
                   {/* Super Admin - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin" /></ProtectedRoute>}>
