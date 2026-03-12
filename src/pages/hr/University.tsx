@@ -140,6 +140,10 @@ const University = () => {
         <TabsContent value="enrollments">
           <HRUniversityEnrollments />
         </TabsContent>
+
+        <TabsContent value="achievements">
+          <HRUniversityAchievements />
+        </TabsContent>
       </Tabs>
 
       {/* Create Dialog */}
