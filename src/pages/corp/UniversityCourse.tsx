@@ -13,6 +13,7 @@ import {
   useMarkModuleComplete,
   useUpdateEnrollmentStatus,
   useIssueCertificate,
+  useCertificateUserData,
 } from '@/hooks/useUniversity';
 import { useUniversityCompletion } from '@/hooks/useUniversityCompletion';
 import { useAuth } from '@/contexts/AuthContext';

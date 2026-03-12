@@ -5,10 +5,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { GraduationCap, BookOpen, Award, Play, ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { GraduationCap, BookOpen, Award, Play, ArrowLeft, Download, Loader2, Eye } from 'lucide-react';
 import { useMyEnrollments, useMyCertificates, useCertificateUserData } from '@/hooks/useUniversity';
 import { pdf } from '@react-pdf/renderer';
 import CertificatePDF from '@/components/university/CertificatePDF';
+import { PDFCanvasViewer } from '@/components/ui/PDFCanvasViewer';
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
   not_started: { label: 'Não iniciado', variant: 'secondary' },
@@ -22,25 +24,34 @@ const MyLearning = () => {
   const { data: certificates, isLoading: loadingCerts } = useMyCertificates();
   const { data: certUserData } = useCertificateUserData();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
   const activeEnrollments = enrollments?.filter(e => e.status !== 'completed') || [];
   const completedEnrollments = enrollments?.filter(e => e.status === 'completed') || [];
 
-  const handleDownloadCertificate = async (cert: typeof certificates extends (infer T)[] | undefined ? T : never) => {
-    if (!certUserData) return;
+  const generateCertBlob = async (cert: any) => {
+    if (!certUserData) return null;
+    return pdf(
+      <CertificatePDF
+        userName={certUserData.userName}
+        courseTitle={cert.course?.title || 'Curso'}
+        issuedAt={cert.issued_at!}
+        certificateCode={cert.certificate_code || ''}
+        companyName={certUserData.companyName}
+        companyLogoUrl={certUserData.companyLogoUrl}
+        durationMinutes={cert.course?.duration_minutes}
+      />
+    ).toBlob();
+  };
+
+  const handleDownloadCertificate = async (cert: any) => {
     setDownloadingId(cert.id);
     try {
-      const blob = await pdf(
-        <CertificatePDF
-          userName={certUserData.userName}
-          courseTitle={cert.course?.title || 'Curso'}
-          issuedAt={cert.issued_at!}
-          certificateCode={cert.certificate_code || ''}
-          companyName={certUserData.companyName}
-          companyLogoUrl={certUserData.companyLogoUrl}
-          durationMinutes={cert.course?.duration_minutes}
-        />
-      ).toBlob();
+      const blob = await generateCertBlob(cert);
+      if (!blob) return;
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -51,6 +62,21 @@ const MyLearning = () => {
       console.error('Erro ao gerar certificado:', e);
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handlePreviewCertificate = async (cert: any) => {
+    setPreviewLoading(cert.id);
+    try {
+      const blob = await generateCertBlob(cert);
+      if (!blob) return;
+      setPreviewBlob(blob);
+      setPreviewTitle(cert.course?.title || 'Certificado');
+      setPreviewOpen(true);
+    } catch (e) {
+      console.error('Erro ao gerar preview:', e);
+    } finally {
+      setPreviewLoading(null);
     }
   };
 
@@ -155,15 +181,24 @@ const MyLearning = () => {
                         <p className="text-xs text-muted-foreground">Código: {cert.certificate_code}</p>
                         <p className="text-xs text-muted-foreground">Emitido em {new Date(cert.issued_at!).toLocaleDateString('pt-BR')}</p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleDownloadCertificate(cert)}
-                        disabled={downloadingId === cert.id}
-                      >
-                        {downloadingId === cert.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                        <span className="ml-1 hidden sm:inline">Baixar</span>
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handlePreviewCertificate(cert)}
+                          disabled={previewLoading === cert.id}
+                        >
+                          {previewLoading === cert.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownloadCertificate(cert)}
+                          disabled={downloadingId === cert.id}
+                        >
+                          {downloadingId === cert.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -172,6 +207,18 @@ const MyLearning = () => {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Certificate Preview Modal */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Certificado — {previewTitle}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            <PDFCanvasViewer blob={previewBlob} className="h-full" />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
