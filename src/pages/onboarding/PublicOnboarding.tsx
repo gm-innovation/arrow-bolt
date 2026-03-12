@@ -1,20 +1,20 @@
-import { useParams } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Skeleton } from '@/components/ui/skeleton';
-import { CheckCircle, XCircle, Clock, Upload, FileText } from 'lucide-react';
-import { usePublicOnboarding } from '@/hooks/useOnboarding';
-import { supabase } from '@/integrations/supabase/client';
-import { useState, useRef } from 'react';
-import { toast } from '@/hooks/use-toast';
+import { useParams } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CheckCircle, XCircle, Clock, Upload, FileText } from "lucide-react";
+import { usePublicOnboarding } from "@/hooks/useOnboarding";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useRef } from "react";
+import { toast } from "@/hooks/use-toast";
 
 const sanitizeFileName = (name: string) =>
   name
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '_')
-    .replace(/[^a-zA-Z0-9._-]/g, '');
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9._-]/g, "");
 
 const statusIcon: Record<string, React.ReactNode> = {
   pending: <Clock className="h-4 w-4 text-muted-foreground" />,
@@ -23,14 +23,14 @@ const statusIcon: Record<string, React.ReactNode> = {
 };
 
 const statusLabel: Record<string, string> = {
-  pending: 'Pendente de revisão',
-  approved: 'Aprovado',
-  rejected: 'Rejeitado',
+  pending: "Pendente de revisão",
+  approved: "Aprovado",
+  rejected: "Rejeitado",
 };
 
 const PublicOnboarding = () => {
   const { token } = useParams<{ token: string }>();
-  const { onboarding, docTypes, documents, isLoading, error, uploadDocument, companyLogoUrl } = usePublicOnboarding(token);
+  const { onboarding, docTypes, documents, isLoading, error, uploadDocument } = usePublicOnboarding(token);
   const [uploadingType, setUploadingType] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
@@ -67,8 +67,7 @@ const PublicOnboarding = () => {
 
   const submittedTypeIds = documents.map((d: any) => d.document_type_id);
 
-  const getDocumentForType = (typeId: string) =>
-    documents.find((d: any) => d.document_type_id === typeId);
+  const getDocumentForType = (typeId: string) => documents.find((d: any) => d.document_type_id === typeId);
 
   const handleUploadClick = (typeId: string) => {
     setSelectedTypeId(typeId);
@@ -84,45 +83,36 @@ const PublicOnboarding = () => {
       const sanitized = sanitizeFileName(file.name);
       const path = `onboarding/${onboarding.id}/${selectedTypeId}/${Date.now()}-${sanitized}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('corp-documents')
-        .upload(path, file);
+      const { error: uploadError } = await supabase.storage.from("corp-documents").upload(path, file);
 
       if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("corp-documents").getPublicUrl(path);
 
       await uploadDocument.mutateAsync({
         onboarding_id: onboarding.id,
         document_type_id: selectedTypeId,
         file_name: file.name,
-        file_url: path,
+        file_url: urlData.publicUrl,
       });
 
-      toast({ title: 'Documento enviado com sucesso!' });
+      toast({ title: "Documento enviado com sucesso!" });
     } catch (err: any) {
-      toast({ title: 'Erro ao enviar documento', description: err.message, variant: 'destructive' });
+      toast({ title: "Erro ao enviar documento", description: err.message, variant: "destructive" });
     } finally {
       setUploadingType(null);
       setSelectedTypeId(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      {companyLogoUrl && (
-        <img
-          src={companyLogoUrl}
-          alt="Logo da empresa"
-          className="h-64 max-w-lg object-contain mb-8"
-        />
-      )}
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl">
         <CardHeader>
-          <CardTitle className="text-xl">
-            Bem-vindo(a), {onboarding.candidate_name}!
-          </CardTitle>
+          <CardTitle className="text-xl">Bem-vindo(a), {onboarding.candidate_name}!</CardTitle>
           <p className="text-sm text-muted-foreground">
-            Envie os documentos abaixo para concluir seu processo de admissão.
+            Envie os documentos abaixo para dar prosseguimento ao seu processo de admissão.
           </p>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -153,12 +143,12 @@ const PublicOnboarding = () => {
                       <div className="flex items-center gap-2">
                         <span className="font-medium text-sm">{dt.name}</span>
                         {dt.is_required && (
-                          <Badge variant="secondary" className="text-xs">Obrigatório</Badge>
+                          <Badge variant="secondary" className="text-xs">
+                            Obrigatório
+                          </Badge>
                         )}
                       </div>
-                      {dt.description && (
-                        <p className="text-xs text-muted-foreground mt-1">{dt.description}</p>
-                      )}
+                      {dt.description && <p className="text-xs text-muted-foreground mt-1">{dt.description}</p>}
                       {doc && (
                         <div className="flex items-center gap-1 mt-2">
                           {statusIcon[doc.status]}
@@ -171,20 +161,20 @@ const PublicOnboarding = () => {
                     </div>
 
                     <div className="ml-4">
-                      {!doc || doc.status === 'rejected' ? (
+                      {!doc || doc.status === "rejected" ? (
                         <Button
                           size="sm"
-                          variant={doc?.status === 'rejected' ? 'destructive' : 'default'}
+                          variant={doc?.status === "rejected" ? "destructive" : "default"}
                           onClick={() => handleUploadClick(dt.id)}
                           disabled={isUploading}
                           className="gap-1"
                         >
                           <Upload className="h-3 w-3" />
-                          {isUploading ? 'Enviando...' : doc?.status === 'rejected' ? 'Reenviar' : 'Enviar'}
+                          {isUploading ? "Enviando..." : doc?.status === "rejected" ? "Reenviar" : "Enviar"}
                         </Button>
                       ) : (
-                        <Badge variant={doc.status === 'approved' ? 'outline' : 'secondary'}>
-                          {doc.status === 'approved' ? 'Aprovado ✓' : 'Enviado'}
+                        <Badge variant={doc.status === "approved" ? "outline" : "secondary"}>
+                          {doc.status === "approved" ? "Aprovado ✓" : "Enviado"}
                         </Badge>
                       )}
                     </div>
