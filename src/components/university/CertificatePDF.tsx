@@ -186,10 +186,6 @@ const CertificatePDF = ({
                 <Text style={styles.detailValue}>{formatDuration(durationMinutes)}</Text>
               </View>
             )}
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>EMPRESA</Text>
-              <Text style={styles.detailValue}>{companyName}</Text>
-            </View>
           </View>
 
           {/* Signatures */}
