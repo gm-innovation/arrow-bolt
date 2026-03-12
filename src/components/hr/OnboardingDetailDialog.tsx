@@ -55,9 +55,10 @@ const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetai
   const link = `${window.location.origin}/onboarding/${process.access_token}`;
 
   const getSignedUrl = useCallback(async (filePath: string): Promise<string | null> => {
+    const path = normalizeStoragePath(filePath);
     const { data, error } = await supabase.storage
       .from('corp-documents')
-      .createSignedUrl(filePath, 3600);
+      .createSignedUrl(path, 3600);
     if (error) {
       toast({ title: 'Erro ao gerar link', description: error.message, variant: 'destructive' });
       return null;
