@@ -138,8 +138,8 @@ export default function Employees() {
     return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   };
 
-  const handleCreateTechnician = async (
-    data: any,
+  const handleCreateEmployee = async (
+    data: EmployeeFormValues,
     uploadedFile: File | null,
     photoFile: File | null,
     certificationFiles: Array<{ file: File; name?: string; issueDate?: string; expiryDate?: string }>
