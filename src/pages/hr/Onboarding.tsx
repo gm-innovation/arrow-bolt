@@ -38,7 +38,7 @@ const HROnboarding = () => {
   const [createdLink, setCreatedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const companyId = user?.user_metadata?.company_id || (processes as any[])?.[0]?.company_id || '';
+  const companyId = profile?.company_id || '';
 
   const handleCreate = () => {
     if (!candidateName.trim() || !candidateEmail.trim() || !companyId) return;
