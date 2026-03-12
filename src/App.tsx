@@ -91,7 +91,7 @@ const CommercialAdminKnowledge = lazy(() => import("./pages/commercial/admin/Kno
 const CommercialAdminAuditLogs = lazy(() => import("./pages/commercial/admin/AuditLogs"));
 
 const HRDashboard = lazy(() => import("./pages/hr/Dashboard"));
-const HRTechnicians = lazy(() => import("./pages/hr/Technicians"));
+
 const HRTimeControl = lazy(() => import("./pages/hr/TimeControl"));
 const HRAbsences = lazy(() => import("./pages/hr/Absences"));
 const HRHolidays = lazy(() => import("./pages/hr/Holidays"));
