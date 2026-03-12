@@ -109,19 +109,25 @@ const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetai
     setPreviewFileName(doc.file_name);
 
     try {
+      const path = normalizeStoragePath(doc.file_url);
       if (isImageFile(doc.file_name)) {
-        const url = await getSignedUrl(doc.file_url);
-        if (url) {
-          setPreviewType('image');
-          setPreviewUrl(url);
-          setPreviewBlob(null);
-          setPreviewOpen(true);
-        }
+        const { data, error } = await supabase.storage
+          .from('corp-documents')
+          .download(path);
+        if (error) throw error;
+        setPreviewType('image');
+        setPreviewUrl(URL.createObjectURL(data));
+        setPreviewBlob(null);
+        setPreviewOpen(true);
       } else if (isPDFFile(doc.file_name)) {
         const { data, error } = await supabase.storage
           .from('corp-documents')
-          .download(doc.file_url);
+          .download(path);
         if (error) throw error;
+        setPreviewType('pdf');
+        setPreviewBlob(data);
+        setPreviewUrl(null);
+        setPreviewOpen(true);
         setPreviewType('pdf');
         setPreviewBlob(data);
         setPreviewUrl(null);
