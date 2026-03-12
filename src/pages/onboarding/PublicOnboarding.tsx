@@ -113,7 +113,7 @@ const PublicOnboarding = () => {
         <img
           src={companyLogoUrl}
           alt="Logo da empresa"
-          className="h-16 object-contain mb-6"
+          className="h-28 max-w-xs object-contain mb-8"
         />
       )}
       <Card className="w-full max-w-2xl">
