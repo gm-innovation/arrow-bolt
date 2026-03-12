@@ -329,6 +329,9 @@ const App = () => {
                   <Route path="/corp/my-documents" element={<CorpRoute pageTitle="Meus Documentos"><CorpMyDocuments /></CorpRoute>} />
                   <Route path="/corp/profile/:userId" element={<CorpRoute pageTitle="Perfil"><CorpUserProfile /></CorpRoute>} />
                   <Route path="/corp/profile" element={<CorpRoute pageTitle="Meu Perfil"><CorpUserProfile /></CorpRoute>} />
+                  <Route path="/corp/university" element={<CorpRoute pageTitle="Universidade"><CorpUniversity /></CorpRoute>} />
+                  <Route path="/corp/university/course/:id" element={<CorpRoute pageTitle="Curso"><CorpUniversityCourse /></CorpRoute>} />
+                  <Route path="/corp/university/my-learning" element={<CorpRoute pageTitle="Meu Aprendizado"><CorpMyLearning /></CorpRoute>} />
 
                   {/* Supplies - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras" /></ProtectedRoute>}>
