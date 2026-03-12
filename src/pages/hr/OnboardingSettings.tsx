@@ -52,17 +52,23 @@ const HROnboardingSettings = () => {
           <CardTitle className="text-base">Adicionar Tipo de Documento</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <Label>Nome *</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: RG, CPF, Comprovante de Residência" />
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Label>Nome *</Label>
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: RG, CPF, Comprovante de Residência" />
+              </div>
+              <div className="flex-1">
+                <Label>Descrição</Label>
+                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Instruções para o colaborador" />
+              </div>
+              <div className="flex-1">
+                <Label>Cargo/Posição</Label>
+                <Input value={positionTag} onChange={e => setPositionTag(e.target.value)} placeholder="Vazio = todas as posições" />
+              </div>
             </div>
-            <div className="flex-1">
-              <Label>Descrição</Label>
-              <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Instruções para o colaborador" />
-            </div>
-            <div className="flex items-end gap-3">
-              <div className="flex items-center gap-2 pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <Checkbox id="required" checked={isRequired} onCheckedChange={(c) => setIsRequired(!!c)} />
                 <Label htmlFor="required" className="text-sm">Obrigatório</Label>
               </div>
