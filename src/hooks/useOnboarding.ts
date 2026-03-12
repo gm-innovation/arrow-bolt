@@ -222,6 +222,26 @@ export const usePublicOnboarding = (token?: string) => {
     enabled: !!token,
   });
 
+  const { data: companyData } = useQuery({
+    queryKey: ['public-onboarding-company', onboarding?.company_id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from('companies')
+        .select('logo_url')
+        .eq('id', onboarding.company_id)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!onboarding?.company_id,
+  });
+
+  const companyLogoUrl = companyData?.logo_url
+    ? companyData.logo_url.startsWith('http')
+      ? companyData.logo_url
+      : supabase.storage.from('corp-documents').getPublicUrl(companyData.logo_url).data.publicUrl
+    : null;
+
   const { data: docTypes = [], isLoading: loadingTypes } = useQuery({
     queryKey: ['public-onboarding-doc-types', onboarding?.company_id, onboarding?.position_tag],
     queryFn: async () => {
