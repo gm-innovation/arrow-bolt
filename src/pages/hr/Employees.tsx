@@ -287,7 +287,7 @@ export default function Employees() {
                 <tr>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Colaborador</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Cargo</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Departamento</th>
+                  
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Especialidade</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">ASO</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Desde</th>
