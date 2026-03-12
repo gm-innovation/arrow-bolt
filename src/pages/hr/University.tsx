@@ -131,6 +131,10 @@ const University = () => {
           )}
         </TabsContent>
 
+        <TabsContent value="trails">
+          <HRTrailsTab />
+        </TabsContent>
+
         <TabsContent value="enrollments">
           <HRUniversityEnrollments />
         </TabsContent>
