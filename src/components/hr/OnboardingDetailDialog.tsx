@@ -85,13 +85,22 @@ const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetai
   };
 
   const handleDownload = async (doc: any) => {
-    const url = await getSignedUrl(doc.file_url);
-    if (url) {
+    try {
+      const path = normalizeStoragePath(doc.file_url);
+      const { data, error } = await supabase.storage
+        .from('corp-documents')
+        .download(path);
+      if (error) throw error;
+      const blobUrl = URL.createObjectURL(data);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = blobUrl;
       a.download = doc.file_name;
-      a.target = '_blank';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err: any) {
+      toast({ title: 'Erro ao baixar arquivo', description: err.message, variant: 'destructive' });
     }
   };
 
