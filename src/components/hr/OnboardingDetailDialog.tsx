@@ -29,6 +29,14 @@ const isImageFile = (fileName: string) =>
 const isPDFFile = (fileName: string) =>
   /\.pdf$/i.test(fileName);
 
+const normalizeStoragePath = (fileUrl: string): string => {
+  if (!fileUrl.includes('http')) return fileUrl;
+  const marker = '/corp-documents/';
+  const idx = fileUrl.indexOf(marker);
+  if (idx !== -1) return fileUrl.substring(idx + marker.length);
+  return fileUrl;
+};
+
 const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetailDialogProps) => {
   const { documents, isLoading, reviewDocument } = useOnboardingDocuments(process.id);
   const { docTypes } = useOnboardingDocumentTypes();
