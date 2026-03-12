@@ -150,11 +150,20 @@ const MyLearning = () => {
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <Award className="h-10 w-10 text-primary shrink-0" />
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">{cert.course?.title}</p>
                         <p className="text-xs text-muted-foreground">Código: {cert.certificate_code}</p>
                         <p className="text-xs text-muted-foreground">Emitido em {new Date(cert.issued_at!).toLocaleDateString('pt-BR')}</p>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownloadCertificate(cert)}
+                        disabled={downloadingId === cert.id}
+                      >
+                        {downloadingId === cert.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        <span className="ml-1 hidden sm:inline">Baixar</span>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
