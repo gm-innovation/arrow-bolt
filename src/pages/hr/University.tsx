@@ -21,6 +21,7 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import HRUniversityEnrollments from '@/components/university/HRUniversityEnrollments';
+import HRUniversityAchievements from '@/components/university/HRUniversityAchievements';
 
 const CATEGORIES = ['geral', 'onboarding', 'tecnico', 'seguranca', 'compliance', 'lideranca'];
 
