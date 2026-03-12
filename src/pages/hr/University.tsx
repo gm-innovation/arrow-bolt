@@ -10,8 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { GraduationCap, Plus, Search, BookOpen, Users, Award, Pencil, Trash2, Eye, Upload } from 'lucide-react';
-import { useUniversityCourses, useCreateCourse, useUpdateCourse, useDeleteCourse, useUniversityModules, useCreateModule, useDeleteModule } from '@/hooks/useUniversity';
+import { GraduationCap, Plus, Search, BookOpen, Users, Award, Pencil, Trash2, Eye, Upload, Route, X } from 'lucide-react';
+import {
+  useUniversityCourses, useCreateCourse, useUpdateCourse, useDeleteCourse,
+  useUniversityModules, useCreateModule, useDeleteModule,
+  useUniversityTrails, useCreateTrail, useUpdateTrail, useDeleteTrail,
+  useTrailCourses, useAddCourseToTrail, useRemoveCourseFromTrail,
+} from '@/hooks/useUniversity';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
