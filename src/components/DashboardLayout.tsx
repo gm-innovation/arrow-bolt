@@ -123,6 +123,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Config. Medição", icon: Calculator, path: "/manager/measurement-settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
+    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const techMenuItems = [
@@ -132,6 +133,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Notificações", icon: Bell, path: "/tech/notifications" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
+    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const hrMenuItems = [
