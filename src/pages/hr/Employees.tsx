@@ -181,27 +181,46 @@ export default function Employees() {
         } catch (e) { console.error('Photo upload error:', e); }
       }
 
-      const { data: technicianData, error: techError } = await supabase
-        .from('technicians').select('id').eq('user_id', createUserResult.user_id).single();
-      if (techError) throw techError;
+      // Only process technician-specific data if role is technician
+      if (data.selected_role === 'technician') {
+        const { data: technicianData, error: techError } = await supabase
+          .from('technicians').select('id').eq('user_id', createUserResult.user_id).single();
+        if (techError) throw techError;
 
-      await supabase.from("technicians").update({
-        specialty: data.role, cpf: data.cpf || null, rg: data.rg || null,
-        birth_date: data.birth_date || null, gender: data.gender || null,
-        nationality: data.nationality || null, height: data.height ? parseInt(data.height) : null,
-        blood_type: data.blood_type || null, blood_rh_factor: data.blood_rh_factor || null,
-        aso_valid_until: data.aso_valid_until || null, medical_status: data.medical_status || 'pending',
-      }).eq('user_id', createUserResult.user_id);
+        await supabase.from("technicians").update({
+          specialty: data.specialty || null, cpf: data.cpf || null, rg: data.rg || null,
+          birth_date: data.birth_date || null, gender: data.gender || null,
+          nationality: data.nationality || null, height: data.height ? parseInt(data.height) : null,
+          blood_type: data.blood_type || null, blood_rh_factor: data.blood_rh_factor || null,
+          aso_valid_until: data.aso_valid_until || null, medical_status: data.medical_status || 'pending',
+        }).eq('user_id', createUserResult.user_id);
 
-      if (uploadedFile && technicianData) {
-        const filePath = `${companyId}/${technicianData.id}/aso/${Date.now()}-${uploadedFile.name}`;
-        const { error: uploadError } = await supabase.storage.from('technician-documents').upload(filePath, uploadedFile);
-        if (!uploadError) {
-          await supabase.from('technician_documents').insert({
-            technician_id: technicianData.id, document_type: 'aso', file_name: uploadedFile.name,
-            file_path: filePath, issue_date: data.aso_issue_date || null, expiry_date: data.aso_valid_until || null,
-            metadata: data.aso_issue_date ? { aso_issue_date: data.aso_issue_date } : null,
-          });
+        if (uploadedFile && technicianData) {
+          const filePath = `${companyId}/${technicianData.id}/aso/${Date.now()}-${uploadedFile.name}`;
+          const { error: uploadError } = await supabase.storage.from('technician-documents').upload(filePath, uploadedFile);
+          if (!uploadError) {
+            await supabase.from('technician_documents').insert({
+              technician_id: technicianData.id, document_type: 'aso', file_name: uploadedFile.name,
+              file_path: filePath, issue_date: data.aso_issue_date || null, expiry_date: data.aso_valid_until || null,
+              metadata: data.aso_issue_date ? { aso_issue_date: data.aso_issue_date } : null,
+            });
+          }
+        }
+
+        if (certificationFiles.length > 0 && technicianData) {
+          for (let i = 0; i < certificationFiles.length; i++) {
+            const cert = certificationFiles[i];
+            const sanitizedName = sanitizeFileName(cert.file.name);
+            const certPath = `${companyId}/${technicianData.id}/certifications/${Date.now()}-${i}-${sanitizedName}`;
+            const { error: certError } = await supabase.storage.from('technician-documents').upload(certPath, cert.file);
+            if (!certError) {
+              await supabase.from('technician_documents').insert({
+                technician_id: technicianData.id, document_type: 'certification', file_name: cert.file.name,
+                file_path: certPath, certificate_name: cert.name || cert.file.name,
+                issue_date: cert.issueDate, expiry_date: cert.expiryDate,
+              });
+            }
+          }
         }
       }
 
