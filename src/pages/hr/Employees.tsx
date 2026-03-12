@@ -363,10 +363,10 @@ export default function Employees() {
       <Dialog open={isNewTechOpen} onOpenChange={setIsNewTechOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Cadastrar Novo Técnico</DialogTitle>
+            <DialogTitle>Cadastrar Novo Colaborador</DialogTitle>
           </DialogHeader>
-          <NewTechnicianForm
-            onSubmit={handleCreateTechnician}
+          <NewEmployeeForm
+            onSubmit={handleCreateEmployee}
             onCancel={() => setIsNewTechOpen(false)}
           />
         </DialogContent>
