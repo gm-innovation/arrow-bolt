@@ -322,9 +322,6 @@ export default function Employees() {
                         </div>
                       </td>
                       <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">
-                        {emp.department?.name || "—"}
-                      </td>
-                      <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">
                         {emp.technician?.specialty || "—"}
                       </td>
                       <td className="py-3 px-4 hidden md:table-cell">
