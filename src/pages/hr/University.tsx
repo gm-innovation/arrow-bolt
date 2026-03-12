@@ -122,6 +122,10 @@ const University = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar cursos..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
             </div>
+            <Button variant="outline" onClick={handlePreviewCertificate} disabled={previewLoading}>
+              {previewLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <FileText className="h-4 w-4 mr-2" />}
+              Pré-visualizar Certificado
+            </Button>
             <Button onClick={() => { setForm({ title: '', description: '', category: 'geral', duration_minutes: 0 }); setShowCreateDialog(true); }}>
               <Plus className="h-4 w-4 mr-2" /> Novo Curso
             </Button>
