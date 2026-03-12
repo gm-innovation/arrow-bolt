@@ -120,6 +120,7 @@ const CorpUserProfile = lazy(() => import("./pages/corp/UserProfile"));
 const CorpMyDocuments = lazy(() => import("./pages/corp/MyDocuments"));
 const CorpUniversity = lazy(() => import("./pages/corp/University"));
 const CorpUniversityCourse = lazy(() => import("./pages/corp/UniversityCourse"));
+const CorpUniversityTrail = lazy(() => import("./pages/corp/UniversityTrail"));
 const CorpMyLearning = lazy(() => import("./pages/corp/MyLearning"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
