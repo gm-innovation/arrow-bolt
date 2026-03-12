@@ -29,6 +29,14 @@ const isImageFile = (fileName: string) =>
 const isPDFFile = (fileName: string) =>
   /\.pdf$/i.test(fileName);
 
+const normalizeStoragePath = (fileUrl: string): string => {
+  if (!fileUrl.includes('http')) return fileUrl;
+  const marker = '/corp-documents/';
+  const idx = fileUrl.indexOf(marker);
+  if (idx !== -1) return fileUrl.substring(idx + marker.length);
+  return fileUrl;
+};
+
 const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetailDialogProps) => {
   const { documents, isLoading, reviewDocument } = useOnboardingDocuments(process.id);
   const { docTypes } = useOnboardingDocumentTypes();
@@ -47,9 +55,10 @@ const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetai
   const link = `${window.location.origin}/onboarding/${process.access_token}`;
 
   const getSignedUrl = useCallback(async (filePath: string): Promise<string | null> => {
+    const path = normalizeStoragePath(filePath);
     const { data, error } = await supabase.storage
       .from('corp-documents')
-      .createSignedUrl(filePath, 3600);
+      .createSignedUrl(path, 3600);
     if (error) {
       toast({ title: 'Erro ao gerar link', description: error.message, variant: 'destructive' });
       return null;
@@ -76,13 +85,22 @@ const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetai
   };
 
   const handleDownload = async (doc: any) => {
-    const url = await getSignedUrl(doc.file_url);
-    if (url) {
+    try {
+      const path = normalizeStoragePath(doc.file_url);
+      const { data, error } = await supabase.storage
+        .from('corp-documents')
+        .download(path);
+      if (error) throw error;
+      const blobUrl = URL.createObjectURL(data);
       const a = document.createElement('a');
-      a.href = url;
+      a.href = blobUrl;
       a.download = doc.file_name;
-      a.target = '_blank';
+      document.body.appendChild(a);
       a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err: any) {
+      toast({ title: 'Erro ao baixar arquivo', description: err.message, variant: 'destructive' });
     }
   };
 
@@ -91,19 +109,25 @@ const OnboardingDetailDialog = ({ process, open, onOpenChange }: OnboardingDetai
     setPreviewFileName(doc.file_name);
 
     try {
+      const path = normalizeStoragePath(doc.file_url);
       if (isImageFile(doc.file_name)) {
-        const url = await getSignedUrl(doc.file_url);
-        if (url) {
-          setPreviewType('image');
-          setPreviewUrl(url);
-          setPreviewBlob(null);
-          setPreviewOpen(true);
-        }
+        const { data, error } = await supabase.storage
+          .from('corp-documents')
+          .download(path);
+        if (error) throw error;
+        setPreviewType('image');
+        setPreviewUrl(URL.createObjectURL(data));
+        setPreviewBlob(null);
+        setPreviewOpen(true);
       } else if (isPDFFile(doc.file_name)) {
         const { data, error } = await supabase.storage
           .from('corp-documents')
-          .download(doc.file_url);
+          .download(path);
         if (error) throw error;
+        setPreviewType('pdf');
+        setPreviewBlob(data);
+        setPreviewUrl(null);
+        setPreviewOpen(true);
         setPreviewType('pdf');
         setPreviewBlob(data);
         setPreviewUrl(null);
