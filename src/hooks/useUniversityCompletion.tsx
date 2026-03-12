@@ -20,6 +20,8 @@ interface CertificateData {
   durationMinutes?: number | null;
   certificateCode: string;
   issuedAt: string;
+  hrSignerName?: string;
+  directorSignerName?: string;
 }
 
 const DEFAULTS: Record<string, RewardSetting> = {
