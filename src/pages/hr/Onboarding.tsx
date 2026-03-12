@@ -33,6 +33,7 @@ const HROnboarding = () => {
   const [open, setOpen] = useState(false);
   const [candidateName, setCandidateName] = useState('');
   const [candidateEmail, setCandidateEmail] = useState('');
+  const [positionTag, setPositionTag] = useState('');
   const [notes, setNotes] = useState('');
   const [detailProcess, setDetailProcess] = useState<any>(null);
   const [createdLink, setCreatedLink] = useState<string | null>(null);
