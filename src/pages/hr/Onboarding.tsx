@@ -44,13 +44,14 @@ const HROnboarding = () => {
   const handleCreate = () => {
     if (!candidateName.trim() || !candidateEmail.trim() || !companyId) return;
     createProcess.mutate(
-      { company_id: companyId, candidate_name: candidateName.trim(), candidate_email: candidateEmail.trim(), notes },
+      { company_id: companyId, candidate_name: candidateName.trim(), candidate_email: candidateEmail.trim(), notes, position_tag: positionTag.trim() || null },
       {
         onSuccess: (data: any) => {
           const link = `${window.location.origin}/onboarding/${data.access_token}`;
           setCreatedLink(link);
           setCandidateName('');
           setCandidateEmail('');
+          setPositionTag('');
           setNotes('');
         },
       }
