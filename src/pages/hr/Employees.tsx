@@ -34,9 +34,7 @@ export interface EmployeeRow {
   avatar_url: string | null;
   phone: string | null;
   company_id: string;
-  department_id: string | null;
   created_at: string;
-  department?: { name: string } | null;
   roles: string[];
   technician?: {
     id: string;
@@ -89,7 +87,7 @@ export default function Employees() {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, avatar_url, phone, company_id, department_id, created_at, department:departments(name)")
+        .select("id, full_name, email, avatar_url, phone, company_id, created_at")
         .eq("company_id", profile!.company_id!)
         .order("full_name");
       if (error) throw error;
@@ -115,7 +113,6 @@ export default function Employees() {
 
       return (profiles || []).map((p: any) => ({
         ...p,
-        department: Array.isArray(p.department) ? p.department[0] : p.department,
         roles: roleMap[p.id] || [],
         technician: techMap[p.id] || null,
       })) as EmployeeRow[];
@@ -290,7 +287,7 @@ export default function Employees() {
                 <tr>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Colaborador</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Cargo</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Departamento</th>
+                  
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Especialidade</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">ASO</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Desde</th>
@@ -323,9 +320,6 @@ export default function Employees() {
                             <Badge key={r} variant="secondary" className="text-xs">{ROLE_LABELS[r] || r}</Badge>
                           ))}
                         </div>
-                      </td>
-                      <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">
-                        {emp.department?.name || "—"}
                       </td>
                       <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">
                         {emp.technician?.specialty || "—"}

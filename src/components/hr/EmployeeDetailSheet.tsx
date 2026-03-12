@@ -119,7 +119,7 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
     { label: "Nome completo", value: employee.full_name },
     { label: "Email", value: employee.email },
     { label: "Telefone", value: employee.phone || "—" },
-    { label: "Departamento", value: employee.department?.name || "—" },
+    
     { label: "Cargos", value: employee.roles.map((r) => ROLE_LABELS[r] || r).join(", ") },
     { label: "Na empresa desde", value: format(new Date(employee.created_at), "dd/MM/yyyy", { locale: ptBR }) },
   ];
