@@ -73,6 +73,32 @@ const University = () => {
     setEditCourse(course);
   };
 
+  const handlePreviewCertificate = async () => {
+    setPreviewLoading(true);
+    try {
+      const blob = await pdf(
+        <CertificatePDF
+          userName="João da Silva"
+          courseTitle="Curso de Exemplo"
+          issuedAt={new Date().toISOString()}
+          certificateCode="CERT-EXEMPLO-2026"
+          companyName={certUserData?.companyName || 'Empresa Exemplo'}
+          companyLogoUrl={certUserData?.companyLogoUrl}
+          durationMinutes={120}
+          hrSignerName={certUserData?.hrSignerName}
+          directorSignerName={certUserData?.directorSignerName}
+        />
+      ).toBlob();
+      setPreviewBlob(blob);
+      setPreviewOpen(true);
+    } catch (e) {
+      console.error('Erro ao gerar preview:', e);
+      toast({ title: 'Erro ao gerar preview', variant: 'destructive' });
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
