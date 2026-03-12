@@ -102,6 +102,7 @@ const HRDocumentsPage = lazy(() => import("./pages/hr/Documents"));
 const HROnboarding = lazy(() => import("./pages/hr/Onboarding"));
 const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"));
 const HREmployees = lazy(() => import("./pages/hr/Employees"));
+const HRUniversity = lazy(() => import("./pages/hr/University"));
 const PublicOnboarding = lazy(() => import("./pages/onboarding/PublicOnboarding"));
 
 const CorpDashboard = lazy(() => import("./pages/corp/Dashboard"));
@@ -117,6 +118,9 @@ const CorpGroupDetail = lazy(() => import("./pages/corp/GroupDetail"));
 const CorpGroupDiscussion = lazy(() => import("./pages/corp/GroupDiscussion"));
 const CorpUserProfile = lazy(() => import("./pages/corp/UserProfile"));
 const CorpMyDocuments = lazy(() => import("./pages/corp/MyDocuments"));
+const CorpUniversity = lazy(() => import("./pages/corp/University"));
+const CorpUniversityCourse = lazy(() => import("./pages/corp/UniversityCourse"));
+const CorpMyLearning = lazy(() => import("./pages/corp/MyLearning"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
 const SuppliesRequests = lazy(() => import("./pages/supplies/Requests"));
@@ -270,6 +274,7 @@ const App = () => {
                     <Route path="/hr/onboarding" element={<HROnboarding />} />
                     <Route path="/hr/onboarding/settings" element={<HROnboardingSettings />} />
                     <Route path="/hr/employees" element={<HREmployees />} />
+                    <Route path="/hr/university" element={<HRUniversity />} />
                     <Route path="/hr/profile" element={<HRProfile />} />
                     <Route path="/hr/settings" element={<HRSettings />} />
                     <Route path="/hr/chat" element={<Chat />} />
@@ -324,6 +329,9 @@ const App = () => {
                   <Route path="/corp/my-documents" element={<CorpRoute pageTitle="Meus Documentos"><CorpMyDocuments /></CorpRoute>} />
                   <Route path="/corp/profile/:userId" element={<CorpRoute pageTitle="Perfil"><CorpUserProfile /></CorpRoute>} />
                   <Route path="/corp/profile" element={<CorpRoute pageTitle="Meu Perfil"><CorpUserProfile /></CorpRoute>} />
+                  <Route path="/corp/university" element={<CorpRoute pageTitle="Universidade"><CorpUniversity /></CorpRoute>} />
+                  <Route path="/corp/university/course/:id" element={<CorpRoute pageTitle="Curso"><CorpUniversityCourse /></CorpRoute>} />
+                  <Route path="/corp/university/my-learning" element={<CorpRoute pageTitle="Meu Aprendizado"><CorpMyLearning /></CorpRoute>} />
 
                   {/* Supplies - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras" /></ProtectedRoute>}>

@@ -37,6 +37,7 @@ import {
   Wallet,
   ArrowDownCircle,
   ArrowUpCircle,
+  GraduationCap,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -141,6 +142,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Feriados", icon: ClipboardList, path: "/hr/holidays" },
     { title: "Documentos", icon: FileText, path: "/hr/documents" },
     { title: "Admissão", icon: Upload, path: "/hr/onboarding" },
+    { title: "Universidade", icon: GraduationCap, path: "/hr/university" },
     { title: "Relatórios", icon: FileBarChart, path: "/hr/reports" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
