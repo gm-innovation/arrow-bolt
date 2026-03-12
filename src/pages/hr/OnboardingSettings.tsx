@@ -20,8 +20,9 @@ const HROnboardingSettings = () => {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isRequired, setIsRequired] = useState(true);
+  const [positionTag, setPositionTag] = useState('');
 
-  const companyId = user?.user_metadata?.company_id || '';
+  const companyId = profile?.company_id || '';
 
   const handleAdd = () => {
     if (!name.trim() || !companyId) return;
