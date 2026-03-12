@@ -14,14 +14,15 @@ import { useNavigate } from 'react-router-dom';
 
 const HROnboardingSettings = () => {
   const { docTypes, isLoading, createDocType, deleteDocType } = useOnboardingDocumentTypes();
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isRequired, setIsRequired] = useState(true);
+  const [positionTag, setPositionTag] = useState('');
 
-  const companyId = user?.user_metadata?.company_id || '';
+  const companyId = profile?.company_id || '';
 
   const handleAdd = () => {
     if (!name.trim() || !companyId) return;
@@ -31,8 +32,9 @@ const HROnboardingSettings = () => {
       description: description.trim() || undefined,
       is_required: isRequired,
       sort_order: docTypes.length,
+      position_tag: positionTag.trim() || null,
     }, {
-      onSuccess: () => { setName(''); setDescription(''); setIsRequired(true); },
+      onSuccess: () => { setName(''); setDescription(''); setIsRequired(true); setPositionTag(''); },
     });
   };
 
@@ -50,17 +52,23 @@ const HROnboardingSettings = () => {
           <CardTitle className="text-base">Adicionar Tipo de Documento</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="flex-1">
-              <Label>Nome *</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: RG, CPF, Comprovante de Residência" />
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Label>Nome *</Label>
+                <Input value={name} onChange={e => setName(e.target.value)} placeholder="Ex: RG, CPF, Comprovante de Residência" />
+              </div>
+              <div className="flex-1">
+                <Label>Descrição</Label>
+                <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Instruções para o colaborador" />
+              </div>
+              <div className="flex-1">
+                <Label>Cargo/Posição</Label>
+                <Input value={positionTag} onChange={e => setPositionTag(e.target.value)} placeholder="Vazio = todas as posições" />
+              </div>
             </div>
-            <div className="flex-1">
-              <Label>Descrição</Label>
-              <Input value={description} onChange={e => setDescription(e.target.value)} placeholder="Instruções para o colaborador" />
-            </div>
-            <div className="flex items-end gap-3">
-              <div className="flex items-center gap-2 pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <Checkbox id="required" checked={isRequired} onCheckedChange={(c) => setIsRequired(!!c)} />
                 <Label htmlFor="required" className="text-sm">Obrigatório</Label>
               </div>
@@ -84,6 +92,7 @@ const HROnboardingSettings = () => {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Aplicável a</TableHead>
                   <TableHead>Obrigatório</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
@@ -93,6 +102,9 @@ const HROnboardingSettings = () => {
                   <TableRow key={dt.id}>
                     <TableCell className="font-medium">{dt.name}</TableCell>
                     <TableCell className="text-muted-foreground">{dt.description || '—'}</TableCell>
+                    <TableCell>
+                      {dt.position_tag ? <Badge variant="outline">{dt.position_tag}</Badge> : <Badge variant="secondary">Todas</Badge>}
+                    </TableCell>
                     <TableCell>
                       {dt.is_required ? <Badge>Sim</Badge> : <Badge variant="secondary">Não</Badge>}
                     </TableCell>

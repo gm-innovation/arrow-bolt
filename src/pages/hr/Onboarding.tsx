@@ -33,6 +33,7 @@ const HROnboarding = () => {
   const [open, setOpen] = useState(false);
   const [candidateName, setCandidateName] = useState('');
   const [candidateEmail, setCandidateEmail] = useState('');
+  const [positionTag, setPositionTag] = useState('');
   const [notes, setNotes] = useState('');
   const [detailProcess, setDetailProcess] = useState<any>(null);
   const [createdLink, setCreatedLink] = useState<string | null>(null);
@@ -43,13 +44,14 @@ const HROnboarding = () => {
   const handleCreate = () => {
     if (!candidateName.trim() || !candidateEmail.trim() || !companyId) return;
     createProcess.mutate(
-      { company_id: companyId, candidate_name: candidateName.trim(), candidate_email: candidateEmail.trim(), notes },
+      { company_id: companyId, candidate_name: candidateName.trim(), candidate_email: candidateEmail.trim(), notes, position_tag: positionTag.trim() || null },
       {
         onSuccess: (data: any) => {
           const link = `${window.location.origin}/onboarding/${data.access_token}`;
           setCreatedLink(link);
           setCandidateName('');
           setCandidateEmail('');
+          setPositionTag('');
           setNotes('');
         },
       }
@@ -113,6 +115,10 @@ const HROnboarding = () => {
                   <div>
                     <Label>Email do candidato *</Label>
                     <Input type="email" value={candidateEmail} onChange={e => setCandidateEmail(e.target.value)} placeholder="email@exemplo.com" />
+                  </div>
+                  <div>
+                    <Label>Cargo/Posição</Label>
+                    <Input value={positionTag} onChange={e => setPositionTag(e.target.value)} placeholder="Ex: Motorista, Engenheiro (opcional)" />
                   </div>
                   <div>
                     <Label>Observações</Label>
