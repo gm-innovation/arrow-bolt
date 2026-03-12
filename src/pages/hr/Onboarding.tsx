@@ -117,6 +117,10 @@ const HROnboarding = () => {
                     <Input type="email" value={candidateEmail} onChange={e => setCandidateEmail(e.target.value)} placeholder="email@exemplo.com" />
                   </div>
                   <div>
+                    <Label>Cargo/Posição</Label>
+                    <Input value={positionTag} onChange={e => setPositionTag(e.target.value)} placeholder="Ex: Motorista, Engenheiro (opcional)" />
+                  </div>
+                  <div>
                     <Label>Observações</Label>
                     <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Observações sobre a admissão..." />
                   </div>

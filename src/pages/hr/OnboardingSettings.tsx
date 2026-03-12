@@ -92,6 +92,7 @@ const HROnboardingSettings = () => {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Descrição</TableHead>
+                  <TableHead>Aplicável a</TableHead>
                   <TableHead>Obrigatório</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
@@ -101,6 +102,9 @@ const HROnboardingSettings = () => {
                   <TableRow key={dt.id}>
                     <TableCell className="font-medium">{dt.name}</TableCell>
                     <TableCell className="text-muted-foreground">{dt.description || '—'}</TableCell>
+                    <TableCell>
+                      {dt.position_tag ? <Badge variant="outline">{dt.position_tag}</Badge> : <Badge variant="secondary">Todas</Badge>}
+                    </TableCell>
                     <TableCell>
                       {dt.is_required ? <Badge>Sim</Badge> : <Badge variant="secondary">Não</Badge>}
                     </TableCell>

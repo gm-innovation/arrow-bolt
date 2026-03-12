@@ -223,13 +223,21 @@ export const usePublicOnboarding = (token?: string) => {
   });
 
   const { data: docTypes = [], isLoading: loadingTypes } = useQuery({
-    queryKey: ['public-onboarding-doc-types', onboarding?.company_id],
+    queryKey: ['public-onboarding-doc-types', onboarding?.company_id, onboarding?.position_tag],
     queryFn: async () => {
-      const { data, error } = await (supabase as any)
+      let query = (supabase as any)
         .from('onboarding_document_types')
         .select('*')
-        .eq('company_id', onboarding.company_id)
-        .order('sort_order');
+        .eq('company_id', onboarding.company_id);
+      
+      // Filter: global docs (position_tag IS NULL) + docs matching candidate's position
+      if (onboarding.position_tag) {
+        query = query.or(`position_tag.is.null,position_tag.eq.${onboarding.position_tag}`);
+      } else {
+        query = query.is('position_tag', null);
+      }
+      
+      const { data, error } = await query.order('sort_order');
       if (error) throw error;
       return data;
     },
