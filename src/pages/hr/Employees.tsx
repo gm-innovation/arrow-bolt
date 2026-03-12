@@ -113,7 +113,6 @@ export default function Employees() {
 
       return (profiles || []).map((p: any) => ({
         ...p,
-        department: Array.isArray(p.department) ? p.department[0] : p.department,
         roles: roleMap[p.id] || [],
         technician: techMap[p.id] || null,
       })) as EmployeeRow[];
