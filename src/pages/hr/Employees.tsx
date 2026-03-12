@@ -224,21 +224,6 @@ export default function Employees() {
         }
       }
 
-      if (certificationFiles.length > 0 && technicianData) {
-        for (let i = 0; i < certificationFiles.length; i++) {
-          const cert = certificationFiles[i];
-          const sanitizedName = sanitizeFileName(cert.file.name);
-          const certPath = `${companyId}/${technicianData.id}/certifications/${Date.now()}-${i}-${sanitizedName}`;
-          const { error: certError } = await supabase.storage.from('technician-documents').upload(certPath, cert.file);
-          if (!certError) {
-            await supabase.from('technician_documents').insert({
-              technician_id: technicianData.id, document_type: 'certification', file_name: cert.file.name,
-              file_path: certPath, certificate_name: cert.name || cert.file.name,
-              issue_date: cert.issueDate, expiry_date: cert.expiryDate,
-            });
-          }
-        }
-      }
 
       if (data.password_option === 'reset_link') {
         await supabase.auth.resetPasswordForEmail(data.email, { redirectTo: `${window.location.origin}/login` });
