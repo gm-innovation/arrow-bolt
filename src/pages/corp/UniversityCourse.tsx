@@ -68,6 +68,8 @@ const UniversityCourse = () => {
               durationMinutes: course.duration_minutes,
               certificateCode: cert.certificate_code || '',
               issuedAt: cert.issued_at || new Date().toISOString(),
+              hrSignerName: certUserData.hrSignerName,
+              directorSignerName: certUserData.directorSignerName,
             });
           } else if (course) {
             await publishCourseCompletion(course.title);
