@@ -504,8 +504,13 @@ export function useIssueCertificate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (data: { enrollment_id: string; user_id: string; course_id: string }) => {
-      const { error } = await supabase.from('university_certificates').insert(data);
+      const { data: cert, error } = await supabase
+        .from('university_certificates')
+        .insert(data)
+        .select('id, certificate_code, issued_at')
+        .single();
       if (error) throw error;
+      return cert;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['university-certificates'] });
