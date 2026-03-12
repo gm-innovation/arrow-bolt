@@ -77,7 +77,7 @@ export const useOnboardingProcesses = () => {
   });
 
   const createProcess = useMutation({
-    mutationFn: async (p: { company_id: string; candidate_name: string; candidate_email: string; notes?: string }) => {
+    mutationFn: async (p: { company_id: string; candidate_name: string; candidate_email: string; notes?: string; position_tag?: string | null }) => {
       const { data, error } = await (supabase as any)
         .from('employee_onboarding')
         .insert({ ...p, created_by: user!.id, status: 'pending' })
