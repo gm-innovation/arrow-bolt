@@ -30,7 +30,7 @@ const statusLabel: Record<string, string> = {
 
 const PublicOnboarding = () => {
   const { token } = useParams<{ token: string }>();
-  const { onboarding, docTypes, documents, isLoading, error, uploadDocument } = usePublicOnboarding(token);
+  const { onboarding, docTypes, documents, isLoading, error, uploadDocument, companyLogoUrl } = usePublicOnboarding(token);
   const [uploadingType, setUploadingType] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
@@ -108,7 +108,14 @@ const PublicOnboarding = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+      {companyLogoUrl && (
+        <img
+          src={companyLogoUrl}
+          alt="Logo da empresa"
+          className="h-16 object-contain mb-6"
+        />
+      )}
       <Card className="w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="text-xl">
