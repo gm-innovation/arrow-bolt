@@ -366,7 +366,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
                     className={cn(
                       "w-full transition-all duration-200",
                       collapsed ? "h-10 px-2 justify-center" : "h-10 justify-start gap-3",
-                    (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/') && !location.pathname.startsWith('/corp/feed') && !location.pathname.startsWith('/corp/profile')) || (item.path === '/corp/feed' && location.pathname.startsWith('/corp/profile')))
+                    (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/') && !location.pathname.startsWith('/corp/feed') && !location.pathname.startsWith('/corp/profile') && !location.pathname.startsWith('/corp/university')) || (item.path === '/corp/feed' && location.pathname.startsWith('/corp/profile')))
                         ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
                         : "text-gray-600 hover:bg-gray-100"
                     )}
