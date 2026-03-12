@@ -1,71 +1,105 @@
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer';
 
+const COLORS = {
+  navy: '#1a365d',
+  blue: '#2b6cb0',
+  gold: '#b7922b',
+  goldLight: '#c5a44e',
+  goldPale: '#f5e6b8',
+  textDark: '#2d3748',
+  textMid: '#4a5568',
+  textLight: '#718096',
+  textMuted: '#a0aec0',
+  bgLight: '#f0f5fa',
+  white: '#FFFFFF',
+  borderLight: '#e2e8f0',
+};
+
 const styles = StyleSheet.create({
   page: {
     flexDirection: 'column',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.white,
     padding: 0,
   },
-  border: {
-    margin: 15,
-    border: '3pt solid #1a365d',
-    borderRadius: 4,
-    padding: 25,
+  topStrip: {
+    height: 28,
+    backgroundColor: COLORS.navy,
+    marginHorizontal: 12,
+    marginTop: 12,
+    borderTopLeftRadius: 4,
+    borderTopRightRadius: 4,
+  },
+  outerBorder: {
+    marginHorizontal: 12,
+    marginBottom: 12,
+    border: `3pt solid ${COLORS.navy}`,
+    borderTop: 'none',
+    borderBottomLeftRadius: 4,
+    borderBottomRightRadius: 4,
+    padding: 6,
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+  },
+  goldBorder: {
+    border: `1.5pt solid ${COLORS.goldLight}`,
+    borderRadius: 2,
+    padding: 4,
+    flex: 1,
   },
   innerBorder: {
-    border: '1pt solid #bee3f8',
+    border: `1pt solid ${COLORS.blue}`,
     borderRadius: 2,
     padding: 20,
-    width: '100%',
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   logo: {
-    width: 120,
-    height: 45,
+    width: 220,
+    height: 80,
     objectFit: 'contain',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
-    color: '#1a365d',
-    marginBottom: 4,
+    color: COLORS.gold,
+    marginBottom: 2,
     textTransform: 'uppercase',
-    letterSpacing: 3,
+    letterSpacing: 4,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#4a5568',
-    marginBottom: 15,
+    fontSize: 15,
+    color: COLORS.navy,
+    marginBottom: 14,
+    letterSpacing: 2,
   },
   certifyText: {
     fontSize: 12,
-    color: '#718096',
+    color: COLORS.textLight,
     marginBottom: 6,
   },
   userName: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#2d3748',
-    marginBottom: 12,
-    borderBottom: '1pt solid #e2e8f0',
-    paddingBottom: 4,
+    color: COLORS.textDark,
+    marginBottom: 4,
     paddingHorizontal: 40,
+  },
+  userNameLine: {
+    width: 250,
+    height: 1.5,
+    backgroundColor: COLORS.goldLight,
+    marginBottom: 12,
   },
   courseLabel: {
     fontSize: 11,
-    color: '#718096',
+    color: COLORS.textLight,
     marginBottom: 3,
   },
   courseName: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#1a365d',
+    color: COLORS.navy,
     marginBottom: 10,
     textAlign: 'center',
   },
@@ -80,19 +114,20 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 9,
-    color: '#a0aec0',
+    color: COLORS.textMuted,
     marginBottom: 2,
+    letterSpacing: 1,
   },
   detailValue: {
     fontSize: 11,
-    color: '#4a5568',
+    color: COLORS.textMid,
   },
   signaturesRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     width: '100%',
-    marginTop: 6,
-    marginBottom: 10,
+    marginTop: 4,
+    marginBottom: 8,
     paddingHorizontal: 30,
   },
   signatureBlock: {
@@ -101,30 +136,32 @@ const styles = StyleSheet.create({
   },
   signatureLine: {
     width: '100%',
-    borderBottom: '1pt dotted #4a5568',
+    borderBottom: `1pt solid ${COLORS.goldLight}`,
     marginBottom: 4,
     height: 20,
   },
   signatureName: {
     fontSize: 10,
-    color: '#2d3748',
+    color: COLORS.textDark,
     fontWeight: 'bold',
   },
   signatureRole: {
     fontSize: 8,
-    color: '#718096',
+    color: COLORS.textLight,
     marginTop: 2,
   },
   footer: {
     width: '100%',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTop: '1pt solid #e2e8f0',
+    marginTop: 6,
+    paddingTop: 6,
+    paddingBottom: 4,
+    backgroundColor: COLORS.bgLight,
+    borderRadius: 2,
     alignItems: 'center',
   },
   footerText: {
     fontSize: 8,
-    color: '#a0aec0',
+    color: COLORS.textMuted,
   },
 });
 
@@ -154,7 +191,6 @@ const CertificatePDF = ({
   courseTitle,
   issuedAt,
   certificateCode,
-  companyName,
   companyLogoUrl,
   durationMinutes,
   hrSignerName,
@@ -162,48 +198,49 @@ const CertificatePDF = ({
 }: CertificatePDFProps) => (
   <Document>
     <Page size="A4" orientation="landscape" style={styles.page}>
-      <View style={styles.border}>
-        <View style={styles.innerBorder}>
-          {companyLogoUrl && (
-            <Image src={companyLogoUrl} style={styles.logo} />
-          )}
-          <Text style={styles.title}>Certificado</Text>
-          <Text style={styles.subtitle}>de Conclusão</Text>
-          <Text style={styles.certifyText}>Certificamos que</Text>
-          <Text style={styles.userName}>{userName}</Text>
-          <Text style={styles.courseLabel}>concluiu com êxito o curso</Text>
-          <Text style={styles.courseName}>{courseTitle}</Text>
-          <View style={styles.detailsRow}>
-            <View style={styles.detailItem}>
-              <Text style={styles.detailLabel}>DATA DE EMISSÃO</Text>
-              <Text style={styles.detailValue}>
-                {new Date(issuedAt).toLocaleDateString('pt-BR')}
-              </Text>
-            </View>
-            {formatDuration(durationMinutes) && (
-              <View style={styles.detailItem}>
-                <Text style={styles.detailLabel}>CARGA HORÁRIA</Text>
-                <Text style={styles.detailValue}>{formatDuration(durationMinutes)}</Text>
-              </View>
+      <View style={styles.topStrip} />
+      <View style={styles.outerBorder}>
+        <View style={styles.goldBorder}>
+          <View style={styles.innerBorder}>
+            {companyLogoUrl && (
+              <Image src={companyLogoUrl} style={styles.logo} />
             )}
-          </View>
-
-          {/* Signatures */}
-          <View style={styles.signaturesRow}>
-            <View style={styles.signatureBlock}>
-              <View style={styles.signatureLine} />
-              <Text style={styles.signatureName}>{hrSignerName || 'Responsável RH'}</Text>
-              <Text style={styles.signatureRole}>Recursos Humanos</Text>
+            <Text style={styles.title}>Certificado</Text>
+            <Text style={styles.subtitle}>de Conclusão</Text>
+            <Text style={styles.certifyText}>Certificamos que</Text>
+            <Text style={styles.userName}>{userName}</Text>
+            <View style={styles.userNameLine} />
+            <Text style={styles.courseLabel}>concluiu com êxito o curso</Text>
+            <Text style={styles.courseName}>{courseTitle}</Text>
+            <View style={styles.detailsRow}>
+              <View style={styles.detailItem}>
+                <Text style={styles.detailLabel}>DATA DE EMISSÃO</Text>
+                <Text style={styles.detailValue}>
+                  {new Date(issuedAt).toLocaleDateString('pt-BR')}
+                </Text>
+              </View>
+              {formatDuration(durationMinutes) && (
+                <View style={styles.detailItem}>
+                  <Text style={styles.detailLabel}>CARGA HORÁRIA</Text>
+                  <Text style={styles.detailValue}>{formatDuration(durationMinutes)}</Text>
+                </View>
+              )}
             </View>
-            <View style={styles.signatureBlock}>
-              <View style={styles.signatureLine} />
-              <Text style={styles.signatureName}>{directorSignerName || 'Diretor(a)'}</Text>
-              <Text style={styles.signatureRole}>Diretoria</Text>
+            <View style={styles.signaturesRow}>
+              <View style={styles.signatureBlock}>
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureName}>{hrSignerName || 'Responsável RH'}</Text>
+                <Text style={styles.signatureRole}>Recursos Humanos</Text>
+              </View>
+              <View style={styles.signatureBlock}>
+                <View style={styles.signatureLine} />
+                <Text style={styles.signatureName}>{directorSignerName || 'Diretor(a)'}</Text>
+                <Text style={styles.signatureRole}>Diretoria</Text>
+              </View>
             </View>
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Código de validação: {certificateCode}</Text>
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Código de validação: {certificateCode}</Text>
+            </View>
           </View>
         </View>
       </View>
