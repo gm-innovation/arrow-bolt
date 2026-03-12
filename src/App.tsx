@@ -118,6 +118,9 @@ const CorpGroupDetail = lazy(() => import("./pages/corp/GroupDetail"));
 const CorpGroupDiscussion = lazy(() => import("./pages/corp/GroupDiscussion"));
 const CorpUserProfile = lazy(() => import("./pages/corp/UserProfile"));
 const CorpMyDocuments = lazy(() => import("./pages/corp/MyDocuments"));
+const CorpUniversity = lazy(() => import("./pages/corp/University"));
+const CorpUniversityCourse = lazy(() => import("./pages/corp/UniversityCourse"));
+const CorpMyLearning = lazy(() => import("./pages/corp/MyLearning"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
 const SuppliesRequests = lazy(() => import("./pages/supplies/Requests"));
