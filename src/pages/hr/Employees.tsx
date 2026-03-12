@@ -10,7 +10,7 @@ import { Search, Users, Plus, Wrench } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmployeeDetailSheet } from "@/components/hr/EmployeeDetailSheet";
-import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
+import { NewEmployeeForm, EmployeeFormValues } from "@/components/hr/NewEmployeeForm";
 import { useToast } from "@/hooks/use-toast";
 import { addDays } from "date-fns";
 import { sanitizeFileName } from "@/lib/utils";
@@ -138,8 +138,8 @@ export default function Employees() {
     return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   };
 
-  const handleCreateTechnician = async (
-    data: any,
+  const handleCreateEmployee = async (
+    data: EmployeeFormValues,
     uploadedFile: File | null,
     photoFile: File | null,
     certificationFiles: Array<{ file: File; name?: string; issueDate?: string; expiryDate?: string }>
@@ -163,7 +163,7 @@ export default function Employees() {
       }
 
       const { data: createUserResult, error: createUserError } = await supabase.functions.invoke('create-user', {
-        body: { email: data.email, password, full_name: data.name, phone: data.phone || null, company_id: companyId, role: 'technician' }
+        body: { email: data.email, password, full_name: data.name, phone: data.phone || null, company_id: companyId, role: data.selected_role }
       });
       if (createUserError) throw createUserError;
       if (!createUserResult?.user_id) throw new Error('Falha ao criar usuário');
@@ -181,45 +181,49 @@ export default function Employees() {
         } catch (e) { console.error('Photo upload error:', e); }
       }
 
-      const { data: technicianData, error: techError } = await supabase
-        .from('technicians').select('id').eq('user_id', createUserResult.user_id).single();
-      if (techError) throw techError;
+      // Only process technician-specific data if role is technician
+      if (data.selected_role === 'technician') {
+        const { data: technicianData, error: techError } = await supabase
+          .from('technicians').select('id').eq('user_id', createUserResult.user_id).single();
+        if (techError) throw techError;
 
-      await supabase.from("technicians").update({
-        specialty: data.role, cpf: data.cpf || null, rg: data.rg || null,
-        birth_date: data.birth_date || null, gender: data.gender || null,
-        nationality: data.nationality || null, height: data.height ? parseInt(data.height) : null,
-        blood_type: data.blood_type || null, blood_rh_factor: data.blood_rh_factor || null,
-        aso_valid_until: data.aso_valid_until || null, medical_status: data.medical_status || 'pending',
-      }).eq('user_id', createUserResult.user_id);
+        await supabase.from("technicians").update({
+          specialty: data.specialty || null, cpf: data.cpf || null, rg: data.rg || null,
+          birth_date: data.birth_date || null, gender: data.gender || null,
+          nationality: data.nationality || null, height: data.height ? parseInt(data.height) : null,
+          blood_type: data.blood_type || null, blood_rh_factor: data.blood_rh_factor || null,
+          aso_valid_until: data.aso_valid_until || null, medical_status: data.medical_status || 'pending',
+        }).eq('user_id', createUserResult.user_id);
 
-      if (uploadedFile && technicianData) {
-        const filePath = `${companyId}/${technicianData.id}/aso/${Date.now()}-${uploadedFile.name}`;
-        const { error: uploadError } = await supabase.storage.from('technician-documents').upload(filePath, uploadedFile);
-        if (!uploadError) {
-          await supabase.from('technician_documents').insert({
-            technician_id: technicianData.id, document_type: 'aso', file_name: uploadedFile.name,
-            file_path: filePath, issue_date: data.aso_issue_date || null, expiry_date: data.aso_valid_until || null,
-            metadata: data.aso_issue_date ? { aso_issue_date: data.aso_issue_date } : null,
-          });
-        }
-      }
-
-      if (certificationFiles.length > 0 && technicianData) {
-        for (let i = 0; i < certificationFiles.length; i++) {
-          const cert = certificationFiles[i];
-          const sanitizedName = sanitizeFileName(cert.file.name);
-          const certPath = `${companyId}/${technicianData.id}/certifications/${Date.now()}-${i}-${sanitizedName}`;
-          const { error: certError } = await supabase.storage.from('technician-documents').upload(certPath, cert.file);
-          if (!certError) {
+        if (uploadedFile && technicianData) {
+          const filePath = `${companyId}/${technicianData.id}/aso/${Date.now()}-${uploadedFile.name}`;
+          const { error: uploadError } = await supabase.storage.from('technician-documents').upload(filePath, uploadedFile);
+          if (!uploadError) {
             await supabase.from('technician_documents').insert({
-              technician_id: technicianData.id, document_type: 'certification', file_name: cert.file.name,
-              file_path: certPath, certificate_name: cert.name || cert.file.name,
-              issue_date: cert.issueDate, expiry_date: cert.expiryDate,
+              technician_id: technicianData.id, document_type: 'aso', file_name: uploadedFile.name,
+              file_path: filePath, issue_date: data.aso_issue_date || null, expiry_date: data.aso_valid_until || null,
+              metadata: data.aso_issue_date ? { aso_issue_date: data.aso_issue_date } : null,
             });
           }
         }
+
+        if (certificationFiles.length > 0 && technicianData) {
+          for (let i = 0; i < certificationFiles.length; i++) {
+            const cert = certificationFiles[i];
+            const sanitizedName = sanitizeFileName(cert.file.name);
+            const certPath = `${companyId}/${technicianData.id}/certifications/${Date.now()}-${i}-${sanitizedName}`;
+            const { error: certError } = await supabase.storage.from('technician-documents').upload(certPath, cert.file);
+            if (!certError) {
+              await supabase.from('technician_documents').insert({
+                technician_id: technicianData.id, document_type: 'certification', file_name: cert.file.name,
+                file_path: certPath, certificate_name: cert.name || cert.file.name,
+                issue_date: cert.issueDate, expiry_date: cert.expiryDate,
+              });
+            }
+          }
+        }
       }
+
 
       if (data.password_option === 'reset_link') {
         await supabase.auth.resetPasswordForEmail(data.email, { redirectTo: `${window.location.origin}/login` });
@@ -229,13 +233,13 @@ export default function Employees() {
       queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
 
       const passwordMessage = data.password_option === 'auto_email'
-        ? `Senha gerada: ${password}. Informe ao técnico.`
+        ? `Senha gerada: ${password}. Informe ao colaborador.`
         : data.password_option === 'reset_link' ? 'Link de redefinição de senha enviado.' : 'Senha definida com sucesso.';
 
-      toast({ title: "Técnico criado com sucesso", description: `${data.name} foi adicionado. ${passwordMessage}` });
+      toast({ title: "Colaborador criado com sucesso", description: `${data.name} foi adicionado. ${passwordMessage}` });
     } catch (error: any) {
-      console.error('Error creating technician:', error);
-      toast({ title: "Erro ao criar técnico", description: error.message, variant: "destructive" });
+      console.error('Error creating employee:', error);
+      toast({ title: "Erro ao criar colaborador", description: error.message, variant: "destructive" });
     }
   };
 
@@ -248,7 +252,7 @@ export default function Employees() {
         </div>
         <Button onClick={() => setIsNewTechOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Novo Técnico
+          Novo Colaborador
         </Button>
       </div>
 
@@ -359,10 +363,10 @@ export default function Employees() {
       <Dialog open={isNewTechOpen} onOpenChange={setIsNewTechOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Cadastrar Novo Técnico</DialogTitle>
+            <DialogTitle>Cadastrar Novo Colaborador</DialogTitle>
           </DialogHeader>
-          <NewTechnicianForm
-            onSubmit={handleCreateTechnician}
+          <NewEmployeeForm
+            onSubmit={handleCreateEmployee}
             onCancel={() => setIsNewTechOpen(false)}
           />
         </DialogContent>
