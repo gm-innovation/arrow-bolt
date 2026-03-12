@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { GraduationCap, BookOpen, Award, Play, ArrowLeft } from 'lucide-react';
-import { useMyEnrollments, useMyCertificates } from '@/hooks/useUniversity';
+import { GraduationCap, BookOpen, Award, Play, ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { useMyEnrollments, useMyCertificates, useCertificateUserData } from '@/hooks/useUniversity';
+import { pdf } from '@react-pdf/renderer';
+import CertificatePDF from '@/components/university/CertificatePDF';
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
   not_started: { label: 'Não iniciado', variant: 'secondary' },
