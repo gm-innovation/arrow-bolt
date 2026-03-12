@@ -300,6 +300,7 @@ export const usePublicOnboarding = (token?: string) => {
     onboarding,
     docTypes,
     documents,
+    companyLogoUrl,
     isLoading: loadingOnboarding || loadingTypes || loadingDocs,
     error,
     uploadDocument,
