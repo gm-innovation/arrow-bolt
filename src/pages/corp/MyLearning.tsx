@@ -1,11 +1,14 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { GraduationCap, BookOpen, Award, Play, ArrowLeft } from 'lucide-react';
-import { useMyEnrollments, useMyCertificates } from '@/hooks/useUniversity';
+import { GraduationCap, BookOpen, Award, Play, ArrowLeft, Download, Loader2 } from 'lucide-react';
+import { useMyEnrollments, useMyCertificates, useCertificateUserData } from '@/hooks/useUniversity';
+import { pdf } from '@react-pdf/renderer';
+import CertificatePDF from '@/components/university/CertificatePDF';
 
 const STATUS_MAP: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' }> = {
   not_started: { label: 'Não iniciado', variant: 'secondary' },
@@ -17,9 +20,39 @@ const MyLearning = () => {
   const navigate = useNavigate();
   const { data: enrollments, isLoading: loadingEnrollments } = useMyEnrollments();
   const { data: certificates, isLoading: loadingCerts } = useMyCertificates();
+  const { data: certUserData } = useCertificateUserData();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const activeEnrollments = enrollments?.filter(e => e.status !== 'completed') || [];
   const completedEnrollments = enrollments?.filter(e => e.status === 'completed') || [];
+
+  const handleDownloadCertificate = async (cert: typeof certificates extends (infer T)[] | undefined ? T : never) => {
+    if (!certUserData) return;
+    setDownloadingId(cert.id);
+    try {
+      const blob = await pdf(
+        <CertificatePDF
+          userName={certUserData.userName}
+          courseTitle={cert.course?.title || 'Curso'}
+          issuedAt={cert.issued_at!}
+          certificateCode={cert.certificate_code || ''}
+          companyName={certUserData.companyName}
+          companyLogoUrl={certUserData.companyLogoUrl}
+          durationMinutes={cert.course?.duration_minutes}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificado-${cert.certificate_code || cert.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Erro ao gerar certificado:', e);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -117,11 +150,20 @@ const MyLearning = () => {
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3">
                       <Award className="h-10 w-10 text-primary shrink-0" />
-                      <div>
+                      <div className="flex-1">
                         <p className="font-medium">{cert.course?.title}</p>
                         <p className="text-xs text-muted-foreground">Código: {cert.certificate_code}</p>
                         <p className="text-xs text-muted-foreground">Emitido em {new Date(cert.issued_at!).toLocaleDateString('pt-BR')}</p>
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDownloadCertificate(cert)}
+                        disabled={downloadingId === cert.id}
+                      >
+                        {downloadingId === cert.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                        <span className="ml-1 hidden sm:inline">Baixar</span>
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>

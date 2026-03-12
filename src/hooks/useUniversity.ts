@@ -458,6 +458,29 @@ export function useRemoveCourseFromTrail() {
   });
 }
 
+// ---- CERTIFICATE DATA (for PDF) ----
+
+export function useCertificateUserData() {
+  const { user, profile } = useAuth();
+  return useQuery({
+    queryKey: ['certificate-user-data', user?.id],
+    queryFn: async () => {
+      const { data: company, error } = await supabase
+        .from('companies')
+        .select('name, logo_url')
+        .eq('id', profile!.company_id!)
+        .single();
+      if (error) throw error;
+      return {
+        userName: profile?.full_name || 'Colaborador',
+        companyName: company?.name || '',
+        companyLogoUrl: company?.logo_url || undefined,
+      };
+    },
+    enabled: !!user?.id && !!profile?.company_id,
+  });
+}
+
 // ---- CERTIFICATES ----
 
 export function useMyCertificates() {
