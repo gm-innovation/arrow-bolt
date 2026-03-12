@@ -30,7 +30,7 @@ const statusLabel: Record<string, string> = {
 
 const PublicOnboarding = () => {
   const { token } = useParams<{ token: string }>();
-  const { onboarding, docTypes, documents, isLoading, error, uploadDocument } = usePublicOnboarding(token);
+  const { onboarding, docTypes, documents, isLoading, error, uploadDocument, companyLogoUrl } = usePublicOnboarding(token);
   const [uploadingType, setUploadingType] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null);
