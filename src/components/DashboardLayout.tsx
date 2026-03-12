@@ -135,6 +135,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
 
   const hrMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/hr/dashboard" },
+    { title: "Colaboradores", icon: Users, path: "/hr/employees" },
     { title: "Técnicos", icon: Wrench, path: "/hr/technicians" },
     { title: "Controle de Ponto", icon: History, path: "/hr/time-control" },
     { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },

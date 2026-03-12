@@ -101,6 +101,7 @@ const HRSettings = lazy(() => import("./pages/hr/Settings"));
 const HRDocumentsPage = lazy(() => import("./pages/hr/Documents"));
 const HROnboarding = lazy(() => import("./pages/hr/Onboarding"));
 const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"));
+const HREmployees = lazy(() => import("./pages/hr/Employees"));
 const PublicOnboarding = lazy(() => import("./pages/onboarding/PublicOnboarding"));
 
 const CorpDashboard = lazy(() => import("./pages/corp/Dashboard"));
@@ -268,6 +269,7 @@ const App = () => {
                     <Route path="/hr/documents" element={<HRDocumentsPage />} />
                     <Route path="/hr/onboarding" element={<HROnboarding />} />
                     <Route path="/hr/onboarding/settings" element={<HROnboardingSettings />} />
+                    <Route path="/hr/employees" element={<HREmployees />} />
                     <Route path="/hr/profile" element={<HRProfile />} />
                     <Route path="/hr/settings" element={<HRSettings />} />
                     <Route path="/hr/chat" element={<Chat />} />
