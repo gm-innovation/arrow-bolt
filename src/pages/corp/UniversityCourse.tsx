@@ -31,6 +31,7 @@ const UniversityCourse = () => {
   const updateStatus = useUpdateEnrollmentStatus();
   const issueCert = useIssueCertificate();
   const { publishCourseCompletion } = useUniversityCompletion();
+  const { data: certUserData } = useCertificateUserData();
   const [activeModule, setActiveModule] = useState<string | null>(null);
   const completionPostedRef = useRef(false);
 
@@ -54,10 +55,28 @@ const UniversityCourse = () => {
     if (enrollment && completedModules === totalModules && totalModules > 0 && enrollment.status !== 'completed' && !completionPostedRef.current) {
       completionPostedRef.current = true;
       updateStatus.mutate({ id: enrollment.id, status: 'completed' });
-      issueCert.mutate({ enrollment_id: enrollment.id, user_id: user!.id, course_id: id! });
-      if (course) {
-        publishCourseCompletion(course.title);
-      }
+
+      const completeCourse = async () => {
+        try {
+          const cert = await issueCert.mutateAsync({ enrollment_id: enrollment.id, user_id: user!.id, course_id: id! });
+          if (course && certUserData && cert) {
+            await publishCourseCompletion(course.title, {
+              courseTitle: course.title,
+              userName: certUserData.userName,
+              companyName: certUserData.companyName,
+              companyLogoUrl: certUserData.companyLogoUrl,
+              durationMinutes: course.duration_minutes,
+              certificateCode: cert.certificate_code || '',
+              issuedAt: cert.issued_at || new Date().toISOString(),
+            });
+          } else if (course) {
+            await publishCourseCompletion(course.title);
+          }
+        } catch (e) {
+          console.error('Erro ao completar curso:', e);
+        }
+      };
+      completeCourse();
     }
   }, [completedModules, totalModules]);
 
