@@ -21,7 +21,7 @@ export const useOnboardingDocumentTypes = () => {
   });
 
   const createDocType = useMutation({
-    mutationFn: async (dt: { company_id: string; name: string; description?: string; is_required?: boolean; sort_order?: number }) => {
+    mutationFn: async (dt: { company_id: string; name: string; description?: string; is_required?: boolean; sort_order?: number; position_tag?: string | null }) => {
       const { data, error } = await (supabase as any)
         .from('onboarding_document_types')
         .insert(dt)
