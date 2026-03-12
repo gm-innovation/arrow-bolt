@@ -194,6 +194,18 @@ const University = () => {
       {modulesDialogCourse && (
         <ModulesDialog courseId={modulesDialogCourse} onClose={() => setModulesDialogCourse(null)} />
       )}
+
+      {/* Certificate Preview Modal */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Modelo de Certificado</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0">
+            <PDFCanvasViewer blob={previewBlob} className="h-full" />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
