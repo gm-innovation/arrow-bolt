@@ -233,13 +233,13 @@ export default function Employees() {
       queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
 
       const passwordMessage = data.password_option === 'auto_email'
-        ? `Senha gerada: ${password}. Informe ao técnico.`
+        ? `Senha gerada: ${password}. Informe ao colaborador.`
         : data.password_option === 'reset_link' ? 'Link de redefinição de senha enviado.' : 'Senha definida com sucesso.';
 
-      toast({ title: "Técnico criado com sucesso", description: `${data.name} foi adicionado. ${passwordMessage}` });
+      toast({ title: "Colaborador criado com sucesso", description: `${data.name} foi adicionado. ${passwordMessage}` });
     } catch (error: any) {
-      console.error('Error creating technician:', error);
-      toast({ title: "Erro ao criar técnico", description: error.message, variant: "destructive" });
+      console.error('Error creating employee:', error);
+      toast({ title: "Erro ao criar colaborador", description: error.message, variant: "destructive" });
     }
   };
 
