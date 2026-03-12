@@ -32,8 +32,9 @@ const HROnboardingSettings = () => {
       description: description.trim() || undefined,
       is_required: isRequired,
       sort_order: docTypes.length,
+      position_tag: positionTag.trim() || null,
     }, {
-      onSuccess: () => { setName(''); setDescription(''); setIsRequired(true); },
+      onSuccess: () => { setName(''); setDescription(''); setIsRequired(true); setPositionTag(''); },
     });
   };
 
