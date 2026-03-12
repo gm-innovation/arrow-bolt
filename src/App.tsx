@@ -274,6 +274,7 @@ const App = () => {
                     <Route path="/hr/onboarding" element={<HROnboarding />} />
                     <Route path="/hr/onboarding/settings" element={<HROnboardingSettings />} />
                     <Route path="/hr/employees" element={<HREmployees />} />
+                    <Route path="/hr/university" element={<HRUniversity />} />
                     <Route path="/hr/profile" element={<HRProfile />} />
                     <Route path="/hr/settings" element={<HRSettings />} />
                     <Route path="/hr/chat" element={<Chat />} />
