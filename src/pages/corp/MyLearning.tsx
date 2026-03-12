@@ -20,9 +20,39 @@ const MyLearning = () => {
   const navigate = useNavigate();
   const { data: enrollments, isLoading: loadingEnrollments } = useMyEnrollments();
   const { data: certificates, isLoading: loadingCerts } = useMyCertificates();
+  const { data: certUserData } = useCertificateUserData();
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const activeEnrollments = enrollments?.filter(e => e.status !== 'completed') || [];
   const completedEnrollments = enrollments?.filter(e => e.status === 'completed') || [];
+
+  const handleDownloadCertificate = async (cert: typeof certificates extends (infer T)[] | undefined ? T : never) => {
+    if (!certUserData) return;
+    setDownloadingId(cert.id);
+    try {
+      const blob = await pdf(
+        <CertificatePDF
+          userName={certUserData.userName}
+          courseTitle={cert.course?.title || 'Curso'}
+          issuedAt={cert.issued_at!}
+          certificateCode={cert.certificate_code || ''}
+          companyName={certUserData.companyName}
+          companyLogoUrl={certUserData.companyLogoUrl}
+          durationMinutes={cert.course?.duration_minutes}
+        />
+      ).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `certificado-${cert.certificate_code || cert.id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Erro ao gerar certificado:', e);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   return (
     <div className="space-y-6">
