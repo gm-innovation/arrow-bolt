@@ -229,7 +229,7 @@ export const usePublicOnboarding = (token?: string) => {
         .from('companies')
         .select('logo_url')
         .eq('id', onboarding.company_id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
