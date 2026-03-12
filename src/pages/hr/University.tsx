@@ -305,4 +305,156 @@ function ModulesDialog({ courseId, onClose }: { courseId: string; onClose: () =>
   );
 }
 
+// ---- TRAILS TAB ----
+
+function HRTrailsTab() {
+  const { data: trails, isLoading } = useUniversityTrails();
+  const createTrail = useCreateTrail();
+  const updateTrail = useUpdateTrail();
+  const deleteTrail = useDeleteTrail();
+  const [showCreate, setShowCreate] = useState(false);
+  const [editTrail, setEditTrail] = useState<any>(null);
+  const [manageTrailId, setManageTrailId] = useState<string | null>(null);
+  const [form, setForm] = useState({ title: '', description: '' });
+
+  const handleCreate = async () => {
+    await createTrail.mutateAsync(form);
+    setShowCreate(false);
+    setForm({ title: '', description: '' });
+  };
+
+  const handleEdit = async () => {
+    if (!editTrail) return;
+    await updateTrail.mutateAsync({ id: editTrail.id, ...form });
+    setEditTrail(null);
+    setForm({ title: '', description: '' });
+  };
+
+  const openEdit = (t: any) => {
+    setForm({ title: t.title, description: t.description || '' });
+    setEditTrail(t);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button onClick={() => { setForm({ title: '', description: '' }); setShowCreate(true); }}>
+          <Plus className="h-4 w-4 mr-2" /> Nova Trilha
+        </Button>
+      </div>
+
+      {isLoading ? (
+        <div className="text-center py-8 text-muted-foreground">Carregando...</div>
+      ) : !trails?.length ? (
+        <Card><CardContent className="py-12 text-center text-muted-foreground">Nenhuma trilha cadastrada.</CardContent></Card>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {trails.map(trail => (
+            <Card key={trail.id} className="flex flex-col">
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between">
+                  <CardTitle className="text-lg">{trail.title}</CardTitle>
+                  <Badge variant={trail.is_published ? 'default' : 'secondary'}>
+                    {trail.is_published ? 'Publicada' : 'Rascunho'}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent className="flex-1 flex flex-col">
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{trail.description || 'Sem descrição'}</p>
+                <div className="mt-auto flex gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => openEdit(trail)}><Pencil className="h-3 w-3 mr-1" /> Editar</Button>
+                  <Button size="sm" variant="outline" onClick={() => setManageTrailId(trail.id)}><Eye className="h-3 w-3 mr-1" /> Cursos</Button>
+                  <Button size="sm" variant="outline" onClick={() => updateTrail.mutate({ id: trail.id, is_published: !trail.is_published })}>
+                    {trail.is_published ? 'Despublicar' : 'Publicar'}
+                  </Button>
+                  <Button size="sm" variant="destructive" onClick={() => deleteTrail.mutate(trail.id)}><Trash2 className="h-3 w-3" /></Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Create Dialog */}
+      <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nova Trilha</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Título</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
+            <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleCreate} disabled={!form.title || createTrail.isPending}>{createTrail.isPending ? 'Salvando...' : 'Salvar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editTrail} onOpenChange={v => { if (!v) setEditTrail(null); }}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Editar Trilha</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Título</Label><Input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} /></div>
+            <div><Label>Descrição</Label><Textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} /></div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleEdit} disabled={!form.title || updateTrail.isPending}>{updateTrail.isPending ? 'Salvando...' : 'Salvar'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manage Courses Dialog */}
+      {manageTrailId && <TrailCoursesDialog trailId={manageTrailId} onClose={() => setManageTrailId(null)} />}
+    </div>
+  );
+}
+
+function TrailCoursesDialog({ trailId, onClose }: { trailId: string; onClose: () => void }) {
+  const { data: trailCourses, isLoading } = useTrailCourses(trailId);
+  const { data: allCourses } = useUniversityCourses();
+  const addCourse = useAddCourseToTrail();
+  const removeCourse = useRemoveCourseFromTrail();
+  const [selectedCourseId, setSelectedCourseId] = useState('');
+
+  const availableCourses = allCourses?.filter(c => !trailCourses?.some(tc => tc.course_id === c.id));
+
+  const handleAdd = async () => {
+    if (!selectedCourseId) return;
+    await addCourse.mutateAsync({ trail_id: trailId, course_id: selectedCourseId, sort_order: (trailCourses?.length || 0) + 1 });
+    setSelectedCourseId('');
+  };
+
+  return (
+    <Dialog open onOpenChange={v => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Cursos da Trilha</DialogTitle></DialogHeader>
+
+        {isLoading ? <p>Carregando...</p> : (
+          <div className="space-y-2">
+            {trailCourses?.map((tc, i) => (
+              <div key={tc.id} className="flex items-center justify-between p-2 border rounded-md">
+                <span className="text-sm">{i + 1}. {tc.course?.title}</span>
+                <Button size="sm" variant="ghost" onClick={() => removeCourse.mutate(tc.id)}><X className="h-3 w-3" /></Button>
+              </div>
+            ))}
+            {!trailCourses?.length && <p className="text-sm text-muted-foreground text-center py-4">Nenhum curso na trilha</p>}
+          </div>
+        )}
+
+        <div className="border-t pt-4 flex gap-2">
+          <Select value={selectedCourseId} onValueChange={setSelectedCourseId}>
+            <SelectTrigger className="flex-1"><SelectValue placeholder="Selecione um curso" /></SelectTrigger>
+            <SelectContent>
+              {availableCourses?.map(c => <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Button onClick={handleAdd} disabled={!selectedCourseId || addCourse.isPending}>
+            <Plus className="h-4 w-4 mr-1" /> Adicionar
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default University;

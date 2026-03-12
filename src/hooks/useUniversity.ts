@@ -314,6 +314,150 @@ export function useUpdateEnrollmentStatus() {
   });
 }
 
+// ---- TRAILS ----
+
+export interface UniversityTrail {
+  id: string;
+  company_id: string;
+  title: string;
+  description: string | null;
+  is_published: boolean | null;
+  created_by: string | null;
+  created_at: string | null;
+}
+
+export interface UniversityTrailCourse {
+  id: string;
+  trail_id: string;
+  course_id: string;
+  sort_order: number | null;
+  course?: UniversityCourse;
+}
+
+export function useUniversityTrails(publishedOnly = false) {
+  const { profile } = useAuth();
+  return useQuery({
+    queryKey: ['university-trails', profile?.company_id, publishedOnly],
+    queryFn: async () => {
+      let q = supabase.from('university_trails').select('*').eq('company_id', profile!.company_id!);
+      if (publishedOnly) q = q.eq('is_published', true);
+      q = q.order('created_at', { ascending: false });
+      const { data, error } = await q;
+      if (error) throw error;
+      return data as UniversityTrail[];
+    },
+    enabled: !!profile?.company_id,
+  });
+}
+
+export function useUniversityTrail(trailId: string | undefined) {
+  return useQuery({
+    queryKey: ['university-trail', trailId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('university_trails').select('*').eq('id', trailId!).single();
+      if (error) throw error;
+      return data as UniversityTrail;
+    },
+    enabled: !!trailId,
+  });
+}
+
+export function useCreateTrail() {
+  const qc = useQueryClient();
+  const { profile, user } = useAuth();
+  return useMutation({
+    mutationFn: async (data: { title: string; description?: string }) => {
+      const { error } = await supabase.from('university_trails').insert({
+        company_id: profile!.company_id!,
+        created_by: user!.id,
+        ...data,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['university-trails'] });
+      toast({ title: 'Trilha criada com sucesso' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao criar trilha', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useUpdateTrail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...data }: Partial<UniversityTrail> & { id: string }) => {
+      const { error } = await supabase.from('university_trails').update(data).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['university-trails'] });
+      qc.invalidateQueries({ queryKey: ['university-trail'] });
+      toast({ title: 'Trilha atualizada' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao atualizar', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useDeleteTrail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('university_trails').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['university-trails'] });
+      toast({ title: 'Trilha removida' });
+    },
+    onError: (e: any) => toast({ title: 'Erro ao remover', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useTrailCourses(trailId: string | undefined) {
+  return useQuery({
+    queryKey: ['university-trail-courses', trailId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('university_trail_courses')
+        .select('*, course:university_courses(*)')
+        .eq('trail_id', trailId!)
+        .order('sort_order');
+      if (error) throw error;
+      return data as (UniversityTrailCourse & { course: UniversityCourse })[];
+    },
+    enabled: !!trailId,
+  });
+}
+
+export function useAddCourseToTrail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (data: { trail_id: string; course_id: string; sort_order?: number }) => {
+      const { error } = await supabase.from('university_trail_courses').insert(data);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['university-trail-courses'] });
+      toast({ title: 'Curso adicionado à trilha' });
+    },
+    onError: (e: any) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
+  });
+}
+
+export function useRemoveCourseFromTrail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('university_trail_courses').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['university-trail-courses'] });
+      toast({ title: 'Curso removido da trilha' });
+    },
+  });
+}
+
 // ---- CERTIFICATES ----
 
 export function useMyCertificates() {
