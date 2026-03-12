@@ -108,7 +108,15 @@ const PublicOnboarding = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl">
+      <div className="flex flex-col items-center w-full max-w-2xl">
+        {companyLogoUrl && (
+          <img
+            src={companyLogoUrl}
+            alt="Logo da empresa"
+            className="h-64 max-w-lg object-contain mb-8"
+          />
+        )}
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-xl">Bem-vindo(a), {onboarding.candidate_name}!</CardTitle>
           <p className="text-sm text-muted-foreground">
