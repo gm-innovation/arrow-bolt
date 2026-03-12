@@ -70,6 +70,8 @@ export function useUniversityCompletion() {
           companyName={certData.companyName}
           companyLogoUrl={certData.companyLogoUrl}
           durationMinutes={certData.durationMinutes}
+          hrSignerName={certData.hrSignerName}
+          directorSignerName={certData.directorSignerName}
         />
       ).toBlob();
 

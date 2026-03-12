@@ -471,10 +471,47 @@ export function useCertificateUserData() {
         .eq('id', profile!.company_id!)
         .single();
       if (error) throw error;
+
+      // Fetch HR signer name
+      let hrSignerName: string | undefined;
+      const { data: hrRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'hr');
+      if (hrRoles?.length) {
+        const hrUserIds = hrRoles.map(r => r.user_id);
+        const { data: hrProfiles } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('company_id', profile!.company_id!)
+          .in('id', hrUserIds)
+          .limit(1);
+        hrSignerName = hrProfiles?.[0]?.full_name || undefined;
+      }
+
+      // Fetch Director signer name
+      let directorSignerName: string | undefined;
+      const { data: dirRoles } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'director');
+      if (dirRoles?.length) {
+        const dirUserIds = dirRoles.map(r => r.user_id);
+        const { data: dirProfiles } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('company_id', profile!.company_id!)
+          .in('id', dirUserIds)
+          .limit(1);
+        directorSignerName = dirProfiles?.[0]?.full_name || undefined;
+      }
+
       return {
         userName: profile?.full_name || 'Colaborador',
         companyName: company?.name || '',
         companyLogoUrl: company?.logo_url || undefined,
+        hrSignerName,
+        directorSignerName,
       };
     },
     enabled: !!user?.id && !!profile?.company_id,
