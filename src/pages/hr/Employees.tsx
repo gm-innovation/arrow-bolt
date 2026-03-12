@@ -163,7 +163,7 @@ export default function Employees() {
       }
 
       const { data: createUserResult, error: createUserError } = await supabase.functions.invoke('create-user', {
-        body: { email: data.email, password, full_name: data.name, phone: data.phone || null, company_id: companyId, role: 'technician' }
+        body: { email: data.email, password, full_name: data.name, phone: data.phone || null, company_id: companyId, role: data.selected_role }
       });
       if (createUserError) throw createUserError;
       if (!createUserResult?.user_id) throw new Error('Falha ao criar usuário');
