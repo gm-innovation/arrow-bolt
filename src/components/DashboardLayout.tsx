@@ -211,6 +211,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Configurações", icon: Settings, path: "/finance/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
+    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const menuItems = {
