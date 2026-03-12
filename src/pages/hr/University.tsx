@@ -34,10 +34,14 @@ const University = () => {
   const createCourse = useCreateCourse();
   const updateCourse = useUpdateCourse();
   const deleteCourse = useDeleteCourse();
+  const { data: certUserData } = useCertificateUserData();
   const [search, setSearch] = useState('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [editCourse, setEditCourse] = useState<any>(null);
   const [modulesDialogCourse, setModulesDialogCourse] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewBlob, setPreviewBlob] = useState<Blob | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   // Create/Edit form state
   const [form, setForm] = useState({ title: '', description: '', category: 'geral', duration_minutes: 0 });
