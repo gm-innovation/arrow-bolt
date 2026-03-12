@@ -34,9 +34,7 @@ export interface EmployeeRow {
   avatar_url: string | null;
   phone: string | null;
   company_id: string;
-  department_id: string | null;
   created_at: string;
-  department?: { name: string } | null;
   roles: string[];
   technician?: {
     id: string;
