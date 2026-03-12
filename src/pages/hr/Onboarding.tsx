@@ -27,7 +27,7 @@ const statusColors: Record<string, string> = {
 const HROnboarding = () => {
   const { processes, isLoading, createProcess } = useOnboardingProcesses();
   const { docTypes } = useOnboardingDocumentTypes();
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
 
   const [open, setOpen] = useState(false);
