@@ -252,7 +252,7 @@ export default function Employees() {
         </div>
         <Button onClick={() => setIsNewTechOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
-          Novo Técnico
+          Novo Colaborador
         </Button>
       </div>
 
