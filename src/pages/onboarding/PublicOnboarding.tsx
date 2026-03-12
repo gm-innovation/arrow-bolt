@@ -90,15 +90,11 @@ const PublicOnboarding = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
-        .from('corp-documents')
-        .getPublicUrl(path);
-
       await uploadDocument.mutateAsync({
         onboarding_id: onboarding.id,
         document_type_id: selectedTypeId,
         file_name: file.name,
-        file_url: urlData.publicUrl,
+        file_url: path,
       });
 
       toast({ title: 'Documento enviado com sucesso!' });
