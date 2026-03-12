@@ -120,6 +120,7 @@ const CorpUserProfile = lazy(() => import("./pages/corp/UserProfile"));
 const CorpMyDocuments = lazy(() => import("./pages/corp/MyDocuments"));
 const CorpUniversity = lazy(() => import("./pages/corp/University"));
 const CorpUniversityCourse = lazy(() => import("./pages/corp/UniversityCourse"));
+const CorpUniversityTrail = lazy(() => import("./pages/corp/UniversityTrail"));
 const CorpMyLearning = lazy(() => import("./pages/corp/MyLearning"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
@@ -331,6 +332,7 @@ const App = () => {
                   <Route path="/corp/profile" element={<CorpRoute pageTitle="Meu Perfil"><CorpUserProfile /></CorpRoute>} />
                   <Route path="/corp/university" element={<CorpRoute pageTitle="Universidade"><CorpUniversity /></CorpRoute>} />
                   <Route path="/corp/university/course/:id" element={<CorpRoute pageTitle="Curso"><CorpUniversityCourse /></CorpRoute>} />
+                  <Route path="/corp/university/trail/:id" element={<CorpRoute pageTitle="Trilha"><CorpUniversityTrail /></CorpRoute>} />
                   <Route path="/corp/university/my-learning" element={<CorpRoute pageTitle="Meu Aprendizado"><CorpMyLearning /></CorpRoute>} />
 
                   {/* Supplies - nested layout route */}
