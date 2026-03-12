@@ -204,7 +204,6 @@ const CertificatePDF = ({
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Código de validação: {certificateCode}</Text>
-            <Text style={styles.footerText}>{companyName} — Universidade Corporativa</Text>
           </View>
         </View>
       </View>
