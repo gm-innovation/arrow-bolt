@@ -1,140 +1,72 @@
-## Gamificação do Sistema de Conquistas
 
-O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-### Modelo de Dados
+## Universidade Corporativa — Plano de Implementação
 
-Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
+Este é um módulo grande. Vamos implementá-lo em fases para garantir qualidade. A **Fase 1** será entregue agora.
 
-```text
-Tier         | XP necessário | Ícone
-─────────────┼───────────────┼──────
-Bronze       | 0             | 🥉
-Prata        | 100           | 🥈
-Ouro         | 300           | 🥇
-Diamante     | 600           | 💎
-Rubi         | 1000          | ❤️‍🔥
-```
+---
 
-Alterações na tabela `corp_badges`:
-- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
-- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
+### Estrutura de Dados (Migração SQL)
 
-### Conquistas Automáticas (por categoria)
+**Tabelas a criar:**
 
-Definir um conjunto fixo no código (sem tabela extra):
+1. **`university_courses`** — Catálogo de cursos
+   - `id`, `company_id`, `title`, `description`, `category`, `thumbnail_url`, `duration_minutes`, `is_published`, `created_by`, `created_at`, `updated_at`
 
-**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
-**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
-**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+2. **`university_modules`** — Módulos/aulas dentro de cada curso
+   - `id`, `course_id`, `title`, `description`, `content_type` (video/pdf/text), `content_url`, `sort_order`, `duration_minutes`, `created_at`
 
-Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+3. **`university_trails`** — Trilhas de aprendizado
+   - `id`, `company_id`, `title`, `description`, `is_published`, `created_by`, `created_at`
 
-### Mudanças nos Componentes
+4. **`university_trail_courses`** — Cursos dentro de uma trilha (M:N com ordem)
+   - `id`, `trail_id`, `course_id`, `sort_order`
 
-**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
-- Substituir `BADGE_TYPES` por categorias com sub-opções:
-  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
-  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
-  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
-- Cada opção define XP (5, 10, 15, 25 conforme importância)
-- Manter seletor de ícone para tipo Personalizada
-- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+5. **`university_enrollments`** — Matrícula/atribuição de cursos a colaboradores
+   - `id`, `company_id`, `user_id`, `course_id`, `is_mandatory`, `assigned_by`, `status` (not_started/in_progress/completed), `started_at`, `completed_at`, `created_at`
 
-**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
-- Recebe `userId` e `companyId`
-- Query: contar total de badges do usuário e somar `xp_value`
-- Calcular tier atual e progresso para o próximo
-- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
-- Usado no `FeedProfileSidebar` abaixo do nome
+6. **`university_progress`** — Progresso por módulo
+   - `id`, `enrollment_id`, `module_id`, `completed`, `completed_at`
 
-**3. `FeedProfileSidebar.tsx` — Integrar nível**
-- Adicionar `FeedUserLevel` abaixo do badge de role
-- Mostrar contagem de conquistas do usuário
+7. **`university_certificates`** — Certificados emitidos
+   - `id`, `enrollment_id`, `user_id`, `course_id`, `issued_at`, `certificate_code`
 
-**4. `FeedBadgesCard.tsx` — Melhorar visual**
-- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
-- Agrupar visualmente por categoria com ícone
+**RLS:** Acesso por `company_id`. Gestão (INSERT/UPDATE/DELETE) restrita a RH via `has_role(auth.uid(), 'hr')`. Leitura para todos os colaboradores autenticados da mesma empresa.
 
-### Migration SQL
+**Storage:** Bucket `university-content` para vídeos, PDFs e thumbnails.
 
-```sql
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
-```
+---
 
-### Resumo
-- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
-- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
-- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
-- Integrar nível no `FeedProfileSidebar`
-- Melhorar `FeedBadgesCard` com indicador de XP
+### Páginas e Componentes
 
-## Modo Docagem - OS individual por atividade + Relatórios
+**Para o RH (gestão):**
+- `/hr/university` — Dashboard da universidade (cursos, trilhas, matrículas)
+- `/hr/university/courses/new` — Criar/editar curso com módulos
+- `/hr/university/trails` — Gerenciar trilhas
+- `/hr/university/enrollments` — Atribuir cursos/trilhas a colaboradores (obrigatório ou opcional)
 
-### Implementado ✅
+**Para todos os colaboradores (consumo):**
+- `/corp/university` — Catálogo de cursos e trilhas disponíveis
+- `/corp/university/course/:id` — Player de conteúdo (vídeos, PDFs) com progresso
+- `/corp/university/my-learning` — Meus cursos, progresso e certificados
 
-**Banco de dados:**
-- `tasks.docking_activity_group` (uuid) — agrupa tasks da mesma atividade
-- `service_orders.parent_docking_id` (uuid, FK → service_orders) — OS filha aponta para OS mãe
+**Sidebar:** Adicionar "Universidade" com ícone `GraduationCap` em todos os menus de role.
 
-**DockingTasksSection.tsx:**
-- Campo opcional "Nº OS" por atividade — se preenchido, cria OS filha separada
+---
 
-**NewOrderForm.tsx (submit):**
-- Cada atividade gera um `docking_activity_group` UUID
-- Se atividade tem `orderNumber`, cria OS filha com `parent_docking_id` → OS mãe
-- OS filha recebe sua própria visita e visit_technicians
+### Fase 1 (esta implementação)
 
-**ReportForm.tsx:**
-- Query de tasks agora inclui `docking_activity_group` e `scheduled_date`
-- Sem deduplicação por task_type para OS de docagem (`is_docking = true`)
-- Cada task/atividade gera sua própria aba de relatório
+1. Criar todas as tabelas, RLS e bucket via migração
+2. Criar hook `useUniversity.ts` com queries e mutations
+3. Criar página de gestão RH (`/hr/university`) — listagem de cursos com CRUD
+4. Criar página de catálogo para colaboradores (`/corp/university`)
+5. Criar página de player/conteúdo (`/corp/university/course/:id`)
+6. Adicionar rotas no `App.tsx` e itens no menu lateral
+7. Criar página "Meu Aprendizado" com progresso e certificados
 
-**ServiceOrderReports.tsx (Manager):**
-- Badge "Docagem" na coluna de OS para identificar
-- Botão de "Relatório Consolidado" (ícone Layers) para OS de docagem
-- Gera PDF unificado com `generateMultiTaskReportPdfBlob`
+### Fases futuras
+- Trilhas de aprendizado (agrupamento de cursos em sequência)
+- Emissão automática de certificados em PDF
+- Dashboard de métricas (cursos mais acessados, taxa de conclusão)
+- Notificações de treinamentos pendentes
 
-**Admin Reports.tsx:**
-- Query atualizada para incluir `is_docking` e `parent_docking_id`
-
-## Fluxo de Aprovação Revisado (Diretoria Direta + Roteamento)
-
-### Implementado ✅
-
-**Regras de negócio:**
-
-```text
-PRODUTO / ASSINATURA (com valor):
-  Criação → pending_director
-  Diretoria aprova → pending_department (Suprimentos / Financeiro)
-  Se departamento alterar valor → volta para pending_director
-  Diretoria re-aprova → pending_department novamente
-
-REEMBOLSO:
-  Criação → pending_department (Financeiro direto)
-  Financeiro pode escalar → pending_director
-  Diretoria aprova → retorna para pending_department
-
-DOCUMENTO / FOLGA:
-  Criação → pending_department (RH direto)
-```
-
-**Banco de dados:**
-- `corp_requests.approved_amount` (numeric) — rastreia valor aprovado pela diretoria
-- `corp_request_types` atualizados:
-  - Produto → `requires_director_approval = true`, `department_id = Suprimentos`
-  - Assinatura → `requires_director_approval = true`, `department_id = Financeiro`
-  - Reembolso → direto para `department_id = Financeiro`
-  - Folga/Férias → direto para `department_id = RH`
-  - Documento → direto para `department_id = RH`
-
-**Status disponíveis:** `open`, `pending_director`, `pending_department`, `in_progress`, `approved`, `rejected`, `cancelled`, `completed`
-
-**Código alterado:**
-- `useCorpRequests.ts` — removido `approveAsManager`, adicionadas mutations: `approveAsDirector` (com `approved_amount`), `escalateToDirector`, `updateDepartmentAmount`, `startDepartmentWork`, `completeDepartmentWork`
-- `ApprovalActions.tsx` — ações por role: Diretoria (aprovar/rejeitar), Departamentos (iniciar/concluir/escalar/alterar valor)
-- `RequestDetailSheet.tsx` — novos status no mapa, timeline sem gerente
-- `NewRequestDialog.tsx` — `determineStatus()` usa `requires_director_approval` e `department_id`
-- `Requests.tsx` — aba Recebidas filtra por role e categoria do tipo
