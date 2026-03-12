@@ -10,7 +10,7 @@ import { Search, Users, Plus, Wrench } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmployeeDetailSheet } from "@/components/hr/EmployeeDetailSheet";
-import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
+import { NewEmployeeForm, EmployeeFormValues } from "@/components/hr/NewEmployeeForm";
 import { useToast } from "@/hooks/use-toast";
 import { addDays } from "date-fns";
 import { sanitizeFileName } from "@/lib/utils";
