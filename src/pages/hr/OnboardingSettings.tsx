@@ -14,7 +14,7 @@ import { useNavigate } from 'react-router-dom';
 
 const HROnboardingSettings = () => {
   const { docTypes, isLoading, createDocType, deleteDocType } = useOnboardingDocumentTypes();
-  const { user } = useAuth();
+  const { profile } = useAuth();
   const navigate = useNavigate();
 
   const [name, setName] = useState('');
