@@ -79,6 +79,7 @@ const University = () => {
           <TabsTrigger value="courses" className="gap-2"><BookOpen className="h-4 w-4" /> Cursos</TabsTrigger>
           <TabsTrigger value="trails" className="gap-2"><Route className="h-4 w-4" /> Trilhas</TabsTrigger>
           <TabsTrigger value="enrollments" className="gap-2"><Users className="h-4 w-4" /> Matrículas</TabsTrigger>
+          <TabsTrigger value="achievements" className="gap-2"><Award className="h-4 w-4" /> Conquistas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="courses" className="space-y-4">
