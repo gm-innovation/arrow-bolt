@@ -360,6 +360,8 @@ const App = () => {
               <OfflineIndicator />
             </SidebarProvider>
           </AuthProvider>
+            } />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
