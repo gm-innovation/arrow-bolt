@@ -232,9 +232,11 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
 
   if (!measurement) {
     return (
-      <div className="text-center p-8 text-muted-foreground">
-        Medição não encontrada
-      </div>
+      <CreateMeasurementPrompt 
+        serviceOrderId={serviceOrderId} 
+        createMeasurement={createMeasurement}
+        onClose={onClose}
+      />
     );
   }
 
