@@ -115,18 +115,71 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
 }
 
 function PersonalTab({ employee }: { employee: EmployeeRow }) {
-  const fields = [
-    { label: "Nome completo", value: employee.full_name },
+  const [isEditing, setIsEditing] = useState(false);
+  const [fullName, setFullName] = useState(employee.full_name || "");
+  const [phone, setPhone] = useState(employee.phone || "");
+  const [isSaving, setIsSaving] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ full_name: fullName.trim(), phone: phone.trim() || null })
+        .eq("id", employee.id);
+      if (error) throw error;
+      toast({ title: "Dados atualizados com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
+      setIsEditing(false);
+    } catch {
+      toast({ title: "Erro ao salvar dados", variant: "destructive" });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const readOnlyFields = [
     { label: "Email", value: employee.email },
-    { label: "Telefone", value: employee.phone || "—" },
-    
     { label: "Cargos", value: employee.roles.map((r) => ROLE_LABELS[r] || r).join(", ") },
     { label: "Na empresa desde", value: format(new Date(employee.created_at), "dd/MM/yyyy", { locale: ptBR }) },
   ];
 
   return (
     <div className="space-y-3 py-4">
-      {fields.map((f) => (
+      <div className="flex justify-end">
+        {!isEditing ? (
+          <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+            <Pencil className="h-4 w-4 mr-1" /> Editar
+          </Button>
+        ) : (
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => { setIsEditing(false); setFullName(employee.full_name || ""); setPhone(employee.phone || ""); }}>Cancelar</Button>
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>Salvar</Button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Nome completo</span>
+        {isEditing ? (
+          <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-8" />
+        ) : (
+          <span className="text-sm text-foreground">{employee.full_name}</span>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Telefone</span>
+        {isEditing ? (
+          <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-8" />
+        ) : (
+          <span className="text-sm text-foreground">{employee.phone || "—"}</span>
+        )}
+      </div>
+
+      {readOnlyFields.map((f) => (
         <div key={f.label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
           <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">{f.label}</span>
           <span className="text-sm text-foreground">{f.value}</span>

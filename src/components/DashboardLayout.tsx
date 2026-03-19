@@ -113,6 +113,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Logs de Auditoria", icon: History, path: "/admin/audit-logs" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
+    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const managerMenuItems = [

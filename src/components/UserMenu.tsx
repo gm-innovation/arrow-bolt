@@ -80,7 +80,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
       case "compras": return "/supplies/settings";
       case "qualidade": return "/quality/settings";
       case "financeiro": return "/finance/settings";
-      case "director": return "/corp/settings";
+      case "director": return "/manager/settings";
       default: return "/";
     }
   };
