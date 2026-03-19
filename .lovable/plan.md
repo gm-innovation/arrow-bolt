@@ -1,169 +1,56 @@
-## Gamificação do Sistema de Conquistas
 
-O sistema atual é básico demais -- apenas badges manuais sem progressão. Vamos criar um sistema de gamificação com **níveis por tier** (pedras preciosas), **conquistas automáticas** baseadas em comportamento, e **conquistas manuais** melhoradas.
 
-### Modelo de Dados
+## Correções Urgentes — 5 Issues
 
-Nova tabela `corp_achievement_levels` para definir os tiers de gamificação por colaborador:
+### 1. Medição Final mostra "Medição não encontrada" para Coordenador
 
-```text
-Tier         | XP necessário | Ícone
-─────────────┼───────────────┼──────
-Bronze       | 0             | 🥉
-Prata        | 100           | 🥈
-Ouro         | 300           | 🥇
-Diamante     | 600           | 💎
-Rubi         | 1000          | ❤️‍🔥
-```
+**Causa**: Quando o coordenador clica em "Medição Final", o `MeasurementForm` busca um registro na tabela `measurements` para aquela OS. Se não existir, mostra "Medição não encontrada" — não há opção de criar.
 
-Alterações na tabela `corp_badges`:
-- Adicionar coluna `xp_value` (integer, default 10) — pontos que cada conquista vale
-- Adicionar coluna `category` (text) — para agrupar: `manual`, `tenure`, `attendance`, `engagement`
+**Correção em `src/components/admin/measurements/MeasurementForm.tsx`**:
+- Quando `!measurement && !isLoading`, exibir um formulário para **criar a medição** com seleção de categoria (CATIVO/LABORATORIO/EXTERNO/ISENTO) e botão "Criar Medição", usando `useMeasurements.createMeasurement`.
 
-### Conquistas Automáticas (por categoria)
+### 2. Coordenador sem Universidade Corporativa no menu
 
-Definir um conjunto fixo no código (sem tabela extra):
+**Causa**: O `adminMenuItems` (usado pelo coordenador via `userType === 'admin'`) não inclui "Universidade" no menu lateral.
 
-**Tempo de Empresa** (tenure): 1 ano 🎖️, 3 anos 🏅, 5 anos 🥇, 10 anos 💎, 15 anos 👑, 20 anos ❤️‍🔥
-**Engajamento no Feed** (engagement): 10 posts ✍️, 50 posts 📝, 100 curtidas recebidas ❤️, 10 discussões 💬
-**Presença** (attendance): Mês sem faltas ✅, 3 meses consecutivos 🔥, 6 meses consecutivos 💪
+**Correção em `src/components/DashboardLayout.tsx`**:
+- Adicionar `{ title: "Universidade", icon: GraduationCap, path: "/corp/university" }` ao array `adminMenuItems` (após "Solicitações").
 
-Estas não serão concedidas automaticamente por trigger — serão **exibidas como progresso** no perfil (barra de progresso) e concedidas manualmente pelo sistema quando o RH/Admin acessar o dialog.
+### 3. Vários usuários sem área de Configurações
 
-### Mudanças nos Componentes
+**Causa**: O `UserMenu` aponta para rotas de settings que não existem para alguns tipos:
+- `director` → `/corp/settings` (rota não existe)
+- `manager` → `/manager/settings` (rota existe ✓)
+- `admin` → `/admin/settings` (rota existe ✓)
+- `tech` → `/tech/settings` (rota existe ✓)
+- `hr` → `/hr/settings` (rota existe ✓)
 
-**1. `AwardBadgeDialog.tsx` — Reestruturar categorias**
-- Substituir `BADGE_TYPES` por categorias com sub-opções:
-  - **Reconhecimento** (manual): Meta Alcançada 🎯, Projeto Finalizado 🚀, Curso Concluído 📚, Personalizada ⭐
-  - **Engajamento**: Comunicador Ativo ✍️, Influenciador ❤️, Debatedor 💬
-  - **Presença**: Assiduidade Mensal ✅, Sequência de Presença 🔥
-- Cada opção define XP (5, 10, 15, 25 conforme importância)
-- Manter seletor de ícone para tipo Personalizada
-- Adicionar Select de XP com valores pré-definidos (5, 10, 15, 25, 50)
+O director aponta para `/corp/settings` que não tem rota. Provavelmente outros roles corporativos (supplies, quality, finance) têm rotas mas o director não.
 
-**2. Novo componente `FeedUserLevel.tsx` — Exibir tier do colaborador**
-- Recebe `userId` e `companyId`
-- Query: contar total de badges do usuário e somar `xp_value`
-- Calcular tier atual e progresso para o próximo
-- Renderizar: ícone do tier + nome + barra de progresso (Progress component)
-- Usado no `FeedProfileSidebar` abaixo do nome
+**Correção em `src/components/UserMenu.tsx`**:
+- Alterar o path de settings do `director` de `/corp/settings` para `/manager/settings` (já que o director usa as rotas do manager).
 
-**3. `FeedProfileSidebar.tsx` — Integrar nível**
-- Adicionar `FeedUserLevel` abaixo do badge de role
-- Mostrar contagem de conquistas do usuário
+### 4. RH não consegue editar dados dos colaboradores
 
-**4. `FeedBadgesCard.tsx` — Melhorar visual**
-- Adicionar badge de XP ao lado de cada conquista (ex: "+10 XP")
-- Agrupar visualmente por categoria com ícone
+**Causa**: A aba "Dados" (`PersonalTab`) do `EmployeeDetailSheet` é somente leitura — exibe campos estáticos sem opção de edição. A edição só existe para o perfil de técnico na aba "Técnico".
 
-### Migration SQL
+**Correção em `src/components/hr/EmployeeDetailSheet.tsx`**:
+- Transformar o `PersonalTab` de read-only para editável: adicionar botão "Editar" que abre campos de edição inline para nome, telefone.
+- Permitir editar `full_name` e `phone` (campos do profile).
+- Salvar via `supabase.from('profiles').update(...)`.
 
-```sql
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS xp_value integer DEFAULT 10;
-ALTER TABLE corp_badges ADD COLUMN IF NOT EXISTS category text DEFAULT 'manual';
-```
+### 5. Diretor não vê coordenadores na lista
 
-### Resumo
-- Adicionar colunas `xp_value` e `category` à tabela `corp_badges`
-- Reestruturar `AwardBadgeDialog` com categorias ricas e seletor de XP
-- Criar `FeedUserLevel` para exibir tier (Bronze→Rubi) com barra de progresso
-- Integrar nível no `FeedProfileSidebar`
-- Melhorar `FeedBadgesCard` com indicador de XP
+**Causa**: A query em `src/pages/manager/Coordinators.tsx` busca `user_roles` com `role = "coordinator"`, mas a política de RLS em `user_roles` pode não permitir que o diretor leia esses registros. O coordenador tem permissão de leitura em `user_roles`, mas o diretor pode não ter.
 
-## Modo Docagem - OS individual por atividade + Relatórios
+**Correção**: Verificar e adicionar política de RLS em `user_roles` que permita ao `director` ler roles da mesma empresa. Ou usar a função `has_role` em uma security definer function para buscar os coordenadores.
 
-### Implementado ✅
+**Alternativa mais segura**: Criar uma RPC ou security definer function que retorna os coordenadores da empresa, contornando RLS.
 
-**Banco de dados:**
-- `tasks.docking_activity_group` (uuid) — agrupa tasks da mesma atividade
-- `service_orders.parent_docking_id` (uuid, FK → service_orders) — OS filha aponta para OS mãe
+### Arquivos a editar:
+1. `src/components/admin/measurements/MeasurementForm.tsx` — adicionar UI de criação de medição
+2. `src/components/DashboardLayout.tsx` — adicionar Universidade ao menu do coordenador
+3. `src/components/UserMenu.tsx` — corrigir path de settings do director
+4. `src/components/hr/EmployeeDetailSheet.tsx` — tornar PersonalTab editável
+5. RLS policy em `user_roles` — permitir leitura por diretores (migration SQL)
 
-**DockingTasksSection.tsx:**
-- Campo opcional "Nº OS" por atividade — se preenchido, cria OS filha separada
-
-**NewOrderForm.tsx (submit):**
-- Cada atividade gera um `docking_activity_group` UUID
-- Se atividade tem `orderNumber`, cria OS filha com `parent_docking_id` → OS mãe
-- OS filha recebe sua própria visita e visit_technicians
-
-**ReportForm.tsx:**
-- Query de tasks agora inclui `docking_activity_group` e `scheduled_date`
-- Sem deduplicação por task_type para OS de docagem (`is_docking = true`)
-- Cada task/atividade gera sua própria aba de relatório
-
-**ServiceOrderReports.tsx (Manager):**
-- Badge "Docagem" na coluna de OS para identificar
-- Botão de "Relatório Consolidado" (ícone Layers) para OS de docagem
-- Gera PDF unificado com `generateMultiTaskReportPdfBlob`
-
-**Admin Reports.tsx:**
-- Query atualizada para incluir `is_docking` e `parent_docking_id`
-
-## Fluxo de Aprovação Revisado (Diretoria Direta + Roteamento)
-
-### Implementado ✅
-
-**Regras de negócio:**
-
-```text
-PRODUTO / ASSINATURA (com valor):
-  Criação → pending_director
-  Diretoria aprova → pending_department (Suprimentos / Financeiro)
-  Se departamento alterar valor → volta para pending_director
-  Diretoria re-aprova → pending_department novamente
-
-REEMBOLSO:
-  Criação → pending_department (Financeiro direto)
-  Financeiro pode escalar → pending_director
-  Diretoria aprova → retorna para pending_department
-
-DOCUMENTO / FOLGA:
-  Criação → pending_department (RH direto)
-```
-
-**Banco de dados:**
-- `corp_requests.approved_amount` (numeric) — rastreia valor aprovado pela diretoria
-- `corp_request_types` atualizados:
-  - Produto → `requires_director_approval = true`, `department_id = Suprimentos`
-  - Assinatura → `requires_director_approval = true`, `department_id = Financeiro`
-  - Reembolso → direto para `department_id = Financeiro`
-  - Folga/Férias → direto para `department_id = RH`
-  - Documento → direto para `department_id = RH`
-
-**Status disponíveis:** `open`, `pending_director`, `pending_department`, `in_progress`, `approved`, `rejected`, `cancelled`, `completed`
-
-**Código alterado:**
-- `useCorpRequests.ts` — removido `approveAsManager`, adicionadas mutations: `approveAsDirector` (com `approved_amount`), `escalateToDirector`, `updateDepartmentAmount`, `startDepartmentWork`, `completeDepartmentWork`
-- `ApprovalActions.tsx` — ações por role: Diretoria (aprovar/rejeitar), Departamentos (iniciar/concluir/escalar/alterar valor)
-- `RequestDetailSheet.tsx` — novos status no mapa, timeline sem gerente
-- `NewRequestDialog.tsx` — `determineStatus()` usa `requires_director_approval` e `department_id`
-- `Requests.tsx` — aba Recebidas filtra por role e categoria do tipo
-
-## Universidade Corporativa
-
-### Implementado ✅ (Fase 1)
-
-**Banco de dados:**
-- `university_courses` — catálogo de cursos
-- `university_modules` — módulos/aulas por curso
-- `university_trails` — trilhas de aprendizado
-- `university_trail_courses` — M:N trilha↔curso
-- `university_enrollments` — matrícula de colaboradores
-- `university_progress` — progresso por módulo
-- `university_certificates` — certificados emitidos
-- RLS: leitura por empresa, gestão restrita a RH
-- Storage bucket: `university-content`
-
-**Código:**
-- `useUniversity.ts` — hook com queries e mutations para cursos, módulos, matrículas, progresso, certificados
-- `/hr/university` — gestão RH (CRUD cursos, módulos com upload, matrículas)
-- `/corp/university` — catálogo de cursos publicados
-- `/corp/university/course/:id` — player de conteúdo (vídeo/PDF/texto) com progresso
-- `/corp/university/my-learning` — meus cursos, progresso e certificados
-- Sidebar: "Universidade" com `GraduationCap` no menu RH
-
-### Fases futuras
-- Trilhas de aprendizado (UI de agrupamento)
-- Certificados em PDF
-- Dashboard de métricas
-- Notificações de treinamentos pendentes
