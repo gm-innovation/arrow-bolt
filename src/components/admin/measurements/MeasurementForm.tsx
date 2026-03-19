@@ -36,8 +36,49 @@ export interface TechnicianTimeEntry {
   total_value: number;
 }
 
+function CreateMeasurementPrompt({ serviceOrderId, createMeasurement, onClose }: {
+  serviceOrderId: string;
+  createMeasurement: ReturnType<typeof useMeasurements>['createMeasurement'];
+  onClose?: () => void;
+}) {
+  const [category, setCategory] = useState<'CATIVO' | 'LABORATORIO' | 'EXTERNO' | 'ISENTO'>('CATIVO');
+
+  const handleCreate = async () => {
+    await createMeasurement.mutateAsync({
+      service_order_id: serviceOrderId,
+      category,
+    });
+  };
+
+  return (
+    <div className="text-center p-8 space-y-4">
+      <p className="text-muted-foreground">Nenhuma medição encontrada para esta OS.</p>
+      <div className="flex flex-col items-center gap-3">
+        <label className="text-sm font-medium">Categoria da Medição</label>
+        <select
+          className="border rounded-md px-3 py-2 text-sm bg-background"
+          value={category}
+          onChange={(e) => setCategory(e.target.value as any)}
+        >
+          <option value="CATIVO">Cativo</option>
+          <option value="LABORATORIO">Laboratório</option>
+          <option value="EXTERNO">Externo</option>
+          <option value="ISENTO">Isento</option>
+        </select>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={onClose}>Fechar</Button>
+          <Button onClick={handleCreate} disabled={createMeasurement.isPending}>
+            {createMeasurement.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Criar Medição
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProps) => {
-  const { measurement, isLoading, finalizeMeasurement } = useMeasurements(serviceOrderId);
+  const { measurement, isLoading, finalizeMeasurement, createMeasurement } = useMeasurements(serviceOrderId);
   const { rates } = useServiceRates();
   const [activeTab, setActiveTab] = useState("basic");
   const [showPDFPreview, setShowPDFPreview] = useState(false);
@@ -232,9 +273,11 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
 
   if (!measurement) {
     return (
-      <div className="text-center p-8 text-muted-foreground">
-        Medição não encontrada
-      </div>
+      <CreateMeasurementPrompt 
+        serviceOrderId={serviceOrderId} 
+        createMeasurement={createMeasurement}
+        onClose={onClose}
+      />
     );
   }
 
