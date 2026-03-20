@@ -190,6 +190,14 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
 }
 
 function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId: string }) {
+  const [showUpload, setShowUpload] = useState(false);
+  const [docTitle, setDocTitle] = useState("");
+  const [docType, setDocType] = useState("general");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const queryClient = useQueryClient();
+
   const { data: docs = [], isLoading } = useQuery({
     queryKey: ["employee-docs", employeeId],
     queryFn: async () => {
@@ -241,10 +249,103 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
     }
   };
 
+  const handleUpload = async () => {
+    if (!uploadFile || !docTitle.trim()) return;
+    setIsUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Não autenticado");
+
+      const safeName = sanitizeFileName(uploadFile.name);
+      const storagePath = `${employeeId}/${Date.now()}_${safeName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("corp-documents")
+        .upload(storagePath, uploadFile);
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage.from("corp-documents").getPublicUrl(storagePath);
+
+      const { error: insertError } = await supabase.from("corp_documents").insert({
+        company_id: companyId,
+        owner_user_id: employeeId,
+        uploaded_by: user.id,
+        title: docTitle.trim(),
+        document_type: docType,
+        file_name: uploadFile.name,
+        file_url: urlData.publicUrl,
+        visibility_level: "private",
+      });
+      if (insertError) throw insertError;
+
+      toast({ title: "Documento enviado com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["employee-docs", employeeId] });
+      setDocTitle(""); setDocType("general"); setUploadFile(null); setShowUpload(false);
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar documento", description: err.message, variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDelete = async (doc: any) => {
+    try {
+      const path = normalizeStoragePath(doc.file_url);
+      await supabase.storage.from("corp-documents").remove([path]);
+      const { error } = await supabase.from("corp_documents").delete().eq("id", doc.id);
+      if (error) throw error;
+      toast({ title: "Documento excluído" });
+      queryClient.invalidateQueries({ queryKey: ["employee-docs", employeeId] });
+    } catch {
+      toast({ title: "Erro ao excluir documento", variant: "destructive" });
+    } finally {
+      setDeleteTarget(null);
+    }
+  };
+
   if (isLoading) return <p className="py-6 text-center text-muted-foreground">Carregando...</p>;
 
   return (
-    <div className="py-4 space-y-2">
+    <div className="py-4 space-y-3">
+      <div className="flex justify-end">
+        <Button size="sm" onClick={() => setShowUpload(!showUpload)}>
+          <Plus className="h-4 w-4 mr-1" /> Enviar Documento
+        </Button>
+      </div>
+
+      {showUpload && (
+        <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
+          <Input placeholder="Título do documento" value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
+          <Select value={docType} onValueChange={setDocType}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">Geral</SelectItem>
+              <SelectItem value="contrato">Contrato</SelectItem>
+              <SelectItem value="atestado">Atestado</SelectItem>
+              <SelectItem value="comprovante">Comprovante</SelectItem>
+              <SelectItem value="certificado">Certificado</SelectItem>
+              <SelectItem value="outro">Outro</SelectItem>
+            </SelectContent>
+          </Select>
+          <div className="relative">
+            <Button variant="outline" className="w-full justify-start text-muted-foreground">
+              {uploadFile ? uploadFile.name : "Selecionar arquivo..."}
+            </Button>
+            <input
+              type="file"
+              className="absolute inset-0 opacity-0 cursor-pointer"
+              onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm" onClick={() => setShowUpload(false)}>Cancelar</Button>
+            <Button size="sm" onClick={handleUpload} disabled={isUploading || !uploadFile || !docTitle.trim()}>
+              {isUploading ? "Enviando..." : "Enviar"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       {docs.length === 0 ? (
         <p className="text-center text-muted-foreground py-6">Nenhum documento encontrado</p>
       ) : (
@@ -260,12 +361,34 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
                 </p>
               </div>
             </div>
-            <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)}>
-              <Download className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)}>
+                <Download className="h-4 w-4" />
+              </Button>
+              {doc.source === "corp" && (
+                <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(doc)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         ))
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O documento "{deleteTarget?.title || deleteTarget?.file_name}" será removido permanentemente.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => deleteTarget && handleDelete(deleteTarget)}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
