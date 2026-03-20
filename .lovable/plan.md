@@ -1,56 +1,37 @@
 
 
-## Correções Urgentes — 5 Issues
+## 3 Correções: Lista de Coordenadores, Diretoria com acesso completo às OSs, e Docs no RH
 
-### 1. Medição Final mostra "Medição não encontrada" para Coordenador
+### 1. Coordenadores em formato lista (não cards)
 
-**Causa**: Quando o coordenador clica em "Medição Final", o `MeasurementForm` busca um registro na tabela `measurements` para aquela OS. Se não existir, mostra "Medição não encontrada" — não há opção de criar.
+**Arquivo:** `src/pages/manager/Coordinators.tsx`
 
-**Correção em `src/components/admin/measurements/MeasurementForm.tsx`**:
-- Quando `!measurement && !isLoading`, exibir um formulário para **criar a medição** com seleção de categoria (CATIVO/LABORATORIO/EXTERNO/ISENTO) e botão "Criar Medição", usando `useMeasurements.createMeasurement`.
+Trocar o layout de grid de cards para uma tabela (Table) com colunas: Nome, Email, Total OSs, Concluídas, Em Andamento, Pendentes, Ações (botão "Ver Detalhes"). Manter a busca e o comportamento de navegação.
 
-### 2. Coordenador sem Universidade Corporativa no menu
+### 2. Diretoria com acesso completo às OSs (visualizar, editar, medições)
 
-**Causa**: O `adminMenuItems` (usado pelo coordenador via `userType === 'admin'`) não inclui "Universidade" no menu lateral.
+**Problema:** O diretor usa `src/pages/manager/ServiceOrders.tsx` que é somente leitura — apenas uma tabela com `ViewOrderDetailsDialog`. Já o coordenador usa `src/pages/admin/ServiceOrders.tsx` que tem edição, transferência, medições, etc.
 
-**Correção em `src/components/DashboardLayout.tsx`**:
-- Adicionar `{ title: "Universidade", icon: GraduationCap, path: "/corp/university" }` ao array `adminMenuItems` (após "Solicitações").
+**Correção:** Substituir o conteúdo de `src/pages/manager/ServiceOrders.tsx` para reutilizar a mesma página do coordenador (`src/pages/admin/ServiceOrders.tsx`), ou importar/reexportar diretamente. A forma mais limpa é fazer o `manager/ServiceOrders.tsx` importar e renderizar o componente de `admin/ServiceOrders.tsx`.
 
-### 3. Vários usuários sem área de Configurações
+Também será necessária uma **migration SQL** para garantir que o papel `director` tenha permissões RLS de INSERT/UPDATE/DELETE em:
+- `service_orders` (criar/editar OSs)
+- `service_visits`, `visit_technicians`, `tasks` (gerenciar visitas e tarefas)
+- Tabelas de medição (já corrigido na migration anterior, mas validar)
 
-**Causa**: O `UserMenu` aponta para rotas de settings que não existem para alguns tipos:
-- `director` → `/corp/settings` (rota não existe)
-- `manager` → `/manager/settings` (rota existe ✓)
-- `admin` → `/admin/settings` (rota existe ✓)
-- `tech` → `/tech/settings` (rota existe ✓)
-- `hr` → `/hr/settings` (rota existe ✓)
+### 3. RH pode enviar e excluir documentos na ficha do colaborador
 
-O director aponta para `/corp/settings` que não tem rota. Provavelmente outros roles corporativos (supplies, quality, finance) têm rotas mas o director não.
+**Arquivo:** `src/components/hr/EmployeeDetailSheet.tsx` — função `DocumentsTab`
 
-**Correção em `src/components/UserMenu.tsx`**:
-- Alterar o path de settings do `director` de `/corp/settings` para `/manager/settings` (já que o director usa as rotas do manager).
-
-### 4. RH não consegue editar dados dos colaboradores
-
-**Causa**: A aba "Dados" (`PersonalTab`) do `EmployeeDetailSheet` é somente leitura — exibe campos estáticos sem opção de edição. A edição só existe para o perfil de técnico na aba "Técnico".
-
-**Correção em `src/components/hr/EmployeeDetailSheet.tsx`**:
-- Transformar o `PersonalTab` de read-only para editável: adicionar botão "Editar" que abre campos de edição inline para nome, telefone.
-- Permitir editar `full_name` e `phone` (campos do profile).
-- Salvar via `supabase.from('profiles').update(...)`.
-
-### 5. Diretor não vê coordenadores na lista
-
-**Causa**: A query em `src/pages/manager/Coordinators.tsx` busca `user_roles` com `role = "coordinator"`, mas a política de RLS em `user_roles` pode não permitir que o diretor leia esses registros. O coordenador tem permissão de leitura em `user_roles`, mas o diretor pode não ter.
-
-**Correção**: Verificar e adicionar política de RLS em `user_roles` que permita ao `director` ler roles da mesma empresa. Ou usar a função `has_role` em uma security definer function para buscar os coordenadores.
-
-**Alternativa mais segura**: Criar uma RPC ou security definer function que retorna os coordenadores da empresa, contornando RLS.
+Atualmente a aba "Docs" apenas lista e permite download. Adicionar:
+- **Botão "Enviar Documento"** que abre um formulário inline com: título, tipo de documento (select), e input de arquivo
+- Upload do arquivo para o bucket `corp-documents` e insert na tabela `corp_documents` com `owner_user_id = employeeId`
+- **Botão de excluir** em cada documento (com confirmação) — usando `supabase.from('corp_documents').delete()` e removendo do storage
+- Apenas documentos `source === "corp"` podem ser excluídos pelo RH (docs técnicos são gerenciados na aba Técnico)
 
 ### Arquivos a editar:
-1. `src/components/admin/measurements/MeasurementForm.tsx` — adicionar UI de criação de medição
-2. `src/components/DashboardLayout.tsx` — adicionar Universidade ao menu do coordenador
-3. `src/components/UserMenu.tsx` — corrigir path de settings do director
-4. `src/components/hr/EmployeeDetailSheet.tsx` — tornar PersonalTab editável
-5. RLS policy em `user_roles` — permitir leitura por diretores (migration SQL)
+1. `src/pages/manager/Coordinators.tsx` — trocar cards por tabela
+2. `src/pages/manager/ServiceOrders.tsx` — reutilizar o componente completo do admin
+3. `src/components/hr/EmployeeDetailSheet.tsx` — adicionar upload e exclusão de docs
+4. **Migration SQL** — adicionar políticas RLS para o papel `director` em `service_orders`, `service_visits`, `visit_technicians`, `tasks`
 
