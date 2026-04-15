@@ -47,6 +47,10 @@ const employeeFormSchema = z.object({
   aso_valid_until: z.string().optional().or(z.literal("")),
   medical_status: z.enum(['fit', 'unfit', 'pending']).optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   
+  // Emergency contact
+  emergency_contact_name: z.string().trim().optional().or(z.literal("")),
+  emergency_contact_phone: z.string().trim().optional().or(z.literal("")),
+
   // Password
   password_option: z.enum(['auto_email', 'manual', 'reset_link']),
   password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres").optional().or(z.literal("")),
@@ -102,6 +106,7 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
       blood_type: undefined, blood_rh_factor: undefined,
       aso_issue_date: "", aso_valid_until: "", medical_status: undefined,
       password_option: 'auto_email', password: "", isActive: true,
+      emergency_contact_name: "", emergency_contact_phone: "",
     },
   });
 
@@ -305,96 +310,98 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
           />
         </div>
 
-        {/* Document upload - only for technicians */}
-        {isTechnician && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">📁 Upload de Documentos</h3>
-            <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
-              <Input
-                type="file"
-                accept=".pdf,image/*"
-                multiple
-                onChange={(e) => { handleFilesSelect(e.target.files); e.target.value = ''; }}
-                className="cursor-pointer"
-              />
-              <p className="text-sm text-muted-foreground mt-2">
-                Arraste ou selecione: ASO (PDF), Foto (JPG/PNG), Certificações (PDF/Imagens)
-              </p>
+        {/* Document upload - available for all roles */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">📁 Upload de Documentos</h3>
+          <div className="border-2 border-dashed border-border rounded-lg p-6 text-center">
+            <Input
+              type="file"
+              accept=".pdf,image/*"
+              multiple
+              onChange={(e) => { handleFilesSelect(e.target.files); e.target.value = ''; }}
+              className="cursor-pointer"
+            />
+            <p className="text-sm text-muted-foreground mt-2">
+              {isTechnician
+                ? "Arraste ou selecione: ASO (PDF), Foto (JPG/PNG), Certificações (PDF/Imagens)"
+                : "Documentos pessoais (CPF, RG, comprovante de residência, certidão, etc.)"}
+            </p>
+            {isTechnician && (
               <p className="text-xs text-muted-foreground mt-1">
                 💡 Nomeie o ASO com "aso" no nome para identificação automática
               </p>
-            </div>
+            )}
+          </div>
 
-            {/* Uploaded files display */}
-            <div className="space-y-3">
-              {uploadedFiles.aso && (
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4 text-green-600" />
+          {/* Uploaded files display */}
+          <div className="space-y-3">
+            {uploadedFiles.aso && (
+              <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-950 rounded border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-green-600" />
+                  <div>
+                    <p className="text-sm font-medium">ASO: {uploadedFiles.aso.name}</p>
+                    <p className="text-xs text-muted-foreground">Dados extraídos automaticamente</p>
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={() => removeFile('aso')}>Remover</Button>
+              </div>
+            )}
+
+            {uploadedFiles.photo && (
+              <div>
+                <p className="text-sm font-semibold mb-2">📷 Foto do Colaborador</p>
+                <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-4">
+                    {photoPreview && <img src={photoPreview} alt="Preview" className="w-20 h-20 rounded-full object-cover border-4 border-blue-400" />}
                     <div>
-                      <p className="text-sm font-medium">ASO: {uploadedFiles.aso.name}</p>
-                      <p className="text-xs text-muted-foreground">Dados extraídos automaticamente</p>
+                      <p className="text-sm font-medium">{uploadedFiles.photo.name}</p>
+                      <p className="text-xs text-muted-foreground">{(uploadedFiles.photo.size / 1024 / 1024).toFixed(2)} MB</p>
                     </div>
                   </div>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => removeFile('aso')}>Remover</Button>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => removeFile('photo')}>Remover</Button>
                 </div>
-              )}
+              </div>
+            )}
 
-              {uploadedFiles.photo && (
-                <div>
-                  <p className="text-sm font-semibold mb-2">📷 Foto do Técnico</p>
-                  <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
-                    <div className="flex items-center gap-4">
-                      {photoPreview && <img src={photoPreview} alt="Preview" className="w-20 h-20 rounded-full object-cover border-4 border-blue-400" />}
-                      <div>
-                        <p className="text-sm font-medium">{uploadedFiles.photo.name}</p>
-                        <p className="text-xs text-muted-foreground">{(uploadedFiles.photo.size / 1024 / 1024).toFixed(2)} MB</p>
-                      </div>
-                    </div>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => removeFile('photo')}>Remover</Button>
-                  </div>
-                </div>
-              )}
-
-              {uploadedFiles.certifications.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold">Certificações ({uploadedFiles.certifications.length})</p>
-                  {uploadedFiles.certifications.map((cert, index) => (
-                    <div key={index} className={`flex items-center justify-between p-3 rounded border ${
-                      cert.isValid === true ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
-                      : cert.isValid === false ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
-                      : 'bg-muted'
-                    }`}>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          {cert.isValid === true && <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
-                          {cert.isValid === false && <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />}
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium truncate">{cert.name || cert.file.name}</p>
-                            {(cert.issueDate || cert.expiryDate) && (
-                              <div className="text-xs text-muted-foreground space-y-0.5">
-                                {cert.issueDate && <p>Emissão: {new Date(cert.issueDate).toLocaleDateString('pt-BR')}</p>}
-                                {cert.expiryDate && <p>Validade: {new Date(cert.expiryDate).toLocaleDateString('pt-BR')}</p>}
-                              </div>
-                            )}
-                          </div>
+            {uploadedFiles.certifications.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">{isTechnician ? "Certificações" : "Documentos"} ({uploadedFiles.certifications.length})</p>
+                {uploadedFiles.certifications.map((cert, index) => (
+                  <div key={index} className={`flex items-center justify-between p-3 rounded border ${
+                    cert.isValid === true ? 'bg-green-50 dark:bg-green-950 border-green-200 dark:border-green-800'
+                    : cert.isValid === false ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                    : 'bg-muted'
+                  }`}>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {cert.isValid === true && <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />}
+                        {cert.isValid === false && <XCircle className="h-4 w-4 text-red-600 flex-shrink-0" />}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{cert.name || cert.file.name}</p>
+                          {(cert.issueDate || cert.expiryDate) && (
+                            <div className="text-xs text-muted-foreground space-y-0.5">
+                              {cert.issueDate && <p>Emissão: {new Date(cert.issueDate).toLocaleDateString('pt-BR')}</p>}
+                              {cert.expiryDate && <p>Validade: {new Date(cert.expiryDate).toLocaleDateString('pt-BR')}</p>}
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => removeFile('certification', index)}>Remover</Button>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <Button type="button" variant="ghost" size="sm" onClick={() => removeFile('certification', index)}>Remover</Button>
+                  </div>
+                ))}
+              </div>
+            )}
 
-              {isProcessing && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Processando documentos...</span>
-                </div>
-              )}
-            </div>
+            {isProcessing && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Processando documentos...</span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Personal data */}
         <div className="space-y-4">
@@ -487,6 +494,27 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
               <FormMessage />
             </FormItem>
           )} />
+        </div>
+
+        {/* Emergency Contact */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">🚨 Contato de Emergência</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField control={form.control} name="emergency_contact_name" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nome do Contato</FormLabel>
+                <FormControl><Input {...field} placeholder="Nome completo" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+            <FormField control={form.control} name="emergency_contact_phone" render={({ field }) => (
+              <FormItem>
+                <FormLabel>Telefone de Emergência</FormLabel>
+                <FormControl><Input {...field} type="tel" inputMode="tel" placeholder="(00) 00000-0000" /></FormControl>
+                <FormMessage />
+              </FormItem>
+            )} />
+          </div>
         </div>
 
         {/* Password */}
