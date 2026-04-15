@@ -1,37 +1,33 @@
 
+## Unificar Gestão de Colaboradores e Adicionar Contato de Emergência
 
-## 3 Correções: Lista de Coordenadores, Diretoria com acesso completo às OSs, e Docs no RH
+### Problema
+- Upload de documentos no cadastro só funciona para técnicos
+- Tipos de documentos limitados (faltam CPF, certidão de casamento, comprovante de residência, etc.)
+- Não existe campo de contato de emergência
 
-### 1. Coordenadores em formato lista (não cards)
+### Alterações
 
-**Arquivo:** `src/pages/manager/Coordinators.tsx`
+**1. Migration SQL** — Adicionar ao `profiles`:
+- `emergency_contact_name` (text, nullable)
+- `emergency_contact_phone` (text, nullable)
 
-Trocar o layout de grid de cards para uma tabela (Table) com colunas: Nome, Email, Total OSs, Concluídas, Em Andamento, Pendentes, Ações (botão "Ver Detalhes"). Manter a busca e o comportamento de navegação.
+**2. `src/components/hr/NewEmployeeForm.tsx`**:
+- Mover seção de upload de documentos para FORA do bloco `isTechnician` — disponível para todos os cargos
+- Adicionar campos de contato de emergência (nome e telefone)
+- Expandir tipos de documento reconhecidos (manter lógica de ASO/certificações apenas se técnico, mas permitir upload genérico para todos)
+- Ajustar texto do upload para ser genérico: "Documentos pessoais (CPF, RG, comprovante de residência, certidão, etc.)"
 
-### 2. Diretoria com acesso completo às OSs (visualizar, editar, medições)
+**3. `src/components/hr/EmployeeDetailSheet.tsx`**:
+- `PersonalTab`: Adicionar campos editáveis de contato de emergência (nome + telefone)
+- `DocumentsTab`: Expandir os tipos de documento no select para incluir: `cpf_doc`, `rg_doc`, `certidao_casamento`, `comprovante_residencia`, `ctps`, `titulo_eleitor`, `reservista`, `cnh`, além dos existentes
+- Salvar/buscar `emergency_contact_name` e `emergency_contact_phone` do profiles
 
-**Problema:** O diretor usa `src/pages/manager/ServiceOrders.tsx` que é somente leitura — apenas uma tabela com `ViewOrderDetailsDialog`. Já o coordenador usa `src/pages/admin/ServiceOrders.tsx` que tem edição, transferência, medições, etc.
+**4. `src/pages/hr/Employees.tsx`**:
+- Adicionar `emergency_contact_name` e `emergency_contact_phone` ao select e ao tipo `EmployeeRow`
 
-**Correção:** Substituir o conteúdo de `src/pages/manager/ServiceOrders.tsx` para reutilizar a mesma página do coordenador (`src/pages/admin/ServiceOrders.tsx`), ou importar/reexportar diretamente. A forma mais limpa é fazer o `manager/ServiceOrders.tsx` importar e renderizar o componente de `admin/ServiceOrders.tsx`.
-
-Também será necessária uma **migration SQL** para garantir que o papel `director` tenha permissões RLS de INSERT/UPDATE/DELETE em:
-- `service_orders` (criar/editar OSs)
-- `service_visits`, `visit_technicians`, `tasks` (gerenciar visitas e tarefas)
-- Tabelas de medição (já corrigido na migration anterior, mas validar)
-
-### 3. RH pode enviar e excluir documentos na ficha do colaborador
-
-**Arquivo:** `src/components/hr/EmployeeDetailSheet.tsx` — função `DocumentsTab`
-
-Atualmente a aba "Docs" apenas lista e permite download. Adicionar:
-- **Botão "Enviar Documento"** que abre um formulário inline com: título, tipo de documento (select), e input de arquivo
-- Upload do arquivo para o bucket `corp-documents` e insert na tabela `corp_documents` com `owner_user_id = employeeId`
-- **Botão de excluir** em cada documento (com confirmação) — usando `supabase.from('corp_documents').delete()` e removendo do storage
-- Apenas documentos `source === "corp"` podem ser excluídos pelo RH (docs técnicos são gerenciados na aba Técnico)
-
-### Arquivos a editar:
-1. `src/pages/manager/Coordinators.tsx` — trocar cards por tabela
-2. `src/pages/manager/ServiceOrders.tsx` — reutilizar o componente completo do admin
-3. `src/components/hr/EmployeeDetailSheet.tsx` — adicionar upload e exclusão de docs
-4. **Migration SQL** — adicionar políticas RLS para o papel `director` em `service_orders`, `service_visits`, `visit_technicians`, `tasks`
-
+### Arquivos editados:
+1. Migration SQL — `emergency_contact_name`, `emergency_contact_phone` no profiles
+2. `src/components/hr/NewEmployeeForm.tsx` — upload para todos, contato de emergência
+3. `src/components/hr/EmployeeDetailSheet.tsx` — campos de emergência + tipos de doc expandidos
+4. `src/pages/hr/Employees.tsx` — tipo e query atualizados
