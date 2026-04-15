@@ -185,6 +185,18 @@ export default function Employees() {
       if (createUserError) throw createUserError;
       if (!createUserResult?.user_id) throw new Error('Falha ao criar usuário');
 
+      // Save personal data to profiles
+      await supabase.from('profiles').update({
+        cpf: data.cpf || null,
+        rg: data.rg || null,
+        birth_date: data.birth_date || null,
+        gender: data.gender || null,
+        nationality: data.nationality || null,
+        height: data.height ? parseInt(data.height) : null,
+        emergency_contact_name: data.emergency_contact_name || null,
+        emergency_contact_phone: data.emergency_contact_phone || null,
+      }).eq('id', createUserResult.user_id);
+
       if (photoFile) {
         try {
           const photoExt = photoFile.name.split('.').pop();
@@ -196,6 +208,29 @@ export default function Employees() {
             await supabase.from('profiles').update({ avatar_url: `${publicUrl}?v=${timestamp}` }).eq('id', createUserResult.user_id);
           }
         } catch (e) { console.error('Photo upload error:', e); }
+      }
+
+      // Upload documents for non-technicians to corp_documents
+      if (data.selected_role !== 'technician' && certificationFiles.length > 0) {
+        for (let i = 0; i < certificationFiles.length; i++) {
+          const cert = certificationFiles[i];
+          const safeName = sanitizeFileName(cert.file.name);
+          const storagePath = `${createUserResult.user_id}/${Date.now()}-${i}-${safeName}`;
+          const { error: upErr } = await supabase.storage.from('corp-documents').upload(storagePath, cert.file);
+          if (!upErr) {
+            const { data: urlData } = supabase.storage.from('corp-documents').getPublicUrl(storagePath);
+            await supabase.from('corp_documents').insert({
+              company_id: companyId,
+              owner_user_id: createUserResult.user_id,
+              uploaded_by: user!.id,
+              title: cert.name || cert.file.name,
+              document_type: 'general',
+              file_name: cert.file.name,
+              file_url: urlData.publicUrl,
+              visibility_level: 'private',
+            });
+          }
+        }
       }
 
       if (data.selected_role === 'technician') {
