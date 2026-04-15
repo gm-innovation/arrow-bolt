@@ -47,6 +47,10 @@ const employeeFormSchema = z.object({
   aso_valid_until: z.string().optional().or(z.literal("")),
   medical_status: z.enum(['fit', 'unfit', 'pending']).optional().or(z.literal("")).transform(val => val === "" ? undefined : val),
   
+  // Emergency contact
+  emergency_contact_name: z.string().trim().optional().or(z.literal("")),
+  emergency_contact_phone: z.string().trim().optional().or(z.literal("")),
+
   // Password
   password_option: z.enum(['auto_email', 'manual', 'reset_link']),
   password: z.string().min(8, "Senha deve ter pelo menos 8 caracteres").optional().or(z.literal("")),
@@ -102,6 +106,7 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
       blood_type: undefined, blood_rh_factor: undefined,
       aso_issue_date: "", aso_valid_until: "", medical_status: undefined,
       password_option: 'auto_email', password: "", isActive: true,
+      emergency_contact_name: "", emergency_contact_phone: "",
     },
   });
 
