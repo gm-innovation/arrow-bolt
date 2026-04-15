@@ -225,12 +225,14 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(employee.full_name || "");
   const [phone, setPhone] = useState(employee.phone || "");
-  const [cpf, setCpf] = useState((employee as any).cpf || employee.technician?.cpf || "");
-  const [rg, setRg] = useState((employee as any).rg || employee.technician?.rg || "");
-  const [birthDate, setBirthDate] = useState((employee as any).birth_date || employee.technician?.birth_date || "");
-  const [gender, setGender] = useState((employee as any).gender || employee.technician?.gender || "");
-  const [nationality, setNationality] = useState((employee as any).nationality || employee.technician?.nationality || "");
-  const [height, setHeight] = useState((employee as any).height ? String((employee as any).height) : employee.technician?.height ? String(employee.technician.height) : "");
+  const [cpf, setCpf] = useState(employee.cpf || employee.technician?.cpf || "");
+  const [rg, setRg] = useState(employee.rg || employee.technician?.rg || "");
+  const [birthDate, setBirthDate] = useState(employee.birth_date || employee.technician?.birth_date || "");
+  const [gender, setGender] = useState(employee.gender || employee.technician?.gender || "");
+  const [nationality, setNationality] = useState(employee.nationality || employee.technician?.nationality || "");
+  const [height, setHeight] = useState(employee.height ? String(employee.height) : employee.technician?.height ? String(employee.technician.height) : "");
+  const [emergencyName, setEmergencyName] = useState((employee as any).emergency_contact_name || "");
+  const [emergencyPhone, setEmergencyPhone] = useState((employee as any).emergency_contact_phone || "");
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
 
@@ -246,6 +248,8 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
         gender: gender || null,
         nationality: nationality.trim() || null,
         height: height ? parseInt(height) : null,
+        emergency_contact_name: emergencyName.trim() || null,
+        emergency_contact_phone: emergencyPhone.trim() || null,
       };
 
       const { error } = await supabase.from("profiles").update(profileUpdate).eq("id", employee.id);
@@ -278,12 +282,14 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
     setIsEditing(false);
     setFullName(employee.full_name || "");
     setPhone(employee.phone || "");
-    setCpf((employee as any).cpf || employee.technician?.cpf || "");
-    setRg((employee as any).rg || employee.technician?.rg || "");
-    setBirthDate((employee as any).birth_date || employee.technician?.birth_date || "");
-    setGender((employee as any).gender || employee.technician?.gender || "");
-    setNationality((employee as any).nationality || employee.technician?.nationality || "");
-    setHeight((employee as any).height ? String((employee as any).height) : employee.technician?.height ? String(employee.technician.height) : "");
+    setCpf(employee.cpf || employee.technician?.cpf || "");
+    setRg(employee.rg || employee.technician?.rg || "");
+    setBirthDate(employee.birth_date || employee.technician?.birth_date || "");
+    setGender(employee.gender || employee.technician?.gender || "");
+    setNationality(employee.nationality || employee.technician?.nationality || "");
+    setHeight(employee.height ? String(employee.height) : employee.technician?.height ? String(employee.technician.height) : "");
+    setEmergencyName((employee as any).emergency_contact_name || "");
+    setEmergencyPhone((employee as any).emergency_contact_phone || "");
   };
 
   const readOnlyFields = [
@@ -348,6 +354,13 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
 
       {editableField("Nacionalidade", nationality, setNationality)}
       {editableField("Altura (cm)", height, setHeight, height ? `${height} cm` : "—")}
+
+      {/* Emergency Contact */}
+      <div className="pt-2">
+        <p className="text-sm font-semibold text-muted-foreground mb-2">🚨 Contato de Emergência</p>
+      </div>
+      {editableField("Nome do contato", emergencyName, setEmergencyName)}
+      {editableField("Telefone emergência", emergencyPhone, setEmergencyPhone)}
 
       {readOnlyFields.map((f) => (
         <div key={f.label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
@@ -490,6 +503,15 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="general">Geral</SelectItem>
+              <SelectItem value="cpf_doc">CPF</SelectItem>
+              <SelectItem value="rg_doc">RG / Identidade</SelectItem>
+              <SelectItem value="certidao_casamento">Certidão de Casamento</SelectItem>
+              <SelectItem value="certidao_nascimento">Certidão de Nascimento</SelectItem>
+              <SelectItem value="comprovante_residencia">Comprovante de Residência</SelectItem>
+              <SelectItem value="ctps">CTPS</SelectItem>
+              <SelectItem value="titulo_eleitor">Título de Eleitor</SelectItem>
+              <SelectItem value="reservista">Certificado de Reservista</SelectItem>
+              <SelectItem value="cnh">CNH</SelectItem>
               <SelectItem value="contrato">Contrato</SelectItem>
               <SelectItem value="atestado">Atestado</SelectItem>
               <SelectItem value="comprovante">Comprovante</SelectItem>
