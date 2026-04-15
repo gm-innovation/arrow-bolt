@@ -48,6 +48,8 @@ export interface EmployeeRow {
   gender: string | null;
   nationality: string | null;
   height: number | null;
+  emergency_contact_name: string | null;
+  emergency_contact_phone: string | null;
   roles: string[];
   technician?: {
     id: string;
@@ -101,7 +103,7 @@ export default function Employees() {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, avatar_url, phone, company_id, created_at, status, cpf, rg, birth_date, gender, nationality, height")
+        .select("id, full_name, email, avatar_url, phone, company_id, created_at, status, cpf, rg, birth_date, gender, nationality, height, emergency_contact_name, emergency_contact_phone")
         .eq("company_id", profile!.company_id!)
         .order("full_name");
       if (error) throw error;
