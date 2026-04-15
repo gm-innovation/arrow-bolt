@@ -10,10 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmployeeNotes } from "@/hooks/useEmployeeNotes";
-import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil } from "lucide-react";
+import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -41,6 +42,18 @@ const NOTE_TYPES = [
   { value: "administrative", label: "Administrativo", icon: Settings2 },
 ];
 
+const STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  active: { label: "Ativo", variant: "default" },
+  inactive: { label: "Inativo", variant: "secondary" },
+  archived: { label: "Arquivado", variant: "outline" },
+};
+
+const GENDER_OPTIONS = [
+  { value: "Masculino", label: "Masculino" },
+  { value: "Feminino", label: "Feminino" },
+  { value: "Outro", label: "Outro" },
+];
+
 interface EmployeeDetailSheetProps {
   employee: EmployeeRow;
   open: boolean;
@@ -56,6 +69,43 @@ const normalizeStoragePath = (fileUrl: string) => {
 export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailSheetProps) {
   const isTechnician = !!employee.technician;
   const tabCount = isTechnician ? 5 : 4;
+  const queryClient = useQueryClient();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+
+  const status = (employee as any).status || "active";
+  const statusInfo = STATUS_LABELS[status] || STATUS_LABELS.active;
+
+  const handleStatusChange = async (newStatus: string) => {
+    try {
+      const { error } = await supabase.from("profiles").update({ status: newStatus }).eq("id", employee.id);
+      if (error) throw error;
+
+      // Sync technician active status
+      if (isTechnician) {
+        await supabase.from("technicians").update({ active: newStatus === "active" }).eq("user_id", employee.id);
+      }
+
+      toast({ title: newStatus === "active" ? "Colaborador ativado" : newStatus === "inactive" ? "Colaborador inativado" : "Colaborador arquivado" });
+      queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
+    } catch {
+      toast({ title: "Erro ao alterar status", variant: "destructive" });
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      const { error } = await supabase.functions.invoke("delete-user", { body: { user_id: employee.id } });
+      if (error) throw error;
+      toast({ title: "Colaborador excluído", description: `${employee.full_name} foi removido.` });
+      queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
+      onClose();
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
+    } finally {
+      setDeleteConfirmOpen(false);
+    }
+  };
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
@@ -66,10 +116,11 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
               <AvatarImage src={employee.avatar_url || undefined} />
               <AvatarFallback className="text-lg">{employee.full_name?.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
-            <div>
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <SheetTitle className="text-xl">{employee.full_name}</SheetTitle>
                 {isTechnician && <Wrench className="h-4 w-4 text-muted-foreground" />}
+                <Badge variant={statusInfo.variant} className="text-xs">{statusInfo.label}</Badge>
               </div>
               <div className="flex flex-wrap gap-1 mt-1">
                 {employee.roles.map((r) => (
@@ -77,11 +128,35 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
                 ))}
               </div>
             </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost"><MoreVertical className="h-4 w-4" /></Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {status === "active" ? (
+                  <DropdownMenuItem onClick={() => handleStatusChange("inactive")}>
+                    <UserX className="h-4 w-4 mr-2" /> Inativar
+                  </DropdownMenuItem>
+                ) : (
+                  <DropdownMenuItem onClick={() => handleStatusChange("active")}>
+                    <UserCheck className="h-4 w-4 mr-2" /> Ativar
+                  </DropdownMenuItem>
+                )}
+                {status !== "archived" && (
+                  <DropdownMenuItem onClick={() => setArchiveConfirmOpen(true)}>
+                    <Archive className="h-4 w-4 mr-2" /> Arquivar
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteConfirmOpen(true)}>
+                  <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </SheetHeader>
 
         <Tabs defaultValue="personal" className="mt-2">
-          <TabsList className={`w-full grid grid-cols-${tabCount}`} style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
+          <TabsList className={`w-full grid`} style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
             <TabsTrigger value="personal"><User className="h-4 w-4 mr-1 hidden sm:inline" />Dados</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-4 w-4 mr-1 hidden sm:inline" />Docs</TabsTrigger>
             <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Histórico</TabsTrigger>
@@ -109,6 +184,38 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
             </TabsContent>
           )}
         </Tabs>
+
+        {/* Archive Confirmation */}
+        <AlertDialog open={archiveConfirmOpen} onOpenChange={setArchiveConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Arquivar colaborador?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {employee.full_name} será arquivado e não aparecerá na lista padrão. Você pode reativá-lo depois.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => { handleStatusChange("archived"); setArchiveConfirmOpen(false); }}>Arquivar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Confirmation */}
+        <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir colaborador?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {employee.full_name} será excluído permanentemente. Esta ação não pode ser desfeita.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDelete}>Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );
@@ -118,17 +225,44 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(employee.full_name || "");
   const [phone, setPhone] = useState(employee.phone || "");
+  const [cpf, setCpf] = useState((employee as any).cpf || employee.technician?.cpf || "");
+  const [rg, setRg] = useState((employee as any).rg || employee.technician?.rg || "");
+  const [birthDate, setBirthDate] = useState((employee as any).birth_date || employee.technician?.birth_date || "");
+  const [gender, setGender] = useState((employee as any).gender || employee.technician?.gender || "");
+  const [nationality, setNationality] = useState((employee as any).nationality || employee.technician?.nationality || "");
+  const [height, setHeight] = useState((employee as any).height ? String((employee as any).height) : employee.technician?.height ? String(employee.technician.height) : "");
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ full_name: fullName.trim(), phone: phone.trim() || null })
-        .eq("id", employee.id);
+      const profileUpdate: any = {
+        full_name: fullName.trim(),
+        phone: phone.trim() || null,
+        cpf: cpf.trim() || null,
+        rg: rg.trim() || null,
+        birth_date: birthDate || null,
+        gender: gender || null,
+        nationality: nationality.trim() || null,
+        height: height ? parseInt(height) : null,
+      };
+
+      const { error } = await supabase.from("profiles").update(profileUpdate).eq("id", employee.id);
       if (error) throw error;
+
+      // Sync with technicians table if applicable
+      if (employee.technician) {
+        await supabase.from("technicians").update({
+          cpf: cpf.trim() || null,
+          rg: rg.trim() || null,
+          birth_date: birthDate || null,
+          gender: gender || null,
+          nationality: nationality.trim() || null,
+          height: height ? parseInt(height) : null,
+        }).eq("user_id", employee.id);
+      }
+
       toast({ title: "Dados atualizados com sucesso" });
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
@@ -140,11 +274,34 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
     }
   };
 
+  const handleCancel = () => {
+    setIsEditing(false);
+    setFullName(employee.full_name || "");
+    setPhone(employee.phone || "");
+    setCpf((employee as any).cpf || employee.technician?.cpf || "");
+    setRg((employee as any).rg || employee.technician?.rg || "");
+    setBirthDate((employee as any).birth_date || employee.technician?.birth_date || "");
+    setGender((employee as any).gender || employee.technician?.gender || "");
+    setNationality((employee as any).nationality || employee.technician?.nationality || "");
+    setHeight((employee as any).height ? String((employee as any).height) : employee.technician?.height ? String(employee.technician.height) : "");
+  };
+
   const readOnlyFields = [
     { label: "Email", value: employee.email },
     { label: "Cargos", value: employee.roles.map((r) => ROLE_LABELS[r] || r).join(", ") },
     { label: "Na empresa desde", value: format(new Date(employee.created_at), "dd/MM/yyyy", { locale: ptBR }) },
   ];
+
+  const editableField = (label: string, value: string, onChange: (v: string) => void, displayValue?: string, type?: string) => (
+    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+      <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">{label}</span>
+      {isEditing ? (
+        <Input value={value} onChange={(e) => onChange(e.target.value)} className="h-8" type={type || "text"} />
+      ) : (
+        <span className="text-sm text-foreground">{displayValue || value || "—"}</span>
+      )}
+    </div>
+  );
 
   return (
     <div className="space-y-3 py-4">
@@ -155,29 +312,42 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
           </Button>
         ) : (
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => { setIsEditing(false); setFullName(employee.full_name || ""); setPhone(employee.phone || ""); }}>Cancelar</Button>
+            <Button size="sm" variant="outline" onClick={handleCancel}>Cancelar</Button>
             <Button size="sm" onClick={handleSave} disabled={isSaving}>Salvar</Button>
           </div>
         )}
       </div>
 
+      {editableField("Nome completo", fullName, setFullName)}
+      {editableField("Telefone", phone, setPhone)}
+      {editableField("CPF", cpf, setCpf)}
+      {editableField("RG", rg, setRg)}
+      
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
-        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Nome completo</span>
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Data de Nascimento</span>
         {isEditing ? (
-          <Input value={fullName} onChange={(e) => setFullName(e.target.value)} className="h-8" />
+          <Input value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="h-8" type="date" />
         ) : (
-          <span className="text-sm text-foreground">{employee.full_name}</span>
+          <span className="text-sm text-foreground">{birthDate ? format(new Date(birthDate), "dd/MM/yyyy") : "—"}</span>
         )}
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
-        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Telefone</span>
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Gênero</span>
         {isEditing ? (
-          <Input value={phone} onChange={(e) => setPhone(e.target.value)} className="h-8" />
+          <Select value={gender} onValueChange={setGender}>
+            <SelectTrigger className="h-8"><SelectValue placeholder="Selecionar" /></SelectTrigger>
+            <SelectContent>
+              {GENDER_OPTIONS.map((g) => <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
         ) : (
-          <span className="text-sm text-foreground">{employee.phone || "—"}</span>
+          <span className="text-sm text-foreground">{gender || "—"}</span>
         )}
       </div>
+
+      {editableField("Nacionalidade", nationality, setNationality)}
+      {editableField("Altura (cm)", height, setHeight, height ? `${height} cm` : "—")}
 
       {readOnlyFields.map((f) => (
         <div key={f.label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
@@ -574,14 +744,9 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
 
   const medicalFields = [
     { label: "Especialidade", value: tech.specialty || "—" },
-    { label: "CPF", value: tech.cpf || "—" },
-    { label: "RG", value: tech.rg || "—" },
-    { label: "Data de Nascimento", value: tech.birth_date ? format(new Date(tech.birth_date), "dd/MM/yyyy") : "—" },
-    { label: "Gênero", value: tech.gender || "—" },
-    { label: "Nacionalidade", value: tech.nationality || "—" },
-    { label: "Altura (cm)", value: tech.height ? String(tech.height) : "—" },
     { label: "Tipo Sanguíneo", value: tech.blood_type ? `${tech.blood_type}${tech.blood_rh_factor || ""}` : "—" },
     { label: "ASO Válido até", value: tech.aso_valid_until ? format(new Date(tech.aso_valid_until), "dd/MM/yyyy") : "—" },
+    { label: "Status Médico", value: tech.medical_status || "—" },
   ];
 
   const handleDownload = async (doc: any) => {
@@ -716,7 +881,7 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
 
       {/* Medical/Personal Data */}
       <div className="space-y-2">
-        <h3 className="text-sm font-semibold text-foreground">Dados do Técnico</h3>
+        <h3 className="text-sm font-semibold text-foreground">Dados Técnicos</h3>
         {medicalFields.map((f) => (
           <div key={f.label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
             <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">{f.label}</span>
@@ -794,13 +959,13 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir Técnico</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir {employee.full_name}? Esta ação não pode ser desfeita. O usuário e todos os documentos serão removidos.
+              Esta ação é irreversível. O técnico {employee.full_name} será removido permanentemente do sistema, incluindo todos os seus dados e documentos.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteTechnician} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Excluir
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleDeleteTechnician}>
+              Excluir permanentemente
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

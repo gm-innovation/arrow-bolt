@@ -27,6 +27,12 @@ const ROLE_LABELS: Record<string, string> = {
   super_admin: "Administrador",
 };
 
+const STATUS_LABELS: Record<string, string> = {
+  active: "Ativo",
+  inactive: "Inativo",
+  archived: "Arquivado",
+};
+
 export interface EmployeeRow {
   id: string;
   full_name: string;
@@ -35,6 +41,13 @@ export interface EmployeeRow {
   phone: string | null;
   company_id: string;
   created_at: string;
+  status: string;
+  cpf: string | null;
+  rg: string | null;
+  birth_date: string | null;
+  gender: string | null;
+  nationality: string | null;
+  height: number | null;
   roles: string[];
   technician?: {
     id: string;
@@ -69,6 +82,7 @@ export default function Employees() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("active");
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRow | null>(null);
   const [isNewTechOpen, setIsNewTechOpen] = useState(false);
 
@@ -87,14 +101,13 @@ export default function Employees() {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, avatar_url, phone, company_id, created_at")
+        .select("id, full_name, email, avatar_url, phone, company_id, created_at, status, cpf, rg, birth_date, gender, nationality, height")
         .eq("company_id", profile!.company_id!)
         .order("full_name");
       if (error) throw error;
 
       const userIds = (profiles || []).map((p: any) => p.id);
 
-      // Fetch roles and technician data in parallel
       const [rolesRes, techRes] = await Promise.all([
         supabase.from("user_roles").select("user_id, role").in("user_id", userIds),
         supabase.from("technicians").select("id, user_id, specialty, aso_valid_until, active, cpf, rg, birth_date, gender, nationality, height, blood_type, blood_rh_factor, medical_status").eq("company_id", profile!.company_id!),
@@ -113,6 +126,7 @@ export default function Employees() {
 
       return (profiles || []).map((p: any) => ({
         ...p,
+        status: p.status || "active",
         roles: roleMap[p.id] || [],
         technician: techMap[p.id] || null,
       })) as EmployeeRow[];
@@ -123,9 +137,10 @@ export default function Employees() {
     return employees.filter((e) => {
       const matchesSearch = !search || e.full_name?.toLowerCase().includes(search.toLowerCase()) || e.email?.toLowerCase().includes(search.toLowerCase());
       const matchesRole = roleFilter === "all" || e.roles.includes(roleFilter);
-      return matchesSearch && matchesRole;
+      const matchesStatus = statusFilter === "all" || (e.status || "active") === statusFilter;
+      return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [employees, search, roleFilter]);
+  }, [employees, search, roleFilter, statusFilter]);
 
   const uniqueRoles = useMemo(() => {
     const set = new Set<string>();
@@ -181,7 +196,6 @@ export default function Employees() {
         } catch (e) { console.error('Photo upload error:', e); }
       }
 
-      // Only process technician-specific data if role is technician
       if (data.selected_role === 'technician') {
         const { data: technicianData, error: techError } = await supabase
           .from('technicians').select('id').eq('user_id', createUserResult.user_id).single();
@@ -223,7 +237,6 @@ export default function Employees() {
           }
         }
       }
-
 
       if (data.password_option === 'reset_link') {
         await supabase.auth.resetPasswordForEmail(data.email, { redirectTo: `${window.location.origin}/login` });
@@ -273,6 +286,17 @@ export default function Employees() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-40">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="active">Ativos</SelectItem>
+            <SelectItem value="inactive">Inativos</SelectItem>
+            <SelectItem value="archived">Arquivados</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table */}
@@ -291,7 +315,7 @@ export default function Employees() {
                 <tr>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground">Colaborador</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Cargo</th>
-                  
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Especialidade</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">ASO</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Desde</th>
@@ -301,6 +325,8 @@ export default function Employees() {
               <tbody>
                 {filtered.map((emp) => {
                   const aso = emp.technician ? getAsoStatus(emp.technician.aso_valid_until) : null;
+                  const empStatus = emp.status || "active";
+                  const statusVariant = empStatus === "active" ? "default" as const : empStatus === "inactive" ? "secondary" as const : "outline" as const;
                   return (
                     <tr key={emp.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
                       <td className="py-3 px-4">
@@ -324,6 +350,9 @@ export default function Employees() {
                             <Badge key={r} variant="secondary" className="text-xs">{ROLE_LABELS[r] || r}</Badge>
                           ))}
                         </div>
+                      </td>
+                      <td className="py-3 px-4 hidden md:table-cell">
+                        <Badge variant={statusVariant} className="text-xs">{STATUS_LABELS[empStatus] || empStatus}</Badge>
                       </td>
                       <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">
                         {emp.technician?.specialty || "—"}
