@@ -30,20 +30,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  // Use refs to track initialization and prevent duplicate processing
-  const initializedRef = useRef(false);
-  const fetchingRoleRef = useRef(false);
-  // Track current session token to prevent unnecessary updates
+
+  // Track current session token to skip true duplicates
   const currentTokenRef = useRef<string | null>(null);
+  // Track which userId we're currently fetching role for (to avoid duplicate same-user fetches)
+  const fetchingForUserIdRef = useRef<string | null>(null);
 
   const fetchUserRole = useCallback(async (userId: string) => {
-    // Prevent duplicate role fetches
-    if (fetchingRoleRef.current) return;
-    fetchingRoleRef.current = true;
-    
+    // If a fetch is already in-flight for the same user, skip; otherwise proceed
+    if (fetchingForUserIdRef.current === userId) {
+      return;
+    }
+    fetchingForUserIdRef.current = userId;
+
     try {
-      // Fetch role and profile in parallel
       const [roleResult, profileResult] = await Promise.all([
         supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
         supabase.from('profiles').select('id, company_id, full_name, email').eq('id', userId).maybeSingle(),
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setProfile(null);
     } finally {
       setLoading(false);
-      fetchingRoleRef.current = false;
+      fetchingForUserIdRef.current = null;
     }
   }, []);
 
@@ -75,46 +75,52 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, currentSession) => {
-        // Only process after initialization
-        if (!initializedRef.current) return;
-        
-        // Skip TOKEN_REFRESHED if session hasn't actually changed
-        if (event === 'TOKEN_REFRESHED') {
-          const newToken = currentSession?.access_token ?? null;
-          if (newToken === currentTokenRef.current) {
-            return; // No real change, skip update
-          }
-          currentTokenRef.current = newToken;
+        const newToken = currentSession?.access_token ?? null;
+
+        // Skip true duplicates (same token, same event class)
+        if (event === 'TOKEN_REFRESHED' && newToken === currentTokenRef.current) {
+          return;
         }
-        
-        // Only update on actual auth changes
-        if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+
+        // Process all relevant auth events
+        if (
+          event === 'SIGNED_IN' ||
+          event === 'SIGNED_OUT' ||
+          event === 'TOKEN_REFRESHED' ||
+          event === 'INITIAL_SESSION' ||
+          event === 'USER_UPDATED'
+        ) {
+          const previousUserId = user?.id ?? null;
+          const newUserId = currentSession?.user?.id ?? null;
+
+          currentTokenRef.current = newToken;
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
-          
+
           if (currentSession?.user) {
-            // Defer Supabase call to prevent deadlock
+            // If a different user is signing in, mark loading
+            if (previousUserId !== newUserId) {
+              setLoading(true);
+            }
+            // Defer Supabase call to prevent deadlock inside the listener
             setTimeout(() => {
               fetchUserRole(currentSession.user.id);
             }, 0);
           } else {
             setUserRole(null);
+            setProfile(null);
             setLoading(false);
           }
         }
       }
     );
 
-    // THEN check for existing session (initial load)
+    // THEN check for existing session (initial load) — covers cases where INITIAL_SESSION isn't emitted
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      // Store initial token
       currentTokenRef.current = existingSession?.access_token ?? null;
-      // Mark as initialized before setting state
-      initializedRef.current = true;
-      
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
-      
+
       if (existingSession?.user) {
         fetchUserRole(existingSession.user.id);
       } else {
@@ -123,17 +129,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchUserRole]);
 
-  // signIn apenas faz autenticação - redirecionamento é feito via SPA no Login.tsx
+  // signIn: authenticate AND directly hydrate state as a fallback if the listener is delayed
   const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    
+
+    if (!error && data.session && data.user) {
+      currentTokenRef.current = data.session.access_token;
+      setSession(data.session);
+      setUser(data.user);
+      setLoading(true);
+      // Fire and forget — fetch role/profile directly so navigation can happen
+      fetchUserRole(data.user.id);
+    }
+
     return { error };
-  }, []);
+  }, [fetchUserRole]);
 
   const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     const redirectUrl = `${window.location.origin}/`;
