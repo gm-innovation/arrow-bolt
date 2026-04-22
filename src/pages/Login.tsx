@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,50 +8,70 @@ import logoDark from "@/assets/logo-dark.png";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getRoleRedirectPath } from "@/lib/roleRedirect";
+import { supabase } from "@/integrations/supabase/client";
 
 const SESSION_EMAIL_KEY = "login_email_temp";
 
 const Login = () => {
-  // Controlled inputs para persistir valores
   const [email, setEmail] = useState(() => {
     return sessionStorage.getItem(SESSION_EMAIL_KEY) || "";
   });
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const navigate = useNavigate();
   const { toast } = useToast();
   const { signIn, user, userRole, loading: authLoading } = useAuth();
 
-  // Persistir email no sessionStorage enquanto digita
+  const fallbackTimerRef = useRef<number | null>(null);
+  const navigatedRef = useRef(false);
+
+  // Persist email in sessionStorage while typing
   useEffect(() => {
     if (email) {
       sessionStorage.setItem(SESSION_EMAIL_KEY, email);
     }
   }, [email]);
 
-  // Redirecionar quando autenticado e com role (via SPA, sem reload)
+  const doNavigate = useCallback((role: string) => {
+    if (navigatedRef.current) return;
+    const redirectPath = getRoleRedirectPath(role);
+    if (redirectPath) {
+      navigatedRef.current = true;
+      sessionStorage.removeItem(SESSION_EMAIL_KEY);
+      if (fallbackTimerRef.current) {
+        window.clearTimeout(fallbackTimerRef.current);
+        fallbackTimerRef.current = null;
+      }
+      navigate(redirectPath, { replace: true });
+    }
+  }, [navigate]);
+
+  // Primary path: redirect when context updates with user + role
   useEffect(() => {
     if (authLoading) return;
 
     if (user && userRole) {
-      // Limpar email do sessionStorage após login bem-sucedido
-      sessionStorage.removeItem(SESSION_EMAIL_KEY);
-      
-      const redirectPath = getRoleRedirectPath(userRole);
-      if (redirectPath) {
-        navigate(redirectPath, { replace: true });
-      }
+      doNavigate(userRole);
     } else if (user && !userRole && !authLoading) {
       setError("Usuário sem permissões. Contate o administrador.");
     }
-  }, [user, userRole, authLoading, navigate]);
+  }, [user, userRole, authLoading, doNavigate]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (fallbackTimerRef.current) {
+        window.clearTimeout(fallbackTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleLogin = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    
+
     const trimmedEmail = email.trim();
 
     if (!trimmedEmail || !password) {
@@ -60,6 +80,7 @@ const Login = () => {
     }
 
     setIsSubmitting(true);
+    navigatedRef.current = false;
 
     const { error: signInError } = await signIn(trimmedEmail, password);
 
@@ -74,7 +95,36 @@ const Login = () => {
       description: "Bem-vindo!",
     });
     setIsSubmitting(false);
-  }, [email, password, signIn, toast]);
+
+    // Fallback: if context hasn't navigated within 1.5s, fetch session/role manually and navigate
+    fallbackTimerRef.current = window.setTimeout(async () => {
+      if (navigatedRef.current) return;
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          setError("Não foi possível carregar a sessão. Recarregue a página.");
+          return;
+        }
+
+        const { data: roleData, error: roleError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (roleError || !roleData?.role) {
+          setError("Usuário sem permissões. Contate o administrador.");
+          return;
+        }
+
+        doNavigate(roleData.role);
+      } catch (err) {
+        console.error('Login fallback error:', err);
+        setError("Não foi possível carregar suas permissões. Recarregue a página.");
+      }
+    }, 1500);
+  }, [email, password, signIn, toast, doNavigate]);
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-ocean-light to-ocean-dark p-4">
