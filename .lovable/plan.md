@@ -1,209 +1,97 @@
-## Fechar exposição de PII em `profiles` (revisado)
+## Problema
 
-### Diagnóstico
+`new row violates row-level security policy for table "vessels"` ao adicionar embarcação.
 
-`public.profiles` mistura diretório interno (id, nome, avatar, e-mail corporativo), dados de RH (cpf, rg, birth_date, hire_date) e PII sensível (telefone pessoal, contato de emergência, gênero, nacionalidade, tipo sanguíneo). A policy de SELECT atual:
+## Causa raiz
 
-```sql
-USING (company_id = user_company_id(auth.uid()))
-```
+A única policy de escrita em `vessels` é `FOR ALL` exigindo `has_role('admin')`. No projeto **ninguém tem role `admin`** — os roles operacionais reais são `coordinator`, `director`, `commercial`, `hr`, `super_admin`. A memória já registra: *"`coordinator` é operational admin (not `admin`)"* e *"`director` replaces `manager`"*. Por isso INSERT/UPDATE/DELETE em `vessels` sempre falha.
 
-deixa qualquer colaborador autenticado ler **tudo** de qualquer colega. Como RLS é por linha e não por coluna, a única correção robusta é separar acesso por sensibilidade.
+A policy SELECT `Managers can view all company vessels` (que usa `has_role('manager')`) também é morta, mas inofensiva — outra policy SELECT (`Users can view vessels in their company`) já cobre leitura corretamente via `clients.company_id`.
 
-### Arquitetura em 4 camadas
+## Pontos do feedback validados
 
-**Camada 1 — `profiles` (sensível, acesso restrito)**
+- **SELECT via `clients.company_id`**: já é assim hoje (`vessels` não tem `company_id` direto). ✅
+- **`commercial` escopo**: tabela `clients` não possui `owner_id`/`responsible_user_id`. Não há como restringir por "cliente do comercial" — mantém escopo por empresa. ✅
+- **Super admin global**: no projeto super_admin opera dentro da própria empresa via `profiles.company_id` (padrão consolidado). Sem mudança de escopo. ✅
+- **Índice `(id, company_id)` em clients**: `id` já é PK; o lookup do EXISTS é O(log n) por PK + heap fetch para checar company_id. Não traz ganho real, **dispensado**.
+- **Helper `is_operational_role`**: bom para consistência futura — incluído.
+- **Soft delete**: fora do escopo desta correção (mudança de domínio, não de RLS). FKs de `service_orders.vessel_id` impedem hard delete acidental quando há histórico (erro de FK, não silencioso).
 
-Apenas:
-- self (`id = auth.uid()`)
-- `hr`, `admin`, `director`, `super_admin` da mesma empresa
-
-`coordinator` **fica de fora** da leitura completa (princípio do menor privilégio — coordenador é operacional, não opera ficha de RH; quando precisa, usa o diretório/RPC operacional).
-
-**Camada 2 — `profiles_public` (diretório mínimo)**
-
-View **sem `security_invoker`** (ou seja, roda como o owner da view = `postgres`, com o filtro embutido). Aplica o filtro de empresa internamente, expondo só o estritamente necessário para Feed/chat/menções/listas:
+## Migration
 
 ```sql
-CREATE OR REPLACE VIEW public.profiles_public
-WITH (security_barrier = true) AS
-SELECT p.id, p.full_name, p.avatar_url, p.company_id
-FROM public.profiles p
-WHERE p.company_id = public.user_company_id(auth.uid())
-   OR public.has_role(auth.uid(), 'super_admin');
+-- 1. Helper para roles operacionais (reutilizável em outras tabelas)
+CREATE OR REPLACE FUNCTION public.is_operational_role(_user_id uuid)
+RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public
+AS $$
+  SELECT
+    public.has_role(_user_id, 'coordinator'::app_role) OR
+    public.has_role(_user_id, 'director'::app_role)    OR
+    public.has_role(_user_id, 'commercial'::app_role)  OR
+    public.has_role(_user_id, 'super_admin'::app_role)
+$$;
 
-REVOKE ALL ON public.profiles_public FROM PUBLIC, anon;
-GRANT SELECT ON public.profiles_public TO authenticated;
-```
+-- 2. Limpar policies legadas com roles inexistentes
+DROP POLICY IF EXISTS "Admins can manage vessels in their company" ON public.vessels;
+DROP POLICY IF EXISTS "Managers can view all company vessels"      ON public.vessels;
 
-Note: **sem `email`, sem `created_at`, sem `updated_at`** — o diretório usa só `id`, `full_name`, `avatar_url`, `company_id`. Telas que hoje exibem e-mail corporativo de colega passam a não exibir (e-mail próprio continua via `profiles` self).
+-- 3. INSERT
+CREATE POLICY "Operational roles can insert vessels"
+ON public.vessels FOR INSERT TO authenticated
+WITH CHECK (
+  public.is_operational_role(auth.uid())
+  AND EXISTS (
+    SELECT 1 FROM public.clients c
+    WHERE c.id = vessels.client_id
+      AND c.company_id = public.user_company_id(auth.uid())
+  )
+);
 
-**Camada 3 — RPCs específicas com retorno explícito**
-
-Sem `RETURNS profiles` e sem `SELECT *` (evita schema drift). Três RPCs separadas:
-
-```sql
--- PII civil/contato (HR/admin/director/self)
-CREATE OR REPLACE FUNCTION public.get_employee_pii(_user_id uuid)
-RETURNS TABLE (
-  id uuid, company_id uuid, full_name text, email text, avatar_url text,
-  cpf text, rg text, birth_date date, gender text, nationality text,
-  blood_type text, height numeric, phone text,
-  emergency_contact_name text, emergency_contact_phone text
+-- 4. UPDATE (USING e WITH CHECK simétricos para impedir mover entre empresas)
+CREATE POLICY "Operational roles can update vessels"
+ON public.vessels FOR UPDATE TO authenticated
+USING (
+  public.is_operational_role(auth.uid())
+  AND EXISTS (
+    SELECT 1 FROM public.clients c
+    WHERE c.id = vessels.client_id
+      AND c.company_id = public.user_company_id(auth.uid())
+  )
 )
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-DECLARE _company uuid;
-BEGIN
-  SELECT p.company_id INTO _company FROM profiles p WHERE p.id = _user_id;
-  IF _company IS NULL THEN RETURN; END IF;
+WITH CHECK (
+  public.is_operational_role(auth.uid())
+  AND EXISTS (
+    SELECT 1 FROM public.clients c
+    WHERE c.id = vessels.client_id
+      AND c.company_id = public.user_company_id(auth.uid())
+  )
+);
 
-  IF NOT (
-    _user_id = auth.uid()
-    OR has_role(auth.uid(),'super_admin')
-    OR (_company = user_company_id(auth.uid())
-        AND (has_role(auth.uid(),'hr')
-             OR has_role(auth.uid(),'admin')
-             OR has_role(auth.uid(),'director')))
-  ) THEN
-    RETURN;
-  END IF;
-
-  RETURN QUERY
-  SELECT p.id, p.company_id, p.full_name, p.email, p.avatar_url,
-         p.cpf, p.rg, p.birth_date, p.gender, p.nationality,
-         p.blood_type, p.height, p.phone,
-         p.emergency_contact_name, p.emergency_contact_phone
-  FROM profiles p WHERE p.id = _user_id;
-END; $$;
-
-REVOKE ALL ON FUNCTION public.get_employee_pii(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.get_employee_pii(uuid) TO authenticated;
-
--- HR-only (hire_date e demais campos trabalhistas)
-CREATE OR REPLACE FUNCTION public.get_employee_hr_profile(_user_id uuid)
-RETURNS TABLE (id uuid, hire_date date, status text /* etc. */)
-LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = public
-AS $$
-BEGIN
-  IF NOT (
-    _user_id = auth.uid()
-    OR has_role(auth.uid(),'super_admin')
-    OR (EXISTS (SELECT 1 FROM profiles WHERE id = _user_id
-                AND company_id = user_company_id(auth.uid()))
-        AND (has_role(auth.uid(),'hr')
-             OR has_role(auth.uid(),'admin')
-             OR has_role(auth.uid(),'director')))
-  ) THEN RETURN; END IF;
-
-  RETURN QUERY SELECT p.id, p.hire_date, p.status FROM profiles p WHERE p.id = _user_id;
-END; $$;
-
-REVOKE ALL ON FUNCTION public.get_employee_hr_profile(uuid) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.get_employee_hr_profile(uuid) TO authenticated;
+-- 5. DELETE (sem commercial)
+CREATE POLICY "Privileged roles can delete vessels"
+ON public.vessels FOR DELETE TO authenticated
+USING (
+  (
+    public.has_role(auth.uid(), 'coordinator'::app_role) OR
+    public.has_role(auth.uid(), 'director'::app_role)    OR
+    public.has_role(auth.uid(), 'super_admin'::app_role)
+  )
+  AND EXISTS (
+    SELECT 1 FROM public.clients c
+    WHERE c.id = vessels.client_id
+      AND c.company_id = public.user_company_id(auth.uid())
+  )
+);
 ```
 
-**Camada 4 — View `employee_celebrations_public` (eventos, sem datas integrais)**
+A SELECT existente (`Users can view vessels in their company`) já está correta e fica intacta.
 
-Para Feed/aniversário/tempo de casa — só mês/dia, nunca o ano:
+## Resultado
 
-```sql
-CREATE OR REPLACE VIEW public.employee_celebrations_public
-WITH (security_barrier = true) AS
-SELECT
-  p.id, p.full_name, p.avatar_url, p.company_id,
-  EXTRACT(MONTH FROM p.birth_date)::int AS birth_month,
-  EXTRACT(DAY   FROM p.birth_date)::int AS birth_day,
-  EXTRACT(MONTH FROM p.hire_date)::int  AS hire_month,
-  EXTRACT(DAY   FROM p.hire_date)::int  AS hire_day,
-  EXTRACT(YEAR  FROM p.hire_date)::int  AS hire_year  -- aceitável p/ "X anos de casa"
-FROM public.profiles p
-WHERE p.company_id = public.user_company_id(auth.uid())
-   OR public.has_role(auth.uid(), 'super_admin');
-
-REVOKE ALL ON public.employee_celebrations_public FROM PUBLIC, anon;
-GRANT SELECT ON public.employee_celebrations_public TO authenticated;
-```
-
-### Policies finais em `public.profiles` (SELECT)
-
-Drop **todas** as policies de SELECT existentes e recriar somente:
-
-```sql
--- (drop de todas as policies de SELECT antigas — ver lista no migration)
-
-CREATE POLICY "Self can view own profile"
-  ON public.profiles FOR SELECT TO authenticated
-  USING (id = auth.uid());
-
-CREATE POLICY "Privileged roles can view company profiles"
-  ON public.profiles FOR SELECT TO authenticated
-  USING (
-    has_role(auth.uid(), 'super_admin')
-    OR (company_id = user_company_id(auth.uid())
-        AND (has_role(auth.uid(),'hr')
-             OR has_role(auth.uid(),'admin')
-             OR has_role(auth.uid(),'director')))
-  );
-```
-
-Validação pós-migration: `SELECT policyname FROM pg_policies WHERE tablename='profiles' AND cmd='SELECT'` deve retornar exatamente essas 2 linhas (regra do "OR" das policies — qualquer sobra reabre tudo).
-
-UPDATE/INSERT/DELETE permanecem como hoje (self, HR, admin, super_admin).
-
-### Mudanças no frontend
-
-**Hooks novos com contratos explícitos** (evita regressão):
-
-- `useMyProfile()` — lê `profiles` (self)
-- `useEmployeeDirectory()` — lê `profiles_public` (id/nome/avatar)
-- `useEmployeePII(userId)` — RPC `get_employee_pii`
-- `useEmployeeHRProfile(userId)` — RPC `get_employee_hr_profile`
-- `useEmployeeCelebrations()` — view `employee_celebrations_public`
-
-**Substituições mecânicas** (~50 arquivos):
-
-- `from('profiles').select('id, full_name, avatar_url, ...')` → `from('profiles_public')` em hooks/componentes que só usam diretório
-- Joins PostgREST `profiles!fk(id, full_name, avatar_url)` → `profiles_public!fk(...)` (em `useChat`, `useCorpFeed`, `useCorpFeedDiscussions`, `useCorpDocuments`, `useCorpRequests`, `useCorpAuditLog`, `useCorpGroups`, `useCommercialTasks`, `useDepartmentMembers`, `useDepartments`, `useHRTimeEntries`, `useEmployeeNotes`, `useFinance`, `useProductivitySnapshots`, `usePurchaseRequests`, `useQualityActionPlans`, `useQualityAudits`, `useQualityNCRs`, `useGroupDiscussions` etc.)
-- Telas onde hoje aparece e-mail de colega não-self: remover a coluna ou migrar para RPC se for tela de RH
-- `FeedWorkAnniversaryCard` / aniversários → `useEmployeeCelebrations()`
-
-**Manter `from('profiles')`** apenas em:
-
-- `AuthContext`, páginas `Profile.tsx` por role (self)
-- `EmployeeDetailSheet`, `NewEmployeeForm`, `OnboardingDetailDialog` (HR/admin/director — caem nas novas policies)
-
-**Auditar `update().select()` / `insert().select()` em `profiles`**: garantir que o `.select()` pós-mutação só pede colunas que o usuário tem direito de ler (self + HR + admin + director). Caso contrário, remover o `.select()` ou restringir à projeção mínima.
-
-### Helpers (validação prévia)
-
-Confirmar que `user_company_id()` e `has_role()` são `STABLE SECURITY DEFINER`, leem de `profiles`/`user_roles` sem disparar RLS recursiva. Já são (vistos em migrations anteriores), então OK.
-
-### Validação funcional
-
-- HR / Admin / Diretor: leem ficha completa (via `profiles` direto + RPCs)
-- Coordenador: **perde** acesso a CPF/telefone/data de nascimento de colegas (passa a usar `profiles_public` + dados operacionais já em outras tabelas, ex.: `technicians`, `service_orders`)
-- Técnico/Comercial/Financeiro/Qualidade/Compras: idem — só diretório mínimo
-- Self: continua vendo/editando próprio perfil completo
-- Feed/chat/menções/listas: funcionam via `profiles_public`
-- Aniversários/tempo de casa: funcionam via `employee_celebrations_public` (sem ano de nascimento)
-- Scanner do Lovable Cloud reclassifica `profiles_table_public_exposure` como resolvido
-
-### Arquivos editados
-
-1. **Migration SQL** com:
-   - DROP das policies de SELECT antigas em `profiles`
-   - 2 novas policies de SELECT (self + privileged)
-   - View `profiles_public` (sem `security_invoker`, com filtro embutido)
-   - View `employee_celebrations_public`
-   - RPCs `get_employee_pii` e `get_employee_hr_profile` (retorno explícito, REVOKE/GRANT)
-2. **Novos hooks** `useMyProfile`, `useEmployeeDirectory`, `useEmployeePII`, `useEmployeeHRProfile`, `useEmployeeCelebrations`
-3. **~50 arquivos** trocando `from('profiles')` / `profiles!fk(...)` para `profiles_public` quando só usam diretório
-4. Telas de RH/Onboarding/Profile mantidas em `profiles`/RPCs
-5. `mark_as_fixed` no finding `profiles_table_public_exposure`
-
-### Avisos ao usuário pós-implementação
-
-- Coordenadores **perdem** acesso a PII de colegas (intencional — princípio do menor privilégio). Se algum fluxo operacional exigir CPF/telefone do técnico, criar `get_employee_operational_info` específica.
-- Telas que hoje mostram e-mail corporativo de colega não-self **deixam de mostrar** o e-mail (passa a aparecer só em telas de RH).
-- Aniversários passam a mostrar dia/mês (sem ano).
+- Cadastro de embarcação volta a funcionar para coordenadores, diretores, comerciais e super_admin da empresa.
+- Exclusão restrita a coordenadores, diretores e super_admin.
+- Isolamento por empresa garantido em todas as operações via `clients.company_id`.
+- UPDATE simétrico impede mover embarcação para cliente de outra empresa.
+- Helper `is_operational_role` disponível para padronizar futuras policies.
+- Sem mudanças de frontend.
