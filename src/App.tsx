@@ -78,6 +78,7 @@ const CommercialProfile = lazy(() => import("./pages/commercial/Profile"));
 const CommercialSettings = lazy(() => import("./pages/commercial/Settings"));
 const CommercialProducts = lazy(() => import("./pages/commercial/Products"));
 const CommercialRecurrences = lazy(() => import("./pages/commercial/Recurrences"));
+const CommercialSiteLeads = lazy(() => import("./pages/commercial/SiteLeads"));
 const CommercialMeasurements = lazy(() => import("./pages/commercial/Measurements"));
 const CommercialReports = lazy(() => import("./pages/commercial/Reports"));
 const CommercialKnowledgeBase = lazy(() => import("./pages/commercial/KnowledgeBase"));
