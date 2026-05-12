@@ -14,7 +14,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Copy, Trash2, Plus, AlertTriangle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Copy, Trash2, Plus, AlertTriangle, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
