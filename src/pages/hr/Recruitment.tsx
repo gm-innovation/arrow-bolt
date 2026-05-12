@@ -45,7 +45,8 @@ const HRRecruitment = () => {
   const filtered = useMemo(() => {
     return applications.filter((a: any) => {
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
-      if (openingFilter !== "all" && a.job_opening_id !== openingFilter) return false;
+      if (openingFilter === "spontaneous" && a.job_opening_id) return false;
+      if (openingFilter !== "all" && openingFilter !== "spontaneous" && a.job_opening_id !== openingFilter) return false;
       if (search) {
         const s = search.toLowerCase();
         if (!a.full_name?.toLowerCase().includes(s) && !a.email?.toLowerCase().includes(s)) return false;
@@ -115,7 +116,7 @@ const HRRecruitment = () => {
               <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as vagas</SelectItem>
-                <SelectItem value="">Espontâneas</SelectItem>
+                <SelectItem value="spontaneous">Espontâneas</SelectItem>
                 {openings.map((o: any) => (
                   <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
                 ))}
