@@ -1,95 +1,39 @@
-# Integração com o site institucional (outro projeto Lovable)
+# Corrigir captação de leads do site Lecsor
 
-Como o site rodará em **outro projeto Lovable** e só precisa de **leads / contato**, a forma mais segura é criar um **endpoint público dedicado** no Arrow, sem expor a API key no front. O time do site só precisa de **uma URL** — nada de chave.
+## Diagnóstico
 
-## Arquitetura
+Confirmei o que o time externo reportou:
 
-```text
-Site (Lovable)  ──POST /v1/public/lead──►  Arrow Edge Function  ──►  crm_leads
-   form simples              (sem auth)        valida + insere
-```
+- **404 NOT_FOUND** em `https://iyuypkfksxfsutubcpay.supabase.co/functions/v1/public-lead-intake` — a função existe no código (`supabase/functions/public-lead-intake/index.ts`), mas nunca foi efetivamente publicada no projeto. Por isso a resposta CORS que aparece no preflight é a padrão do gateway (sem `content-type`), não a da função.
+- **Slug e empresa já corretos no banco**: `Lecsor Technology` → slug `lecsor`, `public_intake_enabled = true`. Nada a ajustar aqui.
+- **CORS no código já está OK**: o `index.ts` já devolve `Access-Control-Allow-Headers: authorization, x-client-info, apikey, content-type`. Quando a função for publicada, o preflight vai passar.
 
-A API key (`ark_live_...`) e os scopes continuam existindo na tela `/super-admin/api-docs` para parceiros externos B2B. O site usa um **canal próprio, mais simples e sem chave**, para evitar vazamento em código client-side.
+Ou seja, o problema é **somente de deploy** — não há bug no código nem no slug.
 
-## O que será criado
+## Passos
 
-### 1. Edge Function pública `public-lead-intake`
-- `POST /functions/v1/public-lead-intake`
-- `verify_jwt = false` (público)
-- CORS liberado para qualquer origem
-- Aceita 2 tipos de payload:
-  - `type: "rfq"` — solicitação de proposta (com produtos/serviços de interesse)
-  - `type: "contact"` — formulário de contato simples
-- Validação Zod (nome, email, telefone, mensagem, empresa de destino)
-- **Anti-spam**:
-  - Rate limit por IP (ex.: 5 req/min) usando tabela `public_lead_rate_limit`
-  - Honeypot field (`website` oculto, se preenchido descarta)
-  - Tamanho máximo de campos
-- Insere em `crm_leads` com `source = 'site'` e `company_id` fixo (multi-tenant resolvido por slug — ver abaixo)
+1. **Forçar o deploy da função `public-lead-intake`** no projeto Supabase do CRM (`iyuypkfksxfsutubcpay`) via tool de deploy de edge functions. Nenhuma alteração de código é necessária.
+2. **Validar com `curl` real** (preflight `OPTIONS` + `POST`) que:
+   - Retorna 200 no preflight com `content-type` listado em `Access-Control-Allow-Headers`.
+   - Retorna 200 no POST com payload válido (`type: "contact"`, `company_slug: "lecsor"`).
+   - Retorna 404 `unknown_or_disabled_destination` para slug inexistente (sanity check).
+3. **Confirmar registro do lead** consultando `public_site_leads` para o `company_id` da Lecsor após o teste.
+4. **Sobre o header `apikey`**: como a função está marcada `verify_jwt = false` em `supabase/config.toml`, o gateway **não exige** `apikey` nem `Authorization` do chamador. O time do site **não precisa** receber chave nenhuma — basta o `fetch` com `Content-Type: application/json` e o body. Vou confirmar isso no teste do passo 2.
 
-### 2. Roteamento por empresa (slug)
-- Como o Arrow é multi-tenant, a função recebe `company_slug` no body
-- Tabela `companies` ganha coluna `public_site_slug` (única)
-- A função resolve `slug → company_id` e descarta se inexistente/desabilitado
-- Coluna `companies.public_intake_enabled boolean default false` para liga/desliga
+## Detalhes técnicos
 
-### 3. Tela de configuração (Super Admin)
-Na aba **Integrações** de `/super-admin/api-docs`, novo card **"Captação pública via site"**:
-- Por empresa: toggle on/off, definição do slug, URL pronta para copiar
-- Botão **"Copiar URL do endpoint"** e **"Copiar exemplo de código"** (snippet `fetch` JS pronto)
-- Estatísticas básicas: leads recebidos hoje / 30d
-
-### 4. Notificação ao receber lead
-- Insere em `notifications` para coordenadores e diretor da empresa-alvo (já temos o padrão)
-- Aparece no Feed corporativo opcionalmente
-
-### 5. Documentação para o time do site
-Atualizar `docs/api/README.md` + nova seção em `/super-admin/api-docs`:
-- Snippet pronto para colar em qualquer projeto Lovable:
-  ```ts
-  await fetch("https://iyuypkfksxfsutubcpay.supabase.co/functions/v1/public-lead-intake", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type: "rfq",
-      company_slug: "google-marine",
-      name, email, phone, message,
-      items: [{ name: "Calibração de sensor", qty: 2 }]
-    })
-  });
+- Tool usada: `supabase--deploy_edge_functions` com `["public-lead-intake"]`.
+- Comando de validação (mesmo que o time externo sugeriu):
+  ```bash
+  curl -i -X POST https://iyuypkfksxfsutubcpay.supabase.co/functions/v1/public-lead-intake \
+    -H "Origin: https://lecsor.lovable.app" \
+    -H "Content-Type: application/json" \
+    -d '{"type":"contact","company_slug":"lecsor","name":"Teste","email":"teste@x.com","message":"ping","website":""}'
   ```
-- Sem API key, sem auth — pode ir no client-side do site sem risco
-
-## Banco de dados (migration)
-
-```sql
-ALTER TABLE companies
-  ADD COLUMN public_site_slug text UNIQUE,
-  ADD COLUMN public_intake_enabled boolean NOT NULL DEFAULT false;
-
-CREATE TABLE public_lead_rate_limit (
-  ip text NOT NULL,
-  window_start timestamptz NOT NULL DEFAULT now(),
-  count int NOT NULL DEFAULT 1,
-  PRIMARY KEY (ip, window_start)
-);
--- limpeza periódica via cron ou TTL na função
-
--- crm_leads: garantir que aceita source='site' (já existe a coluna)
-```
-
-RLS: `public_lead_rate_limit` sem políticas (acessada só via service-role na Edge Function).
+- Se o POST falhar com 500, abro `supabase--edge_function_logs` para `public-lead-intake` e corrijo.
 
 ## Fora de escopo
 
-- A **API key** (`ark_live_...`) e os endpoints `/v1/*` continuam existindo para parceiros B2B externos (ex.: integração com sistema do cliente). Não são removidos.
-- Construção do site em si — é responsabilidade do outro projeto Lovable.
-- Login de cliente final no site para acompanhar pedido (pode entrar em fase 2).
-
-## Resumo do que você entrega ao time do site
-
-1. **URL única**: `https://iyuypkfksxfsutubcpay.supabase.co/functions/v1/public-lead-intake`
-2. **Slug da empresa**: ex. `google-marine` (configurado por você na nova tela)
-3. **Snippet de código** copiado da tela Super Admin
-
-Sem chave, sem segredo, sem proxy adicional. O site faz `fetch` direto e o lead aparece no CRM.
+- Mudanças no site externo (Lovable da Lecsor) — não há nada para alterar lá depois do deploy.
+- Alterar slug, nome de empresa ou flag `public_intake_enabled` (já estão certos).
+- Remover/alterar a API key B2B `ark_live_...` — segue valendo para parceiros, é um canal separado.
