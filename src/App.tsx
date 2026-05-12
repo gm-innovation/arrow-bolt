@@ -299,6 +299,7 @@ const App = () => {
                     <Route path="/commercial/settings" element={<CommercialSettings />} />
                     <Route path="/commercial/products" element={<CommercialProducts />} />
                     <Route path="/commercial/recurrences" element={<CommercialRecurrences />} />
+                    <Route path="/commercial/site-leads" element={<CommercialSiteLeads />} />
                     <Route path="/commercial/measurements" element={<CommercialMeasurements />} />
                     <Route path="/commercial/reports" element={<CommercialReports />} />
                     <Route path="/commercial/knowledge-base" element={<CommercialKnowledgeBase />} />
