@@ -71,3 +71,6 @@ verify_jwt = false
 
 [functions.api-keys-manage]
 verify_jwt = true
+
+[functions.public-lead-intake]
+verify_jwt = false
