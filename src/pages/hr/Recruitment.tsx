@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2 } from "lucide-react";
 import JobOpeningDialog from "@/components/hr/JobOpeningDialog";
 import ApplicationDetailSheet from "@/components/hr/ApplicationDetailSheet";
+import HROnboarding from "@/pages/hr/Onboarding";
 import { toast } from "@/hooks/use-toast";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -87,6 +88,7 @@ const HRRecruitment = () => {
         <TabsList>
           <TabsTrigger value="candidates">Candidatos</TabsTrigger>
           <TabsTrigger value="openings">Vagas</TabsTrigger>
+          <TabsTrigger value="admissions">Admissões</TabsTrigger>
           <TabsTrigger value="link">Link público</TabsTrigger>
         </TabsList>
 
@@ -239,6 +241,10 @@ const HRRecruitment = () => {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="admissions">
+          <HROnboarding />
         </TabsContent>
 
         <TabsContent value="link" className="space-y-4">
