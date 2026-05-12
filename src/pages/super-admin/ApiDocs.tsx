@@ -219,12 +219,24 @@ function IntegrationsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-3">
         <div>
           <h2 className="text-lg font-semibold">API keys</h2>
           <p className="text-sm text-muted-foreground">Gerencie integrações que consomem a API pública.</p>
         </div>
-        <NewKeyDialog onCreated={load} />
+        <div className="flex gap-2 items-center">
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            value={filterCompany}
+            onChange={(e) => setFilterCompany(e.target.value)}
+          >
+            <option value="">Todas as empresas</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <NewKeyDialog companies={companies} onCreated={load} />
+        </div>
       </div>
 
       <Card>
@@ -232,6 +244,7 @@ function IntegrationsTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Empresa</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Prefixo</TableHead>
                 <TableHead>Escopos</TableHead>
@@ -242,11 +255,12 @@ function IntegrationsTab() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : items.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma integração ainda.</TableCell></TableRow>
-              ) : items.map((i) => (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              ) : visible.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma integração ainda.</TableCell></TableRow>
+              ) : visible.map((i) => (
                 <TableRow key={i.id}>
+                  <TableCell className="text-sm">{companyName(i.company_id)}</TableCell>
                   <TableCell>
                     <div className="font-medium">{i.name}</div>
                     {i.description && <div className="text-xs text-muted-foreground">{i.description}</div>}
