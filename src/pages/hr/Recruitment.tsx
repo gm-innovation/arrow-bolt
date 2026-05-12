@@ -243,6 +243,10 @@ const HRRecruitment = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="admissions">
+          <HROnboarding />
+        </TabsContent>
+
         <TabsContent value="link" className="space-y-4">
           <Card>
             <CardHeader>
