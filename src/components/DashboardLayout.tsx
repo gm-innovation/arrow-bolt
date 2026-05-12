@@ -99,6 +99,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Assinaturas", icon: CreditCard, path: "/super-admin/subscriptions" },
     { title: "Configurações", icon: Settings, path: "/super-admin/settings" },
     { title: "Relatórios", icon: FileText, path: "/super-admin/reports" },
+    { title: "API & Integrações", icon: Wrench, path: "/super-admin/api-docs" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
@@ -180,7 +181,6 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
     { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
-    { title: "API & Integrações", icon: Wrench, path: "/manager/api-docs" },
   ];
 
   const comprasMenuItems = [

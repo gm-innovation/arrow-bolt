@@ -26,8 +26,11 @@ const ALL_SCOPES = [
   { id: "sales:read", label: "Ler vendas" },
 ];
 
+interface Company { id: string; name: string }
+
 interface Integration {
   id: string;
+  company_id: string;
   name: string;
   description: string | null;
   key_prefix: string;
@@ -48,8 +51,9 @@ interface LogRow {
   error_message: string | null;
 }
 
-function NewKeyDialog({ onCreated }: { onCreated: () => void }) {
+function NewKeyDialog({ companies, onCreated }: { companies: Company[]; onCreated: () => void }) {
   const [open, setOpen] = useState(false);
+  const [companyId, setCompanyId] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [scopes, setScopes] = useState<string[]>(["leads:write", "opportunities:write", "catalog:read"]);
@@ -57,10 +61,13 @@ function NewKeyDialog({ onCreated }: { onCreated: () => void }) {
   const [loading, setLoading] = useState(false);
 
   const reset = () => {
-    setName(""); setDescription(""); setScopes(["leads:write", "opportunities:write", "catalog:read"]); setGeneratedKey(null);
+    setCompanyId(""); setName(""); setDescription("");
+    setScopes(["leads:write", "opportunities:write", "catalog:read"]);
+    setGeneratedKey(null);
   };
 
   const submit = async () => {
+    if (!companyId) { toast.error("Selecione a empresa."); return; }
     if (!name.trim() || scopes.length === 0) {
       toast.error("Informe um nome e pelo menos um escopo.");
       return;
@@ -68,7 +75,7 @@ function NewKeyDialog({ onCreated }: { onCreated: () => void }) {
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("api-keys-manage", {
       method: "POST",
-      body: { name, description, scopes },
+      body: { company_id: companyId, name, description, scopes },
     });
     setLoading(false);
     if (error || !data?.api_key) {
@@ -94,6 +101,19 @@ function NewKeyDialog({ onCreated }: { onCreated: () => void }) {
 
         {!generatedKey ? (
           <div className="space-y-3">
+            <div>
+              <Label>Empresa</Label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={companyId}
+                onChange={(e) => setCompanyId(e.target.value)}
+              >
+                <option value="">Selecione…</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <Label>Nome</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Site institucional" />
@@ -155,22 +175,28 @@ function NewKeyDialog({ onCreated }: { onCreated: () => void }) {
 
 function IntegrationsTab() {
   const [items, setItems] = useState<Integration[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [filterCompany, setFilterCompany] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [logsFor, setLogsFor] = useState<Integration | null>(null);
   const [logs, setLogs] = useState<LogRow[]>([]);
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("api_integrations")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [{ data: integ, error }, { data: comp }] = await Promise.all([
+      supabase.from("api_integrations").select("*").order("created_at", { ascending: false }),
+      supabase.from("companies").select("id, name").order("name"),
+    ]);
     if (error) toast.error(error.message);
-    setItems(data ?? []);
+    setItems(integ ?? []);
+    setCompanies(comp ?? []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const companyName = (id: string) => companies.find((c) => c.id === id)?.name ?? "—";
+  const visible = filterCompany ? items.filter((i) => i.company_id === filterCompany) : items;
 
   const revoke = async (id: string) => {
     if (!confirm("Revogar esta chave? Não poderá ser usada novamente.")) return;
@@ -193,12 +219,24 @@ function IntegrationsTab() {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center gap-3">
         <div>
           <h2 className="text-lg font-semibold">API keys</h2>
           <p className="text-sm text-muted-foreground">Gerencie integrações que consomem a API pública.</p>
         </div>
-        <NewKeyDialog onCreated={load} />
+        <div className="flex gap-2 items-center">
+          <select
+            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
+            value={filterCompany}
+            onChange={(e) => setFilterCompany(e.target.value)}
+          >
+            <option value="">Todas as empresas</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <NewKeyDialog companies={companies} onCreated={load} />
+        </div>
       </div>
 
       <Card>
@@ -206,6 +244,7 @@ function IntegrationsTab() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Empresa</TableHead>
                 <TableHead>Nome</TableHead>
                 <TableHead>Prefixo</TableHead>
                 <TableHead>Escopos</TableHead>
@@ -216,11 +255,12 @@ function IntegrationsTab() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : items.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhuma integração ainda.</TableCell></TableRow>
-              ) : items.map((i) => (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              ) : visible.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhuma integração ainda.</TableCell></TableRow>
+              ) : visible.map((i) => (
                 <TableRow key={i.id}>
+                  <TableCell className="text-sm">{companyName(i.company_id)}</TableCell>
                   <TableCell>
                     <div className="font-medium">{i.name}</div>
                     {i.description && <div className="text-xs text-muted-foreground">{i.description}</div>}

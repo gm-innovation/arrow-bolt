@@ -12,7 +12,7 @@ Authorization: Bearer ark_live_<sua-chave>
 
 Para obter uma chave:
 
-1. Entre no Arrow como **Diretor** ou **Super Admin**.
+1. Entre no Arrow como **Super Admin**.
 2. Menu lateral → **API & Integrações** → aba **Integrações** → **Nova integração**.
 3. Escolha os escopos necessários (recomendado para um site institucional: `leads:write`, `opportunities:write`, `catalog:read`).
 4. Copie a chave gerada — ela é mostrada **uma única vez**.
@@ -117,7 +117,7 @@ Formato padrão:
 
 ## 9. Especificação OpenAPI
 
-Spec navegável e "Try it out" estão em **/manager/api-docs** dentro do Arrow.
+Spec navegável e "Try it out" estão em **/super-admin/api-docs** dentro do Arrow.
 Spec bruto: `https://arrow.googlemarineinnovation.com.br/api/openapi.yaml`.
 
 ## 10. Suporte
