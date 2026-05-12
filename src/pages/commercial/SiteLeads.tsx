@@ -46,7 +46,7 @@ export default function SiteLeads() {
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) toast.error(error.message);
-    setItems((data ?? []) as Lead[]);
+    setItems((data ?? []) as unknown as Lead[]);
     setLoading(false);
   };
 
