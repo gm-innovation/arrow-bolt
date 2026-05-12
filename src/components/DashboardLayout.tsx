@@ -180,6 +180,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
     { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "API & Integrações", icon: Wrench, path: "/manager/api-docs" },
   ];
 
   const comprasMenuItems = [
