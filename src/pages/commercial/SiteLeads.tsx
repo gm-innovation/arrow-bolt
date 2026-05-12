@@ -9,14 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { Mail, Phone, Building2, Eye, ArrowRight, Check, ChevronsUpDown, Sparkles } from "lucide-react";
+import { Mail, Phone, Building2, Eye, ArrowRight, Check, Sparkles, X, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -273,7 +271,6 @@ function ConvertLeadDialog({
 }) {
   const [clients, setClients] = useState<ClientOption[]>([]);
   const [clientId, setClientId] = useState<string | null>(null);
-  const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [clientSearch, setClientSearch] = useState("");
 
   const [buyers, setBuyers] = useState<BuyerOption[]>([]);
@@ -428,28 +425,39 @@ function ConvertLeadDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Converter em oportunidade</DialogTitle>
+          <DialogDescription>Vincule o lead a um cliente existente para criar a oportunidade.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
             <Label>Cliente *</Label>
-            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between">
-                  {selectedClient?.name ?? "Selecionar cliente..."}
-                  <ChevronsUpDown className="w-4 h-4 opacity-50" />
+            {selectedClient ? (
+              <div className="flex items-center justify-between gap-2 rounded-md border bg-muted/40 px-3 py-2">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium truncate">{selectedClient.name}</span>
+                  {selectedClient.cnpj && <span className="text-xs text-muted-foreground">{selectedClient.cnpj}</span>}
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setClientId(null)}>
+                  <X className="w-4 h-4 mr-1" /> Trocar
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <div className="p-2 border-b">
+              </div>
+            ) : (
+              <div className="rounded-md border">
+                <div className="p-2 border-b flex items-center gap-2">
+                  <Search className="w-4 h-4 text-muted-foreground shrink-0" />
                   <Input
-                    autoFocus
                     placeholder="Buscar por nome ou CNPJ..."
                     value={clientSearch}
                     onChange={(e) => setClientSearch(e.target.value)}
+                    className="border-0 focus-visible:ring-0 shadow-none h-8 px-0"
                   />
+                  {clientSearch && (
+                    <button type="button" onClick={() => setClientSearch("")} className="text-xs text-muted-foreground hover:text-foreground shrink-0">
+                      limpar
+                    </button>
+                  )}
                 </div>
                 {lead.company_name && (
                   <div className="px-2 py-1.5 text-xs border-b bg-muted/40 flex items-center justify-between gap-2">
@@ -465,19 +473,10 @@ function ConvertLeadDialog({
                     </button>
                   </div>
                 )}
-                <div className="max-h-72 overflow-y-auto p-1">
+                <div className="max-h-64 overflow-y-auto p-1">
                   {filteredClients.length === 0 ? (
                     <div className="py-4 px-2 text-sm space-y-2 text-center">
                       <div className="text-muted-foreground">Nenhum cliente com esse nome ou CNPJ.</div>
-                      {clientSearch && (
-                        <button
-                          type="button"
-                          className="text-primary hover:underline"
-                          onClick={() => setClientSearch("")}
-                        >
-                          Limpar busca e ver todos
-                        </button>
-                      )}
                       <Link to="/commercial/clients" target="_blank" className="block text-primary underline">
                         Cadastrar novo cliente →
                       </Link>
@@ -487,9 +486,9 @@ function ConvertLeadDialog({
                       <button
                         key={c.id}
                         type="button"
-                        onClick={() => { setClientId(c.id); setClientPickerOpen(false); }}
+                        onClick={() => setClientId(c.id)}
                         className={cn(
-                          "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent text-left",
+                          "w-full flex items-center gap-2 px-2 py-2 text-sm rounded-sm hover:bg-accent text-left",
                           clientId === c.id && "bg-accent"
                         )}
                       >
@@ -502,17 +501,16 @@ function ConvertLeadDialog({
                     ))
                   )}
                 </div>
-                {totalMatches > 100 && (
+                {totalMatches > filteredClients.length && (
                   <div className="px-2 py-1.5 text-xs text-muted-foreground border-t text-center">
-                    Mostrando 100 de {totalMatches} — refine a busca
+                    Mostrando {filteredClients.length} de {totalMatches} — refine a busca
                   </div>
                 )}
-              </PopoverContent>
-            </Popover>
+              </div>
+            )}
             {!selectedClient && lead.company_name && (
               <p className="text-xs text-muted-foreground">
-                Sugestão do lead: <strong>{lead.company_name}</strong>.{" "}
-                <Link to="/commercial/clients" target="_blank" className="text-primary underline">Cadastrar novo cliente</Link>
+                Não encontrou? <Link to="/commercial/clients" target="_blank" className="text-primary underline">Cadastrar novo cliente</Link>
               </p>
             )}
           </div>
