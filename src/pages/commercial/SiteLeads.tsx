@@ -392,7 +392,7 @@ function ConvertLeadDialog({
         title: title.trim(),
         description,
         opportunity_type: oppType,
-        stage: "qualification",
+        stage: "qualified",
         estimated_value: estimatedValue ? Number(estimatedValue) : null,
         created_by: userId,
       })
