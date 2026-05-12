@@ -1,15 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { Mail, Phone, Building2, Eye } from "lucide-react";
+import { Mail, Phone, Building2, Eye, ArrowRight, Check, ChevronsUpDown, Sparkles } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 interface Lead {
   id: string;
@@ -24,6 +33,8 @@ interface Lead {
   created_at: string;
   ip: string | null;
   user_agent: string | null;
+  opportunity_id: string | null;
+  converted_at: string | null;
 }
 
 const STATUS_LABEL: Record<Lead["status"], string> = {
@@ -33,10 +44,20 @@ const STATUS_LABEL: Record<Lead["status"], string> = {
   discarded: "Descartado",
 };
 
+const OPP_TYPES = [
+  { value: "new_business", label: "Novo negócio" },
+  { value: "recurring", label: "Recorrente" },
+  { value: "renewal", label: "Renovação" },
+  { value: "expansion", label: "Expansão" },
+];
+
 export default function SiteLeads() {
+  const { profile } = useAuth();
   const [items, setItems] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Lead | null>(null);
+  const [hidePending, setHidePending] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -63,19 +84,40 @@ export default function SiteLeads() {
     setSelected((s) => (s && s.id === id ? { ...s, status } : s));
   };
 
+  const visible = useMemo(() => {
+    if (!hidePending) return items;
+    return items.filter((l) => l.status !== "converted" && l.status !== "discarded");
+  }, [items, hidePending]);
+
+  const handleConverted = (leadId: string, opportunityId: string) => {
+    setItems((prev) => prev.map((l) => l.id === leadId
+      ? { ...l, opportunity_id: opportunityId, converted_at: new Date().toISOString(), status: "converted" }
+      : l));
+    setSelected((s) => s && s.id === leadId
+      ? { ...s, opportunity_id: opportunityId, converted_at: new Date().toISOString(), status: "converted" }
+      : s);
+    setConvertOpen(false);
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Leads do Site</h1>
-        <p className="text-muted-foreground">
-          Solicitações de proposta e contatos recebidos pelo site institucional.
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold">Leads do Site</h1>
+          <p className="text-muted-foreground">
+            Solicitações de proposta e contatos recebidos pelo site institucional.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch id="hide-pending" checked={hidePending} onCheckedChange={setHidePending} />
+          <Label htmlFor="hide-pending" className="cursor-pointer text-sm">Mostrar só pendentes</Label>
+        </div>
       </div>
 
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-lg">Recebidos</CardTitle>
-          <CardDescription>Últimos 500 registros.</CardDescription>
+          <CardDescription>{visible.length} {visible.length === 1 ? "lead" : "leads"}.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -93,9 +135,9 @@ export default function SiteLeads() {
             <TableBody>
               {loading ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
-              ) : items.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum lead recebido ainda.</TableCell></TableRow>
-              ) : items.map((l) => (
+              ) : visible.length === 0 ? (
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum lead.</TableCell></TableRow>
+              ) : visible.map((l) => (
                 <TableRow key={l.id} className={l.status === "new" ? "font-medium" : ""}>
                   <TableCell className="text-xs">{format(new Date(l.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}</TableCell>
                   <TableCell>
@@ -110,7 +152,15 @@ export default function SiteLeads() {
                   </TableCell>
                   <TableCell className="text-sm">{l.company_name ?? "—"}</TableCell>
                   <TableCell>
-                    <Badge variant={l.status === "new" ? "default" : "outline"}>{STATUS_LABEL[l.status]}</Badge>
+                    {l.opportunity_id ? (
+                      <Link to="/commercial/opportunities" className="inline-flex">
+                        <Badge variant="outline" className="border-primary text-primary hover:bg-primary/10">
+                          Convertido <ArrowRight className="w-3 h-3 ml-1" />
+                        </Badge>
+                      </Link>
+                    ) : (
+                      <Badge variant={l.status === "new" ? "default" : "outline"}>{STATUS_LABEL[l.status]}</Badge>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="outline" size="sm" onClick={() => setSelected(l)}>
@@ -155,9 +205,28 @@ export default function SiteLeads() {
                   </div>
                 </div>
               )}
+
+              {selected.opportunity_id ? (
+                <div className="p-3 border border-primary/30 bg-primary/5 rounded flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">Lead convertido em oportunidade</div>
+                    <div className="text-xs text-muted-foreground">
+                      {selected.converted_at && `em ${format(new Date(selected.converted_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}`}
+                    </div>
+                  </div>
+                  <Button asChild size="sm" variant="outline">
+                    <Link to="/commercial/opportunities">Ver oportunidade <ArrowRight className="w-4 h-4 ml-1" /></Link>
+                  </Button>
+                </div>
+              ) : (
+                <Button className="w-full" onClick={() => setConvertOpen(true)}>
+                  <Sparkles className="w-4 h-4 mr-2" /> Converter em oportunidade
+                </Button>
+              )}
+
               <div className="flex items-center gap-2 pt-2 border-t">
                 <span className="text-xs text-muted-foreground">Status:</span>
-                <Select value={selected.status} onValueChange={(v) => setStatus(selected.id, v as Lead["status"])}>
+                <Select value={selected.status} onValueChange={(v) => setStatus(selected.id, v as Lead["status"])} disabled={!!selected.opportunity_id}>
                   <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {Object.entries(STATUS_LABEL).map(([v, l]) => (
@@ -174,6 +243,266 @@ export default function SiteLeads() {
           )}
         </DialogContent>
       </Dialog>
+
+      {selected && profile?.company_id && (
+        <ConvertLeadDialog
+          open={convertOpen}
+          onOpenChange={setConvertOpen}
+          lead={selected}
+          companyId={profile.company_id}
+          userId={profile.id}
+          onConverted={handleConverted}
+        />
+      )}
     </div>
+  );
+}
+
+interface ClientOption { id: string; name: string }
+interface BuyerOption { id: string; name: string; email: string | null }
+
+function ConvertLeadDialog({
+  open, onOpenChange, lead, companyId, userId, onConverted,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  lead: Lead;
+  companyId: string;
+  userId: string;
+  onConverted: (leadId: string, oppId: string) => void;
+}) {
+  const [clients, setClients] = useState<ClientOption[]>([]);
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [clientSearch, setClientSearch] = useState("");
+
+  const [buyers, setBuyers] = useState<BuyerOption[]>([]);
+  const [buyerId, setBuyerId] = useState<string | null>(null);
+
+  const [title, setTitle] = useState("");
+  const [oppType, setOppType] = useState("new_business");
+  const [estimatedValue, setEstimatedValue] = useState("");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Reset form when opening
+  useEffect(() => {
+    if (!open) return;
+    const baseTitle = lead.type === "rfq"
+      ? `RFQ pelo site — ${lead.name}`
+      : `Contato pelo site — ${lead.name}`;
+    setTitle(baseTitle);
+    setOppType("new_business");
+    setEstimatedValue("");
+    const itemsTxt = lead.items?.length
+      ? "\n\nItens de interesse:\n" + lead.items.map((it) => `- ${it.name}${it.qty ? ` (qtd ${it.qty})` : ""}${it.notes ? ` — ${it.notes}` : ""}`).join("\n")
+      : "";
+    setDescription(`Lead recebido pelo site (${lead.email}${lead.phone ? `, ${lead.phone}` : ""}).${lead.message ? `\n\n${lead.message}` : ""}${itemsTxt}`);
+    setClientId(null);
+    setBuyerId(null);
+    setClientSearch(lead.company_name ?? "");
+  }, [open, lead]);
+
+  // Load clients (lightweight)
+  useEffect(() => {
+    if (!open) return;
+    (async () => {
+      const { data } = await supabase
+        .from("clients")
+        .select("id, name")
+        .eq("company_id", companyId)
+        .order("name")
+        .limit(500);
+      setClients((data ?? []) as ClientOption[]);
+    })();
+  }, [open, companyId]);
+
+  // Load buyers when client selected
+  useEffect(() => {
+    setBuyerId(null);
+    if (!clientId) { setBuyers([]); return; }
+    (async () => {
+      const { data } = await supabase
+        .from("crm_buyers")
+        .select("id, name, email")
+        .eq("client_id", clientId)
+        .eq("is_active", true)
+        .order("is_primary", { ascending: false });
+      setBuyers((data ?? []) as BuyerOption[]);
+    })();
+  }, [clientId]);
+
+  const filteredClients = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return clients.slice(0, 100);
+    return clients.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 100);
+  }, [clients, clientSearch]);
+
+  const selectedClient = clients.find((c) => c.id === clientId);
+
+  const createBuyerFromLead = async () => {
+    if (!clientId) { toast.error("Selecione o cliente primeiro"); return; }
+    const { data, error } = await supabase
+      .from("crm_buyers")
+      .insert({
+        company_id: companyId,
+        client_id: clientId,
+        name: lead.name,
+        email: lead.email,
+        phone: lead.phone,
+        is_primary: false,
+        is_active: true,
+      })
+      .select("id, name, email")
+      .single();
+    if (error) { toast.error(error.message); return; }
+    setBuyers((prev) => [data as BuyerOption, ...prev]);
+    setBuyerId(data!.id);
+    toast.success("Contato criado");
+  };
+
+  const submit = async () => {
+    if (!clientId) { toast.error("Selecione um cliente"); return; }
+    if (!title.trim()) { toast.error("Informe um título"); return; }
+    setSaving(true);
+    const { data: opp, error: oppErr } = await supabase
+      .from("crm_opportunities")
+      .insert({
+        company_id: companyId,
+        client_id: clientId,
+        buyer_id: buyerId,
+        assigned_to: userId,
+        title: title.trim(),
+        description,
+        opportunity_type: oppType,
+        stage: "qualification",
+        estimated_value: estimatedValue ? Number(estimatedValue) : null,
+        created_by: userId,
+      })
+      .select("id")
+      .single();
+
+    if (oppErr || !opp) {
+      setSaving(false);
+      toast.error(oppErr?.message ?? "Falha ao criar oportunidade");
+      return;
+    }
+
+    const { error: updErr } = await supabase
+      .from("public_site_leads")
+      .update({
+        opportunity_id: opp.id,
+        converted_at: new Date().toISOString(),
+        status: "converted",
+      })
+      .eq("id", lead.id);
+
+    setSaving(false);
+    if (updErr) {
+      toast.error("Oportunidade criada, mas falhou ao vincular ao lead: " + updErr.message);
+      return;
+    }
+    toast.success("Lead convertido em oportunidade");
+    onConverted(lead.id, opp.id);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Converter em oportunidade</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Cliente *</Label>
+            <Popover open={clientPickerOpen} onOpenChange={setClientPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-full justify-between">
+                  {selectedClient?.name ?? "Selecionar cliente..."}
+                  <ChevronsUpDown className="w-4 h-4 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command shouldFilter={false}>
+                  <CommandInput placeholder="Buscar cliente..." value={clientSearch} onValueChange={setClientSearch} />
+                  <CommandList>
+                    <CommandEmpty>
+                      Nenhum cliente.
+                      <Link to="/commercial/clients" target="_blank" className="block mt-2 text-primary underline">
+                        Cadastrar novo cliente →
+                      </Link>
+                    </CommandEmpty>
+                    <CommandGroup>
+                      {filteredClients.map((c) => (
+                        <CommandItem key={c.id} value={c.id} onSelect={() => { setClientId(c.id); setClientPickerOpen(false); }}>
+                          <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
+                          {c.name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+            {!selectedClient && lead.company_name && (
+              <p className="text-xs text-muted-foreground">
+                Sugestão do lead: <strong>{lead.company_name}</strong>.{" "}
+                <Link to="/commercial/clients" target="_blank" className="text-primary underline">Cadastrar novo cliente</Link>
+              </p>
+            )}
+          </div>
+
+          {clientId && (
+            <div className="space-y-2">
+              <Label>Contato (opcional)</Label>
+              <div className="flex gap-2">
+                <Select value={buyerId ?? "none"} onValueChange={(v) => setBuyerId(v === "none" ? null : v)}>
+                  <SelectTrigger className="flex-1"><SelectValue placeholder="Sem contato" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">— Nenhum —</SelectItem>
+                    {buyers.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}{b.email ? ` (${b.email})` : ""}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button type="button" variant="outline" size="sm" onClick={createBuyerFromLead}>+ do lead</Button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Título *</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={oppType} onValueChange={setOppType}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {OPP_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Valor estimado (R$)</Label>
+              <Input type="number" step="0.01" value={estimatedValue} onChange={(e) => setEstimatedValue(e.target.value)} placeholder="0,00" />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Descrição</Label>
+            <Textarea rows={5} value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Cancelar</Button>
+          <Button onClick={submit} disabled={saving || !clientId}>
+            {saving ? "Convertendo..." : "Criar oportunidade"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
