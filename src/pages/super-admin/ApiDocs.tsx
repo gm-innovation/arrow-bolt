@@ -331,6 +331,165 @@ function IntegrationsTab() {
   );
 }
 
+interface CompanyIntake {
+  id: string;
+  name: string;
+  public_site_slug: string | null;
+  public_intake_enabled: boolean;
+}
+
+const INTAKE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-lead-intake`;
+
+function snippetFor(slug: string) {
+  return `// Cole no seu site (Lovable, Next.js, HTML puro, etc.)
+async function enviarLead(form) {
+  const res = await fetch("${INTAKE_URL}", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      type: "rfq",                // ou "contact"
+      company_slug: "${slug || "SEU-SLUG"}",
+      name: form.name,
+      email: form.email,
+      phone: form.phone,
+      company_name: form.empresa,
+      message: form.mensagem,
+      items: [{ name: "Produto X", qty: 2 }],
+      website: ""                 // honeypot — deixe vazio
+    })
+  });
+  return res.json();
+}`;
+}
+
+function PublicIntakeTab() {
+  const [rows, setRows] = useState<CompanyIntake[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<Record<string, string>>({});
+
+  const load = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("companies")
+      .select("id, name, public_site_slug, public_intake_enabled")
+      .order("name");
+    if (error) toast.error(error.message);
+    setRows((data ?? []) as CompanyIntake[]);
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const slugify = (v: string) =>
+    v.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9-]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
+
+  const saveSlug = async (id: string) => {
+    const slug = slugify(editing[id] ?? "");
+    if (!slug) { toast.error("Slug inválido"); return; }
+    const { error } = await supabase
+      .from("companies")
+      .update({ public_site_slug: slug })
+      .eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Slug salvo");
+    load();
+  };
+
+  const toggle = async (id: string, enabled: boolean) => {
+    const { error } = await supabase
+      .from("companies")
+      .update({ public_intake_enabled: enabled })
+      .eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    setRows((p) => p.map((r) => r.id === id ? { ...r, public_intake_enabled: enabled } : r));
+  };
+
+  const copy = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado!`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5" />Captação pública via site</CardTitle>
+          <CardDescription>
+            Endpoint sem autenticação que recebe leads e contatos do site institucional dos clientes.
+            Cada empresa tem um <code>slug</code> único — entregue ao time do site somente o slug e a URL abaixo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Label className="w-32">URL do endpoint</Label>
+            <Input readOnly value={INTAKE_URL} className="font-mono text-xs" />
+            <Button variant="outline" size="icon" onClick={() => copy(INTAKE_URL, "URL")}>
+              <Copy className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Empresa</TableHead>
+                <TableHead>Slug público</TableHead>
+                <TableHead>Habilitado</TableHead>
+                <TableHead className="text-right">Snippet</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Carregando...</TableCell></TableRow>
+              ) : rows.map((r) => {
+                const slugVal = editing[r.id] ?? r.public_site_slug ?? "";
+                const dirty = slugVal !== (r.public_site_slug ?? "");
+                return (
+                  <TableRow key={r.id}>
+                    <TableCell>{r.name}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          value={slugVal}
+                          onChange={(e) => setEditing((p) => ({ ...p, [r.id]: e.target.value }))}
+                          placeholder="ex.: minha-empresa"
+                          className="font-mono text-xs max-w-xs"
+                        />
+                        {dirty && <Button size="sm" onClick={() => saveSlug(r.id)}>Salvar</Button>}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={r.public_intake_enabled}
+                        onCheckedChange={(v) => toggle(r.id, v)}
+                        disabled={!r.public_site_slug}
+                      />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={!r.public_site_slug}
+                        onClick={() => copy(snippetFor(r.public_site_slug!), "Snippet")}
+                      >
+                        <Copy className="w-4 h-4 mr-1" /> Copiar código
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function ApiDocs() {
   const { profile } = useAuth();
   const [tab, setTab] = useState("docs");
@@ -345,7 +504,8 @@ export default function ApiDocs() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="docs">Documentação</TabsTrigger>
-          <TabsTrigger value="integrations">Integrações</TabsTrigger>
+          <TabsTrigger value="integrations">Integrações (B2B)</TabsTrigger>
+          <TabsTrigger value="public-intake">Captação pelo site</TabsTrigger>
         </TabsList>
         <TabsContent value="docs" className="mt-4">
           <Card>
@@ -362,6 +522,9 @@ export default function ApiDocs() {
         </TabsContent>
         <TabsContent value="integrations" className="mt-4">
           <IntegrationsTab />
+        </TabsContent>
+        <TabsContent value="public-intake" className="mt-4">
+          <PublicIntakeTab />
         </TabsContent>
       </Tabs>
     </div>
