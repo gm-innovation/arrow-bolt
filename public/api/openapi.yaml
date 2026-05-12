@@ -1,0 +1,506 @@
+openapi: 3.1.0
+info:
+  title: Arrow API
+  version: "1.0.0"
+  description: |
+    API pública e interna do sistema Arrow (CRM Comercial, Marketing e Operações).
+
+    ## Autenticação
+    - **API Key (público)**: header `Authorization: Bearer ark_live_...` — para parceiros externos consumirem `/v1/*`.
+    - **JWT (interno)**: header `Authorization: Bearer <jwt-do-supabase>` — para chamar Edge Functions internas e o REST do Supabase.
+
+    ## Rate limit
+    120 requisições por minuto por API key. Requisições além disso retornam `429`.
+
+    ## Idempotência
+    Endpoints de escrita aceitam o header `Idempotency-Key`. Repetir a mesma chave dentro de 24h retorna a resposta original.
+  contact:
+    name: Suporte Arrow
+servers:
+  - url: https://iyuypkfksxfsutubcpay.supabase.co/functions/v1/public-api
+    description: API pública (parceiros e site)
+  - url: https://iyuypkfksxfsutubcpay.supabase.co/functions/v1
+    description: Edge Functions internas
+  - url: https://iyuypkfksxfsutubcpay.supabase.co/rest/v1
+    description: REST PostgREST (autogerado)
+security:
+  - ApiKeyAuth: []
+tags:
+  - name: Leads
+    description: Captura de leads e solicitações de proposta (RFQ).
+  - name: Catálogo
+    description: Produtos e serviços disponíveis.
+  - name: Edge Functions
+    description: Funções internas (requerem JWT do app).
+  - name: REST
+    description: Acesso direto às tabelas via PostgREST.
+paths:
+  /v1/leads/rfq:
+    post:
+      tags: [Leads]
+      summary: Criar solicitação de proposta (RFQ)
+      description: Cria/atualiza cliente, contato (buyer) e oportunidade no CRM. Use header `Idempotency-Key` para garantir não duplicação.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RfqRequest' }
+            example:
+              company:
+                name: Marítima do Atlântico Ltda
+                cnpj: "12.345.678/0001-90"
+                email: contato@maritima.com.br
+                phone: "+5521999990000"
+                segment: Navegação
+              contact:
+                name: João Souza
+                email: joao@maritima.com.br
+                phone: "+5521988880000"
+                role: Gerente de Compras
+              request:
+                type: quote
+                title: Manutenção anual da frota
+                message: Precisamos de proposta para 3 embarcações.
+                products:
+                  - id: 11111111-1111-1111-1111-111111111111
+                    quantity: 3
+              source: site-institucional
+      responses:
+        "201":
+          description: Lead criado.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RfqResponse' }
+        "400": { $ref: '#/components/responses/BadRequest' }
+        "401": { $ref: '#/components/responses/Unauthorized' }
+        "403": { $ref: '#/components/responses/Forbidden' }
+        "429": { $ref: '#/components/responses/RateLimited' }
+
+  /v1/leads/contact:
+    post:
+      tags: [Leads]
+      summary: Captura simples de contato (newsletter / fale conosco)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ContactRequest' }
+      responses:
+        "201":
+          description: Contato registrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      lead_id: { type: string, format: uuid }
+                      created_at: { type: string, format: date-time }
+                  request_id: { type: string }
+
+  /v1/leads/{id}:
+    get:
+      tags: [Leads]
+      summary: Consultar status de um lead
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Detalhes do lead.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Lead' }
+                  request_id: { type: string }
+        "404": { $ref: '#/components/responses/NotFound' }
+
+  /v1/catalog/products:
+    get:
+      tags: [Catálogo]
+      summary: Listar produtos do catálogo
+      parameters:
+        - in: query
+          name: page
+          schema: { type: integer, default: 1, minimum: 1 }
+        - in: query
+          name: page_size
+          schema: { type: integer, default: 50, minimum: 1, maximum: 100 }
+        - in: query
+          name: category
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string, enum: [service, product] }
+      responses:
+        "200":
+          description: Lista paginada.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+                  pagination: { $ref: '#/components/schemas/Pagination' }
+                  request_id: { type: string }
+
+  /v1/catalog/products/{id}:
+    get:
+      tags: [Catálogo]
+      summary: Detalhes de um produto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Produto encontrado.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Product' }
+                  request_id: { type: string }
+
+  /v1/catalog/services:
+    get:
+      tags: [Catálogo]
+      summary: Listar serviços recorrentes
+      responses:
+        "200":
+          description: Lista de serviços.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Product' }
+                  request_id: { type: string }
+
+  # ============= Edge Functions internas =============
+  /omie-proxy:
+    post:
+      tags: [Edge Functions]
+      summary: Proxy autenticado para a API do Omie ERP
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                endpoint: { type: string, example: "/v1/geral/clientes/" }
+                payload: { type: object }
+      responses:
+        "200": { description: Resposta da API do Omie. }
+
+  /ai-assistant:
+    post:
+      tags: [Edge Functions]
+      summary: Assistente IA (Gemini) para sugestões e extração
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                messages:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      role: { type: string, enum: [user, assistant, system] }
+                      content: { type: string }
+      responses:
+        "200": { description: Resposta gerada pelo modelo. }
+
+  /search-reports:
+    post:
+      tags: [Edge Functions]
+      summary: Busca semântica em relatórios técnicos
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query: { type: string }
+                limit: { type: integer, default: 10 }
+      responses:
+        "200": { description: Lista de relatórios relevantes. }
+
+  /create-user:
+    post:
+      tags: [Edge Functions]
+      summary: Criar usuário (admin/RH)
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Usuário criado. }
+
+  /api-keys-manage:
+    post:
+      tags: [Edge Functions]
+      summary: Criar nova API key (director/super_admin)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, scopes]
+              properties:
+                name: { type: string }
+                description: { type: string }
+                scopes:
+                  type: array
+                  items: { type: string, enum: [leads:write, opportunities:write, catalog:read, crm:read, sales:read] }
+      responses:
+        "201":
+          description: Chave criada (mostrada apenas uma vez).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  api_key: { type: string, example: "ark_live_..." }
+                  integration:
+                    type: object
+                    properties:
+                      id: { type: string, format: uuid }
+                      name: { type: string }
+                      key_prefix: { type: string }
+                      scopes: { type: array, items: { type: string } }
+
+  # ============= REST PostgREST (curado) =============
+  /clients:
+    get:
+      tags: [REST]
+      summary: Listar clientes (PostgREST)
+      description: |
+        Endpoint PostgREST. Use parâmetros do PostgREST para filtros, ex.: `?select=id,name&commercial_status=eq.active&order=name.asc&limit=50`.
+        Requer JWT do app.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: query
+          name: select
+          schema: { type: string, example: "id,name,cnpj" }
+        - in: query
+          name: limit
+          schema: { type: integer }
+        - in: query
+          name: order
+          schema: { type: string }
+      responses:
+        "200":
+          description: Lista de clientes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Client' }
+
+  /crm_opportunities:
+    get:
+      tags: [REST]
+      summary: Listar oportunidades (PostgREST)
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Lista de oportunidades.
+
+  /crm_products:
+    get:
+      tags: [REST]
+      summary: Listar produtos do CRM (PostgREST)
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: Lista de produtos.
+
+  /vessels:
+    get:
+      tags: [REST]
+      summary: Listar embarcações (PostgREST)
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Lista de embarcações. }
+
+  /service_orders:
+    get:
+      tags: [REST]
+      summary: Listar ordens de serviço (PostgREST)
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Lista de OS. }
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: ark_live_*
+      description: API key gerada na tela de Integrações. Use `Authorization: Bearer ark_live_...`.
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT emitido pelo Supabase Auth do próprio app.
+
+  parameters:
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: false
+      schema: { type: string, maxLength: 100 }
+      description: Identificador único da requisição (UUID recomendado). Repetir a mesma chave em 24h retorna a resposta original.
+
+  responses:
+    BadRequest:
+      description: Corpo inválido.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Unauthorized:
+      description: API key ausente ou inválida.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    Forbidden:
+      description: Escopo insuficiente.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    NotFound:
+      description: Recurso não encontrado.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+    RateLimited:
+      description: Limite de 120 req/min excedido.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, nullable: true }
+        request_id: { type: string }
+
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        page_size: { type: integer }
+        total: { type: integer }
+
+    RfqRequest:
+      type: object
+      required: [company, contact, request]
+      properties:
+        company:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string }
+            cnpj: { type: string }
+            email: { type: string, format: email }
+            phone: { type: string }
+            segment: { type: string }
+        contact:
+          type: object
+          required: [name]
+          properties:
+            name: { type: string }
+            email: { type: string, format: email }
+            phone: { type: string }
+            role: { type: string }
+        request:
+          type: object
+          properties:
+            type: { type: string, enum: [quote, service, product, info], default: quote }
+            title: { type: string }
+            message: { type: string }
+            estimated_value: { type: number }
+            products:
+              type: array
+              items:
+                type: object
+                properties:
+                  id: { type: string, format: uuid }
+                  quantity: { type: integer, default: 1 }
+        source: { type: string, description: "Identificador da origem (ex.: site-institucional)" }
+
+    RfqResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            lead_id: { type: string, format: uuid }
+            client_id: { type: string, format: uuid }
+            buyer_id: { type: string, format: uuid }
+            stage: { type: string }
+            created_at: { type: string, format: date-time }
+        request_id: { type: string }
+
+    ContactRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        email: { type: string, format: email }
+        phone: { type: string }
+        company_name: { type: string }
+        message: { type: string }
+        source: { type: string }
+
+    Lead:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        stage: { type: string }
+        priority: { type: string }
+        estimated_value: { type: number, nullable: true }
+        client_id: { type: string, format: uuid }
+        buyer_id: { type: string, format: uuid, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+
+    Product:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        category: { type: string, nullable: true }
+        type: { type: string, enum: [service, product] }
+        is_recurring: { type: boolean }
+        reference_value: { type: number, nullable: true }
+        description: { type: string, nullable: true }
+        lead_time_days: { type: integer, nullable: true }
+
+    Client:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        company_id: { type: string, format: uuid }
+        name: { type: string }
+        cnpj: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        commercial_status: { type: string }
+        segment: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
