@@ -116,7 +116,7 @@ const HRRecruitment = () => {
               <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as vagas</SelectItem>
-                <SelectItem value="">Espontâneas</SelectItem>
+                <SelectItem value="spontaneous">Espontâneas</SelectItem>
                 {openings.map((o: any) => (
                   <SelectItem key={o.id} value={o.id}>{o.title}</SelectItem>
                 ))}
