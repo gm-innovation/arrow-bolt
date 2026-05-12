@@ -56,7 +56,7 @@ const ManagerServiceOrders = lazy(() => import("./pages/manager/ServiceOrders"))
 const ManagerReports = lazy(() => import("./pages/manager/Reports"));
 const ManagerProfile = lazy(() => import("./pages/manager/Profile"));
 const ManagerSettings = lazy(() => import("./pages/manager/Settings"));
-const ManagerApiDocs = null as never;
+const SuperAdminApiDocsAlias = null;
 const SuperAdminApiDocs = lazy(() => import("./pages/super-admin/ApiDocs"));
 
 const TechDashboard = lazy(() => import("./pages/tech/Dashboard"));
