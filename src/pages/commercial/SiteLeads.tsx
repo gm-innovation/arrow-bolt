@@ -300,7 +300,7 @@ function ConvertLeadDialog({
     setDescription(`Lead recebido pelo site (${lead.email}${lead.phone ? `, ${lead.phone}` : ""}).${lead.message ? `\n\n${lead.message}` : ""}${itemsTxt}`);
     setClientId(null);
     setBuyerId(null);
-    setClientSearch(lead.company_name ?? "");
+    setClientSearch("");
   }, [open, lead]);
 
   // Load clients (lightweight)
@@ -309,10 +309,10 @@ function ConvertLeadDialog({
     (async () => {
       const { data } = await supabase
         .from("clients")
-        .select("id, name")
+        .select("id, name, cnpj")
         .eq("company_id", companyId)
         .order("name")
-        .limit(500);
+        .limit(2000);
       setClients((data ?? []) as ClientOption[]);
     })();
   }, [open, companyId]);
@@ -332,11 +332,31 @@ function ConvertLeadDialog({
     })();
   }, [clientId]);
 
+  const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const onlyDigits = (s: string) => s.replace(/\D/g, "");
+
   const filteredClients = useMemo(() => {
-    const q = clientSearch.trim().toLowerCase();
+    const q = normalize(clientSearch.trim());
     if (!q) return clients.slice(0, 100);
-    return clients.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 100);
+    const qDigits = onlyDigits(clientSearch);
+    return clients.filter((c) => {
+      if (normalize(c.name).includes(q)) return true;
+      if (qDigits && c.cnpj && onlyDigits(c.cnpj).includes(qDigits)) return true;
+      return false;
+    }).slice(0, 100);
   }, [clients, clientSearch]);
+
+  const totalMatches = useMemo(() => {
+    const q = normalize(clientSearch.trim());
+    if (!q) return clients.length;
+    const qDigits = onlyDigits(clientSearch);
+    return clients.filter((c) => {
+      if (normalize(c.name).includes(q)) return true;
+      if (qDigits && c.cnpj && onlyDigits(c.cnpj).includes(qDigits)) return true;
+      return false;
+    }).length;
+  }, [clients, clientSearch]);
+
 
   const selectedClient = clients.find((c) => c.id === clientId);
 
