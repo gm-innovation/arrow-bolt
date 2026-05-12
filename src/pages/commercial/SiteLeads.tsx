@@ -258,7 +258,7 @@ export default function SiteLeads() {
   );
 }
 
-interface ClientOption { id: string; name: string }
+interface ClientOption { id: string; name: string; cnpj: string | null }
 interface BuyerOption { id: string; name: string; email: string | null }
 
 function ConvertLeadDialog({
