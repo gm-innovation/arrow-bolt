@@ -153,7 +153,7 @@ const PublicCareers = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="h-full overflow-y-auto bg-background flex items-center justify-center p-4">
         <Skeleton className="h-64 w-full max-w-2xl" />
       </div>
     );
@@ -161,7 +161,7 @@ const PublicCareers = () => {
 
   if (!companyId) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="h-full overflow-y-auto bg-background flex items-center justify-center p-4">
         <Card className="max-w-md text-center">
           <CardContent className="p-8">
             <h2 className="text-lg font-semibold mb-2">Página indisponível</h2>
@@ -176,7 +176,7 @@ const PublicCareers = () => {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="h-full overflow-y-auto bg-background flex items-center justify-center p-4">
         <Card className="max-w-md text-center">
           <CardContent className="p-8">
             <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
