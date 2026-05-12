@@ -14,10 +14,11 @@ import { Building2, MessageSquare, Bot } from "lucide-react";
 interface EditCompanyDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  company: Company;
+  company: Company | null;
 }
 
 export const EditCompanyDialog = ({ open, onOpenChange, company }: EditCompanyDialogProps) => {
+  if (!company) return null;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
