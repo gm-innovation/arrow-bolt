@@ -1,23 +1,19 @@
-## Problema
+Vou corrigir o seletor de cliente dentro do modal de conversão com uma abordagem mais robusta:
 
-No diálogo "Converter em oportunidade", o seletor de cliente:
-1. Não rola (lista travada nos primeiros itens visíveis)
-2. Clicar em uma empresa não a seleciona
+1. **Trocar o Popover por uma lista embutida no próprio modal**
+   - Evita conflito de camadas/foco entre `Dialog` e `Popover`, que é a causa provável de clique e rolagem não funcionarem.
+   - A busca fica sempre visível abaixo do campo de cliente.
 
-Causa: o `cmdk` (Command/CommandItem) dentro de um `Dialog` Radix tem problemas conhecidos — o `onSelect` não dispara ao clicar com o mouse (o Dialog intercepta foco/pointer), e a rolagem do `CommandList` também é prejudicada nesse contexto.
+2. **Garantir rolagem real da lista**
+   - Usar um container com altura máxima fixa e `overflow-y-auto` dentro do `DialogContent`.
+   - Manter os resultados como botões nativos, sem `Command`/Popover.
 
-## Solução
+3. **Garantir seleção imediata**
+   - Ao clicar em uma empresa, atualizar `clientId`, mostrar o nome selecionado e liberar o botão “Criar oportunidade”.
+   - Exibir estado selecionado com check visual.
 
-Substituir o `Command` + `CommandItem` dentro do `Popover` por uma lista simples controlada manualmente, mantendo o mesmo visual e comportamento já desenhado:
+4. **Limpeza técnica pequena**
+   - Remover imports/estado não utilizados do Popover/Command.
+   - Adicionar descrição acessível ao modal para eliminar o warning de `DialogContent` sem descrição.
 
-- Manter o `Popover` aberto pelo mesmo botão "Selecionar cliente...".
-- Dentro do `PopoverContent`:
-  - `Input` próprio para "Buscar por nome ou CNPJ..." (controlado por `clientSearch`).
-  - Bloco "Sugestão do lead" inalterado.
-  - Lista rolável: `<div className="max-h-72 overflow-y-auto">` com cada item como `<button type="button" onClick={...}>` que chama `setClientId(c.id)` e fecha o popover.
-  - Estado vazio quando `filteredClients.length === 0` (mesma mensagem + "Limpar busca" + link "Cadastrar novo cliente").
-  - Rodapé "Mostrando 100 de N" quando aplicável.
-- Manter `filteredClients` e `totalMatches` como estão.
-- Remover imports não utilizados (`Command`, `CommandItem`, etc.) caso fiquem órfãos.
-
-Arquivo afetado: `src/pages/commercial/SiteLeads.tsx` (apenas o trecho do seletor de cliente, linhas ~438-499). Sem mudanças em backend, schema ou outras telas.
+**Arquivos previstos:** `src/pages/commercial/SiteLeads.tsx`.
