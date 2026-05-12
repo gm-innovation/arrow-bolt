@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2 } from "lucide-react";
 import JobOpeningDialog from "@/components/hr/JobOpeningDialog";
 import ApplicationDetailSheet from "@/components/hr/ApplicationDetailSheet";
+import HROnboarding from "@/pages/hr/Onboarding";
 import { toast } from "@/hooks/use-toast";
 
 const STATUS_LABEL: Record<string, string> = {
