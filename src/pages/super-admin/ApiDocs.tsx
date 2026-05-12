@@ -102,6 +102,19 @@ function NewKeyDialog({ companies, onCreated }: { companies: Company[]; onCreate
         {!generatedKey ? (
           <div className="space-y-3">
             <div>
+              <Label>Empresa</Label>
+              <select
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                value={companyId}
+                onChange={(e) => setCompanyId(e.target.value)}
+              >
+                <option value="">Selecione…</option>
+                {companies.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
               <Label>Nome</Label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Site institucional" />
             </div>
@@ -162,22 +175,28 @@ function NewKeyDialog({ companies, onCreated }: { companies: Company[]; onCreate
 
 function IntegrationsTab() {
   const [items, setItems] = useState<Integration[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [filterCompany, setFilterCompany] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [logsFor, setLogsFor] = useState<Integration | null>(null);
   const [logs, setLogs] = useState<LogRow[]>([]);
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("api_integrations")
-      .select("*")
-      .order("created_at", { ascending: false });
+    const [{ data: integ, error }, { data: comp }] = await Promise.all([
+      supabase.from("api_integrations").select("*").order("created_at", { ascending: false }),
+      supabase.from("companies").select("id, name").order("name"),
+    ]);
     if (error) toast.error(error.message);
-    setItems(data ?? []);
+    setItems(integ ?? []);
+    setCompanies(comp ?? []);
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
+  const companyName = (id: string) => companies.find((c) => c.id === id)?.name ?? "—";
+  const visible = filterCompany ? items.filter((i) => i.company_id === filterCompany) : items;
 
   const revoke = async (id: string) => {
     if (!confirm("Revogar esta chave? Não poderá ser usada novamente.")) return;
