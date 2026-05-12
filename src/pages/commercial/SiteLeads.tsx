@@ -258,7 +258,7 @@ export default function SiteLeads() {
   );
 }
 
-interface ClientOption { id: string; name: string }
+interface ClientOption { id: string; name: string; cnpj: string | null }
 interface BuyerOption { id: string; name: string; email: string | null }
 
 function ConvertLeadDialog({
@@ -300,7 +300,7 @@ function ConvertLeadDialog({
     setDescription(`Lead recebido pelo site (${lead.email}${lead.phone ? `, ${lead.phone}` : ""}).${lead.message ? `\n\n${lead.message}` : ""}${itemsTxt}`);
     setClientId(null);
     setBuyerId(null);
-    setClientSearch(lead.company_name ?? "");
+    setClientSearch("");
   }, [open, lead]);
 
   // Load clients (lightweight)
@@ -309,10 +309,10 @@ function ConvertLeadDialog({
     (async () => {
       const { data } = await supabase
         .from("clients")
-        .select("id, name")
+        .select("id, name, cnpj")
         .eq("company_id", companyId)
         .order("name")
-        .limit(500);
+        .limit(2000);
       setClients((data ?? []) as ClientOption[]);
     })();
   }, [open, companyId]);
@@ -332,11 +332,31 @@ function ConvertLeadDialog({
     })();
   }, [clientId]);
 
+  const normalize = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const onlyDigits = (s: string) => s.replace(/\D/g, "");
+
   const filteredClients = useMemo(() => {
-    const q = clientSearch.trim().toLowerCase();
+    const q = normalize(clientSearch.trim());
     if (!q) return clients.slice(0, 100);
-    return clients.filter((c) => c.name.toLowerCase().includes(q)).slice(0, 100);
+    const qDigits = onlyDigits(clientSearch);
+    return clients.filter((c) => {
+      if (normalize(c.name).includes(q)) return true;
+      if (qDigits && c.cnpj && onlyDigits(c.cnpj).includes(qDigits)) return true;
+      return false;
+    }).slice(0, 100);
   }, [clients, clientSearch]);
+
+  const totalMatches = useMemo(() => {
+    const q = normalize(clientSearch.trim());
+    if (!q) return clients.length;
+    const qDigits = onlyDigits(clientSearch);
+    return clients.filter((c) => {
+      if (normalize(c.name).includes(q)) return true;
+      if (qDigits && c.cnpj && onlyDigits(c.cnpj).includes(qDigits)) return true;
+      return false;
+    }).length;
+  }, [clients, clientSearch]);
+
 
   const selectedClient = clients.find((c) => c.id === clientId);
 
@@ -424,22 +444,55 @@ function ConvertLeadDialog({
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command shouldFilter={false}>
-                  <CommandInput placeholder="Buscar cliente..." value={clientSearch} onValueChange={setClientSearch} />
+                  <CommandInput placeholder="Buscar por nome ou CNPJ..." value={clientSearch} onValueChange={setClientSearch} />
+                  {lead.company_name && (
+                    <div className="px-2 py-1.5 text-xs border-b bg-muted/40 flex items-center justify-between gap-2">
+                      <span className="text-muted-foreground truncate">
+                        Sugestão do lead: <strong className="text-foreground">{lead.company_name}</strong>
+                      </span>
+                      <button
+                        type="button"
+                        className="text-primary hover:underline shrink-0"
+                        onClick={() => setClientSearch(lead.company_name ?? "")}
+                      >
+                        Buscar
+                      </button>
+                    </div>
+                  )}
                   <CommandList>
                     <CommandEmpty>
-                      Nenhum cliente.
-                      <Link to="/commercial/clients" target="_blank" className="block mt-2 text-primary underline">
-                        Cadastrar novo cliente →
-                      </Link>
+                      <div className="py-2 space-y-2">
+                        <div>Nenhum cliente com esse nome ou CNPJ.</div>
+                        {clientSearch && (
+                          <button
+                            type="button"
+                            className="text-primary hover:underline text-sm"
+                            onClick={() => setClientSearch("")}
+                          >
+                            Limpar busca e ver todos
+                          </button>
+                        )}
+                        <Link to="/commercial/clients" target="_blank" className="block text-primary underline text-sm">
+                          Cadastrar novo cliente →
+                        </Link>
+                      </div>
                     </CommandEmpty>
                     <CommandGroup>
                       {filteredClients.map((c) => (
                         <CommandItem key={c.id} value={c.id} onSelect={() => { setClientId(c.id); setClientPickerOpen(false); }}>
                           <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
-                          {c.name}
+                          <div className="flex flex-col min-w-0">
+                            <span className="truncate">{c.name}</span>
+                            {c.cnpj && <span className="text-xs text-muted-foreground">{c.cnpj}</span>}
+                          </div>
                         </CommandItem>
                       ))}
                     </CommandGroup>
+                    {totalMatches > 100 && (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground border-t text-center">
+                        Mostrando 100 de {totalMatches} — refine a busca
+                      </div>
+                    )}
                   </CommandList>
                 </Command>
               </PopoverContent>
