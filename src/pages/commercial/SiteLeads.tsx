@@ -428,7 +428,7 @@ function ConvertLeadDialog({
                   <CommandList>
                     <CommandEmpty>
                       Nenhum cliente.
-                      <Link to="/crm/clients" target="_blank" className="block mt-2 text-primary underline">
+                      <Link to="/commercial/clients" target="_blank" className="block mt-2 text-primary underline">
                         Cadastrar novo cliente →
                       </Link>
                     </CommandEmpty>
@@ -447,7 +447,7 @@ function ConvertLeadDialog({
             {!selectedClient && lead.company_name && (
               <p className="text-xs text-muted-foreground">
                 Sugestão do lead: <strong>{lead.company_name}</strong>.{" "}
-                <Link to="/crm/clients" target="_blank" className="text-primary underline">Cadastrar novo cliente</Link>
+                <Link to="/commercial/clients" target="_blank" className="text-primary underline">Cadastrar novo cliente</Link>
               </p>
             )}
           </div>
