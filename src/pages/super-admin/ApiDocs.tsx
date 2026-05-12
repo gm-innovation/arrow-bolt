@@ -26,8 +26,11 @@ const ALL_SCOPES = [
   { id: "sales:read", label: "Ler vendas" },
 ];
 
+interface Company { id: string; name: string }
+
 interface Integration {
   id: string;
+  company_id: string;
   name: string;
   description: string | null;
   key_prefix: string;
@@ -48,8 +51,9 @@ interface LogRow {
   error_message: string | null;
 }
 
-function NewKeyDialog({ onCreated }: { onCreated: () => void }) {
+function NewKeyDialog({ companies, onCreated }: { companies: Company[]; onCreated: () => void }) {
   const [open, setOpen] = useState(false);
+  const [companyId, setCompanyId] = useState<string>("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [scopes, setScopes] = useState<string[]>(["leads:write", "opportunities:write", "catalog:read"]);
@@ -57,10 +61,13 @@ function NewKeyDialog({ onCreated }: { onCreated: () => void }) {
   const [loading, setLoading] = useState(false);
 
   const reset = () => {
-    setName(""); setDescription(""); setScopes(["leads:write", "opportunities:write", "catalog:read"]); setGeneratedKey(null);
+    setCompanyId(""); setName(""); setDescription("");
+    setScopes(["leads:write", "opportunities:write", "catalog:read"]);
+    setGeneratedKey(null);
   };
 
   const submit = async () => {
+    if (!companyId) { toast.error("Selecione a empresa."); return; }
     if (!name.trim() || scopes.length === 0) {
       toast.error("Informe um nome e pelo menos um escopo.");
       return;
@@ -68,7 +75,7 @@ function NewKeyDialog({ onCreated }: { onCreated: () => void }) {
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("api-keys-manage", {
       method: "POST",
-      body: { name, description, scopes },
+      body: { company_id: companyId, name, description, scopes },
     });
     setLoading(false);
     if (error || !data?.api_key) {
