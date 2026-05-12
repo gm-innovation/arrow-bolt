@@ -88,6 +88,7 @@ const HRRecruitment = () => {
         <TabsList>
           <TabsTrigger value="candidates">Candidatos</TabsTrigger>
           <TabsTrigger value="openings">Vagas</TabsTrigger>
+          <TabsTrigger value="admissions">Admissões</TabsTrigger>
           <TabsTrigger value="link">Link público</TabsTrigger>
         </TabsList>
 
