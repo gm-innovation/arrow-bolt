@@ -65,3 +65,9 @@ verify_jwt = false
 
 [functions.omie-proxy]
 verify_jwt = true
+
+[functions.public-api]
+verify_jwt = false
+
+[functions.api-keys-manage]
+verify_jwt = true
