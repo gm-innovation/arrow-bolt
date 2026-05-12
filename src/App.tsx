@@ -56,7 +56,7 @@ const ManagerServiceOrders = lazy(() => import("./pages/manager/ServiceOrders"))
 const ManagerReports = lazy(() => import("./pages/manager/Reports"));
 const ManagerProfile = lazy(() => import("./pages/manager/Profile"));
 const ManagerSettings = lazy(() => import("./pages/manager/Settings"));
-const SuperAdminApiDocsAlias = null;
+
 const SuperAdminApiDocs = lazy(() => import("./pages/super-admin/ApiDocs"));
 
 const TechDashboard = lazy(() => import("./pages/tech/Dashboard"));
@@ -211,6 +211,7 @@ const App = () => {
                     <Route path="/super-admin/reports" element={<SuperAdminReports />} />
                     <Route path="/super-admin/chat" element={<Chat />} />
                     <Route path="/super-admin/install" element={<InstallApp />} />
+                    <Route path="/super-admin/api-docs" element={<SuperAdminApiDocs />} />
                   </Route>
 
                   {/* Manager - nested layout route */}
@@ -221,7 +222,7 @@ const App = () => {
                     <Route path="/manager/reports" element={<ManagerReports />} />
                     <Route path="/manager/profile" element={<ManagerProfile />} />
                     <Route path="/manager/settings" element={<ManagerSettings />} />
-                    <Route path="/manager/api-docs" element={<ManagerApiDocs />} />
+                    
                     <Route path="/manager/measurement-settings" element={<MeasurementSettings />} />
                     <Route path="/manager/chat" element={<Chat />} />
                     <Route path="/manager/install" element={<InstallApp />} />
