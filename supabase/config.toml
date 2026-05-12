@@ -74,3 +74,6 @@ verify_jwt = true
 
 [functions.public-lead-intake]
 verify_jwt = false
+
+[functions.public-job-application]
+verify_jwt = false

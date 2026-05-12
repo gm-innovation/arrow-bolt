@@ -145,6 +145,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
     { title: "Feriados", icon: ClipboardList, path: "/hr/holidays" },
     { title: "Documentos", icon: FileText, path: "/hr/documents" },
+    { title: "Recrutamento", icon: Inbox, path: "/hr/recruitment" },
     { title: "Admissão", icon: Upload, path: "/hr/onboarding" },
     { title: "Universidade", icon: GraduationCap, path: "/hr/university" },
     { title: "Relatórios", icon: FileBarChart, path: "/hr/reports" },

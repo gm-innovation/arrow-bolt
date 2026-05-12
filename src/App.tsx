@@ -107,6 +107,8 @@ const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"))
 const HREmployees = lazy(() => import("./pages/hr/Employees"));
 const HRUniversity = lazy(() => import("./pages/hr/University"));
 const PublicOnboarding = lazy(() => import("./pages/onboarding/PublicOnboarding"));
+const PublicCareers = lazy(() => import("./pages/careers/PublicCareers"));
+const HRRecruitment = lazy(() => import("./pages/hr/Recruitment"));
 
 const CorpDashboard = lazy(() => import("./pages/corp/Dashboard"));
 const CorpRequests = lazy(() => import("./pages/corp/Requests"));
@@ -188,6 +190,7 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/onboarding/:token" element={<Suspense fallback={<LoadingFallback />}><PublicOnboarding /></Suspense>} />
+            <Route path="/carreiras/:slug" element={<Suspense fallback={<LoadingFallback />}><PublicCareers /></Suspense>} />
             <Route path="*" element={
               <AuthProvider>
                 <SidebarProvider>
@@ -279,6 +282,7 @@ const App = () => {
                     <Route path="/hr/documents" element={<HRDocumentsPage />} />
                     <Route path="/hr/onboarding" element={<HROnboarding />} />
                     <Route path="/hr/onboarding/settings" element={<HROnboardingSettings />} />
+                    <Route path="/hr/recruitment" element={<HRRecruitment />} />
                     <Route path="/hr/employees" element={<HREmployees />} />
                     <Route path="/hr/university" element={<HRUniversity />} />
                     <Route path="/hr/profile" element={<HRProfile />} />
