@@ -355,7 +355,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: ark_live_*
-      description: API key gerada na tela de Integrações. Use `Authorization: Bearer ark_live_...`.
+      description: "API key gerada na tela de Integrações. Use `Authorization: Bearer ark_live_...`."
     BearerAuth:
       type: http
       scheme: bearer
