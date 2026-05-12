@@ -443,58 +443,70 @@ function ConvertLeadDialog({
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command shouldFilter={false}>
-                  <CommandInput placeholder="Buscar por nome ou CNPJ..." value={clientSearch} onValueChange={setClientSearch} />
-                  {lead.company_name && (
-                    <div className="px-2 py-1.5 text-xs border-b bg-muted/40 flex items-center justify-between gap-2">
-                      <span className="text-muted-foreground truncate">
-                        Sugestão do lead: <strong className="text-foreground">{lead.company_name}</strong>
-                      </span>
-                      <button
-                        type="button"
-                        className="text-primary hover:underline shrink-0"
-                        onClick={() => setClientSearch(lead.company_name ?? "")}
-                      >
-                        Buscar
-                      </button>
+                <div className="p-2 border-b">
+                  <Input
+                    autoFocus
+                    placeholder="Buscar por nome ou CNPJ..."
+                    value={clientSearch}
+                    onChange={(e) => setClientSearch(e.target.value)}
+                  />
+                </div>
+                {lead.company_name && (
+                  <div className="px-2 py-1.5 text-xs border-b bg-muted/40 flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground truncate">
+                      Sugestão do lead: <strong className="text-foreground">{lead.company_name}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      className="text-primary hover:underline shrink-0"
+                      onClick={() => setClientSearch(lead.company_name ?? "")}
+                    >
+                      Buscar
+                    </button>
+                  </div>
+                )}
+                <div className="max-h-72 overflow-y-auto p-1">
+                  {filteredClients.length === 0 ? (
+                    <div className="py-4 px-2 text-sm space-y-2 text-center">
+                      <div className="text-muted-foreground">Nenhum cliente com esse nome ou CNPJ.</div>
+                      {clientSearch && (
+                        <button
+                          type="button"
+                          className="text-primary hover:underline"
+                          onClick={() => setClientSearch("")}
+                        >
+                          Limpar busca e ver todos
+                        </button>
+                      )}
+                      <Link to="/commercial/clients" target="_blank" className="block text-primary underline">
+                        Cadastrar novo cliente →
+                      </Link>
                     </div>
-                  )}
-                  <CommandList>
-                    <CommandEmpty>
-                      <div className="py-2 space-y-2">
-                        <div>Nenhum cliente com esse nome ou CNPJ.</div>
-                        {clientSearch && (
-                          <button
-                            type="button"
-                            className="text-primary hover:underline text-sm"
-                            onClick={() => setClientSearch("")}
-                          >
-                            Limpar busca e ver todos
-                          </button>
+                  ) : (
+                    filteredClients.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => { setClientId(c.id); setClientPickerOpen(false); }}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-sm hover:bg-accent text-left",
+                          clientId === c.id && "bg-accent"
                         )}
-                        <Link to="/commercial/clients" target="_blank" className="block text-primary underline text-sm">
-                          Cadastrar novo cliente →
-                        </Link>
-                      </div>
-                    </CommandEmpty>
-                    <CommandGroup>
-                      {filteredClients.map((c) => (
-                        <CommandItem key={c.id} value={c.id} onSelect={() => { setClientId(c.id); setClientPickerOpen(false); }}>
-                          <Check className={cn("mr-2 h-4 w-4", clientId === c.id ? "opacity-100" : "opacity-0")} />
-                          <div className="flex flex-col min-w-0">
-                            <span className="truncate">{c.name}</span>
-                            {c.cnpj && <span className="text-xs text-muted-foreground">{c.cnpj}</span>}
-                          </div>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                    {totalMatches > 100 && (
-                      <div className="px-2 py-1.5 text-xs text-muted-foreground border-t text-center">
-                        Mostrando 100 de {totalMatches} — refine a busca
-                      </div>
-                    )}
-                  </CommandList>
-                </Command>
+                      >
+                        <Check className={cn("h-4 w-4 shrink-0", clientId === c.id ? "opacity-100" : "opacity-0")} />
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="truncate">{c.name}</span>
+                          {c.cnpj && <span className="text-xs text-muted-foreground">{c.cnpj}</span>}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+                {totalMatches > 100 && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground border-t text-center">
+                    Mostrando 100 de {totalMatches} — refine a busca
+                  </div>
+                )}
               </PopoverContent>
             </Popover>
             {!selectedClient && lead.company_name && (

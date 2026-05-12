@@ -1,21 +1,23 @@
 ## Problema
 
-No diálogo "Converter em oportunidade", o campo **Cliente** já tem um seletor com busca, mas:
+No diálogo "Converter em oportunidade", o seletor de cliente:
+1. Não rola (lista travada nos primeiros itens visíveis)
+2. Clicar em uma empresa não a seleciona
 
-1. A busca vem pré-preenchida com o nome que o lead digitou (ex: "Googlemarine Eletrônica Naval"). Se esse nome não bate exatamente com o cadastro ("Googlemarine"), a lista aparece **vazia** e parece que não há clientes.
-2. Não fica claro que o usuário pode **apagar a busca e procurar por outro nome**, nem há atalho para usar a sugestão do lead como busca.
-3. Quando vazio, mostramos só os 100 primeiros sem indicar isso.
+Causa: o `cmdk` (Command/CommandItem) dentro de um `Dialog` Radix tem problemas conhecidos — o `onSelect` não dispara ao clicar com o mouse (o Dialog intercepta foco/pointer), e a rolagem do `CommandList` também é prejudicada nesse contexto.
 
-## Mudanças (apenas em `src/pages/commercial/SiteLeads.tsx`)
+## Solução
 
-1. **Não pré-preencher a busca** com `lead.company_name`. Abrir o picker já mostrando todos os clientes ordenados por nome.
-2. **Mostrar a sugestão do lead acima do campo de busca dentro do popover**, como um botão clicável: *"Sugestão do lead: Googlemarine Eletrônica Naval — buscar"*. Ao clicar, preenche o campo de busca com esse texto (o comercial pode então editar/encurtar até achar o cliente real).
-3. **Melhorar o estado vazio**: quando a busca não encontra nada, mostrar:
-   - "Nenhum cliente com esse nome."
-   - Botão "Limpar busca" (volta a listar todos).
-   - Link "Cadastrar novo cliente" (já existe).
-4. **Indicador de lista parcial**: quando há mais de 100 resultados, mostrar rodapé "Mostrando 100 de N — refine a busca".
-5. **Permitir buscar por trechos**: a busca já é `includes` case-insensitive, mantemos. Adicionar match também por **CNPJ** (carregar `id, name, cnpj` e buscar nos dois campos) — útil quando o lead manda o nome comercial e o cadastro está pela razão social.
-6. Manter o texto de "Sugestão do lead" abaixo do campo (fora do popover) apenas quando nenhum cliente foi selecionado, com link para cadastrar.
+Substituir o `Command` + `CommandItem` dentro do `Popover` por uma lista simples controlada manualmente, mantendo o mesmo visual e comportamento já desenhado:
 
-Sem mudanças em banco, edge functions ou outras telas.
+- Manter o `Popover` aberto pelo mesmo botão "Selecionar cliente...".
+- Dentro do `PopoverContent`:
+  - `Input` próprio para "Buscar por nome ou CNPJ..." (controlado por `clientSearch`).
+  - Bloco "Sugestão do lead" inalterado.
+  - Lista rolável: `<div className="max-h-72 overflow-y-auto">` com cada item como `<button type="button" onClick={...}>` que chama `setClientId(c.id)` e fecha o popover.
+  - Estado vazio quando `filteredClients.length === 0` (mesma mensagem + "Limpar busca" + link "Cadastrar novo cliente").
+  - Rodapé "Mostrando 100 de N" quando aplicável.
+- Manter `filteredClients` e `totalMatches` como estão.
+- Remover imports não utilizados (`Command`, `CommandItem`, etc.) caso fiquem órfãos.
+
+Arquivo afetado: `src/pages/commercial/SiteLeads.tsx` (apenas o trecho do seletor de cliente, linhas ~438-499). Sem mudanças em backend, schema ou outras telas.
