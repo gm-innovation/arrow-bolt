@@ -28,7 +28,7 @@ export const OpportunityProductsTab = ({ opportunityId, onApplyTotal }: Props) =
       {
         product_id: form.product_id,
         quantity: Number(form.quantity) || 1,
-        unit_value: form.unit_value !== "" ? Number(form.unit_value) : (product?.base_price ?? null),
+        unit_value: form.unit_value !== "" ? Number(form.unit_value) : (product?.reference_value ?? null),
       },
       {
         onSuccess: () => {
@@ -51,7 +51,7 @@ export const OpportunityProductsTab = ({ opportunityId, onApplyTotal }: Props) =
             <Label className="text-xs">Produto *</Label>
             <Select value={form.product_id} onValueChange={(v) => {
               const p = (products as any[]).find((x) => x.id === v);
-              setForm((f: any) => ({ ...f, product_id: v, unit_value: p?.base_price ?? f.unit_value }));
+              setForm((f: any) => ({ ...f, product_id: v, unit_value: p?.reference_value ?? f.unit_value }));
             }}>
               <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
               <SelectContent>
