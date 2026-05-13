@@ -237,6 +237,7 @@ const CommercialOpportunities = () => {
         onOpenChange={setEditSheetOpen}
         opportunity={editSheetOpp}
         clients={clients}
+        buyers={buyers.map(b => ({ id: b.id, name: b.name, client_id: b.client_id }))}
         onSave={(data) => {
           const { id, ...updates } = data;
           updateOpportunity.mutate({ id, ...updates }, { onSuccess: () => { setEditSheetOpen(false); setEditSheetOpp(null); } });
