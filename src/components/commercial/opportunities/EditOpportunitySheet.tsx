@@ -214,6 +214,7 @@ export const EditOpportunitySheet = ({
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <TabsContent value="details" className="mt-0 space-y-4">
+              <fieldset disabled={readOnly} className="space-y-4 disabled:opacity-95">
               <div className="space-y-2">
                 <Label>Título *</Label>
                 <Input value={form.title || ""} onChange={(e) => set("title", e.target.value)} />
