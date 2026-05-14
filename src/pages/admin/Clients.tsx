@@ -167,16 +167,16 @@ const Clients = () => {
     } finally {
       setLoading(false);
     }
-  }, [companyId, debouncedSearch, page]);
+  }, [companyId, debouncedSearch, page, originFilter]);
 
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
 
-  // Reset page when search changes
+  // Reset page when search/filter changes
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, originFilter]);
 
   // Build children map
   const childrenMap = useMemo(() => {
