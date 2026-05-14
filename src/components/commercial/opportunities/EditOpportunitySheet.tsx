@@ -337,6 +337,7 @@ export const EditOpportunitySheet = ({
                   placeholder="Observações privadas da equipe comercial"
                 />
               </div>
+              </fieldset>
             </TabsContent>
 
             <TabsContent value="activities" className="mt-0">
