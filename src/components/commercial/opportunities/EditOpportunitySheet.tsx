@@ -18,6 +18,7 @@ import { useOpportunityActivities } from "@/hooks/useOpportunities";
 import { OpportunityActivitiesTab } from "./OpportunityActivitiesTab";
 import { OpportunityTasksTab } from "./OpportunityTasksTab";
 import { OpportunityProductsTab } from "./OpportunityProductsTab";
+import { OpportunityTransferTab } from "./OpportunityTransferTab";
 import type { Opportunity } from "@/hooks/useOpportunities";
 
 const STAGES = [
