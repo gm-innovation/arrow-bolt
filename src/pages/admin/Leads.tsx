@@ -341,16 +341,25 @@ export default function AdminLeads() {
                   </Button>
                 </div>
               ) : selected.segment !== "product" ? (
-                <div className="flex gap-2">
-                  {selected.assigned_to !== profile?.id && (
-                    <Button variant="outline" className="flex-1" onClick={() => claim(selected.id)}>
-                      <UserCheck className="w-4 h-4 mr-2" /> Assumir
-                    </Button>
+                <>
+                  {selected.status === "converted" && (
+                    <div className="p-3 border border-amber-500/40 bg-amber-500/5 rounded text-xs">
+                      <div className="font-medium text-amber-700">Lead marcado como convertido sem oportunidade vinculada.</div>
+                      <div className="text-muted-foreground">Crie a oportunidade agora para regularizar e aparecer no kanban.</div>
+                    </div>
                   )}
-                  <Button className="flex-1" onClick={() => setConvertOpen(true)}>
-                    <Sparkles className="w-4 h-4 mr-2" /> Converter em oportunidade
-                  </Button>
-                </div>
+                  <div className="flex gap-2">
+                    {selected.assigned_to !== profile?.id && (
+                      <Button variant="outline" className="flex-1" onClick={() => claim(selected.id)}>
+                        <UserCheck className="w-4 h-4 mr-2" /> Assumir
+                      </Button>
+                    )}
+                    <Button className="flex-1" onClick={() => setConvertOpen(true)}>
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      {selected.status === "converted" ? "Criar oportunidade agora" : "Converter em oportunidade"}
+                    </Button>
+                  </div>
+                </>
               ) : null}
 
               <div className="text-xs text-muted-foreground pt-2 border-t">
