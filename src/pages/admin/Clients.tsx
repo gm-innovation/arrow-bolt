@@ -516,17 +516,54 @@ const Clients = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <Checkbox
               checked={allVisibleIds.length > 0 && selectedIds.size === allVisibleIds.length}
               onCheckedChange={toggleAll}
             />
             <Input placeholder="Buscar clientes..." className="max-w-sm" type="search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            {canManage && (
+              <Select value={originFilter} onValueChange={(v) => setOriginFilter(v as OriginFilter)}>
+                <SelectTrigger className="w-[200px] h-9">
+                  <SelectValue placeholder="Origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as origens</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="omie">Omie</SelectItem>
+                  <SelectItem value="omie_ignored">Omie ignorado</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             <span className="text-sm text-muted-foreground whitespace-nowrap">
               {totalCount} cliente{totalCount !== 1 ? "s" : ""}
             </span>
           </div>
+          {canManage && selectedIds.size > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 px-3 py-2 mt-3">
+              <span className="text-sm font-medium">{selectedIds.size} selecionado(s)</span>
+              <Button variant="ghost" size="sm" className="gap-1 h-7" onClick={() => setSelectedIds(new Set())}>
+                <X className="h-3 w-3" /> Limpar
+              </Button>
+              <div className="flex-1" />
+              <Select value={bulkAction} onValueChange={(v) => setBulkAction(v as BulkAction)}>
+                <SelectTrigger className="w-[280px] h-9 bg-background">
+                  <SelectValue placeholder="Ações em massa..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="status_active">Marcar como Ativo</SelectItem>
+                  <SelectItem value="status_prospect">Marcar como Prospect</SelectItem>
+                  <SelectItem value="status_inactive">Marcar como Inativo</SelectItem>
+                  <SelectItem value="status_churned">Marcar como Perdido</SelectItem>
+                  <SelectItem value="ignore_omie">Ignorar na sincronização do Omie</SelectItem>
+                  <SelectItem value="unignore_omie">Voltar a sincronizar com Omie</SelectItem>
+                  <SelectItem value="delete">Excluir selecionados</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={openBulkConfirm} disabled={!bulkAction || bulkRunning} size="sm">Aplicar</Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
