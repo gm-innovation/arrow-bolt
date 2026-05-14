@@ -1,7 +1,9 @@
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash, Download, Eye, Link2, Unlink, Crown, ChevronDown, ChevronRight, ChevronLeft } from "lucide-react";
+import { Users, Search, UserPlus, Edit, Phone, Mail, Ship, History, Loader2, Trash, Download, Eye, Link2, Unlink, Crown, ChevronDown, ChevronRight, ChevronLeft, X, EyeOff } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportToCSV } from "@/lib/exportUtils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -37,12 +39,48 @@ interface Client {
   contact_person: string | null;
   parent_client_id: string | null;
   segment: string | null;
+  omie_client_id: string | number | null;
+  ignore_omie_sync: boolean | null;
   vessels: Array<{
     id: string;
     name: string;
     vessel_type: string | null;
   }>;
 }
+
+type BulkAction =
+  | "delete"
+  | "ignore_omie"
+  | "unignore_omie"
+  | "status_active"
+  | "status_inactive"
+  | "status_prospect"
+  | "status_churned";
+
+const STATUS_BY_ACTION: Record<string, string> = {
+  status_active: "active",
+  status_inactive: "inactive",
+  status_prospect: "prospect",
+  status_churned: "churned",
+};
+
+const BULK_LABELS: Record<string, string> = {
+  delete: "Excluir selecionados",
+  ignore_omie: "Ignorar na sincronização do Omie",
+  unignore_omie: "Voltar a sincronizar com Omie",
+  status_active: "Marcar como Ativo",
+  status_inactive: "Marcar como Inativo",
+  status_prospect: "Marcar como Prospect",
+  status_churned: "Marcar como Perdido",
+};
+
+const chunk = <T,>(arr: T[], size: number): T[][] => {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
+type OriginFilter = "all" | "manual" | "omie" | "omie_ignored";
 
 const PAGE_SIZE = 50;
 
@@ -67,8 +105,15 @@ const Clients = () => {
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [groupLoading, setGroupLoading] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const { user } = useAuth();
+  const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
+  const [bulkAction, setBulkAction] = useState<BulkAction | "">("");
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [alsoBlocklist, setAlsoBlocklist] = useState(true);
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
+
+  const canManage = userRole === "coordinator" || userRole === "super_admin";
 
   // Get company_id once
   useEffect(() => {
@@ -91,12 +136,20 @@ const Clients = () => {
       // Build query with server-side search
       let query = supabase
         .from("clients")
-        .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, vessels (id, name, vessel_type)`, { count: "exact" })
+        .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, omie_client_id, ignore_omie_sync, vessels (id, name, vessel_type)`, { count: "exact" })
         .eq("company_id", companyId)
         .order("name");
 
       if (debouncedSearch.length >= 2) {
         query = query.ilike("name", `%${debouncedSearch}%`);
+      }
+
+      if (originFilter === "manual") {
+        query = query.is("omie_client_id", null);
+      } else if (originFilter === "omie") {
+        query = query.not("omie_client_id", "is", null).eq("ignore_omie_sync", false);
+      } else if (originFilter === "omie_ignored") {
+        query = query.eq("ignore_omie_sync", true);
       }
 
       // Pagination
@@ -114,16 +167,16 @@ const Clients = () => {
     } finally {
       setLoading(false);
     }
-  }, [companyId, debouncedSearch, page]);
+  }, [companyId, debouncedSearch, page, originFilter]);
 
   useEffect(() => {
     fetchClients();
   }, [fetchClients]);
 
-  // Reset page when search changes
+  // Reset page when search/filter changes
   useEffect(() => {
     setPage(0);
-  }, [debouncedSearch]);
+  }, [debouncedSearch, originFilter]);
 
   // Build children map
   const childrenMap = useMemo(() => {
@@ -217,6 +270,85 @@ const Clients = () => {
   };
 
   const selectedClients = clients.filter(c => selectedIds.has(c.id));
+  const selectedHasOmie = selectedClients.some(c => c.omie_client_id);
+
+  const openBulkConfirm = () => {
+    if (!bulkAction || selectedIds.size === 0) return;
+    setAlsoBlocklist(selectedHasOmie);
+    setBulkConfirmOpen(true);
+  };
+
+  const runBulk = async () => {
+    if (!companyId || !bulkAction) return;
+    const ids = Array.from(selectedIds);
+    setBulkRunning(true);
+    try {
+      if (bulkAction === "delete") {
+        if (alsoBlocklist) {
+          const targets = clients.filter(c => ids.includes(c.id));
+          const blockRows = targets
+            .filter(c => c.omie_client_id || c.cnpj)
+            .map(c => ({
+              company_id: companyId,
+              omie_client_id: c.omie_client_id ? String(c.omie_client_id) : null,
+              cnpj: c.cnpj || null,
+              reason: 'Excluído manualmente',
+              blocked_by: user?.id ?? null,
+            }));
+          if (blockRows.length > 0) {
+            const { error: blErr } = await supabase.from('omie_sync_blocklist' as any).insert(blockRows as any);
+            if (blErr) throw blErr;
+          }
+        }
+        // Remove vessels first to avoid FK violations
+        await supabase.from("vessels").delete().in("client_id", ids);
+
+        let deleted = 0;
+        let failed = 0;
+        const errs: string[] = [];
+        for (const batch of chunk(ids, 100)) {
+          const { error, count } = await supabase
+            .from('clients')
+            .delete({ count: 'exact' })
+            .in('id', batch);
+          if (error) {
+            failed += batch.length;
+            errs.push(error.message);
+          } else {
+            deleted += count || 0;
+          }
+        }
+        if (failed === 0) {
+          toast({ title: `${deleted} cliente(s) excluído(s)` });
+        } else {
+          toast({ title: `${deleted} excluído(s), ${failed} com vínculos`, description: errs[0] || '', variant: "destructive" });
+        }
+      } else if (bulkAction === "ignore_omie" || bulkAction === "unignore_omie") {
+        const patch = { ignore_omie_sync: bulkAction === "ignore_omie" };
+        for (const batch of chunk(ids, 200)) {
+          const { error } = await supabase.from('clients').update(patch as any).in('id', batch);
+          if (error) throw error;
+        }
+        toast({ title: `${ids.length} cliente(s) atualizado(s)` });
+      } else if (STATUS_BY_ACTION[bulkAction]) {
+        const patch = { commercial_status: STATUS_BY_ACTION[bulkAction] };
+        for (const batch of chunk(ids, 200)) {
+          const { error } = await supabase.from('clients').update(patch as any).in('id', batch);
+          if (error) throw error;
+        }
+        toast({ title: `${ids.length} cliente(s) atualizado(s)` });
+      }
+      setSelectedIds(new Set());
+      setBulkConfirmOpen(false);
+      setBulkAction("");
+      fetchClients();
+    } catch (e: any) {
+      toast({ title: "Erro na ação em massa", description: e.message, variant: "destructive" });
+    } finally {
+      setBulkRunning(false);
+    }
+  };
+
 
   const handleGroup = async (parentId: string, childIds: string[]) => {
     setGroupLoading(true);
@@ -291,6 +423,12 @@ const Clients = () => {
               <Badge variant="outline" size="sm" className="gap-1">
                 <Link2 className="h-3 w-3" />
                 Vinculado
+              </Badge>
+            )}
+            {client.ignore_omie_sync && (
+              <Badge variant="secondary" size="sm" className="gap-1">
+                <EyeOff className="h-3 w-3" />
+                Omie ignorado
               </Badge>
             )}
           </div>
@@ -378,17 +516,54 @@ const Clients = () => {
 
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-wrap">
             <Checkbox
               checked={allVisibleIds.length > 0 && selectedIds.size === allVisibleIds.length}
               onCheckedChange={toggleAll}
             />
             <Input placeholder="Buscar clientes..." className="max-w-sm" type="search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            {canManage && (
+              <Select value={originFilter} onValueChange={(v) => setOriginFilter(v as OriginFilter)}>
+                <SelectTrigger className="w-[200px] h-9">
+                  <SelectValue placeholder="Origem" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas as origens</SelectItem>
+                  <SelectItem value="manual">Manual</SelectItem>
+                  <SelectItem value="omie">Omie</SelectItem>
+                  <SelectItem value="omie_ignored">Omie ignorado</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
             {loading && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             <span className="text-sm text-muted-foreground whitespace-nowrap">
               {totalCount} cliente{totalCount !== 1 ? "s" : ""}
             </span>
           </div>
+          {canManage && selectedIds.size > 0 && (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 px-3 py-2 mt-3">
+              <span className="text-sm font-medium">{selectedIds.size} selecionado(s)</span>
+              <Button variant="ghost" size="sm" className="gap-1 h-7" onClick={() => setSelectedIds(new Set())}>
+                <X className="h-3 w-3" /> Limpar
+              </Button>
+              <div className="flex-1" />
+              <Select value={bulkAction} onValueChange={(v) => setBulkAction(v as BulkAction)}>
+                <SelectTrigger className="w-[280px] h-9 bg-background">
+                  <SelectValue placeholder="Ações em massa..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="status_active">Marcar como Ativo</SelectItem>
+                  <SelectItem value="status_prospect">Marcar como Prospect</SelectItem>
+                  <SelectItem value="status_inactive">Marcar como Inativo</SelectItem>
+                  <SelectItem value="status_churned">Marcar como Perdido</SelectItem>
+                  <SelectItem value="ignore_omie">Ignorar na sincronização do Omie</SelectItem>
+                  <SelectItem value="unignore_omie">Voltar a sincronizar com Omie</SelectItem>
+                  <SelectItem value="delete">Excluir selecionados</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button onClick={openBulkConfirm} disabled={!bulkAction || bulkRunning} size="sm">Aplicar</Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -465,6 +640,36 @@ const Clients = () => {
       </AlertDialog>
 
       <ClientGroupDialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen} selectedClients={selectedClients} onConfirm={handleGroup} isLoading={groupLoading} />
+
+      <AlertDialog open={bulkConfirmOpen} onOpenChange={setBulkConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{bulkAction ? BULK_LABELS[bulkAction] : ""}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação afetará <strong>{selectedIds.size}</strong> cliente(s).
+              {bulkAction === "delete" && " A exclusão é permanente. Embarcações associadas também serão removidas. Clientes com OS, oportunidades ou outros vínculos não poderão ser removidos."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {bulkAction === "delete" && selectedHasOmie && (
+            <div className="flex items-start gap-2 rounded-md border p-3 bg-muted/40">
+              <Checkbox
+                id="blocklist"
+                checked={alsoBlocklist}
+                onCheckedChange={(v) => setAlsoBlocklist(!!v)}
+              />
+              <Label htmlFor="blocklist" className="text-sm font-normal leading-snug cursor-pointer">
+                Marcar também para <strong>ignorar nas próximas sincronizações do Omie</strong> (impede que voltem a ser criados).
+              </Label>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkRunning}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={runBulk} disabled={bulkRunning}>
+              {bulkRunning ? "Aplicando..." : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
