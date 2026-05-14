@@ -1,28 +1,30 @@
-## Diagnóstico
-Consultando o banco:
-- 2 leads com `status='converted'` (Cahuã e Alexandre Silva).
-- Apenas o de **Cahuã** tem `opportunity_id` preenchido. O de **Alexandre Silva** ficou com `opportunity_id = NULL` — provavelmente foi marcado como convertido em fluxo antigo, mas a oportunidade não chegou a ser criada (ou foi excluída). Por isso só 1 card aparece no kanban.
+## Objetivo
 
-Além disso, o card no kanban **não tem ação de "Ver detalhes"** — só o `Select` de etapa e botões de OS, sem dialog com descrição/contato/origem.
+Substituir o modal de "Detalhes" da página `/admin/opportunities` (coordenador) pelo **mesmo painel usado em `/commercial/opportunities`** — o `EditOpportunitySheet` com abas (Detalhes, Atividades, Tarefas, Produtos), badges de estágio/prioridade/tipo, cabeçalho com Cliente/Responsável/Valor/Idade etc.
 
 ## Mudanças
 
-### 1. Reparar leads "órfãos"
-Em `src/pages/admin/Leads.tsx`:
-- Quando abrir um lead com `status='converted'` mas `opportunity_id=NULL`, mostrar aviso + botão **"Criar oportunidade agora"** (mesma lógica do `ConvertLeadDialog`). Funciona para coordenador desde que `segment` seja `service`/`unknown`.
+### 1. `src/components/commercial/opportunities/EditOpportunitySheet.tsx`
+Adicionar prop opcional `readOnly?: boolean`:
+- Quando `true`: desabilita todos os inputs/selects/calendar e oculta os botões **Salvar** e **Excluir**, mantendo todas as abas visíveis (somente leitura).
+- Default `false` — comportamento atual do Comercial intacto.
 
-### 2. Detalhes da oportunidade
-Em `src/pages/admin/Opportunities.tsx`:
-- Card vira clicável (botão "Ver detalhes" pequeno, ou clique no título) → abre `Dialog` com:
-  - Título, descrição completa, cliente, valor estimado, segmento, etapa atual, datas (criação, fechamento, atribuído).
-  - Link para o lead de origem (consulta `public_site_leads` por `opportunity_id`).
-  - Link para a OS gerada (se existir).
-  - Para `segment='product'`: tudo em modo somente leitura.
+### 2. `src/pages/admin/Opportunities.tsx`
+- Remover o componente local `OpportunityDetailDialog` e os ícones/imports não usados (`Eye`, `Mail`, `Phone`, `Building2`, `Dialog*` se não restar uso).
+- Importar `EditOpportunitySheet`, `useOpportunities` (para `updateOpportunity` / `deleteOpportunity`) e `useBuyers`; carregar `clients` (id, name) via query simples já no padrão da página comercial.
+- Ao clicar em **Detalhes** num card:
+  - Buscar a oportunidade completa pelo id via `useOpportunities().opportunities.find(...)` (mesma shape `Opportunity` esperada pelo Sheet).
+  - Abrir o `EditOpportunitySheet` com:
+    - `readOnly={opp.segment === 'product'}` (Comercial/Marketing fica somente leitura para coordenador, respeitando RLS já existente).
+    - `onSave` → `updateOpportunity.mutate(...)`.
+    - `onDelete` → `deleteOpportunity.mutate(...)` (só dispara se não readOnly).
+- Após salvar/excluir, recarregar a lista local (`load()`) além das invalidações do hook.
+- Manter o restante da página (filtro por segmento, kanban agrupado por estágio, dialog de "perdido" com motivo, botão "Gerar OS") inalterado.
 
-### Fora de escopo
-- Não muda RLS (já liberado para coordenador).
-- Não altera fluxo do Comercial.
+### 3. Escopo / não-objetivos
+- Sem alterações de RLS, schema ou no fluxo do Comercial/Marketing.
+- Sem mudar o card do kanban, o filtro de segmento ou a criação de OS.
+- Sem trocar o kanban por `OpportunityKanban` do Comercial — apenas o modal de detalhes precisa ser idêntico.
 
-## Arquivos
-- `src/pages/admin/Opportunities.tsx` — adicionar dialog de detalhes.
-- `src/pages/admin/Leads.tsx` — botão "Criar oportunidade agora" para leads convertidos sem `opportunity_id`.
+## Resultado
+Coordenador vê em `/admin/opportunities` o mesmo painel lateral rico do Comercial (abas, atividades, tarefas, produtos), com edição habilitada nas oportunidades de Serviço/Indefinido e somente-leitura nas de Comercial/Marketing.
