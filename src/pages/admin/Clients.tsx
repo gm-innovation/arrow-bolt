@@ -270,6 +270,85 @@ const Clients = () => {
   };
 
   const selectedClients = clients.filter(c => selectedIds.has(c.id));
+  const selectedHasOmie = selectedClients.some(c => c.omie_client_id);
+
+  const openBulkConfirm = () => {
+    if (!bulkAction || selectedIds.size === 0) return;
+    setAlsoBlocklist(selectedHasOmie);
+    setBulkConfirmOpen(true);
+  };
+
+  const runBulk = async () => {
+    if (!companyId || !bulkAction) return;
+    const ids = Array.from(selectedIds);
+    setBulkRunning(true);
+    try {
+      if (bulkAction === "delete") {
+        if (alsoBlocklist) {
+          const targets = clients.filter(c => ids.includes(c.id));
+          const blockRows = targets
+            .filter(c => c.omie_client_id || c.cnpj)
+            .map(c => ({
+              company_id: companyId,
+              omie_client_id: c.omie_client_id ? String(c.omie_client_id) : null,
+              cnpj: c.cnpj || null,
+              reason: 'Excluído manualmente',
+              blocked_by: user?.id ?? null,
+            }));
+          if (blockRows.length > 0) {
+            const { error: blErr } = await supabase.from('omie_sync_blocklist' as any).insert(blockRows as any);
+            if (blErr) throw blErr;
+          }
+        }
+        // Remove vessels first to avoid FK violations
+        await supabase.from("vessels").delete().in("client_id", ids);
+
+        let deleted = 0;
+        let failed = 0;
+        const errs: string[] = [];
+        for (const batch of chunk(ids, 100)) {
+          const { error, count } = await supabase
+            .from('clients')
+            .delete({ count: 'exact' })
+            .in('id', batch);
+          if (error) {
+            failed += batch.length;
+            errs.push(error.message);
+          } else {
+            deleted += count || 0;
+          }
+        }
+        if (failed === 0) {
+          toast({ title: `${deleted} cliente(s) excluído(s)` });
+        } else {
+          toast({ title: `${deleted} excluído(s), ${failed} com vínculos`, description: errs[0] || '', variant: "destructive" });
+        }
+      } else if (bulkAction === "ignore_omie" || bulkAction === "unignore_omie") {
+        const patch = { ignore_omie_sync: bulkAction === "ignore_omie" };
+        for (const batch of chunk(ids, 200)) {
+          const { error } = await supabase.from('clients').update(patch as any).in('id', batch);
+          if (error) throw error;
+        }
+        toast({ title: `${ids.length} cliente(s) atualizado(s)` });
+      } else if (STATUS_BY_ACTION[bulkAction]) {
+        const patch = { commercial_status: STATUS_BY_ACTION[bulkAction] };
+        for (const batch of chunk(ids, 200)) {
+          const { error } = await supabase.from('clients').update(patch as any).in('id', batch);
+          if (error) throw error;
+        }
+        toast({ title: `${ids.length} cliente(s) atualizado(s)` });
+      }
+      setSelectedIds(new Set());
+      setBulkConfirmOpen(false);
+      setBulkAction("");
+      fetchClients();
+    } catch (e: any) {
+      toast({ title: "Erro na ação em massa", description: e.message, variant: "destructive" });
+    } finally {
+      setBulkRunning(false);
+    }
+  };
+
 
   const handleGroup = async (parentId: string, childIds: string[]) => {
     setGroupLoading(true);
