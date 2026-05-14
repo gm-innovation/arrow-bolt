@@ -1,45 +1,46 @@
-## Diagnóstico
+## Correção proposta
 
-A implementação anterior foi feita em `src/pages/commercial/Clients.tsx` (rota comercial). Porém você está em **`/admin/clients`**, que renderiza outro arquivo: **`src/pages/admin/Clients.tsx`** — ele tem sua própria UI (botões "Visualizar / Histórico / Editar / Lixeira" que aparecem na sua tela). Por isso a barra de ações em massa, o filtro de Origem e a opção de ignorar no Omie não aparecem para você, mesmo logado como Coordenador.
+O problema está na linha do cliente em `/admin/clients`: quando há vários emails no campo `email`, o texto cresce sem limite dentro do bloco central e empurra os botões `Visualizar / Histórico / Editar / Lixeira` para fora da caixa.
 
-A migração de banco (`clients.ignore_omie_sync` + tabela `omie_sync_blocklist`) e o filtro na sync da edge function `omie-proxy` **já estão prontos** e continuam valendo.
+Vou corrigir isso em `src/pages/admin/Clients.tsx` sem mudar a regra de negócio.
 
-## O que vou aplicar em `src/pages/admin/Clients.tsx`
+## O que será alterado
 
-### 1. Barra de ações em massa (só Coordenador / Super Admin)
+### 1. Travar a largura do bloco de informações
 
-Aparece acima da lista quando há clientes marcados:
+No layout da linha (`renderClientRow`):
 
-> `12 selecionado(s)  [Limpar]   [Ações em massa ▾]  [Aplicar]`
+- O bloco da esquerda passa a usar `min-w-0`.
+- O bloco de dados do cliente passa a usar `min-w-0` e ocupar apenas o espaço disponível.
+- O bloco dos botões de ação passa a usar `shrink-0`, para nunca ser empurrado para fora.
 
-Opções do `Select`:
-- Marcar como **Ativo / Prospect / Inativo / Perdido** (atualiza `commercial_status`).
-- **Ignorar na sincronização do Omie** (`ignore_omie_sync = true`).
-- **Voltar a sincronizar com Omie** (`ignore_omie_sync = false`).
-- **Excluir selecionados** — `AlertDialog` com checkbox marcado por padrão *"Marcar também para ignorar nas próximas sincronizações do Omie"* quando há clientes vindos do Omie. Insere em `omie_sync_blocklist` antes do `delete`.
+### 2. Limitar nome, email, telefone e demais metadados
 
-Execução em lotes (100 para delete, 200 para update) com toast resumindo sucesso/falhas (FK de OS, oportunidades, embarcações).
+- Nome do cliente com truncamento seguro (`truncate`) quando for longo.
+- Email com `truncate`, `max-w-*` responsivo e `title` com o texto completo no hover.
+- Telefone e embarcações com `whitespace-nowrap`, sem quebrar o alinhamento.
+- Container dos metadados com `min-w-0`, para o truncamento funcionar corretamente.
 
-### 2. Filtro e badge de Origem
+### 3. Ajustar os botões para permanecerem dentro do card
 
-- Novo `Select` no topo: **Origem = Todas / Manual / Omie / Omie ignorado** (derivado de `omie_client_id` + `ignore_omie_sync`).
-- Badge cinza **"Omie ignorado"** ao lado do nome quando `ignore_omie_sync = true`.
+- A área dos botões fica fixa à direita da linha (`shrink-0`).
+- Em telas menores, a linha pode quebrar de forma controlada, deixando os botões abaixo, mas ainda dentro da caixa.
+- No viewport atual desktop, os botões devem continuar à direita e alinhados.
 
-### 3. Permissão
+### 4. Preservar o restante
 
-`canManage = userRole === "coordinator" || userRole === "super_admin"`. Para outros papéis, a barra de ações em massa, o filtro de Origem e a coluna de exclusão em massa **não renderizam** (a lixeira individual existente continua como está hoje).
+Não vou alterar:
 
-### 4. Mantém o que já existe
+- Permissões de Coordenador.
+- Ações em massa.
+- Filtro Omie.
+- Exclusão individual ou em lote.
+- Banco, RLS ou backend functions.
 
-- Checkboxes de linha + "Agrupar / Desagrupar" continuam intactos.
-- Lixeira individual atual permanece; ganha a mesma lógica de oferecer "ignorar no Omie" se o cliente tiver `omie_client_id`.
+## Arquivo afetado
 
-## Arquivos afetados
+- `src/pages/admin/Clients.tsx`
 
-- `src/pages/admin/Clients.tsx` — barra de ações, filtro de Origem, badge, mutations de delete em lote, update em lote, blocklist.
-- **Nada mais.** Banco, RLS e filtro do `omie-proxy` já estão prontos da rodada anterior.
+## Resultado esperado
 
-## Fora de escopo
-
-- Não vou tocar em `src/pages/commercial/Clients.tsx` (já está pronto e serve a outra rota).
-- Sem mudança de tipos Cliente/Fornecedor/Funcionário, sem CASCADE, sem alterar o agendamento da sync.
+Mesmo com muitos emails no cliente, a linha continua dentro da caixa, os textos são encurtados visualmente com reticências e os botões permanecem visíveis/alinhados.

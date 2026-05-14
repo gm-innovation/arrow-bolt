@@ -395,51 +395,43 @@ const Clients = () => {
         isChild ? "ml-10 border-dashed bg-muted/30" : ""
       } ${selectedIds.has(client.id) ? "bg-accent/30" : ""}`}
     >
-      <div className="flex items-center gap-4 flex-1">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
         <Checkbox
           checked={selectedIds.has(client.id)}
           onCheckedChange={() => toggleSelect(client.id)}
+          className="shrink-0"
         />
         {!isChild && (childrenMap[client.id]?.length > 0) ? (
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={() => toggleExpand(client.id)}>
             {expandedIds.has(client.id) ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
           </Button>
         ) : (
-          <div className={isChild ? "" : "w-8"} />
+          <div className={isChild ? "" : "w-8 shrink-0"} />
         )}
-        <div className="bg-primary p-2 rounded-full">
+        <div className="bg-primary p-2 rounded-full shrink-0">
           <Users className="h-4 w-4 text-primary-foreground" />
         </div>
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h4 className="font-semibold">{client.name}</h4>
-            {(childrenMap[client.id]?.length > 0) && (
-              <Badge variant="info" size="sm" className="gap-1">
-                <Crown className="h-3 w-3" />
-                {childrenMap[client.id].length} vinculado{childrenMap[client.id].length > 1 ? "s" : ""}
-              </Badge>
-            )}
-            {client.parent_client_id && (
-              <Badge variant="outline" size="sm" className="gap-1">
-                <Link2 className="h-3 w-3" />
-                Vinculado
-              </Badge>
-            )}
-            {client.ignore_omie_sync && (
-              <Badge variant="secondary" size="sm" className="gap-1">
-                <EyeOff className="h-3 w-3" />
-                Omie ignorado
-              </Badge>
-            )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <h4 className="font-semibold truncate">{client.name}</h4>
+...
           </div>
-          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-            {client.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{client.email}</span>}
-            {client.phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{client.phone}</span>}
-            {client.vessels.length > 0 && <span className="flex items-center gap-1"><Ship className="h-3 w-3" />{client.vessels.length} embarcaç{client.vessels.length === 1 ? "ão" : "ões"}</span>}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground min-w-0">
+            {client.email && (
+              <span
+                className="flex items-center gap-1 min-w-0 max-w-[420px]"
+                title={client.email}
+              >
+                <Mail className="h-3 w-3 shrink-0" />
+                <span className="truncate">{client.email}</span>
+              </span>
+            )}
+            {client.phone && <span className="flex items-center gap-1 whitespace-nowrap shrink-0"><Phone className="h-3 w-3" />{client.phone}</span>}
+            {client.vessels.length > 0 && <span className="flex items-center gap-1 whitespace-nowrap shrink-0"><Ship className="h-3 w-3" />{client.vessels.length} embarcaç{client.vessels.length === 1 ? "ão" : "ões"}</span>}
           </div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <Button variant="outline" size="sm" onClick={() => { setViewClient(client); setViewDialogOpen(true); }}>
           <Eye className="mr-2 h-4 w-4" />Visualizar
         </Button>
