@@ -358,17 +358,24 @@ export const EditOpportunitySheet = ({
         </Tabs>
 
         {/* Footer (sticky) */}
-        <div className="flex items-center justify-between gap-2 px-6 py-4 border-t bg-background">
-          <Button variant="destructive" size="sm" onClick={() => { onDelete(opportunity.id); onOpenChange(false); }}>
-            <Trash2 className="h-4 w-4 mr-2" /> Excluir
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.title || !form.client_id || isLoading}>
-              {isLoading ? "Salvando..." : "Salvar Alterações"}
-            </Button>
+        {readOnly ? (
+          <div className="flex items-center justify-between gap-2 px-6 py-4 border-t bg-background">
+            <p className="text-xs text-muted-foreground italic">Somente leitura — gerida pelo Comercial/Marketing</p>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2 px-6 py-4 border-t bg-background">
+            <Button variant="destructive" size="sm" onClick={() => { onDelete(opportunity.id); onOpenChange(false); }}>
+              <Trash2 className="h-4 w-4 mr-2" /> Excluir
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={!form.title || !form.client_id || isLoading}>
+                {isLoading ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
