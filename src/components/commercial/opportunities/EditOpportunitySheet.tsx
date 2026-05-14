@@ -356,6 +356,16 @@ export const EditOpportunitySheet = ({
                 onApplyTotal={(t) => { set("estimated_value", t); setTab("details"); }}
               />
             </TabsContent>
+
+            {!readOnly && (
+              <TabsContent value="transfer" className="mt-0">
+                <OpportunityTransferTab
+                  opportunityId={opportunity.id}
+                  currentAssignedTo={opportunity.assigned_to}
+                  onTransferred={() => onOpenChange(false)}
+                />
+              </TabsContent>
+            )}
           </div>
         </Tabs>
 
