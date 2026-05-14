@@ -47,7 +47,7 @@ const SEGMENT_LABEL: Record<string, string> = {
 };
 
 export default function AdminOpportunities() {
-  const { profile, user } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Opp[]>([]);
   const [loading, setLoading] = useState(true);
