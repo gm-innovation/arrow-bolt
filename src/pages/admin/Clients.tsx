@@ -39,12 +39,48 @@ interface Client {
   contact_person: string | null;
   parent_client_id: string | null;
   segment: string | null;
+  omie_client_id: string | number | null;
+  ignore_omie_sync: boolean | null;
   vessels: Array<{
     id: string;
     name: string;
     vessel_type: string | null;
   }>;
 }
+
+type BulkAction =
+  | "delete"
+  | "ignore_omie"
+  | "unignore_omie"
+  | "status_active"
+  | "status_inactive"
+  | "status_prospect"
+  | "status_churned";
+
+const STATUS_BY_ACTION: Record<string, string> = {
+  status_active: "active",
+  status_inactive: "inactive",
+  status_prospect: "prospect",
+  status_churned: "churned",
+};
+
+const BULK_LABELS: Record<string, string> = {
+  delete: "Excluir selecionados",
+  ignore_omie: "Ignorar na sincronização do Omie",
+  unignore_omie: "Voltar a sincronizar com Omie",
+  status_active: "Marcar como Ativo",
+  status_inactive: "Marcar como Inativo",
+  status_prospect: "Marcar como Prospect",
+  status_churned: "Marcar como Perdido",
+};
+
+const chunk = <T,>(arr: T[], size: number): T[][] => {
+  const out: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+};
+
+type OriginFilter = "all" | "manual" | "omie" | "omie_ignored";
 
 const PAGE_SIZE = 50;
 
