@@ -1,25 +1,28 @@
 ## Diagnóstico
-A página `/admin/opportunities` não mostra nada porque:
-1. **RLS** de `crm_opportunities` só dá acesso a `commercial`, `admin`, `manager` e `super_admin`. **Coordenadores não estão na lista** → nenhuma linha retorna mesmo se existir.
-2. A query da página filtra `segment = 'service'`, mas oportunidades convertidas pelo Comercial/Marketing são salvas com `segment = 'product'`.
+Consultando o banco:
+- 2 leads com `status='converted'` (Cahuã e Alexandre Silva).
+- Apenas o de **Cahuã** tem `opportunity_id` preenchido. O de **Alexandre Silva** ficou com `opportunity_id = NULL` — provavelmente foi marcado como convertido em fluxo antigo, mas a oportunidade não chegou a ser criada (ou foi excluída). Por isso só 1 card aparece no kanban.
+
+Além disso, o card no kanban **não tem ação de "Ver detalhes"** — só o `Select` de etapa e botões de OS, sem dialog com descrição/contato/origem.
 
 ## Mudanças
 
-### 1. RLS de `crm_opportunities` (migration)
-Adicionar policies:
-- **SELECT** para coordenadores e diretores: qualquer oportunidade da mesma `company_id`. Coordenador vê tudo (inclusive `product`) para acompanhar leads convertidos por outros times.
-- **INSERT/UPDATE/DELETE** para coordenadores: apenas oportunidades com `segment IN ('service','unknown')` ou `assigned_to = auth.uid()`. Diretor: tudo.
+### 1. Reparar leads "órfãos"
+Em `src/pages/admin/Leads.tsx`:
+- Quando abrir um lead com `status='converted'` mas `opportunity_id=NULL`, mostrar aviso + botão **"Criar oportunidade agora"** (mesma lógica do `ConvertLeadDialog`). Funciona para coordenador desde que `segment` seja `service`/`unknown`.
 
-### 2. `src/pages/admin/Opportunities.tsx`
-- Remover filtro fixo `segment = 'service'`. Buscar `service`, `unknown` e `product`.
-- Adicionar badge de segmento em cada card (Serviço / Indefinido / Produto).
-- Filtro no topo: "Todos / Serviço / Indefinido / Produto" (default: Serviço+Indefinido).
-- Cards de segmento `product` ficam **somente leitura**: sem `Select` de etapa, sem botão "Gerar OS"; mostra rótulo "Comercial/Marketing".
+### 2. Detalhes da oportunidade
+Em `src/pages/admin/Opportunities.tsx`:
+- Card vira clicável (botão "Ver detalhes" pequeno, ou clique no título) → abre `Dialog` com:
+  - Título, descrição completa, cliente, valor estimado, segmento, etapa atual, datas (criação, fechamento, atribuído).
+  - Link para o lead de origem (consulta `public_site_leads` por `opportunity_id`).
+  - Link para a OS gerada (se existir).
+  - Para `segment='product'`: tudo em modo somente leitura.
 
 ### Fora de escopo
+- Não muda RLS (já liberado para coordenador).
 - Não altera fluxo do Comercial.
-- Não muda schema (apenas RLS).
 
 ## Arquivos
-- Nova migration ajustando policies de `crm_opportunities`.
-- `src/pages/admin/Opportunities.tsx`.
+- `src/pages/admin/Opportunities.tsx` — adicionar dialog de detalhes.
+- `src/pages/admin/Leads.tsx` — botão "Criar oportunidade agora" para leads convertidos sem `opportunity_id`.
