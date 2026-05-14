@@ -68,7 +68,9 @@ export default function AdminLeads() {
 
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+  const [filterSegment, setFilterSegment] = useState<string>("all");
   const [filterMine, setFilterMine] = useState<boolean>(false);
+  const [filterConverted, setFilterConverted] = useState<boolean>(false);
 
   const load = async () => {
     setLoading(true);
@@ -114,10 +116,12 @@ export default function AdminLeads() {
     return items.filter((l) => {
       if (filterStatus !== "all" && l.status !== filterStatus) return false;
       if (filterSource !== "all" && l.source !== filterSource) return false;
+      if (filterSegment !== "all" && l.segment !== filterSegment) return false;
       if (filterMine && l.assigned_to !== profile?.id) return false;
+      if (filterConverted && l.status !== "converted") return false;
       return true;
     });
-  }, [items, filterStatus, filterSource, filterMine, profile?.id]);
+  }, [items, filterStatus, filterSource, filterSegment, filterMine, filterConverted, profile?.id]);
 
   const handleConverted = (leadId: string, opportunityId: string) => {
     setItems((prev) => prev.map((l) => l.id === leadId
@@ -171,6 +175,24 @@ export default function AdminLeads() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Segmento</Label>
+                <Select value={filterSegment} onValueChange={setFilterSegment}>
+                  <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {Object.entries(SEGMENT_LABEL).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                variant={filterConverted ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterConverted((v) => !v)}
+                className="h-8"
+              >
+                Apenas convertidos
+              </Button>
               <Button
                 variant={filterMine ? "default" : "outline"}
                 size="sm"
@@ -274,7 +296,11 @@ export default function AdminLeads() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Segmento</Label>
-                  <Select value={selected.segment} onValueChange={(v) => setSegment(selected.id, v)}>
+                  <Select
+                    value={selected.segment}
+                    onValueChange={(v) => setSegment(selected.id, v)}
+                    disabled={selected.segment === "product"}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.entries(SEGMENT_LABEL).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
@@ -283,7 +309,11 @@ export default function AdminLeads() {
                 </div>
                 <div className="space-y-1">
                   <Label className="text-xs">Status</Label>
-                  <Select value={selected.status} onValueChange={(v) => setStatus(selected.id, v)} disabled={!!selected.opportunity_id}>
+                  <Select
+                    value={selected.status}
+                    onValueChange={(v) => setStatus(selected.id, v)}
+                    disabled={!!selected.opportunity_id || selected.segment === "product"}
+                  >
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
                       {Object.entries(STATUS_LABEL).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
@@ -291,6 +321,12 @@ export default function AdminLeads() {
                   </Select>
                 </div>
               </div>
+
+              {selected.segment === "product" && (
+                <div className="p-3 border rounded bg-muted/40 text-xs text-muted-foreground">
+                  Lead pertence ao Comercial/Marketing — visualização somente leitura.
+                </div>
+              )}
 
               {selected.opportunity_id ? (
                 <div className="p-3 border border-primary/30 bg-primary/5 rounded flex items-center justify-between">
@@ -304,7 +340,7 @@ export default function AdminLeads() {
                     <Link to="/admin/opportunities">Ver oportunidade <ArrowRight className="w-4 h-4 ml-1" /></Link>
                   </Button>
                 </div>
-              ) : (
+              ) : selected.segment !== "product" ? (
                 <div className="flex gap-2">
                   {selected.assigned_to !== profile?.id && (
                     <Button variant="outline" className="flex-1" onClick={() => claim(selected.id)}>
@@ -315,7 +351,7 @@ export default function AdminLeads() {
                     <Sparkles className="w-4 h-4 mr-2" /> Converter em oportunidade
                   </Button>
                 </div>
-              )}
+              ) : null}
 
               <div className="text-xs text-muted-foreground pt-2 border-t">
                 Recebido em {format(new Date(selected.created_at), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
