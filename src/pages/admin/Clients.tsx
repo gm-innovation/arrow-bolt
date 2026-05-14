@@ -425,6 +425,12 @@ const Clients = () => {
                 Vinculado
               </Badge>
             )}
+            {client.ignore_omie_sync && (
+              <Badge variant="secondary" size="sm" className="gap-1">
+                <EyeOff className="h-3 w-3" />
+                Omie ignorado
+              </Badge>
+            )}
           </div>
           <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
             {client.email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{client.email}</span>}
