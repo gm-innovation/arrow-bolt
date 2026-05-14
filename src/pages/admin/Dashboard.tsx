@@ -11,6 +11,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { NewOrderDialog } from "@/components/admin/orders/NewOrderDialog";
 import { useForm } from "react-hook-form";
 import { PushNotificationPrompt } from "@/components/notifications/PushNotificationPrompt";
+import { CrmDashboardCards } from "@/components/admin/dashboard/CrmDashboardCards";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -65,6 +66,7 @@ const AdminDashboard = () => {
             </div>
           </div>
 
+          {!isCalendarExpanded && <CrmDashboardCards />}
           {!isCalendarExpanded && <DashboardStats />}
         </>
       )}
