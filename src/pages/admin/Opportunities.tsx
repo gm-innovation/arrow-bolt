@@ -47,14 +47,33 @@ const SEGMENT_LABEL: Record<string, string> = {
 };
 
 export default function AdminOpportunities() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Opp[]>([]);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Opp | null>(null);
-  const [detail, setDetail] = useState<Opp | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [lossReason, setLossReason] = useState("");
   const [filterSegment, setFilterSegment] = useState<string>("service_unknown");
+
+  const { opportunities, updateOpportunity, deleteOpportunity } = useOpportunities();
+  const { buyers } = useBuyers();
+  const { data: clientsList = [] } = useQuery({
+    queryKey: ["admin-opps-clients", user?.id],
+    queryFn: async () => {
+      const { data: prof } = await supabase.from("profiles").select("company_id").eq("id", user!.id).single();
+      if (!prof?.company_id) return [];
+      const { data } = await supabase.from("clients").select("id, name").eq("company_id", prof.company_id).order("name");
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const detailOpp = useMemo<Opportunity | null>(
+    () => (detailId ? opportunities.find((o) => o.id === detailId) ?? null : null),
+    [detailId, opportunities],
+  );
+  const detailSegment = useMemo(() => items.find((o) => o.id === detailId)?.segment ?? "service", [items, detailId]);
 
   const load = async () => {
     setLoading(true);
