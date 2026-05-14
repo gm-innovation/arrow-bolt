@@ -640,6 +640,36 @@ const Clients = () => {
       </AlertDialog>
 
       <ClientGroupDialog open={groupDialogOpen} onOpenChange={setGroupDialogOpen} selectedClients={selectedClients} onConfirm={handleGroup} isLoading={groupLoading} />
+
+      <AlertDialog open={bulkConfirmOpen} onOpenChange={setBulkConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{bulkAction ? BULK_LABELS[bulkAction] : ""}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação afetará <strong>{selectedIds.size}</strong> cliente(s).
+              {bulkAction === "delete" && " A exclusão é permanente. Embarcações associadas também serão removidas. Clientes com OS, oportunidades ou outros vínculos não poderão ser removidos."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {bulkAction === "delete" && selectedHasOmie && (
+            <div className="flex items-start gap-2 rounded-md border p-3 bg-muted/40">
+              <Checkbox
+                id="blocklist"
+                checked={alsoBlocklist}
+                onCheckedChange={(v) => setAlsoBlocklist(!!v)}
+              />
+              <Label htmlFor="blocklist" className="text-sm font-normal leading-snug cursor-pointer">
+                Marcar também para <strong>ignorar nas próximas sincronizações do Omie</strong> (impede que voltem a ser criados).
+              </Label>
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkRunning}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={runBulk} disabled={bulkRunning}>
+              {bulkRunning ? "Aplicando..." : "Confirmar"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
