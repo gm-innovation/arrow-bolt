@@ -1,11 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Eye, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Link2, Unlink, ChevronRight, Building2 } from "lucide-react";
+import { Pencil, Eye, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Link2, Unlink, ChevronRight, Building2, Trash2, BanIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 
@@ -41,6 +41,8 @@ interface Client {
   source: string | null;
   notes: string | null;
   parent_client_id?: string | null;
+  omie_client_id?: string | number | null;
+  ignore_omie_sync?: boolean | null;
 }
 
 interface Props {
@@ -50,6 +52,8 @@ interface Props {
   onRowClick?: (client: Client) => void;
   selectedIds: Set<string>;
   onSelectionChange: (ids: Set<string>) => void;
+  canManage?: boolean;
+  onDelete?: (id: string) => void;
 }
 
 type SortKey = 'name' | 'annual_revenue' | 'last_contact_date';
@@ -60,22 +64,41 @@ const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => {
   return dir === 'asc' ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
 };
 
-export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedIds, onSelectionChange }: Props) => {
+// Checkbox que suporta estado "indeterminado"
+const TriCheckbox = ({
+  checked, indeterminate, onCheckedChange,
+}: { checked: boolean; indeterminate: boolean; onCheckedChange: (v: boolean) => void }) => {
+  const ref = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const el = ref.current?.querySelector('input') as HTMLInputElement | null;
+    if (el) el.indeterminate = indeterminate && !checked;
+    if (ref.current) (ref.current as any).dataset.indeterminate = String(indeterminate && !checked);
+  }, [indeterminate, checked]);
+  return (
+    <Checkbox
+      ref={ref as any}
+      checked={checked}
+      onCheckedChange={(v) => onCheckedChange(!!v)}
+      className={indeterminate && !checked ? "data-[state=unchecked]:bg-primary/30" : ""}
+    />
+  );
+};
+
+export const ClientsTable = ({
+  clients, isLoading, onEdit, onRowClick, selectedIds, onSelectionChange, canManage = false, onDelete,
+}: Props) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [segmentFilter, setSegmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [originFilter, setOriginFilter] = useState<'all' | 'omie' | 'manual' | 'ignored'>('all');
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showGrouped, setShowGrouped] = useState(true);
 
   const toggleSort = (key: SortKey) => {
-    if (sortKey === key) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortKey(key);
-      setSortDir('asc');
-    }
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('asc'); }
   };
 
   const segments = useMemo(() => {
@@ -83,7 +106,6 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedI
     return Array.from(unique) as string[];
   }, [clients]);
 
-  // Build parent-children map
   const childrenMap = useMemo(() => {
     const map = new Map<string, Client[]>();
     clients.forEach(c => {
@@ -101,9 +123,13 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedI
       const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || (c.cnpj || '').includes(search);
       const matchSegment = segmentFilter === 'all' || c.segment === segmentFilter;
       const matchStatus = statusFilter === 'all' || c.commercial_status === statusFilter;
-      // When grouped view, hide children (they show nested under parent)
+      const matchOrigin =
+        originFilter === 'all' ? true :
+        originFilter === 'omie' ? !!c.omie_client_id :
+        originFilter === 'manual' ? !c.omie_client_id :
+        originFilter === 'ignored' ? !!c.ignore_omie_sync : true;
       const isChild = showGrouped && c.parent_client_id;
-      return matchSearch && matchSegment && matchStatus && !isChild;
+      return matchSearch && matchSegment && matchStatus && matchOrigin && !isChild;
     });
 
     if (sortKey) {
@@ -117,7 +143,12 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedI
     }
 
     return result;
-  }, [clients, search, segmentFilter, statusFilter, sortKey, sortDir, showGrouped]);
+  }, [clients, search, segmentFilter, statusFilter, originFilter, sortKey, sortDir, showGrouped]);
+
+  const filteredIds = useMemo(() => filtered.map(c => c.id), [filtered]);
+  const selectedInFiltered = filteredIds.filter(id => selectedIds.has(id)).length;
+  const allFilteredSelected = filteredIds.length > 0 && selectedInFiltered === filteredIds.length;
+  const someFilteredSelected = selectedInFiltered > 0 && !allFilteredSelected;
 
   const toggleSelect = (id: string) => {
     const next = new Set(selectedIds);
@@ -125,17 +156,23 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedI
     onSelectionChange(next);
   };
 
-  const toggleAll = () => {
-    if (selectedIds.size === filtered.length) {
-      onSelectionChange(new Set());
-    } else {
-      onSelectionChange(new Set(filtered.map(c => c.id)));
-    }
+  const toggleAllFiltered = (v: boolean) => {
+    const next = new Set(selectedIds);
+    if (v) filteredIds.forEach(id => next.add(id));
+    else filteredIds.forEach(id => next.delete(id));
+    onSelectionChange(next);
   };
 
   const exportCSV = () => {
-    const headers = ['Nome', 'CNPJ', 'Segmento', 'Status', 'Receita Anual', 'Email', 'Telefone'];
-    const rows = filtered.map(c => [c.name, c.cnpj || '', c.segment || '', STATUS_LABELS[c.commercial_status || ''] || '', c.annual_revenue || '', c.email || '', c.phone || '']);
+    const source = selectedIds.size > 0 ? clients.filter(c => selectedIds.has(c.id)) : filtered;
+    const headers = ['Nome', 'CNPJ', 'Segmento', 'Status', 'Receita Anual', 'Email', 'Telefone', 'Origem', 'Ignorar Omie'];
+    const rows = source.map(c => [
+      c.name, c.cnpj || '', c.segment || '',
+      STATUS_LABELS[c.commercial_status || ''] || '',
+      c.annual_revenue || '', c.email || '', c.phone || '',
+      c.omie_client_id ? 'Omie' : 'Manual',
+      c.ignore_omie_sync ? 'Sim' : 'Não',
+    ]);
     const csv = [headers.join(';'), ...rows.map(r => r.join(';'))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -156,24 +193,28 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedI
         onClick={() => onRowClick?.(client)}
       >
         <TableCell className="w-10" onClick={e => e.stopPropagation()}>
-          <Checkbox
-            checked={selectedIds.has(client.id)}
-            onCheckedChange={() => toggleSelect(client.id)}
-          />
+          <Checkbox checked={selectedIds.has(client.id)} onCheckedChange={() => toggleSelect(client.id)} />
         </TableCell>
         <TableCell className="font-medium">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {isChild && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
             {client.name}
             {hasChildren && showGrouped && (
               <Badge variant="outline" className="text-xs gap-1">
-                <Building2 className="h-3 w-3" />
-                {children.length}
+                <Building2 className="h-3 w-3" />{children.length}
               </Badge>
             )}
             {client.parent_client_id && !showGrouped && (
               <Badge variant="outline" className="text-xs gap-1">
                 <Link2 className="h-3 w-3" /> Agrupado
+              </Badge>
+            )}
+            {client.omie_client_id && (
+              <Badge variant="outline" className="text-xs">Omie</Badge>
+            )}
+            {client.ignore_omie_sync && (
+              <Badge variant="outline" className="text-xs gap-1 border-amber-300 text-amber-700">
+                <BanIcon className="h-3 w-3" /> Omie ignorado
               </Badge>
             )}
           </div>
@@ -197,6 +238,17 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedI
             <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); navigate(`/commercial/opportunities?client=${client.id}`); }} title="Ver Oportunidades">
               <Eye className="h-4 w-4" />
             </Button>
+            {canManage && onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={(e) => { e.stopPropagation(); onDelete(client.id); }}
+                title="Excluir"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </TableCell>
       </TableRow>
@@ -205,31 +257,38 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedI
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[220px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por nome ou CNPJ..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
         <Select value={segmentFilter} onValueChange={setSegmentFilter}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Segmento" /></SelectTrigger>
+          <SelectTrigger className="w-[170px]"><SelectValue placeholder="Segmento" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os segmentos</SelectItem>
             {segments.map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
             {Object.entries(STATUS_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
+        <Select value={originFilter} onValueChange={(v) => setOriginFilter(v as any)}>
+          <SelectTrigger className="w-[170px]"><SelectValue placeholder="Origem" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas as origens</SelectItem>
+            <SelectItem value="omie">Omie</SelectItem>
+            <SelectItem value="manual">Manual</SelectItem>
+            <SelectItem value="ignored">Omie ignorado</SelectItem>
+          </SelectContent>
+        </Select>
         <Button
-          variant={showGrouped ? "default" : "outline"}
-          size="sm"
+          variant={showGrouped ? "default" : "outline"} size="sm"
           onClick={() => setShowGrouped(!showGrouped)}
-          title="Alternar visualização agrupada"
-          className="gap-1"
+          title="Alternar visualização agrupada" className="gap-1"
         >
           <Building2 className="h-4 w-4" />
           <span className="hidden sm:inline">Agrupados</span>
@@ -249,9 +308,10 @@ export const ClientsTable = ({ clients, isLoading, onEdit, onRowClick, selectedI
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10">
-                  <Checkbox
-                    checked={filtered.length > 0 && selectedIds.size === filtered.length}
-                    onCheckedChange={toggleAll}
+                  <TriCheckbox
+                    checked={allFilteredSelected}
+                    indeterminate={someFilteredSelected}
+                    onCheckedChange={toggleAllFiltered}
                   />
                 </TableHead>
                 <TableHead>
