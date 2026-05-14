@@ -105,8 +105,15 @@ const Clients = () => {
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [groupLoading, setGroupLoading] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const { user } = useAuth();
+  const [originFilter, setOriginFilter] = useState<OriginFilter>("all");
+  const [bulkAction, setBulkAction] = useState<BulkAction | "">("");
+  const [bulkConfirmOpen, setBulkConfirmOpen] = useState(false);
+  const [alsoBlocklist, setAlsoBlocklist] = useState(true);
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
+
+  const canManage = userRole === "coordinator" || userRole === "super_admin";
 
   // Get company_id once
   useEffect(() => {
