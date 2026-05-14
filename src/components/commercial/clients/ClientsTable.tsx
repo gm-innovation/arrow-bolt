@@ -41,7 +41,7 @@ interface Client {
   source: string | null;
   notes: string | null;
   parent_client_id?: string | null;
-  omie_client_id?: string | null;
+  omie_client_id?: string | number | null;
   ignore_omie_sync?: boolean | null;
 }
 
