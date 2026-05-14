@@ -66,15 +66,21 @@ export default function AdminOpportunities() {
 
   useEffect(() => { load(); }, []);
 
+  const filtered = useMemo(() => {
+    if (filterSegment === "all") return items;
+    if (filterSegment === "service_unknown") return items.filter((o) => o.segment === "service" || o.segment === "unknown");
+    return items.filter((o) => o.segment === filterSegment);
+  }, [items, filterSegment]);
+
   const grouped = useMemo(() => {
     const map: Record<string, Opp[]> = {};
     for (const s of STAGES) map[s.value] = [];
-    for (const o of items) {
+    for (const o of filtered) {
       if (!map[o.stage]) map[o.stage] = [];
       map[o.stage].push(o);
     }
     return map;
-  }, [items]);
+  }, [filtered]);
 
   const moveStage = async (opp: Opp, stage: string) => {
     if (stage === "closed_lost") {
