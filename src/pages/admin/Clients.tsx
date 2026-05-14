@@ -136,12 +136,20 @@ const Clients = () => {
       // Build query with server-side search
       let query = supabase
         .from("clients")
-        .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, vessels (id, name, vessel_type)`, { count: "exact" })
+        .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, omie_client_id, ignore_omie_sync, vessels (id, name, vessel_type)`, { count: "exact" })
         .eq("company_id", companyId)
         .order("name");
 
       if (debouncedSearch.length >= 2) {
         query = query.ilike("name", `%${debouncedSearch}%`);
+      }
+
+      if (originFilter === "manual") {
+        query = query.is("omie_client_id", null);
+      } else if (originFilter === "omie") {
+        query = query.not("omie_client_id", "is", null).eq("ignore_omie_sync", false);
+      } else if (originFilter === "omie_ignored") {
+        query = query.eq("ignore_omie_sync", true);
       }
 
       // Pagination
