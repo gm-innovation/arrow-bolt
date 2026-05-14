@@ -159,7 +159,12 @@ export default function AdminOpportunities() {
                 <div className="text-xs text-muted-foreground text-center py-4">—</div>
               ) : grouped[s.value].map((o) => (
                 <div key={o.id} className="rounded border p-2 space-y-1.5 bg-background">
-                  <div className="text-sm font-medium line-clamp-2" title={o.title}>{o.title}</div>
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="text-sm font-medium line-clamp-2 flex-1" title={o.title}>{o.title}</div>
+                    <Badge variant={o.segment === "service" ? "default" : o.segment === "product" ? "secondary" : "outline"} className="text-[10px] shrink-0">
+                      {SEGMENT_LABEL[o.segment]}
+                    </Badge>
+                  </div>
                   <div className="text-xs text-muted-foreground truncate">{o.clients?.name ?? "—"}</div>
                   {o.estimated_value != null && (
                     <div className="text-xs font-mono">
@@ -169,23 +174,29 @@ export default function AdminOpportunities() {
                   <div className="text-[10px] text-muted-foreground">
                     {format(new Date(o.created_at), "dd/MM/yy", { locale: ptBR })}
                   </div>
-                  <div className="flex gap-1 pt-1">
-                    <Select value={o.stage} onValueChange={(v) => moveStage(o, v)}>
-                      <SelectTrigger className="h-7 text-xs flex-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {STAGES.map((st) => <SelectItem key={st.value} value={st.value}>{st.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {o.stage === "closed_won" && !o.service_order_id && (
-                    <Button size="sm" className="w-full h-7 text-xs" onClick={() => generateOS(o)}>
-                      <ClipboardList className="w-3 h-3 mr-1" /> Gerar OS
-                    </Button>
-                  )}
-                  {o.service_order_id && (
-                    <Button asChild size="sm" variant="outline" className="w-full h-7 text-xs">
-                      <Link to="/admin/orders">Ver OS <ArrowRight className="w-3 h-3 ml-1" /></Link>
-                    </Button>
+                  {o.segment === "product" ? (
+                    <div className="text-[10px] text-muted-foreground italic pt-1">Somente leitura — gerida pelo Comercial/Marketing</div>
+                  ) : (
+                    <>
+                      <div className="flex gap-1 pt-1">
+                        <Select value={o.stage} onValueChange={(v) => moveStage(o, v)}>
+                          <SelectTrigger className="h-7 text-xs flex-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STAGES.map((st) => <SelectItem key={st.value} value={st.value}>{st.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {o.stage === "closed_won" && !o.service_order_id && (
+                        <Button size="sm" className="w-full h-7 text-xs" onClick={() => generateOS(o)}>
+                          <ClipboardList className="w-3 h-3 mr-1" /> Gerar OS
+                        </Button>
+                      )}
+                      {o.service_order_id && (
+                        <Button asChild size="sm" variant="outline" className="w-full h-7 text-xs">
+                          <Link to="/admin/orders">Ver OS <ArrowRight className="w-3 h-3 ml-1" /></Link>
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               ))}
