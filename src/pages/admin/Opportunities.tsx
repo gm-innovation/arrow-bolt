@@ -31,9 +31,16 @@ interface Opp {
   client_id: string;
   service_order_id: string | null;
   assigned_to: string | null;
+  segment: "service" | "product" | "unknown";
   created_at: string;
   clients?: { name: string } | null;
 }
+
+const SEGMENT_LABEL: Record<string, string> = {
+  service: "Serviço",
+  product: "Comercial/Marketing",
+  unknown: "Indefinido",
+};
 
 export default function AdminOpportunities() {
   const { profile } = useAuth();
@@ -42,13 +49,14 @@ export default function AdminOpportunities() {
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Opp | null>(null);
   const [lossReason, setLossReason] = useState("");
+  const [filterSegment, setFilterSegment] = useState<string>("service_unknown");
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("crm_opportunities")
-      .select("id, title, description, stage, estimated_value, client_id, service_order_id, assigned_to, created_at, clients ( name )")
-      .eq("segment", "service")
+      .select("id, title, description, stage, estimated_value, client_id, service_order_id, assigned_to, segment, created_at, clients ( name )")
+      .in("segment", ["service", "unknown", "product"])
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) toast.error(error.message);
