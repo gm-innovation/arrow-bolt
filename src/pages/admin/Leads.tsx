@@ -175,6 +175,24 @@ export default function AdminLeads() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Segmento</Label>
+                <Select value={filterSegment} onValueChange={setFilterSegment}>
+                  <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {Object.entries(SEGMENT_LABEL).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                variant={filterConverted ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilterConverted((v) => !v)}
+                className="h-8"
+              >
+                Apenas convertidos
+              </Button>
               <Button
                 variant={filterMine ? "default" : "outline"}
                 size="sm"
