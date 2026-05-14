@@ -18,6 +18,7 @@ import { useOpportunityActivities } from "@/hooks/useOpportunities";
 import { OpportunityActivitiesTab } from "./OpportunityActivitiesTab";
 import { OpportunityTasksTab } from "./OpportunityTasksTab";
 import { OpportunityProductsTab } from "./OpportunityProductsTab";
+import { OpportunityTransferTab } from "./OpportunityTransferTab";
 import type { Opportunity } from "@/hooks/useOpportunities";
 
 const STAGES = [
@@ -205,11 +206,12 @@ export const EditOpportunitySheet = ({
 
         {/* Tabs */}
         <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col overflow-hidden">
-          <TabsList className="mx-6 mt-4 grid grid-cols-4 w-auto">
+          <TabsList className={cn("mx-6 mt-4 grid w-auto", readOnly ? "grid-cols-4" : "grid-cols-5") }>
             <TabsTrigger value="details">Detalhes</TabsTrigger>
             <TabsTrigger value="activities">Histórico</TabsTrigger>
             <TabsTrigger value="tasks">Tarefas</TabsTrigger>
             <TabsTrigger value="products">Itens</TabsTrigger>
+            {!readOnly && <TabsTrigger value="transfer">Transferência</TabsTrigger>}
           </TabsList>
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
@@ -354,6 +356,16 @@ export const EditOpportunitySheet = ({
                 onApplyTotal={(t) => { set("estimated_value", t); setTab("details"); }}
               />
             </TabsContent>
+
+            {!readOnly && (
+              <TabsContent value="transfer" className="mt-0">
+                <OpportunityTransferTab
+                  opportunityId={opportunity.id}
+                  currentAssignedTo={opportunity.assigned_to}
+                  onTransferred={() => onOpenChange(false)}
+                />
+              </TabsContent>
+            )}
           </div>
         </Tabs>
 
