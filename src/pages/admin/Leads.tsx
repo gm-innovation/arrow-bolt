@@ -116,10 +116,12 @@ export default function AdminLeads() {
     return items.filter((l) => {
       if (filterStatus !== "all" && l.status !== filterStatus) return false;
       if (filterSource !== "all" && l.source !== filterSource) return false;
+      if (filterSegment !== "all" && l.segment !== filterSegment) return false;
       if (filterMine && l.assigned_to !== profile?.id) return false;
+      if (filterConverted && l.status !== "converted") return false;
       return true;
     });
-  }, [items, filterStatus, filterSource, filterMine, profile?.id]);
+  }, [items, filterStatus, filterSource, filterSegment, filterMine, filterConverted, profile?.id]);
 
   const handleConverted = (leadId: string, opportunityId: string) => {
     setItems((prev) => prev.map((l) => l.id === leadId
