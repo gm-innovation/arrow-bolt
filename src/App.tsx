@@ -49,6 +49,8 @@ const AuditLogs = lazy(() => import("./pages/admin/AuditLogs"));
 const Checklists = lazy(() => import("./pages/admin/Checklists"));
 const TechnicianLocations = lazy(() => import("./pages/admin/TechnicianLocations"));
 const TechnicianReservations = lazy(() => import("./pages/admin/TechnicianReservations"));
+const AdminLeads = lazy(() => import("./pages/admin/Leads"));
+const AdminOpportunities = lazy(() => import("./pages/admin/Opportunities"));
 
 const ManagerDashboard = lazy(() => import("./pages/manager/Dashboard"));
 const ManagerCoordinators = lazy(() => import("./pages/manager/Coordinators"));
@@ -250,6 +252,8 @@ const App = () => {
                     <Route path="/admin/technician-locations" element={<TechnicianLocations />} />
                     <Route path="/admin/audit-logs" element={<AuditLogs />} />
                     <Route path="/admin/reservations" element={<TechnicianReservations />} />
+                    <Route path="/admin/leads" element={<AdminLeads />} />
+                    <Route path="/admin/opportunities" element={<AdminOpportunities />} />
                     <Route path="/admin/chat" element={<Chat />} />
                     <Route path="/admin/install" element={<InstallApp />} />
                   </Route>
