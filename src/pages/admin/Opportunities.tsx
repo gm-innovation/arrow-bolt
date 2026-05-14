@@ -184,7 +184,7 @@ export default function AdminOpportunities() {
               ) : grouped[s.value].map((o) => (
                 <div key={o.id} className="rounded border p-2 space-y-1.5 bg-background">
                   <div className="flex items-start justify-between gap-1">
-                    <button type="button" onClick={() => setDetail(o)} className="text-sm font-medium line-clamp-2 flex-1 text-left hover:underline" title={o.title}>
+                    <button type="button" onClick={() => setDetailId(o.id)} className="text-sm font-medium line-clamp-2 flex-1 text-left hover:underline" title={o.title}>
                       {o.title}
                     </button>
                     <Badge variant={o.segment === "service" ? "default" : o.segment === "product" ? "secondary" : "outline"} className="text-[10px] shrink-0">
@@ -201,7 +201,7 @@ export default function AdminOpportunities() {
                     <div className="text-[10px] text-muted-foreground">
                       {format(new Date(o.created_at), "dd/MM/yy", { locale: ptBR })}
                     </div>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={() => setDetail(o)}>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={() => setDetailId(o.id)}>
                       <Eye className="w-3 h-3 mr-1" /> Detalhes
                     </Button>
                   </div>
