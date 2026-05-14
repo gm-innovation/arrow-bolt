@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { ClipboardList, ArrowRight, Eye, Mail, Phone, Building2 } from "lucide-react";
+import { ClipboardList, ArrowRight, Eye } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useOpportunities, type Opportunity } from "@/hooks/useOpportunities";
+import { useBuyers } from "@/hooks/useBuyers";
+import { EditOpportunitySheet } from "@/components/commercial/opportunities/EditOpportunitySheet";
 
 const STAGES = [
   { value: "qualified", label: "Qualificado", color: "bg-blue-500/10 text-blue-700" },
