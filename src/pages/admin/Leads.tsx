@@ -68,7 +68,9 @@ export default function AdminLeads() {
 
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterSource, setFilterSource] = useState<string>("all");
+  const [filterSegment, setFilterSegment] = useState<string>("all");
   const [filterMine, setFilterMine] = useState<boolean>(false);
+  const [filterConverted, setFilterConverted] = useState<boolean>(false);
 
   const load = async () => {
     setLoading(true);
