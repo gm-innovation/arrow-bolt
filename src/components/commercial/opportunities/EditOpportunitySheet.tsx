@@ -80,6 +80,7 @@ interface Props {
   onSave: (data: Record<string, any>) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
 export const EditOpportunitySheet = ({
@@ -91,6 +92,7 @@ export const EditOpportunitySheet = ({
   onSave,
   onDelete,
   isLoading,
+  readOnly = false,
 }: Props) => {
   const [form, setForm] = useState<Record<string, any>>({});
   const [closeDate, setCloseDate] = useState<Date | undefined>();
