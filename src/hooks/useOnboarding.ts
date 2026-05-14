@@ -212,12 +212,9 @@ export const usePublicOnboarding = (token?: string) => {
     queryKey: ['public-onboarding', token],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from('employee_onboarding')
-        .select('*')
-        .eq('access_token', token)
-        .maybeSingle();
+        .rpc('get_onboarding_by_token', { _token: token });
       if (error) throw error;
-      return data;
+      return Array.isArray(data) ? data[0] ?? null : data;
     },
     enabled: !!token,
   });
