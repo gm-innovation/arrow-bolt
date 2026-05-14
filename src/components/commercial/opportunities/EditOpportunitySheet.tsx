@@ -80,6 +80,7 @@ interface Props {
   onSave: (data: Record<string, any>) => void;
   onDelete: (id: string) => void;
   isLoading?: boolean;
+  readOnly?: boolean;
 }
 
 export const EditOpportunitySheet = ({
@@ -91,6 +92,7 @@ export const EditOpportunitySheet = ({
   onSave,
   onDelete,
   isLoading,
+  readOnly = false,
 }: Props) => {
   const [form, setForm] = useState<Record<string, any>>({});
   const [closeDate, setCloseDate] = useState<Date | undefined>();
@@ -212,6 +214,7 @@ export const EditOpportunitySheet = ({
 
           <div className="flex-1 overflow-y-auto px-6 py-4">
             <TabsContent value="details" className="mt-0 space-y-4">
+              <fieldset disabled={readOnly} className="space-y-4 disabled:opacity-95">
               <div className="space-y-2">
                 <Label>Título *</Label>
                 <Input value={form.title || ""} onChange={(e) => set("title", e.target.value)} />
@@ -334,6 +337,7 @@ export const EditOpportunitySheet = ({
                   placeholder="Observações privadas da equipe comercial"
                 />
               </div>
+              </fieldset>
             </TabsContent>
 
             <TabsContent value="activities" className="mt-0">
@@ -354,17 +358,24 @@ export const EditOpportunitySheet = ({
         </Tabs>
 
         {/* Footer (sticky) */}
-        <div className="flex items-center justify-between gap-2 px-6 py-4 border-t bg-background">
-          <Button variant="destructive" size="sm" onClick={() => { onDelete(opportunity.id); onOpenChange(false); }}>
-            <Trash2 className="h-4 w-4 mr-2" /> Excluir
-          </Button>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button onClick={handleSave} disabled={!form.title || !form.client_id || isLoading}>
-              {isLoading ? "Salvando..." : "Salvar Alterações"}
-            </Button>
+        {readOnly ? (
+          <div className="flex items-center justify-between gap-2 px-6 py-4 border-t bg-background">
+            <p className="text-xs text-muted-foreground italic">Somente leitura — gerida pelo Comercial/Marketing</p>
+            <Button variant="outline" onClick={() => onOpenChange(false)}>Fechar</Button>
           </div>
-        </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2 px-6 py-4 border-t bg-background">
+            <Button variant="destructive" size="sm" onClick={() => { onDelete(opportunity.id); onOpenChange(false); }}>
+              <Trash2 className="h-4 w-4 mr-2" /> Excluir
+            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+              <Button onClick={handleSave} disabled={!form.title || !form.client_id || isLoading}>
+                {isLoading ? "Salvando..." : "Salvar Alterações"}
+              </Button>
+            </div>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );

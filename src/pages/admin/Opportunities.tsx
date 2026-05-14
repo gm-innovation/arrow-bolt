@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,8 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
-import { ClipboardList, ArrowRight, Eye, Mail, Phone, Building2 } from "lucide-react";
+import { ClipboardList, ArrowRight, Eye } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { useOpportunities, type Opportunity } from "@/hooks/useOpportunities";
+import { useBuyers } from "@/hooks/useBuyers";
+import { EditOpportunitySheet } from "@/components/commercial/opportunities/EditOpportunitySheet";
 
 const STAGES = [
   { value: "qualified", label: "Qualificado", color: "bg-blue-500/10 text-blue-700" },
@@ -43,14 +47,33 @@ const SEGMENT_LABEL: Record<string, string> = {
 };
 
 export default function AdminOpportunities() {
-  const { profile } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Opp[]>([]);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Opp | null>(null);
-  const [detail, setDetail] = useState<Opp | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [lossReason, setLossReason] = useState("");
   const [filterSegment, setFilterSegment] = useState<string>("service_unknown");
+
+  const { opportunities, updateOpportunity, deleteOpportunity } = useOpportunities();
+  const { buyers } = useBuyers();
+  const { data: clientsList = [] } = useQuery({
+    queryKey: ["admin-opps-clients", user?.id],
+    queryFn: async () => {
+      const { data: prof } = await supabase.from("profiles").select("company_id").eq("id", user!.id).single();
+      if (!prof?.company_id) return [];
+      const { data } = await supabase.from("clients").select("id, name").eq("company_id", prof.company_id).order("name");
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const detailOpp = useMemo<Opportunity | null>(
+    () => (detailId ? opportunities.find((o) => o.id === detailId) ?? null : null),
+    [detailId, opportunities],
+  );
+  const detailSegment = useMemo(() => items.find((o) => o.id === detailId)?.segment ?? "service", [items, detailId]);
 
   const load = async () => {
     setLoading(true);
@@ -161,7 +184,7 @@ export default function AdminOpportunities() {
               ) : grouped[s.value].map((o) => (
                 <div key={o.id} className="rounded border p-2 space-y-1.5 bg-background">
                   <div className="flex items-start justify-between gap-1">
-                    <button type="button" onClick={() => setDetail(o)} className="text-sm font-medium line-clamp-2 flex-1 text-left hover:underline" title={o.title}>
+                    <button type="button" onClick={() => setDetailId(o.id)} className="text-sm font-medium line-clamp-2 flex-1 text-left hover:underline" title={o.title}>
                       {o.title}
                     </button>
                     <Badge variant={o.segment === "service" ? "default" : o.segment === "product" ? "secondary" : "outline"} className="text-[10px] shrink-0">
@@ -178,7 +201,7 @@ export default function AdminOpportunities() {
                     <div className="text-[10px] text-muted-foreground">
                       {format(new Date(o.created_at), "dd/MM/yy", { locale: ptBR })}
                     </div>
-                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={() => setDetail(o)}>
+                    <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]" onClick={() => setDetailId(o.id)}>
                       <Eye className="w-3 h-3 mr-1" /> Detalhes
                     </Button>
                   </div>
@@ -227,85 +250,25 @@ export default function AdminOpportunities() {
         </DialogContent>
       </Dialog>
 
-      <OpportunityDetailDialog opp={detail} onClose={() => setDetail(null)} />
+      <EditOpportunitySheet
+        open={!!detailId}
+        onOpenChange={(v) => { if (!v) setDetailId(null); }}
+        opportunity={detailOpp}
+        clients={clientsList}
+        buyers={buyers}
+        readOnly={detailSegment === "product"}
+        onSave={(data) => {
+          updateOpportunity.mutate(data, {
+            onSuccess: () => { setDetailId(null); load(); },
+          });
+        }}
+        onDelete={(id) => {
+          deleteOpportunity.mutate(id, {
+            onSuccess: () => { setDetailId(null); load(); },
+          });
+        }}
+        isLoading={updateOpportunity.isPending}
+      />
     </div>
-  );
-}
-
-function OpportunityDetailDialog({ opp, onClose }: { opp: Opp | null; onClose: () => void }) {
-  const [lead, setLead] = useState<{ id: string; name: string; email: string; phone: string | null; company_name: string | null; source: string; created_at: string } | null>(null);
-
-  useEffect(() => {
-    if (!opp) { setLead(null); return; }
-    (async () => {
-      const { data } = await supabase
-        .from("public_site_leads")
-        .select("id, name, email, phone, company_name, source, created_at")
-        .eq("opportunity_id", opp.id)
-        .maybeSingle();
-      setLead(data as typeof lead);
-    })();
-  }, [opp]);
-
-  if (!opp) return null;
-  const stageLabel = STAGES.find((s) => s.value === opp.stage)?.label ?? opp.stage;
-
-  return (
-    <Dialog open={!!opp} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-start gap-2 pr-6">
-            <span className="flex-1">{opp.title}</span>
-            <Badge variant={opp.segment === "service" ? "default" : opp.segment === "product" ? "secondary" : "outline"} className="text-[10px] shrink-0">
-              {SEGMENT_LABEL[opp.segment]}
-            </Badge>
-          </DialogTitle>
-        </DialogHeader>
-        <div className="space-y-4 text-sm">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="text-xs text-muted-foreground">Cliente</div>
-              <div className="font-medium flex items-center gap-1"><Building2 className="w-3.5 h-3.5" />{opp.clients?.name ?? "—"}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Etapa</div>
-              <div className="font-medium">{stageLabel}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Valor estimado</div>
-              <div className="font-mono">{opp.estimated_value != null ? `R$ ${opp.estimated_value.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}` : "—"}</div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Criada em</div>
-              <div>{format(new Date(opp.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</div>
-            </div>
-          </div>
-
-          {opp.description && (
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Descrição</div>
-              <div className="p-3 bg-muted rounded whitespace-pre-wrap text-sm">{opp.description}</div>
-            </div>
-          )}
-
-          {lead && (
-            <div className="border rounded p-3 space-y-1.5 bg-muted/30">
-              <div className="text-xs text-muted-foreground">Lead de origem</div>
-              <div className="font-medium">{lead.name}</div>
-              <div className="flex items-center gap-1 text-xs"><Mail className="w-3 h-3" />{lead.email}</div>
-              {lead.phone && <div className="flex items-center gap-1 text-xs"><Phone className="w-3 h-3" />{lead.phone}</div>}
-              {lead.company_name && <div className="flex items-center gap-1 text-xs"><Building2 className="w-3 h-3" />{lead.company_name}</div>}
-              <div className="text-xs text-muted-foreground">Origem: {lead.source} • {format(new Date(lead.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</div>
-            </div>
-          )}
-
-          {opp.service_order_id && (
-            <Button asChild variant="outline" className="w-full">
-              <Link to="/admin/orders">Ver OS gerada <ArrowRight className="w-4 h-4 ml-1" /></Link>
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
