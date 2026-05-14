@@ -48,6 +48,7 @@ export default function AdminOpportunities() {
   const [items, setItems] = useState<Opp[]>([]);
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Opp | null>(null);
+  const [detail, setDetail] = useState<Opp | null>(null);
   const [lossReason, setLossReason] = useState("");
   const [filterSegment, setFilterSegment] = useState<string>("service_unknown");
 
