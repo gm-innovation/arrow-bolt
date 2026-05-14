@@ -257,6 +257,7 @@ export default function AdminOpportunities() {
         clients={clientsList}
         buyers={buyers}
         readOnly={detailSegment === "product"}
+        showTransfer={true}
         onSave={(data) => {
           updateOpportunity.mutate(data, {
             onSuccess: () => { setDetailId(null); load(); },
