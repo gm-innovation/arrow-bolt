@@ -223,12 +223,9 @@ export const usePublicOnboarding = (token?: string) => {
     queryKey: ['public-onboarding-company', onboarding?.company_id],
     queryFn: async () => {
       const { data, error } = await (supabase as any)
-        .from('companies')
-        .select('logo_url')
-        .eq('id', onboarding.company_id)
-        .maybeSingle();
+        .rpc('get_company_public_logo', { _company_id: onboarding.company_id });
       if (error) throw error;
-      return data;
+      return Array.isArray(data) ? data[0] ?? null : data;
     },
     enabled: !!onboarding?.company_id,
   });
