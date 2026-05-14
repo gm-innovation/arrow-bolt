@@ -31,9 +31,16 @@ interface Opp {
   client_id: string;
   service_order_id: string | null;
   assigned_to: string | null;
+  segment: "service" | "product" | "unknown";
   created_at: string;
   clients?: { name: string } | null;
 }
+
+const SEGMENT_LABEL: Record<string, string> = {
+  service: "Serviço",
+  product: "Comercial/Marketing",
+  unknown: "Indefinido",
+};
 
 export default function AdminOpportunities() {
   const { profile } = useAuth();
@@ -42,13 +49,14 @@ export default function AdminOpportunities() {
   const [loading, setLoading] = useState(true);
   const [edit, setEdit] = useState<Opp | null>(null);
   const [lossReason, setLossReason] = useState("");
+  const [filterSegment, setFilterSegment] = useState<string>("service_unknown");
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("crm_opportunities")
-      .select("id, title, description, stage, estimated_value, client_id, service_order_id, assigned_to, created_at, clients ( name )")
-      .eq("segment", "service")
+      .select("id, title, description, stage, estimated_value, client_id, service_order_id, assigned_to, segment, created_at, clients ( name )")
+      .in("segment", ["service", "unknown", "product"])
       .order("created_at", { ascending: false })
       .limit(500);
     if (error) toast.error(error.message);
@@ -58,15 +66,21 @@ export default function AdminOpportunities() {
 
   useEffect(() => { load(); }, []);
 
+  const filtered = useMemo(() => {
+    if (filterSegment === "all") return items;
+    if (filterSegment === "service_unknown") return items.filter((o) => o.segment === "service" || o.segment === "unknown");
+    return items.filter((o) => o.segment === filterSegment);
+  }, [items, filterSegment]);
+
   const grouped = useMemo(() => {
     const map: Record<string, Opp[]> = {};
     for (const s of STAGES) map[s.value] = [];
-    for (const o of items) {
+    for (const o of filtered) {
       if (!map[o.stage]) map[o.stage] = [];
       map[o.stage].push(o);
     }
     return map;
-  }, [items]);
+  }, [filtered]);
 
   const moveStage = async (opp: Opp, stage: string) => {
     if (stage === "closed_lost") {
@@ -111,9 +125,24 @@ export default function AdminOpportunities() {
 
   return (
     <div className="container mx-auto p-6 space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Oportunidades de Serviço</h1>
-        <p className="text-muted-foreground">Pipeline de pré-venda até virar OS.</p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold">Oportunidades de Serviço</h1>
+          <p className="text-muted-foreground">Pipeline de pré-venda até virar OS.</p>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Segmento</Label>
+          <Select value={filterSegment} onValueChange={setFilterSegment}>
+            <SelectTrigger className="w-56 h-8"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="service_unknown">Serviço + Indefinido</SelectItem>
+              <SelectItem value="service">Apenas Serviço</SelectItem>
+              <SelectItem value="unknown">Apenas Indefinido</SelectItem>
+              <SelectItem value="product">Comercial/Marketing</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -130,7 +159,12 @@ export default function AdminOpportunities() {
                 <div className="text-xs text-muted-foreground text-center py-4">—</div>
               ) : grouped[s.value].map((o) => (
                 <div key={o.id} className="rounded border p-2 space-y-1.5 bg-background">
-                  <div className="text-sm font-medium line-clamp-2" title={o.title}>{o.title}</div>
+                  <div className="flex items-start justify-between gap-1">
+                    <div className="text-sm font-medium line-clamp-2 flex-1" title={o.title}>{o.title}</div>
+                    <Badge variant={o.segment === "service" ? "default" : o.segment === "product" ? "secondary" : "outline"} className="text-[10px] shrink-0">
+                      {SEGMENT_LABEL[o.segment]}
+                    </Badge>
+                  </div>
                   <div className="text-xs text-muted-foreground truncate">{o.clients?.name ?? "—"}</div>
                   {o.estimated_value != null && (
                     <div className="text-xs font-mono">
@@ -140,23 +174,29 @@ export default function AdminOpportunities() {
                   <div className="text-[10px] text-muted-foreground">
                     {format(new Date(o.created_at), "dd/MM/yy", { locale: ptBR })}
                   </div>
-                  <div className="flex gap-1 pt-1">
-                    <Select value={o.stage} onValueChange={(v) => moveStage(o, v)}>
-                      <SelectTrigger className="h-7 text-xs flex-1"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {STAGES.map((st) => <SelectItem key={st.value} value={st.value}>{st.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {o.stage === "closed_won" && !o.service_order_id && (
-                    <Button size="sm" className="w-full h-7 text-xs" onClick={() => generateOS(o)}>
-                      <ClipboardList className="w-3 h-3 mr-1" /> Gerar OS
-                    </Button>
-                  )}
-                  {o.service_order_id && (
-                    <Button asChild size="sm" variant="outline" className="w-full h-7 text-xs">
-                      <Link to="/admin/orders">Ver OS <ArrowRight className="w-3 h-3 ml-1" /></Link>
-                    </Button>
+                  {o.segment === "product" ? (
+                    <div className="text-[10px] text-muted-foreground italic pt-1">Somente leitura — gerida pelo Comercial/Marketing</div>
+                  ) : (
+                    <>
+                      <div className="flex gap-1 pt-1">
+                        <Select value={o.stage} onValueChange={(v) => moveStage(o, v)}>
+                          <SelectTrigger className="h-7 text-xs flex-1"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {STAGES.map((st) => <SelectItem key={st.value} value={st.value}>{st.label}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      {o.stage === "closed_won" && !o.service_order_id && (
+                        <Button size="sm" className="w-full h-7 text-xs" onClick={() => generateOS(o)}>
+                          <ClipboardList className="w-3 h-3 mr-1" /> Gerar OS
+                        </Button>
+                      )}
+                      {o.service_order_id && (
+                        <Button asChild size="sm" variant="outline" className="w-full h-7 text-xs">
+                          <Link to="/admin/orders">Ver OS <ArrowRight className="w-3 h-3 ml-1" /></Link>
+                        </Button>
+                      )}
+                    </>
                   )}
                 </div>
               ))}
