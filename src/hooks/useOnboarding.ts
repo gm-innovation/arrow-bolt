@@ -237,25 +237,14 @@ export const usePublicOnboarding = (token?: string) => {
     : null;
 
   const { data: docTypes = [], isLoading: loadingTypes } = useQuery({
-    queryKey: ['public-onboarding-doc-types', onboarding?.company_id, onboarding?.position_tag],
+    queryKey: ['public-onboarding-doc-types', token],
     queryFn: async () => {
-      let query = (supabase as any)
-        .from('onboarding_document_types')
-        .select('*')
-        .eq('company_id', onboarding.company_id);
-      
-      // Filter: global docs (position_tag IS NULL) + docs matching candidate's position
-      if (onboarding.position_tag) {
-        query = query.or(`position_tag.is.null,position_tag.eq.${onboarding.position_tag}`);
-      } else {
-        query = query.is('position_tag', null);
-      }
-      
-      const { data, error } = await query.order('sort_order');
+      const { data, error } = await (supabase as any)
+        .rpc('get_onboarding_doc_types_by_token', { _token: token });
       if (error) throw error;
-      return data;
+      return data ?? [];
     },
-    enabled: !!onboarding?.company_id,
+    enabled: !!token && !!onboarding?.company_id,
   });
 
   const { data: documents = [], isLoading: loadingDocs } = useQuery({
