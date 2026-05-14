@@ -125,9 +125,24 @@ export default function AdminOpportunities() {
 
   return (
     <div className="container mx-auto p-6 space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold">Oportunidades de Serviço</h1>
-        <p className="text-muted-foreground">Pipeline de pré-venda até virar OS.</p>
+      <div className="flex items-start justify-between gap-3 flex-wrap">
+        <div>
+          <h1 className="text-2xl font-bold">Oportunidades de Serviço</h1>
+          <p className="text-muted-foreground">Pipeline de pré-venda até virar OS.</p>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Segmento</Label>
+          <Select value={filterSegment} onValueChange={setFilterSegment}>
+            <SelectTrigger className="w-56 h-8"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="service_unknown">Serviço + Indefinido</SelectItem>
+              <SelectItem value="service">Apenas Serviço</SelectItem>
+              <SelectItem value="unknown">Apenas Indefinido</SelectItem>
+              <SelectItem value="product">Comercial/Marketing</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
