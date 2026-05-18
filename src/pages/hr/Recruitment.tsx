@@ -131,7 +131,7 @@ const HRRecruitment = () => {
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar nome ou e-mail"
+                  placeholder="Buscar nome, e-mail ou marcação"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-8"
@@ -139,7 +139,7 @@ const HRRecruitment = () => {
               </div>
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[160px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos os status</SelectItem>
                 {Object.entries(STATUS_LABEL).map(([k, v]) => (
@@ -148,7 +148,7 @@ const HRRecruitment = () => {
               </SelectContent>
             </Select>
             <Select value={openingFilter} onValueChange={setOpeningFilter}>
-              <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas as vagas</SelectItem>
                 <SelectItem value="spontaneous">Espontâneas</SelectItem>
@@ -157,6 +157,29 @@ const HRRecruitment = () => {
                 ))}
               </SelectContent>
             </Select>
+            <Select value={tagFilter} onValueChange={setTagFilter}>
+              <SelectTrigger className="w-[180px]"><SelectValue placeholder="Marcações" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas as marcações</SelectItem>
+                <SelectItem value="none">Sem marcação</SelectItem>
+                {tags.map((t: any) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    <span className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: t.color }} />
+                      {t.name}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant={notesOnly ? "default" : "outline"}
+              size="sm"
+              onClick={() => setNotesOnly((v) => !v)}
+              className="gap-1"
+            >
+              <StickyNote className="h-4 w-4" /> Com notas
+            </Button>
           </div>
 
           <Card>
@@ -166,6 +189,7 @@ const HRRecruitment = () => {
                   <TableRow>
                     <TableHead>Candidato</TableHead>
                     <TableHead>Vaga</TableHead>
+                    <TableHead>Marcações</TableHead>
                     <TableHead>Cidade</TableHead>
                     <TableHead>Recebido</TableHead>
                     <TableHead>Status</TableHead>
@@ -174,38 +198,68 @@ const HRRecruitment = () => {
                 </TableHeader>
                 <TableBody>
                   {isLoading && (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Carregando...</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">Carregando...</TableCell></TableRow>
                   )}
                   {!isLoading && filtered.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center py-8 text-sm text-muted-foreground">Nenhum candidato</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center py-8 text-sm text-muted-foreground">Nenhum candidato</TableCell></TableRow>
                   )}
-                  {filtered.map((a: any) => (
-                    <TableRow key={a.id} className="cursor-pointer" onClick={() => setSelectedApp(a)}>
-                      <TableCell>
-                        <div className="font-medium">{a.full_name}</div>
-                        <div className="text-xs text-muted-foreground">{a.email}</div>
-                      </TableCell>
-                      <TableCell>
-                        {a.job_opening?.title || <span className="text-muted-foreground italic">Espontânea</span>}
-                      </TableCell>
-                      <TableCell>{[a.city, a.state].filter(Boolean).join("/") || "—"}</TableCell>
-                      <TableCell>{format(new Date(a.created_at), "dd/MM/yyyy")}</TableCell>
-                      <TableCell>
-                        <Badge variant={STATUS_VARIANT[a.status] || "default"}>{STATUS_LABEL[a.status] || a.status}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {a.cv_file_url && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={(e) => { e.stopPropagation(); downloadCv(a.cv_file_url, a.cv_file_name || "cv.pdf"); }}
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filtered.map((a: any) => {
+                    const appTags = (a.tag_assignments || []).map((ta: any) => ta.tag).filter(Boolean);
+                    const notesCount = a.notes_count?.[0]?.count ?? 0;
+                    return (
+                      <TableRow key={a.id} className="cursor-pointer" onClick={() => setSelectedApp(a)}>
+                        <TableCell>
+                          <div className="font-medium flex items-center gap-2">
+                            {a.full_name}
+                            {notesCount > 0 && (
+                              <Badge variant="secondary" className="gap-1 h-5 px-1.5 text-xs">
+                                <StickyNote className="h-3 w-3" />
+                                {notesCount}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{a.email}</div>
+                        </TableCell>
+                        <TableCell>
+                          {a.job_opening?.title || <span className="text-muted-foreground italic">Espontânea</span>}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1 max-w-[200px]">
+                            {appTags.slice(0, 3).map((t: any) => (
+                              <Badge
+                                key={t.id}
+                                variant="outline"
+                                className="text-xs"
+                                style={{ backgroundColor: `${t.color}20`, borderColor: t.color, color: t.color }}
+                              >
+                                {t.name}
+                              </Badge>
+                            ))}
+                            {appTags.length > 3 && (
+                              <Badge variant="outline" className="text-xs">+{appTags.length - 3}</Badge>
+                            )}
+                            {appTags.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell>{[a.city, a.state].filter(Boolean).join("/") || "—"}</TableCell>
+                        <TableCell>{format(new Date(a.created_at), "dd/MM/yyyy")}</TableCell>
+                        <TableCell>
+                          <Badge variant={STATUS_VARIANT[a.status] || "default"}>{STATUS_LABEL[a.status] || a.status}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {a.cv_file_url && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={(e) => { e.stopPropagation(); downloadCv(a.cv_file_url, a.cv_file_name || "cv.pdf"); }}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </CardContent>
