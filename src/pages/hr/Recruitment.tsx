@@ -41,8 +41,11 @@ const HRRecruitment = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [openingFilter, setOpeningFilter] = useState("all");
+  const [tagFilter, setTagFilter] = useState("all");
+  const [notesOnly, setNotesOnly] = useState(false);
   const [openingDialog, setOpeningDialog] = useState<any | null>(null);
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
+  const { tags } = useApplicationTags();
 
   const careerLinkBase = `${window.location.origin}/carreiras/`;
   const { profile } = useAuth();
