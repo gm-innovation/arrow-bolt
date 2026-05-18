@@ -277,20 +277,42 @@ const HRRecruitment = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Aponte o CTA "Saiba mais" do site para a URL abaixo (substitua <code className="text-xs bg-muted px-1 rounded">SLUG</code> pelo slug público da empresa):
+                Aponte o CTA "Saiba mais" do site para a URL abaixo:
               </p>
               <div className="flex gap-2">
-                <Input readOnly value={`${careerLinkBase}SLUG`} className="font-mono text-xs" />
+                <Input
+                  readOnly
+                  value={careerUrl || "—"}
+                  className="font-mono text-xs"
+                />
                 <Button
                   variant="outline"
+                  disabled={!canUseLink}
                   onClick={() => {
-                    navigator.clipboard.writeText(`${careerLinkBase}SLUG`);
+                    navigator.clipboard.writeText(careerUrl);
                     toast({ title: "Link copiado" });
                   }}
                 >
                   Copiar
                 </Button>
+                <Button
+                  variant="outline"
+                  disabled={!canUseLink}
+                  onClick={() => window.open(careerUrl, "_blank")}
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" /> Abrir
+                </Button>
               </div>
+              {!slug && (
+                <p className="text-xs text-destructive">
+                  Empresa ainda sem slug público configurado. Solicite ao Super Admin.
+                </p>
+              )}
+              {slug && !intakeEnabled && (
+                <p className="text-xs text-destructive">
+                  Recebimento público de candidaturas está desativado. Solicite ao Super Admin para habilitar.
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
                 Alternativamente, o site pode integrar diretamente via API enviando POST para
                 <code className="ml-1 text-xs bg-muted px-1 rounded">/functions/v1/public-job-application</code>.
