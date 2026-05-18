@@ -72,13 +72,22 @@ const HRRecruitment = () => {
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
       if (openingFilter === "spontaneous" && a.job_opening_id) return false;
       if (openingFilter !== "all" && openingFilter !== "spontaneous" && a.job_opening_id !== openingFilter) return false;
+      if (tagFilter !== "all") {
+        const tagIds = (a.tag_assignments || []).map((ta: any) => ta.tag?.id).filter(Boolean);
+        if (tagFilter === "none" ? tagIds.length > 0 : !tagIds.includes(tagFilter)) return false;
+      }
+      if (notesOnly) {
+        const cnt = a.notes_count?.[0]?.count ?? 0;
+        if (cnt === 0) return false;
+      }
       if (search) {
         const s = search.toLowerCase();
-        if (!a.full_name?.toLowerCase().includes(s) && !a.email?.toLowerCase().includes(s)) return false;
+        const tagNames = (a.tag_assignments || []).map((ta: any) => ta.tag?.name?.toLowerCase() || "").join(" ");
+        if (!a.full_name?.toLowerCase().includes(s) && !a.email?.toLowerCase().includes(s) && !tagNames.includes(s)) return false;
       }
       return true;
     });
-  }, [applications, statusFilter, openingFilter, search]);
+  }, [applications, statusFilter, openingFilter, tagFilter, notesOnly, search]);
 
   const countByStatus = useMemo(() => {
     const acc: Record<string, number> = {};
