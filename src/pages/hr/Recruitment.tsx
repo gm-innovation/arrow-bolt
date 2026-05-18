@@ -9,11 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
-import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2 } from "lucide-react";
+import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2, ExternalLink } from "lucide-react";
 import JobOpeningDialog from "@/components/hr/JobOpeningDialog";
 import ApplicationDetailSheet from "@/components/hr/ApplicationDetailSheet";
 import HROnboarding from "@/pages/hr/Onboarding";
 import { toast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const STATUS_LABEL: Record<string, string> = {
   new: "Novo",
