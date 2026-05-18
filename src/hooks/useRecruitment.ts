@@ -68,9 +68,6 @@ export const useJobApplications = () => {
       if (error) throw error;
       return data;
     },
-      if (error) throw error;
-      return data;
-    },
     enabled: !!profile?.company_id,
   });
 
