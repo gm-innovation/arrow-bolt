@@ -1,21 +1,13 @@
 ## Problema
-Na tela **RH → Recrutamento → Link público**, mostramos a URL `…/carreiras/SLUG` e pedimos para o usuário substituir manualmente o "SLUG". O slug já existe em `companies.public_site_slug` — não há motivo para exigir edição manual.
 
-## Plano (somente UI, em `src/pages/hr/Recruitment.tsx`)
+O preflight CORS retorna **HTTP 404 — "Requested function was not found"**. Ou seja, a Edge Function `public-job-application` não está deployada no projeto Cloud, apesar do código existir em `supabase/functions/public-job-application/index.ts` e estar registrada em `supabase/config.toml` com `verify_jwt = false`.
 
-1. **Buscar o slug da empresa do usuário logado** via um pequeno `useQuery` que lê `companies.public_site_slug` e `public_intake_enabled` usando `profile.company_id` do `AuthContext`.
+O código da função e o CORS estão corretos — o problema é puramente de deploy.
 
-2. **Renderizar a URL já pronta** quando houver slug:
-   - Input `readOnly` com `https://<host>/carreiras/<slug>` (sem placeholder).
-   - Botão "Copiar" copia a URL real.
-   - Botão "Abrir" (novo) abre a página pública em outra aba.
-   - Texto explicativo passa a ser: *"Aponte o CTA 'Saiba mais' do site para a URL abaixo:"* (some a parte do "substitua SLUG").
+## Plano
 
-3. **Estados auxiliares**:
-   - Se `public_intake_enabled = false`: mostrar aviso curto ("Recebimento público desativado — fale com o Super Admin") e desabilitar os botões.
-   - Se `public_site_slug` estiver vazio: mostrar aviso ("Empresa ainda sem slug público configurado") e desabilitar os botões. Sem campo de edição aqui — slug continua sendo configurado pelo Super Admin (já é assim hoje).
+1. **Fazer deploy da Edge Function `public-job-application`** usando a ferramenta de deploy do Lovable Cloud.
+2. **Validar com curl OPTIONS** que o preflight passa a retornar `HTTP 200` com `access-control-allow-origin: *`.
+3. **Validar fluxo end-to-end**: pedir que você reenvie a candidatura em `https://arrow.googlemarineinnovation.com.br/carreiras/...` e confirmar que cria registro em `job_applications` e o CV em `recruitment-cvs`.
 
-4. **Sem alterações** em schema, RLS, edge functions ou na tela de Super Admin.
-
-## Resultado
-RH abre a aba "Link público" e já vê a URL final pronta para copiar/abrir, sem precisar saber o que é "slug".
+Nenhuma alteração de código, schema, RLS ou config é necessária.
