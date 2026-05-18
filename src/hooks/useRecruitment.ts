@@ -62,9 +62,12 @@ export const useJobApplications = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("job_applications")
-        .select("*, job_opening:job_openings(id, title, area)")
+        .select("*, job_opening:job_openings(id, title, area), tag_assignments:job_application_tag_assignments(tag:job_application_tags(id, name, color)), notes_count:job_application_notes(count)")
         .eq("company_id", profile!.company_id)
         .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
       if (error) throw error;
       return data;
     },
