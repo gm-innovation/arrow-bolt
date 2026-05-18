@@ -1,11 +1,21 @@
-Plano para corrigir o que ainda não aparece:
+## Problema
+Na tela **RH → Recrutamento → Link público**, mostramos a URL `…/carreiras/SLUG` e pedimos para o usuário substituir manualmente o "SLUG". O slug já existe em `companies.public_site_slug` — não há motivo para exigir edição manual.
 
-1. Tornar a aba de transferência visível no modal de detalhes de oportunidades de serviço/indefinidas no `/admin/opportunities`, sem afetar oportunidades de Comercial/Marketing que continuam somente leitura.
+## Plano (somente UI, em `src/pages/hr/Recruitment.tsx`)
 
-2. Ajustar o comportamento do modal para que a lista de abas não esconda a opção “Transferência” em larguras menores: usar layout responsivo/rolável para as abas em vez de uma grade fixa que pode deixar a última aba fora da área visível.
+1. **Buscar o slug da empresa do usuário logado** via um pequeno `useQuery` que lê `companies.public_site_slug` e `public_intake_enabled` usando `profile.company_id` do `AuthContext`.
 
-3. Corrigir a lista de destinatários da transferência para buscar coordenadores com o mesmo padrão de papéis do projeto, evitando depender de papéis antigos como `manager`/`admin` quando o fluxo esperado é entre `coordinator` e `director`.
+2. **Renderizar a URL já pronta** quando houver slug:
+   - Input `readOnly` com `https://<host>/carreiras/<slug>` (sem placeholder).
+   - Botão "Copiar" copia a URL real.
+   - Botão "Abrir" (novo) abre a página pública em outra aba.
+   - Texto explicativo passa a ser: *"Aponte o CTA 'Saiba mais' do site para a URL abaixo:"* (some a parte do "substitua SLUG").
 
-4. Após transferência direta ou aceite, invalidar/recarregar também as queries usadas pela tela admin (`crm-opportunities`) e chamar o reload da página para refletir imediatamente o novo responsável.
+3. **Estados auxiliares**:
+   - Se `public_intake_enabled = false`: mostrar aviso curto ("Recebimento público desativado — fale com o Super Admin") e desabilitar os botões.
+   - Se `public_site_slug` estiver vazio: mostrar aviso ("Empresa ainda sem slug público configurado") e desabilitar os botões. Sem campo de edição aqui — slug continua sendo configurado pelo Super Admin (já é assim hoje).
 
-5. Verificar no código que o modal renderiza a aba “Transferência” para oportunidades `service` e `unknown`, e que ela permanece oculta apenas para `product`.
+4. **Sem alterações** em schema, RLS, edge functions ou na tela de Super Admin.
+
+## Resultado
+RH abre a aba "Link público" e já vê a URL final pronta para copiar/abrir, sem precisar saber o que é "slug".
