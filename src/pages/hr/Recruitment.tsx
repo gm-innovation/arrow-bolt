@@ -45,6 +45,24 @@ const HRRecruitment = () => {
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
 
   const careerLinkBase = `${window.location.origin}/carreiras/`;
+  const { profile } = useAuth();
+  const { data: companyInfo } = useQuery({
+    queryKey: ["company-public-slug", profile?.company_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("public_site_slug, public_intake_enabled")
+        .eq("id", profile!.company_id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.company_id,
+  });
+  const slug = companyInfo?.public_site_slug || "";
+  const intakeEnabled = companyInfo?.public_intake_enabled ?? false;
+  const careerUrl = slug ? `${careerLinkBase}${slug}` : "";
+  const canUseLink = !!slug && intakeEnabled;
 
   const filtered = useMemo(() => {
     return applications.filter((a: any) => {
