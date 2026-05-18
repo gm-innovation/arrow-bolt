@@ -62,7 +62,7 @@ export const useJobApplications = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("job_applications")
-        .select("*, job_opening:job_openings(id, title, area)")
+        .select("*, job_opening:job_openings(id, title, area), tag_assignments:job_application_tag_assignments(tag:job_application_tags(id, name, color)), notes_count:job_application_notes(count)")
         .eq("company_id", profile!.company_id)
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -154,3 +154,110 @@ export const getCvSignedUrl = async (path: string) => {
   if (error) throw error;
   return data.signedUrl;
 };
+
+// ===== Tags =====
+export const useApplicationTags = () => {
+  const { profile } = useAuth();
+  const qc = useQueryClient();
+
+  const { data: tags = [], isLoading } = useQuery({
+    queryKey: ["job-application-tags", profile?.company_id],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("job_application_tags")
+        .select("*")
+        .eq("company_id", profile!.company_id)
+        .order("name");
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.company_id,
+  });
+
+  const createTag = useMutation({
+    mutationFn: async ({ name, color }: { name: string; color: string }) => {
+      const { data, error } = await (supabase as any)
+        .from("job_application_tags")
+        .insert({ name, color, company_id: profile!.company_id, created_by: profile!.id })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["job-application-tags"] }),
+    onError: (e: any) => toast({ title: "Erro ao criar marcação", description: e.message, variant: "destructive" }),
+  });
+
+  const updateTag = useMutation({
+    mutationFn: async ({ id, name, color }: { id: string; name?: string; color?: string }) => {
+      const { error } = await (supabase as any)
+        .from("job_application_tags")
+        .update({ name, color })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["job-application-tags"] }),
+  });
+
+  const deleteTag = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await (supabase as any).from("job_application_tags").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["job-application-tags"] });
+      qc.invalidateQueries({ queryKey: ["job-applications"] });
+    },
+  });
+
+  return { tags, isLoading, createTag, updateTag, deleteTag };
+};
+
+export const useTagAssignment = () => {
+  const { profile } = useAuth();
+  const qc = useQueryClient();
+
+  const assignTag = useMutation({
+    mutationFn: async ({ applicationId, tagId }: { applicationId: string; tagId: string }) => {
+      const { error } = await (supabase as any)
+        .from("job_application_tag_assignments")
+        .insert({ application_id: applicationId, tag_id: tagId, assigned_by: profile!.id });
+      if (error && !`${error.message}`.includes("duplicate")) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["job-applications"] }),
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const removeTag = useMutation({
+    mutationFn: async ({ applicationId, tagId }: { applicationId: string; tagId: string }) => {
+      const { error } = await (supabase as any)
+        .from("job_application_tag_assignments")
+        .delete()
+        .eq("application_id", applicationId)
+        .eq("tag_id", tagId);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["job-applications"] }),
+  });
+
+  return { assignTag, removeTag };
+};
+
+// ===== Extração de CV =====
+export const extractCvData = async (fileBase64: string, fileName: string) => {
+  const { data, error } = await supabase.functions.invoke("extract-cv-data", {
+    body: { fileBase64, fileName },
+  });
+  if (error) throw error;
+  if (!data?.success) throw new Error(data?.error || "Falha na extração");
+  return data.data;
+};
+
+export const saveExtractedCv = async (applicationId: string, extracted: any) => {
+  const { error } = await (supabase as any)
+    .from("job_applications")
+    .update({ cv_extracted_data: extracted })
+    .eq("id", applicationId);
+  if (error) throw error;
+};
+
