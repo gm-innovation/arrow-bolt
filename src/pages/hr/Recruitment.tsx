@@ -9,11 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
-import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2 } from "lucide-react";
+import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2, ExternalLink } from "lucide-react";
 import JobOpeningDialog from "@/components/hr/JobOpeningDialog";
 import ApplicationDetailSheet from "@/components/hr/ApplicationDetailSheet";
 import HROnboarding from "@/pages/hr/Onboarding";
 import { toast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 const STATUS_LABEL: Record<string, string> = {
   new: "Novo",
@@ -42,6 +45,24 @@ const HRRecruitment = () => {
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
 
   const careerLinkBase = `${window.location.origin}/carreiras/`;
+  const { profile } = useAuth();
+  const { data: companyInfo } = useQuery({
+    queryKey: ["company-public-slug", profile?.company_id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("companies")
+        .select("public_site_slug, public_intake_enabled")
+        .eq("id", profile!.company_id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.company_id,
+  });
+  const slug = companyInfo?.public_site_slug || "";
+  const intakeEnabled = companyInfo?.public_intake_enabled ?? false;
+  const careerUrl = slug ? `${careerLinkBase}${slug}` : "";
+  const canUseLink = !!slug && intakeEnabled;
 
   const filtered = useMemo(() => {
     return applications.filter((a: any) => {
@@ -256,20 +277,42 @@ const HRRecruitment = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Aponte o CTA "Saiba mais" do site para a URL abaixo (substitua <code className="text-xs bg-muted px-1 rounded">SLUG</code> pelo slug público da empresa):
+                Aponte o CTA "Saiba mais" do site para a URL abaixo:
               </p>
               <div className="flex gap-2">
-                <Input readOnly value={`${careerLinkBase}SLUG`} className="font-mono text-xs" />
+                <Input
+                  readOnly
+                  value={careerUrl || "—"}
+                  className="font-mono text-xs"
+                />
                 <Button
                   variant="outline"
+                  disabled={!canUseLink}
                   onClick={() => {
-                    navigator.clipboard.writeText(`${careerLinkBase}SLUG`);
+                    navigator.clipboard.writeText(careerUrl);
                     toast({ title: "Link copiado" });
                   }}
                 >
                   Copiar
                 </Button>
+                <Button
+                  variant="outline"
+                  disabled={!canUseLink}
+                  onClick={() => window.open(careerUrl, "_blank")}
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" /> Abrir
+                </Button>
               </div>
+              {!slug && (
+                <p className="text-xs text-destructive">
+                  Empresa ainda sem slug público configurado. Solicite ao Super Admin.
+                </p>
+              )}
+              {slug && !intakeEnabled && (
+                <p className="text-xs text-destructive">
+                  Recebimento público de candidaturas está desativado. Solicite ao Super Admin para habilitar.
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
                 Alternativamente, o site pode integrar diretamente via API enviando POST para
                 <code className="ml-1 text-xs bg-muted px-1 rounded">/functions/v1/public-job-application</code>.
