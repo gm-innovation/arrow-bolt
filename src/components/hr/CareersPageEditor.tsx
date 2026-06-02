@@ -119,23 +119,47 @@ const CareersPageEditor = () => {
     valueDraft: "",
   }), [company]);
 
-  const draftKey = companyId && company ? `careers-about-draft:${companyId}` : null;
-  const { draft, setDraft, hydrated, hasStoredDraft, clearDraft } = usePersistentDraft<CareersAboutDraft>({
+  // Key only depends on companyId — available immediately, so typing while the
+  // companies query is still loading is still persisted.
+  const draftKey = companyId ? `careers-about-draft:${companyId}` : null;
+  const { draft, setDraft, resetDraft, hasStoredDraft, clearDraft } = usePersistentDraft<CareersAboutDraft>({
     storageKey: draftKey,
     initialValue: savedAbout,
-    enabled: !!company,
+    enabled: !!companyId,
     storage: "local",
   });
 
+  // When the DB value arrives AND there is no local draft yet, hydrate the
+  // form from the DB. Never overwrite an existing local draft.
+  const hydratedFromDbRef = useRef(false);
+  useEffect(() => {
+    if (!company || hydratedFromDbRef.current) return;
+    hydratedFromDbRef.current = true;
+    if (!hasStoredDraft) {
+      resetDraft(savedAbout);
+    }
+  }, [company, hasStoredDraft, savedAbout, resetDraft]);
+
   const { aboutTitle, aboutText, mission, values, valueDraft } = draft;
 
-  const hasUnsavedChanges = hydrated && company && (
+  const hasUnsavedChanges = !!company && (
     aboutTitle !== savedAbout.aboutTitle ||
     aboutText !== savedAbout.aboutText ||
     mission !== savedAbout.mission ||
     JSON.stringify(values) !== JSON.stringify(savedAbout.values) ||
     valueDraft.trim().length > 0
   );
+
+  // Warn before closing/reloading the tab when there are unsaved changes.
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [hasUnsavedChanges]);
 
   const addValue = () => {
     const v = valueDraft.trim();
