@@ -332,9 +332,15 @@ const CareersPageEditor = () => {
             )}
           </div>
           <div className="flex items-center justify-end gap-3">
-            {hasUnsavedChanges && (
-              <span className="text-xs text-amber-600">Alterações não salvas</span>
-            )}
+            {savingAbout ? (
+              <span className="text-xs text-muted-foreground">Salvando e confirmando...</span>
+            ) : aboutStatus === "saved" ? (
+              <span className="text-xs text-emerald-600">Publicado com sucesso</span>
+            ) : aboutStatus === "error" ? (
+              <span className="text-xs text-destructive">Rascunho preservado localmente</span>
+            ) : hasUnsavedChanges || hasStoredDraft ? (
+              <span className="text-xs text-amber-600">Rascunho salvo localmente</span>
+            ) : null}
             <Button onClick={saveAbout} disabled={savingAbout}>
               {savingAbout ? "Salvando..." : "Salvar"}
             </Button>
