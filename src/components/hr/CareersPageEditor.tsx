@@ -164,8 +164,8 @@ const CareersPageEditor = () => {
       .eq("id", companyId)
       .select("careers_about_title, careers_about_text, careers_mission, careers_values")
       .maybeSingle();
-    setSavingAbout(false);
     if (error) {
+      setSavingAbout(false);
       setAboutStatus("error");
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
@@ -181,6 +181,7 @@ const CareersPageEditor = () => {
       JSON.stringify(savedValues) === JSON.stringify(expectedValues);
 
     if (!matches) {
+      setSavingAbout(false);
       setAboutStatus("error");
       toast({
         title: "Salvamento não confirmado",
@@ -195,6 +196,7 @@ const CareersPageEditor = () => {
     setAboutStatus("saved");
     qc.invalidateQueries({ queryKey: ["company-careers-about", companyId] });
     qc.invalidateQueries({ queryKey: ["company-public-slug", companyId] });
+    setSavingAbout(false);
     toast({ title: "Página de carreiras publicada" });
   };
 
