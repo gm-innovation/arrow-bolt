@@ -13,6 +13,7 @@ import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2, ExternalLink,
 import JobOpeningDialog from "@/components/hr/JobOpeningDialog";
 import ApplicationDetailSheet from "@/components/hr/ApplicationDetailSheet";
 import HROnboarding from "@/pages/hr/Onboarding";
+import CareersPageEditor from "@/components/hr/CareersPageEditor";
 import { toast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
