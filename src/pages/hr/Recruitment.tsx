@@ -100,6 +100,43 @@ const HRRecruitment = () => {
     refetchCompany();
   };
 
+  // ---- Company logo upload ----
+  const currentLogo = (companyInfo as any)?.logo_url as string | null | undefined;
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const handleLogoUpload = async (file: File | null) => {
+    if (!file || !profile?.company_id) return;
+    if (!/^image\/(png|jpe?g|webp|svg\+xml)$/.test(file.type)) {
+      toast({ title: "Formato inválido", description: "Use PNG, JPG, WEBP ou SVG.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Imagem acima de 2MB", variant: "destructive" });
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${profile.company_id}/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("company-logos")
+        .upload(path, file, { upsert: true, cacheControl: "0" });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("company-logos").getPublicUrl(path);
+      const { error: updErr } = await supabase
+        .from("companies")
+        .update({ logo_url: pub.publicUrl })
+        .eq("id", profile.company_id);
+      if (updErr) throw updErr;
+      toast({ title: "Logo atualizada" });
+      refetchCompany();
+    } catch (err: any) {
+      toast({ title: "Falha no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingLogo(false);
+    }
+  };
+
 
   const filtered = useMemo(() => {
     return applications.filter((a: any) => {
