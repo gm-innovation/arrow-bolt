@@ -17,7 +17,7 @@ const MeasurementSettings = () => {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} storageKey="measurement-settings">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="rates">Taxas de Serviço (HH)</TabsTrigger>
           <TabsTrigger value="general">Configurações Gerais</TabsTrigger>
