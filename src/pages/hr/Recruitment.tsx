@@ -47,14 +47,13 @@ const HRRecruitment = () => {
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
   const { tags } = useApplicationTags();
 
-  const careerLinkBase = `${window.location.origin}/carreiras/`;
   const { profile } = useAuth();
-  const { data: companyInfo } = useQuery({
+  const { data: companyInfo, refetch: refetchCompany } = useQuery({
     queryKey: ["company-public-slug", profile?.company_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("companies")
-        .select("public_site_slug, public_intake_enabled")
+        .select("public_site_slug, public_intake_enabled, public_site_base_url")
         .eq("id", profile!.company_id)
         .maybeSingle();
       if (error) throw error;
@@ -64,8 +63,43 @@ const HRRecruitment = () => {
   });
   const slug = companyInfo?.public_site_slug || "";
   const intakeEnabled = companyInfo?.public_intake_enabled ?? false;
+  const configuredBase = (companyInfo as any)?.public_site_base_url as string | null | undefined;
+
+  const normalizeBase = (raw?: string | null) => {
+    if (!raw) return "";
+    let v = raw.trim();
+    if (!v) return "";
+    if (!/^https?:\/\//i.test(v)) v = `https://${v}`;
+    return v.replace(/\/+$/, "");
+  };
+
+  const careerLinkBase = `${normalizeBase(configuredBase) || window.location.origin}/carreiras/`;
   const careerUrl = slug ? `${careerLinkBase}${slug}` : "";
   const canUseLink = !!slug && intakeEnabled;
+
+  const [baseUrlDraft, setBaseUrlDraft] = useState<string>("");
+  const [savingBase, setSavingBase] = useState(false);
+  // sync draft once companyInfo loads
+  useMemo(() => {
+    if (configuredBase !== undefined) setBaseUrlDraft(configuredBase || "");
+  }, [configuredBase]);
+
+  const saveBaseUrl = async () => {
+    setSavingBase(true);
+    const normalized = normalizeBase(baseUrlDraft) || null;
+    const { error } = await supabase
+      .from("companies")
+      .update({ public_site_base_url: normalized } as any)
+      .eq("id", profile!.company_id);
+    setSavingBase(false);
+    if (error) {
+      toast({ title: "Não foi possível salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Domínio público atualizado" });
+    refetchCompany();
+  };
+
 
   const filtered = useMemo(() => {
     return applications.filter((a: any) => {
