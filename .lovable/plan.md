@@ -1,29 +1,19 @@
 ## Problema
 
-A página `/carreiras/lecsor` mostra "Página indisponível" mesmo com `public_intake_enabled = true` no banco.
-
-Causa: `src/pages/careers/PublicCareers.tsx` consulta `companies` e `job_openings` diretamente via cliente anônimo (`supabase.from(...).select(...)`). Essas tabelas **não têm policy de SELECT para o role `anon`** (só `authenticated`/super_admin/etc). O `.maybeSingle()` retorna `null`, então o componente cai no fallback de página indisponível.
-
-Não queremos abrir SELECT público em `companies`/`job_openings` (vaza dados internos). A solução correta é uma edge function pública que devolve só os campos necessários.
+O link público em **RH → Recrutamento → Link público** usa `window.location.origin`, então quando o RH acessa o sistema pelo preview (`*.lovableproject.com`) o link copiado/exibido sai com esse domínio em vez do domínio oficial do Arrow (`arrow.googlemarineinnovation.com.br`).
 
 ## Plano
 
-1. **Nova edge function `public-careers-info`** (`verify_jwt = false`, registrada em `supabase/config.toml`, com CORS igual à `public-job-application`).
-   - Entrada: `?slug=lecsor`
-   - Usa service role para:
-     - buscar company por `public_site_slug` e checar `public_intake_enabled`
-     - se desativada/inexistente → `{ enabled: false }`
-     - se ativa → retorna `{ enabled: true, company: { id, logo_url }, openings: [{id,title,area,description,location,employment_type}] }` (apenas `is_active = true`)
+1. **Banco** — adicionar coluna `public_site_base_url TEXT` em `public.companies` (nullable). Guarda o domínio público oficial daquela empresa (ex.: `https://arrow.googlemarineinnovation.com.br`). Backfill da Lecsor com esse valor.
 
-2. **Refatorar `PublicCareers.tsx`**
-   - Substituir as duas queries Supabase do `useEffect` por um único `fetch` para a nova edge function (com `apikey` header).
-   - Tratar resposta: se `enabled === false` → mostra "Página indisponível"; senão popula `companyId`, `companyLogo`, `openings`.
-   - Resolução do `logo_url` (storage `corp-documents`) continua no cliente.
+2. **UI — `src/pages/hr/Recruitment.tsx`**
+   - Buscar também `public_site_base_url` na query da company.
+   - Montar `careerLinkBase` priorizando `public_site_base_url` (normalizando: remover `/` final e prefixar `https://` se faltar). Cair para `window.location.origin` apenas se a coluna estiver vazia.
+   - Pequeno campo editável (input + botão Salvar) no card "Link público para o site" para o RH ajustar o domínio sem depender do dev. Visível só para RH/diretor (mesma permissão da página).
 
-3. **Nada mais muda**: fluxo de envio (`public-job-application`), formulário, validações, RLS de tabelas internas — tudo permanece igual.
+3. **Edge function `public-careers-info`** — sem mudanças (continua resolvendo por slug).
 
 ## Arquivos
 
-- `supabase/functions/public-careers-info/index.ts` (novo)
-- `supabase/config.toml` (registrar função com `verify_jwt = false`)
-- `src/pages/careers/PublicCareers.tsx` (trocar queries por fetch)
+- migração SQL nova (`ALTER TABLE companies ADD COLUMN public_site_base_url`)
+- `src/pages/hr/Recruitment.tsx` (query, base URL e campo de edição)

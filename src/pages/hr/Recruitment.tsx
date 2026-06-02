@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useJobApplications, useJobOpenings, downloadCv, useApplicationTags } from "@/hooks/useRecruitment";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -47,14 +47,13 @@ const HRRecruitment = () => {
   const [selectedApp, setSelectedApp] = useState<any | null>(null);
   const { tags } = useApplicationTags();
 
-  const careerLinkBase = `${window.location.origin}/carreiras/`;
   const { profile } = useAuth();
-  const { data: companyInfo } = useQuery({
+  const { data: companyInfo, refetch: refetchCompany } = useQuery({
     queryKey: ["company-public-slug", profile?.company_id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("companies")
-        .select("public_site_slug, public_intake_enabled")
+        .select("public_site_slug, public_intake_enabled, public_site_base_url")
         .eq("id", profile!.company_id)
         .maybeSingle();
       if (error) throw error;
@@ -64,8 +63,43 @@ const HRRecruitment = () => {
   });
   const slug = companyInfo?.public_site_slug || "";
   const intakeEnabled = companyInfo?.public_intake_enabled ?? false;
+  const configuredBase = (companyInfo as any)?.public_site_base_url as string | null | undefined;
+
+  const normalizeBase = (raw?: string | null) => {
+    if (!raw) return "";
+    let v = raw.trim();
+    if (!v) return "";
+    if (!/^https?:\/\//i.test(v)) v = `https://${v}`;
+    return v.replace(/\/+$/, "");
+  };
+
+  const careerLinkBase = `${normalizeBase(configuredBase) || window.location.origin}/carreiras/`;
   const careerUrl = slug ? `${careerLinkBase}${slug}` : "";
   const canUseLink = !!slug && intakeEnabled;
+
+  const [baseUrlDraft, setBaseUrlDraft] = useState<string>("");
+  const [savingBase, setSavingBase] = useState(false);
+  // sync draft once companyInfo loads
+  useEffect(() => {
+    if (configuredBase !== undefined) setBaseUrlDraft(configuredBase || "");
+  }, [configuredBase]);
+
+  const saveBaseUrl = async () => {
+    setSavingBase(true);
+    const normalized = normalizeBase(baseUrlDraft) || null;
+    const { error } = await supabase
+      .from("companies")
+      .update({ public_site_base_url: normalized } as any)
+      .eq("id", profile!.company_id);
+    setSavingBase(false);
+    if (error) {
+      toast({ title: "Não foi possível salvar", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Domínio público atualizado" });
+    refetchCompany();
+  };
+
 
   const filtered = useMemo(() => {
     return applications.filter((a: any) => {
@@ -379,10 +413,35 @@ const HRRecruitment = () => {
                   Recebimento público de candidaturas está desativado. Solicite ao Super Admin para habilitar.
                 </p>
               )}
+
+              <div className="pt-3 border-t space-y-2">
+                <p className="text-xs font-medium">Domínio público do site</p>
+                <p className="text-xs text-muted-foreground">
+                  URL base usada para montar o link das candidaturas. Ex.: <code className="bg-muted px-1 rounded">https://arrow.googlemarineinnovation.com.br</code>
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://seudominio.com.br"
+                    value={baseUrlDraft}
+                    onChange={(e) => setBaseUrlDraft(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                  <Button variant="outline" disabled={savingBase} onClick={saveBaseUrl}>
+                    {savingBase ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+                {!configuredBase && (
+                  <p className="text-xs text-amber-600">
+                    Sem domínio configurado: o link está usando <code className="bg-muted px-1 rounded">{window.location.origin}</code>.
+                  </p>
+                )}
+              </div>
+
               <p className="text-xs text-muted-foreground">
                 Alternativamente, o site pode integrar diretamente via API enviando POST para
                 <code className="ml-1 text-xs bg-muted px-1 rounded">/functions/v1/public-job-application</code>.
               </p>
+
             </CardContent>
           </Card>
         </TabsContent>
