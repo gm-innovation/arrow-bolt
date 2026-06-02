@@ -30,6 +30,7 @@ export function usePersistentDraft<T>({
   const [hydrated, setHydrated] = useState(false);
   const [hasStoredDraft, setHasStoredDraft] = useState(false);
   const skipNextPersistRef = useRef(false);
+  const timeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!enabled || !storageKey) {
@@ -71,16 +72,21 @@ export function usePersistentDraft<T>({
     }
 
     const store = getStore(storage);
-    const timeout = window.setTimeout(() => {
+    if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+    timeoutRef.current = window.setTimeout(() => {
       try {
         store?.setItem(storageKey, JSON.stringify(draft));
         setHasStoredDraft(true);
       } catch {
         // Storage can be unavailable/full; the caller still keeps in-memory state.
       }
+      timeoutRef.current = null;
     }, debounceMs);
 
-    return () => window.clearTimeout(timeout);
+    return () => {
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    };
   }, [enabled, storageKey, storage, hydrated, draft, debounceMs]);
 
   const setDraft = useCallback((next: T | ((current: T) => T)) => {
@@ -90,6 +96,10 @@ export function usePersistentDraft<T>({
   const clearDraft = useCallback(() => {
     if (!storageKey) return;
     const store = getStore(storage);
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
     try {
       store?.removeItem(storageKey);
     } catch {
