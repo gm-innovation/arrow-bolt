@@ -474,6 +474,47 @@ const HRRecruitment = () => {
                 )}
               </div>
 
+              <div className="pt-3 border-t space-y-2">
+                <p className="text-xs font-medium flex items-center gap-1.5">
+                  <ImageIcon className="h-3.5 w-3.5" /> Logo da empresa
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Exibida no topo da página pública de carreiras. PNG, JPG, WEBP ou SVG, até 2MB.
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                    {currentLogo ? (
+                      <img src={currentLogo} alt="Logo" className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="relative flex-1">
+                    <Button type="button" variant="outline" disabled={uploadingLogo} className="w-full justify-start">
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploadingLogo ? "Enviando..." : currentLogo ? "Substituir logo" : "Enviar logo"}
+                    </Button>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="opacity-0 absolute inset-0 cursor-pointer"
+                      disabled={uploadingLogo}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        handleLogoUpload(f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                </div>
+                {!currentLogo && (
+                  <p className="text-xs text-amber-600">
+                    Sem logo configurada: a página de carreiras está usando um placeholder.
+                  </p>
+                )}
+              </div>
+
+
               <p className="text-xs text-muted-foreground">
                 Alternativamente, o site pode integrar diretamente via API enviando POST para
                 <code className="ml-1 text-xs bg-muted px-1 rounded">/functions/v1/public-job-application</code>.
