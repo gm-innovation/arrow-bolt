@@ -1,46 +1,70 @@
-Entendi — é um problema global de UX, não só da página de carreiras. Toda vez que você sai e volta para uma página com abas, o componente remonta e cai na aba padrão, perdendo contexto (e, no caso do editor, o que você estava digitando).
+## Diagnóstico
 
-## Plano
+Você tem razão em reclamar: o comportamento atual não é seguro para trabalho em andamento.
 
-### 1. Componente `Tabs` com memória (solução global)
-Criar um wrapper simples sobre o Radix Tabs que persiste a aba ativa automaticamente:
+Identifiquei duas frentes:
 
-- Novo componente `PersistentTabs` em `src/components/ui/tabs.tsx` (ou arquivo irmão).
-- Aceita uma prop `storageKey` (ex.: `"hr-recruitment"`, `"hr-university"`).
-- Salva a aba ativa em `sessionStorage` (vida da aba do navegador) — opção `persist="local"` para usar `localStorage` quando fizer sentido.
-- Se `storageKey` não for passado, comporta-se igual ao Tabs atual (zero quebra).
+1. **Página de carreiras**
+   - O editor salva “Sobre/Cultura” direto em `companies`, mas não confirma o retorno salvo com robustez.
+   - O rascunho foi colocado em `sessionStorage`; isso ajuda ao navegar, mas não é suficiente contra hard refresh, falha de update ou troca de contexto.
+   - Benefícios são salvos via dialog separado, mas o conteúdo institucional e a página pública dependem de refetch/cache. Se o save falha silenciosamente ou o usuário sai antes da confirmação, parece que salvou, mas a página pública volta vazia.
 
-Assim qualquer página do sistema com abas passa a lembrar onde você estava com **uma linha de mudança**:
-```tsx
-<Tabs defaultValue="candidates" storageKey="hr-recruitment">
-```
+2. **Remount global do sistema**
+   - O app usa layouts separados por bloco de rotas (`/hr`, `/admin`, `/manager`, `/corp`, etc.). Ao trocar de bloco, o `DashboardLayout` desmonta e monta de novo.
+   - Isso reinicia sidebar, conteúdo, estados locais, formulários e componentes lazy-loaded.
+   - A persistência de abas que foi adicionada ajuda só uma parte do problema; não impede perda de estado em formulários e filtros de páginas.
 
-### 2. Aplicar nas páginas com abas que sofrem mais com retrabalho
-Vou habilitar `storageKey` nas páginas onde a perda de aba causa retrabalho real (formulários, filtros, listas longas):
+## Plano de correção
 
-- `src/pages/hr/Recruitment.tsx` (Candidatos / Vagas / Admissões / Link / Página de carreiras)
-- `src/pages/hr/University.tsx`
-- `src/pages/manager/Dashboard.tsx`
-- `src/pages/manager/Reports.tsx`
-- `src/pages/tech/Settings.tsx`
-- `src/pages/tech/TaskDetails.tsx`
-- `src/components/hr/EmployeeDetailSheet.tsx`
+### 1. Tornar o editor de Carreiras à prova de perda
 
-(e demais ocorrências de `<Tabs defaultValue=...>` que aparecerem na varredura — aplico em todas que forem nível de página.)
+- Trocar o rascunho da página de carreiras de `sessionStorage` para `localStorage`, com chave por empresa.
+- Auto-salvar enquanto digita: título, cultura, missão, valores e rascunho de valores.
+- Não apagar o rascunho até confirmar que o banco realmente retornou os dados atualizados.
+- Após salvar, fazer refetch e comparar os dados retornados com o que foi enviado.
+- Se o save falhar ou a confirmação não bater, manter o rascunho e mostrar erro claro.
+- Adicionar status visível: “Rascunho salvo localmente”, “Salvando...”, “Publicado com sucesso”.
 
-### 3. Preservar rascunho do editor de Carreiras
-Independente da aba, o `CareersPageEditor` perde texto não salvo ao desmontar. Vou:
+### 2. Corrigir publicação/visualização pública da página de carreiras
 
-- Salvar automaticamente em `sessionStorage` os campos (Título, Sobre/Cultura, Missão, Valores) enquanto você digita.
-- Restaurar o rascunho ao remontar, sem sobrescrever o que vem do banco se não houver rascunho.
-- Limpar o rascunho após `Salvar` com sucesso.
-- Mostrar um aviso discreto "Alterações não salvas" quando houver rascunho diferente do salvo.
+- Depois de salvar “Sobre/Cultura”, invalidar/refazer as queries relacionadas à empresa.
+- Garantir que os campos salvos são exatamente os mesmos lidos pela função pública `public-careers-info`.
+- Evitar que a página pública mostre dados vazios por cache/refetch antigo após salvar.
 
-### 4. Fora do escopo
-- Não vou mexer em backend, tabelas, edge functions ou na página pública de carreiras.
-- Não vou trocar a biblioteca de abas nem mudar o visual.
+### 3. Persistir abas de forma mais forte
 
-## Arquivos previstos
-- `src/components/ui/tabs.tsx` (estender com suporte a `storageKey`)
-- `src/components/hr/CareersPageEditor.tsx` (rascunho local)
-- Páginas listadas no item 2 (adicionar `storageKey`)
+- Alterar o componente global `Tabs` para usar `localStorage` por padrão quando houver `storageKey`, não `sessionStorage`.
+- Manter opção `persist="session"` se alguma tela precisar do comportamento temporário.
+- Adicionar `storageKey` nas abas importantes que ainda ficaram sem persistência, como `TaskDetails`, `ApiDocs`, `MeasurementSettings`, `Corp Requests` e outras encontradas na varredura.
+
+### 4. Reduzir remount desnecessário do layout/sidebar
+
+- Reestruturar o roteamento para manter `AuthProvider`, `SidebarProvider`, `ErrorBoundary` e um shell autenticado estáveis dentro do app privado.
+- Criar/usar um wrapper autenticado único para rotas internas, evitando que blocos inteiros de layout desmontem quando o usuário navega entre áreas compatíveis.
+- Persistir estado da sidebar (`collapsed`) em `localStorage`, então mesmo se houver remount inevitável, ela volta no mesmo estado.
+
+### 5. Proteger outros formulários contra perda futura
+
+- Criar um hook reutilizável de rascunho local, por exemplo `usePersistentDraft`, com:
+  - chave por página/empresa/registro;
+  - debounce leve;
+  - restauração automática;
+  - limpeza só após save confirmado.
+- Aplicar agora no editor de Carreiras e deixar pronto para aplicar em formulários críticos sem reinventar lógica.
+
+## Arquivos principais
+
+- `src/components/hr/CareersPageEditor.tsx`
+- `src/components/ui/tabs.tsx`
+- `src/App.tsx`
+- `src/components/DashboardLayout.tsx`
+- possível novo hook: `src/hooks/usePersistentDraft.ts`
+- páginas com abas ainda sem `storageKey`
+
+## Fora do escopo
+
+- Não mexer em schema/tabelas.
+- Não alterar visual da página pública de carreiras.
+- Não mudar permissões ou autenticação.
+
+O objetivo é: digitou, não perde; salvou, confirma no banco; navegou, volta onde estava; sidebar e contexto não ficam reiniciando sem necessidade.
