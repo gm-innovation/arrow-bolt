@@ -36,9 +36,19 @@ import {
   BookOpen,
   Wallet,
   Sparkles,
+  UtensilsCrossed,
+  Utensils,
+  Stethoscope,
+  Dumbbell,
+  Bus,
 } from "lucide-react";
 
 const ICON_OPTIONS = [
+  { name: "Stethoscope", Icon: Stethoscope, label: "Plano de saúde" },
+  { name: "UtensilsCrossed", Icon: UtensilsCrossed, label: "Vale alimentação / refeição" },
+  { name: "Utensils", Icon: Utensils, label: "Refeitório" },
+  { name: "Bus", Icon: Bus, label: "Vale transporte" },
+  { name: "Dumbbell", Icon: Dumbbell, label: "Academia" },
   { name: "Heart", Icon: Heart, label: "Coração" },
   { name: "Home", Icon: Home, label: "Casa / Home Office" },
   { name: "GraduationCap", Icon: GraduationCap, label: "Educação" },
