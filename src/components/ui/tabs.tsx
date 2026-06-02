@@ -37,6 +37,14 @@ const Tabs = React.forwardRef<
     return saved ?? (defaultValue as string | undefined)
   })
 
+  React.useEffect(() => {
+    if (!storageKey || !store || !isControlled) return
+    const saved = store.getItem(STORAGE_PREFIX + storageKey)
+    if (saved && saved !== value) onValueChange?.(saved)
+    // Restore a controlled tab only once on mount/key change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, store, isControlled])
+
   const handleChange = React.useCallback(
     (next: string) => {
       if (storageKey && store) {
