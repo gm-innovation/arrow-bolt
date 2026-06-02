@@ -279,7 +279,7 @@ const PublicCareers = () => {
           <Card className="border-0 shadow-lg">
             <CardHeader>
               <CardTitle style={{ ...fontFamilyHead, color: NAVY_900 }}>
-                {selected ? `Candidatar-se: ${selected.title}` : "Candidatura espontânea"}
+                {selected ? `Candidatar-se: ${selected.title}` : "Banco de Talentos"}
               </CardTitle>
               {selected?.description && (
                 <p className="text-sm whitespace-pre-wrap" style={{ ...fontFamilyBody, color: `${NAVY_700}B3` }}>
@@ -480,7 +480,7 @@ const PublicCareers = () => {
             </h2>
             <p className="mt-2" style={{ ...fontFamilyBody, color: `${NAVY_700}B3` }}>
               {openings.length === 0
-                ? "Nenhuma vaga ativa no momento — envie sua candidatura espontânea abaixo."
+                ? "Nenhuma vaga ativa no momento — cadastre seu currículo em nosso Banco de Talentos abaixo."
                 : "Explore as oportunidades disponíveis no momento."}
             </p>
           </div>
@@ -625,7 +625,7 @@ const PublicCareers = () => {
                 e.currentTarget.style.color = "white";
               }}
             >
-              Candidatura espontânea
+              Banco de Talentos
             </button>
           </div>
         </div>
