@@ -158,11 +158,14 @@ const CareersPageEditor = () => {
       careers_values: normalizeValues(values).length ? normalizeValues(values) : null,
     } as any;
 
-    const { data: updated, error } = await supabase
-      .from("companies")
-      .update(payload)
-      .eq("id", companyId)
-      .select("careers_about_title, careers_about_text, careers_mission, careers_values")
+    const { data: updated, error } = await (supabase as any)
+      .rpc("update_company_careers_page", {
+        _company_id: companyId,
+        _about_title: payload.careers_about_title || "",
+        _about_text: payload.careers_about_text || "",
+        _mission: payload.careers_mission || "",
+        _values: payload.careers_values,
+      })
       .maybeSingle();
     if (error) {
       setSavingAbout(false);
