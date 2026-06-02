@@ -54,7 +54,7 @@ const ManagerReports = () => {
 
       <ReportsFilters onFilterChange={setFilters} onExport={handleExport} />
 
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="overview" storageKey="manager-reports" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
           <TabsTrigger value="overview" className="flex items-center gap-2">
             <BarChart3 className="w-4 h-4" />

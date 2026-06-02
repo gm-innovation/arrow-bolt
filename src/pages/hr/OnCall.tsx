@@ -61,7 +61,7 @@ const OnCall = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="list">
+      <Tabs defaultValue="list" storageKey="hr-oncall">
         <TabsList>
           <TabsTrigger value="list">Lista</TabsTrigger>
           <TabsTrigger value="calendar">Calendário</TabsTrigger>

@@ -33,7 +33,7 @@ const AdminSettings = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="notifications" className="space-y-6">
+      <Tabs defaultValue="notifications" storageKey="admin-settings" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />

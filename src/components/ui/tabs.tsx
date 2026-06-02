@@ -3,7 +3,72 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
-const Tabs = TabsPrimitive.Root
+type TabsRootProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & {
+  /**
+   * If provided, the active tab is persisted under this key and restored on mount.
+   * Defaults to sessionStorage (per-tab), use `persist="local"` for localStorage.
+   */
+  storageKey?: string
+  persist?: "session" | "local"
+}
+
+const STORAGE_PREFIX = "tabs:"
+
+const getStore = (persist: "session" | "local") => {
+  if (typeof window === "undefined") return null
+  try {
+    return persist === "local" ? window.localStorage : window.sessionStorage
+  } catch {
+    return null
+  }
+}
+
+const Tabs = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Root>,
+  TabsRootProps
+>(({ storageKey, persist = "session", defaultValue, value, onValueChange, ...props }, ref) => {
+  const isControlled = value !== undefined
+  const store = storageKey ? getStore(persist) : null
+
+  const [internal, setInternal] = React.useState<string | undefined>(() => {
+    if (!storageKey || !store) return defaultValue as string | undefined
+    const saved = store.getItem(STORAGE_PREFIX + storageKey)
+    return saved ?? (defaultValue as string | undefined)
+  })
+
+  const handleChange = React.useCallback(
+    (next: string) => {
+      if (storageKey && store) {
+        try { store.setItem(STORAGE_PREFIX + storageKey, next) } catch { /* ignore */ }
+      }
+      if (!isControlled) setInternal(next)
+      onValueChange?.(next)
+    },
+    [storageKey, store, isControlled, onValueChange],
+  )
+
+  if (storageKey && !isControlled) {
+    return (
+      <TabsPrimitive.Root
+        ref={ref}
+        value={internal}
+        onValueChange={handleChange}
+        {...props}
+      />
+    )
+  }
+
+  return (
+    <TabsPrimitive.Root
+      ref={ref}
+      defaultValue={defaultValue}
+      value={value}
+      onValueChange={onValueChange}
+      {...props}
+    />
+  )
+})
+Tabs.displayName = "Tabs"
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,

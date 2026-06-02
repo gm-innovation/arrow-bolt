@@ -189,7 +189,7 @@ const HRRecruitment = () => {
         ))}
       </div>
 
-      <Tabs defaultValue="candidates">
+      <Tabs defaultValue="candidates" storageKey="hr-recruitment">
         <TabsList>
           <TabsTrigger value="candidates">Candidatos</TabsTrigger>
           <TabsTrigger value="openings">Vagas</TabsTrigger>

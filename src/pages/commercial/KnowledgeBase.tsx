@@ -86,7 +86,7 @@ const KnowledgeBase = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="articles" className="w-full">
+      <Tabs defaultValue="articles" storageKey="commercial-knowledge-base" className="w-full">
         <TabsList>
           <TabsTrigger value="articles">Artigos ({articles.length})</TabsTrigger>
           <TabsTrigger value="documents">Documentos ({documents.length})</TabsTrigger>

@@ -169,7 +169,7 @@ const AdminKnowledge = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="entries">
+      <Tabs defaultValue="entries" storageKey="commercial-admin-knowledge">
         <TabsList>
           <TabsTrigger value="entries">Entradas ({entries.length})</TabsTrigger>
           <TabsTrigger value="documents">Documentos ({documents.length})</TabsTrigger>

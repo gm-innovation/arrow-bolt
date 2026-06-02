@@ -115,7 +115,7 @@ const MyLearning = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="active">
+      <Tabs defaultValue="active" storageKey="corp-my-learning">
         <TabsList>
           <TabsTrigger value="active">Em Andamento ({activeEnrollments.length})</TabsTrigger>
           <TabsTrigger value="completed">Concluídos ({completedEnrollments.length})</TabsTrigger>

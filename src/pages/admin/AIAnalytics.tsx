@@ -140,7 +140,7 @@ export default function AIAnalytics() {
       </div>
 
       {/* Charts and Details */}
-      <Tabs defaultValue="usage" className="space-y-4">
+      <Tabs defaultValue="usage" storageKey="admin-ai-analytics" className="space-y-4">
         <TabsList>
           <TabsTrigger value="usage">Uso ao Longo do Tempo</TabsTrigger>
           <TabsTrigger value="satisfaction">Satisfação</TabsTrigger>
