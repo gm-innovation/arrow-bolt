@@ -53,7 +53,7 @@ const HRRecruitment = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("companies")
-        .select("public_site_slug, public_intake_enabled, public_site_base_url")
+        .select("public_site_slug, public_intake_enabled, public_site_base_url, logo_url, name")
         .eq("id", profile!.company_id)
         .maybeSingle();
       if (error) throw error;
