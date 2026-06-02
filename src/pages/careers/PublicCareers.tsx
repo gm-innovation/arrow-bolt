@@ -257,7 +257,7 @@ const PublicCareers = () => {
               <img
                 src={companyLogo || lecsorLogoBlack.url}
                 alt={displayName}
-                className="h-10 w-auto object-contain"
+                className="h-14 md:h-16 w-auto object-contain"
               />
             </div>
             <Button
