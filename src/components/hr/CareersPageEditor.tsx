@@ -103,14 +103,42 @@ const CareersPageEditor = () => {
   const [values, setValues] = useState<string[]>([]);
   const [valueDraft, setValueDraft] = useState("");
   const [savingAbout, setSavingAbout] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
+  const draftKey = companyId ? `careers-about-draft:${companyId}` : null;
+
+  // Hidrata: prioriza rascunho local; senão usa dados do banco. Roda apenas uma vez por empresa.
   useEffect(() => {
-    if (!company) return;
-    setAboutTitle((company as any).careers_about_title || "");
-    setAboutText((company as any).careers_about_text || "");
-    setMission((company as any).careers_mission || "");
-    setValues((company as any).careers_values || []);
-  }, [company]);
+    if (!company || !draftKey || hydrated) return;
+    let draft: any = null;
+    try {
+      const raw = sessionStorage.getItem(draftKey);
+      if (raw) draft = JSON.parse(raw);
+    } catch { /* ignore */ }
+    setAboutTitle(draft?.aboutTitle ?? ((company as any).careers_about_title || ""));
+    setAboutText(draft?.aboutText ?? ((company as any).careers_about_text || ""));
+    setMission(draft?.mission ?? ((company as any).careers_mission || ""));
+    setValues(draft?.values ?? ((company as any).careers_values || []));
+    setHydrated(true);
+  }, [company, draftKey, hydrated]);
+
+  // Salva rascunho enquanto o usuário digita.
+  useEffect(() => {
+    if (!draftKey || !hydrated) return;
+    try {
+      sessionStorage.setItem(
+        draftKey,
+        JSON.stringify({ aboutTitle, aboutText, mission, values }),
+      );
+    } catch { /* ignore */ }
+  }, [draftKey, hydrated, aboutTitle, aboutText, mission, values]);
+
+  const hasUnsavedChanges = hydrated && company && (
+    aboutTitle !== ((company as any).careers_about_title || "") ||
+    aboutText !== ((company as any).careers_about_text || "") ||
+    mission !== ((company as any).careers_mission || "") ||
+    JSON.stringify(values) !== JSON.stringify((company as any).careers_values || [])
+  );
 
   const addValue = () => {
     const v = valueDraft.trim();
@@ -139,6 +167,9 @@ const CareersPageEditor = () => {
       return;
     }
     toast({ title: "Sobre / cultura atualizado" });
+    if (draftKey) {
+      try { sessionStorage.removeItem(draftKey); } catch { /* ignore */ }
+    }
     refetch();
   };
 
