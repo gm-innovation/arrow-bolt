@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
-import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2, ExternalLink, StickyNote, Tag as TagIcon } from "lucide-react";
+import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2, ExternalLink, StickyNote, Tag as TagIcon, Upload, Image as ImageIcon } from "lucide-react";
 import JobOpeningDialog from "@/components/hr/JobOpeningDialog";
 import ApplicationDetailSheet from "@/components/hr/ApplicationDetailSheet";
 import HROnboarding from "@/pages/hr/Onboarding";
