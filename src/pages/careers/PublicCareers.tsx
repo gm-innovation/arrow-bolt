@@ -22,7 +22,34 @@ import {
   ArrowLeft,
   Briefcase,
   ArrowRight,
+  Heart,
+  Home,
+  GraduationCap,
+  Coffee,
+  Plane,
+  Shield,
+  Gift,
+  Users,
+  Activity,
+  BookOpen,
+  Wallet,
+  Sparkles,
 } from "lucide-react";
+
+const BENEFIT_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  Heart,
+  Home,
+  GraduationCap,
+  Coffee,
+  Plane,
+  Shield,
+  Gift,
+  Briefcase,
+  Users,
+  Activity,
+  BookOpen,
+  Wallet,
+};
 import lecsorLogoBlack from "@/assets/lecsor-logo-black.png.asset.json";
 import lecsorLogoGrey from "@/assets/lecsor-logo-grey.png.asset.json";
 
@@ -33,6 +60,20 @@ type Opening = {
   description: string | null;
   location: string | null;
   employment_type: string | null;
+};
+
+type Benefit = {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string | null;
+};
+
+type CompanyAbout = {
+  about_title: string | null;
+  about_text: string | null;
+  mission: string | null;
+  values: string[] | null;
 };
 
 // Locked brand tokens for the public careers surface.
@@ -63,6 +104,8 @@ const PublicCareers = () => {
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [companyWebsite, setCompanyWebsite] = useState<string | null>(null);
   const [openings, setOpenings] = useState<Opening[]>([]);
+  const [benefits, setBenefits] = useState<Benefit[]>([]);
+  const [about, setAbout] = useState<CompanyAbout>({ about_title: null, about_text: null, mission: null, values: null });
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Opening | null>(null);
   const [spontaneous, setSpontaneous] = useState(false);
@@ -102,6 +145,12 @@ const PublicCareers = () => {
         setCompanyId(data.company.id);
         setCompanyName(data.company.name || "");
         setCompanyWebsite(data.company.website_url || null);
+        setAbout({
+          about_title: data.company.about_title ?? null,
+          about_text: data.company.about_text ?? null,
+          mission: data.company.mission ?? null,
+          values: data.company.values ?? null,
+        });
         if (data.company.logo_url) {
           const logo = data.company.logo_url.startsWith("http")
             ? data.company.logo_url
@@ -110,6 +159,7 @@ const PublicCareers = () => {
         }
         const jobs: Opening[] = data.openings || [];
         setOpenings(jobs);
+        setBenefits(data.benefits || []);
         if (preselected) {
           const j = jobs.find((o) => o.id === preselected);
           if (j) setSelected(j);
@@ -470,6 +520,134 @@ const PublicCareers = () => {
           </div>
         </div>
       </section>
+
+      {/* Sobre / Cultura */}
+      {(about.about_text || about.mission || (about.values && about.values.length > 0)) && (
+        <section className="bg-white border-b" style={{ borderColor: `${NAVY_900}0D` }}>
+          <div className="max-w-7xl mx-auto px-6 py-16 md:py-20">
+            <div className="grid md:grid-cols-3 gap-10 md:gap-16">
+              <div className="md:col-span-2">
+                <span
+                  className="inline-block text-xs font-bold px-3 py-1 mb-5 tracking-widest uppercase"
+                  style={{ ...fontFamilyBody, background: `${NAVY_400}1A`, color: NAVY_700 }}
+                >
+                  Sobre nós
+                </span>
+                <h2
+                  className="text-3xl md:text-4xl font-bold mb-6 leading-tight"
+                  style={{ ...fontFamilyHead, color: NAVY_900 }}
+                >
+                  {about.about_title || `Conheça a ${displayName}`}
+                </h2>
+                {about.about_text && (
+                  <div
+                    className="text-base md:text-lg leading-relaxed whitespace-pre-line"
+                    style={{ ...fontFamilyBody, color: `${NAVY_900}CC` }}
+                  >
+                    {about.about_text}
+                  </div>
+                )}
+                {about.mission && (
+                  <div
+                    className="mt-8 p-6 border-l-4"
+                    style={{ borderColor: NAVY_400, background: `${NAVY_400}0D` }}
+                  >
+                    <div
+                      className="text-xs font-bold tracking-widest uppercase mb-2"
+                      style={{ ...fontFamilyBody, color: NAVY_700 }}
+                    >
+                      Nossa missão
+                    </div>
+                    <p
+                      className="text-base md:text-lg leading-relaxed"
+                      style={{ ...fontFamilyHead, color: NAVY_900 }}
+                    >
+                      {about.mission}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {about.values && about.values.length > 0 && (
+                <div>
+                  <div
+                    className="text-xs font-bold tracking-widest uppercase mb-4"
+                    style={{ ...fontFamilyBody, color: NAVY_700 }}
+                  >
+                    Nossos valores
+                  </div>
+                  <ul className="space-y-3">
+                    {about.values.map((v, i) => (
+                      <li
+                        key={i}
+                        className="flex items-start gap-3 p-4 border"
+                        style={{ borderColor: `${NAVY_900}14`, background: PAPER }}
+                      >
+                        <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0" style={{ color: NAVY_400 }} />
+                        <span style={{ ...fontFamilyBody, color: NAVY_900 }}>{v}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Benefícios */}
+      {benefits.length > 0 && (
+        <section style={{ background: PAPER }}>
+          <div className="max-w-7xl mx-auto px-6 py-16 md:py-20">
+            <div className="max-w-2xl mb-10">
+              <span
+                className="inline-block text-xs font-bold px-3 py-1 mb-5 tracking-widest uppercase"
+                style={{ ...fontFamilyBody, background: `${NAVY_400}1A`, color: NAVY_700 }}
+              >
+                Benefícios
+              </span>
+              <h2
+                className="text-3xl md:text-4xl font-bold leading-tight"
+                style={{ ...fontFamilyHead, color: NAVY_900 }}
+              >
+                Por que trabalhar na {displayName}
+              </h2>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {benefits.map((b) => {
+                const Icon = (b.icon && BENEFIT_ICONS[b.icon]) || Sparkles;
+                return (
+                  <div
+                    key={b.id}
+                    className="bg-white p-6 border transition-shadow hover:shadow-md"
+                    style={{ borderColor: `${NAVY_900}14` }}
+                  >
+                    <div
+                      className="inline-flex items-center justify-center w-12 h-12 mb-4"
+                      style={{ background: `${NAVY_400}1A`, color: NAVY_700 }}
+                    >
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <h3
+                      className="text-lg font-bold mb-2"
+                      style={{ ...fontFamilyHead, color: NAVY_900 }}
+                    >
+                      {b.title}
+                    </h3>
+                    {b.description && (
+                      <p
+                        className="text-sm leading-relaxed"
+                        style={{ ...fontFamilyBody, color: `${NAVY_900}99` }}
+                      >
+                        {b.description}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Jobs */}
       <main className="max-w-7xl mx-auto px-6 py-16 md:py-20">
