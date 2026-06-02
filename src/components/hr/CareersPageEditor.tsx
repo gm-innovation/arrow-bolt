@@ -108,57 +108,44 @@ const CareersPageEditor = () => {
     enabled: !!companyId,
   });
 
-  const [aboutTitle, setAboutTitle] = useState("");
-  const [aboutText, setAboutText] = useState("");
-  const [mission, setMission] = useState("");
-  const [values, setValues] = useState<string[]>([]);
-  const [valueDraft, setValueDraft] = useState("");
   const [savingAbout, setSavingAbout] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const [aboutStatus, setAboutStatus] = useState<"idle" | "saved" | "error">("idle");
 
-  const draftKey = companyId ? `careers-about-draft:${companyId}` : null;
+  const savedAbout = useMemo<CareersAboutDraft>(() => ({
+    aboutTitle: ((company as any)?.careers_about_title || "") as string,
+    aboutText: ((company as any)?.careers_about_text || "") as string,
+    mission: ((company as any)?.careers_mission || "") as string,
+    values: ((company as any)?.careers_values || []) as string[],
+    valueDraft: "",
+  }), [company]);
 
-  // Hidrata: prioriza rascunho local; senão usa dados do banco. Roda apenas uma vez por empresa.
-  useEffect(() => {
-    if (!company || !draftKey || hydrated) return;
-    let draft: any = null;
-    try {
-      const raw = sessionStorage.getItem(draftKey);
-      if (raw) draft = JSON.parse(raw);
-    } catch { /* ignore */ }
-    setAboutTitle(draft?.aboutTitle ?? ((company as any).careers_about_title || ""));
-    setAboutText(draft?.aboutText ?? ((company as any).careers_about_text || ""));
-    setMission(draft?.mission ?? ((company as any).careers_mission || ""));
-    setValues(draft?.values ?? ((company as any).careers_values || []));
-    setHydrated(true);
-  }, [company, draftKey, hydrated]);
+  const draftKey = companyId && company ? `careers-about-draft:${companyId}` : null;
+  const { draft, setDraft, hydrated, hasStoredDraft, clearDraft } = usePersistentDraft<CareersAboutDraft>({
+    storageKey: draftKey,
+    initialValue: savedAbout,
+    enabled: !!company,
+    storage: "local",
+  });
 
-  // Salva rascunho enquanto o usuário digita.
-  useEffect(() => {
-    if (!draftKey || !hydrated) return;
-    try {
-      sessionStorage.setItem(
-        draftKey,
-        JSON.stringify({ aboutTitle, aboutText, mission, values }),
-      );
-    } catch { /* ignore */ }
-  }, [draftKey, hydrated, aboutTitle, aboutText, mission, values]);
+  const { aboutTitle, aboutText, mission, values, valueDraft } = draft;
 
   const hasUnsavedChanges = hydrated && company && (
-    aboutTitle !== ((company as any).careers_about_title || "") ||
-    aboutText !== ((company as any).careers_about_text || "") ||
-    mission !== ((company as any).careers_mission || "") ||
-    JSON.stringify(values) !== JSON.stringify((company as any).careers_values || [])
+    aboutTitle !== savedAbout.aboutTitle ||
+    aboutText !== savedAbout.aboutText ||
+    mission !== savedAbout.mission ||
+    JSON.stringify(values) !== JSON.stringify(savedAbout.values) ||
+    valueDraft.trim().length > 0
   );
 
   const addValue = () => {
     const v = valueDraft.trim();
     if (!v) return;
-    setValues((arr) => [...arr, v]);
-    setValueDraft("");
+    setDraft((current) => ({ ...current, values: [...current.values, v], valueDraft: "" }));
   };
 
-  const removeValue = (i: number) => setValues((arr) => arr.filter((_, idx) => idx !== i));
+  const removeValue = (i: number) => {
+    setDraft((current) => ({ ...current, values: current.values.filter((_, idx) => idx !== i) }));
+  };
 
   const saveAbout = async () => {
     if (!companyId) return;
