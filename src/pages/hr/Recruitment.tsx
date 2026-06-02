@@ -80,7 +80,7 @@ const HRRecruitment = () => {
   const [baseUrlDraft, setBaseUrlDraft] = useState<string>("");
   const [savingBase, setSavingBase] = useState(false);
   // sync draft once companyInfo loads
-  useMemo(() => {
+  useEffect(() => {
     if (configuredBase !== undefined) setBaseUrlDraft(configuredBase || "");
   }, [configuredBase]);
 
