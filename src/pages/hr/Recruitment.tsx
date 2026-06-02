@@ -194,6 +194,7 @@ const HRRecruitment = () => {
           <TabsTrigger value="openings">Vagas</TabsTrigger>
           <TabsTrigger value="admissions">Admissões</TabsTrigger>
           <TabsTrigger value="link">Link público</TabsTrigger>
+          <TabsTrigger value="page">Página de carreiras</TabsTrigger>
         </TabsList>
 
         <TabsContent value="candidates" className="space-y-4">
