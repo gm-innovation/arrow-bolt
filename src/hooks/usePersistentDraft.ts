@@ -43,7 +43,11 @@ export function usePersistentDraft<T>({
     let restored = false;
 
     try {
-      const raw = store?.getItem(storageKey);
+      let raw = store?.getItem(storageKey);
+      if (!raw && storage === "local") {
+        raw = window.sessionStorage.getItem(storageKey);
+        if (raw) store?.setItem(storageKey, raw);
+      }
       if (raw) {
         setDraftState(JSON.parse(raw) as T);
         restored = true;
