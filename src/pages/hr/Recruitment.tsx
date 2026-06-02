@@ -413,10 +413,35 @@ const HRRecruitment = () => {
                   Recebimento público de candidaturas está desativado. Solicite ao Super Admin para habilitar.
                 </p>
               )}
+
+              <div className="pt-3 border-t space-y-2">
+                <p className="text-xs font-medium">Domínio público do site</p>
+                <p className="text-xs text-muted-foreground">
+                  URL base usada para montar o link das candidaturas. Ex.: <code className="bg-muted px-1 rounded">https://arrow.googlemarineinnovation.com.br</code>
+                </p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://seudominio.com.br"
+                    value={baseUrlDraft}
+                    onChange={(e) => setBaseUrlDraft(e.target.value)}
+                    className="font-mono text-xs"
+                  />
+                  <Button variant="outline" disabled={savingBase} onClick={saveBaseUrl}>
+                    {savingBase ? "Salvando..." : "Salvar"}
+                  </Button>
+                </div>
+                {!configuredBase && (
+                  <p className="text-xs text-amber-600">
+                    Sem domínio configurado: o link está usando <code className="bg-muted px-1 rounded">{window.location.origin}</code>.
+                  </p>
+                )}
+              </div>
+
               <p className="text-xs text-muted-foreground">
                 Alternativamente, o site pode integrar diretamente via API enviando POST para
                 <code className="ml-1 text-xs bg-muted px-1 rounded">/functions/v1/public-job-application</code>.
               </p>
+
             </CardContent>
           </Card>
         </TabsContent>
