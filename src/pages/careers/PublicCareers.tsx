@@ -257,7 +257,7 @@ const PublicCareers = () => {
               <img
                 src={companyLogo || lecsorLogoBlack.url}
                 alt={displayName}
-                className="h-10 w-auto object-contain"
+                className="h-14 md:h-16 w-auto object-contain"
               />
             </div>
             <Button
@@ -406,7 +406,7 @@ const PublicCareers = () => {
             <img
               src={companyLogo || lecsorLogoBlack.url}
               alt={displayName}
-              className="h-10 md:h-12 w-auto object-contain"
+              className="h-14 md:h-16 w-auto object-contain"
             />
           </div>
           {companyWebsite && (
@@ -445,7 +445,7 @@ const PublicCareers = () => {
               <img
                 src={lecsorLogoGrey.url}
                 alt={displayName}
-                className="h-10 md:h-12 w-auto object-contain mb-8 opacity-90"
+                className="h-16 md:h-20 w-auto object-contain mb-8 opacity-90"
               />
             )}
             <span
@@ -636,7 +636,7 @@ const PublicCareers = () => {
           <img
             src={lecsorLogoBlack.url}
             alt={displayName}
-            className="h-6 w-auto object-contain opacity-60"
+            className="h-9 w-auto object-contain opacity-60"
           />
           <p className="text-sm" style={{ ...fontFamilyBody, color: `${NAVY_700}66` }}>
             © {new Date().getFullYear()} {displayName}. Todos os direitos reservados.
