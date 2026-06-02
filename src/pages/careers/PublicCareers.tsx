@@ -104,6 +104,8 @@ const PublicCareers = () => {
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
   const [companyWebsite, setCompanyWebsite] = useState<string | null>(null);
   const [openings, setOpenings] = useState<Opening[]>([]);
+  const [benefits, setBenefits] = useState<Benefit[]>([]);
+  const [about, setAbout] = useState<CompanyAbout>({ about_title: null, about_text: null, mission: null, values: null });
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Opening | null>(null);
   const [spontaneous, setSpontaneous] = useState(false);
