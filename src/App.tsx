@@ -148,7 +148,7 @@ const FinanceReimbursements = lazy(() => import("./pages/finance/Reimbursements"
 const FinanceReports = lazy(() => import("./pages/finance/Reports"));
 const FinanceSettings = lazy(() => import("./pages/finance/Settings"));
 
-import { CorpRoute, CorpAdminRoute, CorpReportsRoute } from "./components/corp/CorpRoute";
+import { CorpLayoutRoute, CorpAdminLayoutRoute, CorpReportsLayoutRoute } from "./components/corp/CorpRoute";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -329,25 +329,32 @@ const App = () => {
                     <Route path="/commercial/admin/logs" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminAuditLogs /></CommercialAdminLayout></Suspense>} />
                   </Route>
 
-                  {/* Corp Routes - dynamic userType based on role */}
-                  <Route path="/corp/dashboard" element={<CorpRoute pageTitle="Solicitações Corp"><CorpDashboard /></CorpRoute>} />
-                  <Route path="/corp/requests" element={<CorpRoute pageTitle="Solicitações Corp"><CorpRequests /></CorpRoute>} />
-                  <Route path="/corp/documents" element={<CorpRoute pageTitle="Documentos Corp"><CorpDocuments /></CorpRoute>} />
-                  <Route path="/corp/feed" element={<CorpRoute pageTitle="Feed"><CorpFeed /></CorpRoute>} />
-                  <Route path="/corp/feed/discussions/:id" element={<CorpRoute pageTitle="Discussão"><CorpFeedDiscussion /></CorpRoute>} />
-                  <Route path="/corp/groups/:id" element={<CorpRoute pageTitle="Grupo"><CorpGroupDetail /></CorpRoute>} />
-                  <Route path="/corp/groups/:id/discussions/:discussionId" element={<CorpRoute pageTitle="Discussão"><CorpGroupDiscussion /></CorpRoute>} />
-                  <Route path="/corp/reports" element={<CorpReportsRoute pageTitle="Relatórios Corp"><CorpReports /></CorpReportsRoute>} />
-                  <Route path="/corp/admin/departments" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpDepartments /></CorpAdminRoute>} />
-                  <Route path="/corp/admin/request-types" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpRequestTypes /></CorpAdminRoute>} />
-                  <Route path="/corp/admin/audit-log" element={<CorpAdminRoute pageTitle="Admin Corp"><CorpAuditLog /></CorpAdminRoute>} />
-                  <Route path="/corp/my-documents" element={<CorpRoute pageTitle="Meus Documentos"><CorpMyDocuments /></CorpRoute>} />
-                  <Route path="/corp/profile/:userId" element={<CorpRoute pageTitle="Perfil"><CorpUserProfile /></CorpRoute>} />
-                  <Route path="/corp/profile" element={<CorpRoute pageTitle="Meu Perfil"><CorpUserProfile /></CorpRoute>} />
-                  <Route path="/corp/university" element={<CorpRoute pageTitle="Universidade"><CorpUniversity /></CorpRoute>} />
-                  <Route path="/corp/university/course/:id" element={<CorpRoute pageTitle="Curso"><CorpUniversityCourse /></CorpRoute>} />
-                  <Route path="/corp/university/trail/:id" element={<CorpRoute pageTitle="Trilha"><CorpUniversityTrail /></CorpRoute>} />
-                  <Route path="/corp/university/my-learning" element={<CorpRoute pageTitle="Meu Aprendizado"><CorpMyLearning /></CorpRoute>} />
+                  {/* Corp Routes - shared layout via Outlet (no per-route remount) */}
+                  <Route element={<CorpLayoutRoute />}>
+                    <Route path="/corp/dashboard" element={<CorpDashboard />} />
+                    <Route path="/corp/requests" element={<CorpRequests />} />
+                    <Route path="/corp/documents" element={<CorpDocuments />} />
+                    <Route path="/corp/feed" element={<CorpFeed />} />
+                    <Route path="/corp/feed/discussions/:id" element={<CorpFeedDiscussion />} />
+                    <Route path="/corp/groups/:id" element={<CorpGroupDetail />} />
+                    <Route path="/corp/groups/:id/discussions/:discussionId" element={<CorpGroupDiscussion />} />
+                    <Route path="/corp/my-documents" element={<CorpMyDocuments />} />
+                    <Route path="/corp/profile/:userId" element={<CorpUserProfile />} />
+                    <Route path="/corp/profile" element={<CorpUserProfile />} />
+                    <Route path="/corp/university" element={<CorpUniversity />} />
+                    <Route path="/corp/university/course/:id" element={<CorpUniversityCourse />} />
+                    <Route path="/corp/university/trail/:id" element={<CorpUniversityTrail />} />
+                    <Route path="/corp/university/my-learning" element={<CorpMyLearning />} />
+                  </Route>
+                  <Route element={<CorpReportsLayoutRoute />}>
+                    <Route path="/corp/reports" element={<CorpReports />} />
+                  </Route>
+                  <Route element={<CorpAdminLayoutRoute />}>
+                    <Route path="/corp/admin/departments" element={<CorpDepartments />} />
+                    <Route path="/corp/admin/request-types" element={<CorpRequestTypes />} />
+                    <Route path="/corp/admin/audit-log" element={<CorpAuditLog />} />
+                  </Route>
+
 
                   {/* Supplies - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras" /></ProtectedRoute>}>

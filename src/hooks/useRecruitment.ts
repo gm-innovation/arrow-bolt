@@ -23,11 +23,12 @@ export const useJobOpenings = () => {
 
   const upsertOpening = useMutation({
     mutationFn: async (o: any) => {
-      const payload = { ...o, company_id: profile!.company_id, created_by: profile!.id };
       if (o.id) {
-        const { error } = await (supabase as any).from("job_openings").update(o).eq("id", o.id);
+        const { id, company_id, created_by, created_at, updated_at, ...rest } = o;
+        const { error } = await (supabase as any).from("job_openings").update(rest).eq("id", id);
         if (error) throw error;
       } else {
+        const payload = { ...o, company_id: profile!.company_id, created_by: profile!.id };
         const { error } = await (supabase as any).from("job_openings").insert(payload);
         if (error) throw error;
       }
