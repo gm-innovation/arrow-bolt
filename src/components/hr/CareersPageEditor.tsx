@@ -192,13 +192,6 @@ const CareersPageEditor = () => {
     }
 
     clearDraft();
-    setDraft({
-      aboutTitle: payload.careers_about_title || "",
-      aboutText: payload.careers_about_text || "",
-      mission: payload.careers_mission || "",
-      values: payload.careers_values || [],
-      valueDraft: "",
-    });
     setAboutStatus("saved");
     qc.invalidateQueries({ queryKey: ["company-careers-about", companyId] });
     qc.invalidateQueries({ queryKey: ["company-public-slug", companyId] });
