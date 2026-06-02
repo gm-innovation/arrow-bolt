@@ -160,7 +160,7 @@ const CorpRequests = () => {
           </Select>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <Tabs value={activeTab} onValueChange={setActiveTab} storageKey="corp-requests">
           <TabsList>
             <TabsTrigger value="mine">Minhas Solicitações</TabsTrigger>
             <TabsTrigger value="received">Recebidas</TabsTrigger>
