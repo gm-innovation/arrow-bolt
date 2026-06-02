@@ -34,8 +34,22 @@ import {
   BookOpen,
   Wallet,
   Sparkles,
-  icons as lucideIcons,
 } from "lucide-react";
+
+const BENEFIT_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  Heart,
+  Home,
+  GraduationCap,
+  Coffee,
+  Plane,
+  Shield,
+  Gift,
+  Briefcase,
+  Users,
+  Activity,
+  BookOpen,
+  Wallet,
+};
 import lecsorLogoBlack from "@/assets/lecsor-logo-black.png.asset.json";
 import lecsorLogoGrey from "@/assets/lecsor-logo-grey.png.asset.json";
 
