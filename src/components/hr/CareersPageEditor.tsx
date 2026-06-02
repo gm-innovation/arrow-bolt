@@ -306,7 +306,10 @@ const CareersPageEditor = () => {
               </div>
             )}
           </div>
-          <div className="flex justify-end">
+          <div className="flex items-center justify-end gap-3">
+            {hasUnsavedChanges && (
+              <span className="text-xs text-amber-600">Alterações não salvas</span>
+            )}
             <Button onClick={saveAbout} disabled={savingAbout}>
               {savingAbout ? "Salvando..." : "Salvar"}
             </Button>
