@@ -62,6 +62,20 @@ type Opening = {
   employment_type: string | null;
 };
 
+type Benefit = {
+  id: string;
+  title: string;
+  description: string | null;
+  icon: string | null;
+};
+
+type CompanyAbout = {
+  about_title: string | null;
+  about_text: string | null;
+  mission: string | null;
+  values: string[] | null;
+};
+
 // Locked brand tokens for the public careers surface.
 // Kept inline because this page is standalone and must not inherit the app theme.
 const NAVY_900 = "#0f1b3d";
