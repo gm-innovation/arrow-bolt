@@ -145,6 +145,12 @@ const PublicCareers = () => {
         setCompanyId(data.company.id);
         setCompanyName(data.company.name || "");
         setCompanyWebsite(data.company.website_url || null);
+        setAbout({
+          about_title: data.company.about_title ?? null,
+          about_text: data.company.about_text ?? null,
+          mission: data.company.mission ?? null,
+          values: data.company.values ?? null,
+        });
         if (data.company.logo_url) {
           const logo = data.company.logo_url.startsWith("http")
             ? data.company.logo_url
@@ -153,6 +159,7 @@ const PublicCareers = () => {
         }
         const jobs: Opening[] = data.openings || [];
         setOpenings(jobs);
+        setBenefits(data.benefits || []);
         if (preselected) {
           const j = jobs.find((o) => o.id === preselected);
           if (j) setSelected(j);
