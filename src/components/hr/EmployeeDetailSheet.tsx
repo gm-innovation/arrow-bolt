@@ -155,7 +155,7 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
           </div>
         </SheetHeader>
 
-        <Tabs defaultValue="personal" className="mt-2">
+        <Tabs defaultValue="personal" storageKey={`employee-detail:${employee.id}`} className="mt-2">
           <TabsList className={`w-full grid`} style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
             <TabsTrigger value="personal"><User className="h-4 w-4 mr-1 hidden sm:inline" />Dados</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-4 w-4 mr-1 hidden sm:inline" />Docs</TabsTrigger>
