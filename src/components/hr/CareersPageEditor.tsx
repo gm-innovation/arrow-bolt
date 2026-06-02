@@ -150,25 +150,59 @@ const CareersPageEditor = () => {
   const saveAbout = async () => {
     if (!companyId) return;
     setSavingAbout(true);
+    setAboutStatus("idle");
+    const payload = {
+      careers_about_title: aboutTitle.trim() || null,
+      careers_about_text: aboutText.trim() || null,
+      careers_mission: mission.trim() || null,
+      careers_values: normalizeValues(values).length ? normalizeValues(values) : null,
+    } as any;
+
     const { error } = await supabase
       .from("companies")
-      .update({
-        careers_about_title: aboutTitle.trim() || null,
-        careers_about_text: aboutText.trim() || null,
-        careers_mission: mission.trim() || null,
-        careers_values: values.length ? values : null,
-      } as any)
-      .eq("id", companyId);
+      .update(payload)
+      .eq("id", companyId)
+      .select("careers_about_title, careers_about_text, careers_mission, careers_values")
+      .maybeSingle();
     setSavingAbout(false);
     if (error) {
+      setAboutStatus("error");
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Sobre / cultura atualizado" });
-    if (draftKey) {
-      try { sessionStorage.removeItem(draftKey); } catch { /* ignore */ }
+
+    const { data: fresh } = await refetch();
+    const confirmed = fresh ?? null;
+    const savedValues = (confirmed as any)?.careers_values || [];
+    const expectedValues = payload.careers_values || [];
+    const matches = !!confirmed &&
+      ((confirmed as any).careers_about_title || "") === (payload.careers_about_title || "") &&
+      ((confirmed as any).careers_about_text || "") === (payload.careers_about_text || "") &&
+      ((confirmed as any).careers_mission || "") === (payload.careers_mission || "") &&
+      JSON.stringify(savedValues) === JSON.stringify(expectedValues);
+
+    if (!matches) {
+      setAboutStatus("error");
+      toast({
+        title: "Salvamento não confirmado",
+        description: "Mantive seu rascunho local. Tente salvar novamente antes de sair.",
+        variant: "destructive",
+      });
+      return;
     }
-    refetch();
+
+    clearDraft();
+    setDraft({
+      aboutTitle: payload.careers_about_title || "",
+      aboutText: payload.careers_about_text || "",
+      mission: payload.careers_mission || "",
+      values: payload.careers_values || [],
+      valueDraft: "",
+    });
+    setAboutStatus("saved");
+    qc.invalidateQueries({ queryKey: ["company-careers-about", companyId] });
+    qc.invalidateQueries({ queryKey: ["company-public-slug", companyId] });
+    toast({ title: "Página de carreiras publicada" });
   };
 
   // ----- Benefits CRUD -----
