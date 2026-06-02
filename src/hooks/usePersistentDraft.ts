@@ -39,16 +39,25 @@ export function usePersistentDraft<T>({
     try {
       let raw = store?.getItem(storageKey) ?? null;
       if (!raw && storage === "local") {
-        // Migrate legacy sessionStorage drafts.
         const legacy = window.sessionStorage.getItem(storageKey);
         if (legacy) {
           raw = legacy;
           store?.setItem(storageKey, legacy);
         }
       }
-      if (raw) return { value: JSON.parse(raw) as T, restored: true };
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Merge with initialValue so missing/new fields don't crash consumers.
+        if (
+          parsed && typeof parsed === "object" && !Array.isArray(parsed) &&
+          initialValue && typeof initialValue === "object" && !Array.isArray(initialValue)
+        ) {
+          return { value: { ...(initialValue as any), ...(parsed as any) } as T, restored: true };
+        }
+        return { value: parsed as T, restored: true };
+      }
     } catch {
-      // ignore
+      // ignore corrupted draft
     }
     return { value: initialValue, restored: false };
   };

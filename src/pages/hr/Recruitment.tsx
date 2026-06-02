@@ -198,6 +198,12 @@ const HRRecruitment = () => {
           <TabsTrigger value="page">Página de carreiras</TabsTrigger>
         </TabsList>
 
+        {/* Always-mounted careers editor: switching tabs only hides it,
+            so the local draft is never destroyed. */}
+        <TabsContent value="page" forceMount className="space-y-4 data-[state=inactive]:hidden">
+          <CareersPageEditor />
+        </TabsContent>
+
         <TabsContent value="candidates" className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-[200px]">
