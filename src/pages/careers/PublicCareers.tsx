@@ -62,37 +62,34 @@ const PublicCareers = () => {
   useEffect(() => {
     (async () => {
       if (!slug) return;
-      const { data: company } = await (supabase as any)
-        .from("companies")
-        .select("id, logo_url, public_intake_enabled")
-        .eq("public_site_slug", slug)
-        .maybeSingle();
-
-      if (!company || !company.public_intake_enabled) {
+      try {
+        const endpoint = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-careers-info?slug=${encodeURIComponent(slug)}`;
+        const res = await fetch(endpoint, {
+          headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+        });
+        const data = await res.json();
+        if (!data?.enabled || !data?.company) {
+          setLoading(false);
+          return;
+        }
+        setCompanyId(data.company.id);
+        if (data.company.logo_url) {
+          const logo = data.company.logo_url.startsWith("http")
+            ? data.company.logo_url
+            : supabase.storage.from("corp-documents").getPublicUrl(data.company.logo_url).data.publicUrl;
+          setCompanyLogo(logo);
+        }
+        const jobs: Opening[] = data.openings || [];
+        setOpenings(jobs);
+        if (preselected) {
+          const j = jobs.find((o) => o.id === preselected);
+          if (j) setSelected(j);
+        }
+      } catch (e) {
+        console.error("careers info fetch failed", e);
+      } finally {
         setLoading(false);
-        return;
       }
-      setCompanyId(company.id);
-      if (company.logo_url) {
-        const url = company.logo_url.startsWith("http")
-          ? company.logo_url
-          : supabase.storage.from("corp-documents").getPublicUrl(company.logo_url).data.publicUrl;
-        setCompanyLogo(url);
-      }
-
-      const { data: jobs } = await (supabase as any)
-        .from("job_openings")
-        .select("id, title, area, description, location, employment_type")
-        .eq("company_id", company.id)
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-      setOpenings(jobs || []);
-
-      if (preselected && jobs) {
-        const j = jobs.find((o: Opening) => o.id === preselected);
-        if (j) setSelected(j);
-      }
-      setLoading(false);
     })();
   }, [slug, preselected]);
 
