@@ -22,6 +22,19 @@ import {
   ArrowLeft,
   Briefcase,
   ArrowRight,
+  Heart,
+  Home,
+  GraduationCap,
+  Coffee,
+  Plane,
+  Shield,
+  Gift,
+  Users,
+  Activity,
+  BookOpen,
+  Wallet,
+  Sparkles,
+  icons as lucideIcons,
 } from "lucide-react";
 import lecsorLogoBlack from "@/assets/lecsor-logo-black.png.asset.json";
 import lecsorLogoGrey from "@/assets/lecsor-logo-grey.png.asset.json";
