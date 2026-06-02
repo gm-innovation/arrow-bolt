@@ -445,7 +445,7 @@ const PublicCareers = () => {
               <img
                 src={lecsorLogoGrey.url}
                 alt={displayName}
-                className="h-10 md:h-12 w-auto object-contain mb-8 opacity-90"
+                className="h-16 md:h-20 w-auto object-contain mb-8 opacity-90"
               />
             )}
             <span
