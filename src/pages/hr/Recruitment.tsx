@@ -524,6 +524,10 @@ const HRRecruitment = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="page" className="space-y-4">
+          <CareersPageEditor />
+        </TabsContent>
       </Tabs>
 
       {openingDialog !== null && (
