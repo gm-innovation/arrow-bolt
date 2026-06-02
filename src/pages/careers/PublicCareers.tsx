@@ -636,7 +636,7 @@ const PublicCareers = () => {
           <img
             src={lecsorLogoBlack.url}
             alt={displayName}
-            className="h-6 w-auto object-contain opacity-60"
+            className="h-9 w-auto object-contain opacity-60"
           />
           <p className="text-sm" style={{ ...fontFamilyBody, color: `${NAVY_700}66` }}>
             © {new Date().getFullYear()} {displayName}. Todos os direitos reservados.
