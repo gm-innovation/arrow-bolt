@@ -23,6 +23,8 @@ import {
   Briefcase,
   ArrowRight,
 } from "lucide-react";
+import lecsorLogoBlack from "@/assets/lecsor-logo-black.png.asset.json";
+import lecsorLogoGrey from "@/assets/lecsor-logo-grey.png.asset.json";
 
 type Opening = {
   id: string;
@@ -252,19 +254,11 @@ const PublicCareers = () => {
         <nav className="bg-white border-b" style={{ borderColor: `${NAVY_900}1A` }}>
           <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {companyLogo ? (
-                <img src={companyLogo} alt={displayName} className="h-10 w-auto object-contain" />
-              ) : (
-                <div
-                  className="w-10 h-10 flex items-center justify-center rounded-sm"
-                  style={{ background: NAVY_900 }}
-                >
-                  <div className="w-5 h-5 rotate-45" style={{ border: `2px solid ${NAVY_400}` }} />
-                </div>
-              )}
-              <span className="text-xl font-bold tracking-tight" style={{ ...fontFamilyHead, color: NAVY_900 }}>
-                {displayName}
-              </span>
+              <img
+                src={companyLogo || lecsorLogoBlack.url}
+                alt={displayName}
+                className="h-10 w-auto object-contain"
+              />
             </div>
             <Button
               variant="ghost"
@@ -409,19 +403,11 @@ const PublicCareers = () => {
       <nav className="bg-white border-b" style={{ borderColor: `${NAVY_900}1A` }}>
         <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {companyLogo ? (
-              <img src={companyLogo} alt={displayName} className="h-10 w-auto object-contain" />
-            ) : (
-              <div
-                className="w-10 h-10 flex items-center justify-center rounded-sm"
-                style={{ background: NAVY_900 }}
-              >
-                <div className="w-5 h-5 rotate-45" style={{ border: `2px solid ${NAVY_400}` }} />
-              </div>
-            )}
-            <span className="text-xl md:text-2xl font-bold tracking-tight" style={{ ...fontFamilyHead, color: NAVY_900 }}>
-              {displayName}
-            </span>
+            <img
+              src={companyLogo || lecsorLogoBlack.url}
+              alt={displayName}
+              className="h-10 md:h-12 w-auto object-contain"
+            />
           </div>
           {companyWebsite && (
             <a
@@ -455,6 +441,13 @@ const PublicCareers = () => {
         />
         <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="max-w-2xl">
+            {!companyLogo && (
+              <img
+                src={lecsorLogoGrey.url}
+                alt={displayName}
+                className="h-10 md:h-12 w-auto object-contain mb-8 opacity-90"
+              />
+            )}
             <span
               className="inline-block text-white text-xs font-bold px-3 py-1 mb-6 tracking-widest uppercase"
               style={{ ...fontFamilyBody, background: NAVY_400 }}
@@ -638,10 +631,17 @@ const PublicCareers = () => {
         </div>
       </main>
 
-      <footer className="py-10 border-t text-center" style={{ borderColor: `${NAVY_900}0D` }}>
-        <p className="text-sm" style={{ ...fontFamilyBody, color: `${NAVY_700}66` }}>
-          © {new Date().getFullYear()} {displayName}. Todos os direitos reservados.
-        </p>
+      <footer className="py-10 border-t" style={{ borderColor: `${NAVY_900}0D` }}>
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-center md:justify-between gap-4">
+          <img
+            src={lecsorLogoBlack.url}
+            alt={displayName}
+            className="h-6 w-auto object-contain opacity-60"
+          />
+          <p className="text-sm" style={{ ...fontFamilyBody, color: `${NAVY_700}66` }}>
+            © {new Date().getFullYear()} {displayName}. Todos os direitos reservados.
+          </p>
+        </div>
       </footer>
     </div>
   );
