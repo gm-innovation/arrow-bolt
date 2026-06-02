@@ -34,6 +34,11 @@ import {
   BookOpen,
   Wallet,
   Sparkles,
+  UtensilsCrossed,
+  Utensils,
+  Stethoscope,
+  Dumbbell,
+  Bus,
 } from "lucide-react";
 
 const BENEFIT_ICONS: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
@@ -49,6 +54,11 @@ const BENEFIT_ICONS: Record<string, React.ComponentType<{ className?: string; st
   Activity,
   BookOpen,
   Wallet,
+  UtensilsCrossed,
+  Utensils,
+  Stethoscope,
+  Dumbbell,
+  Bus,
 };
 import lecsorLogoBlack from "@/assets/lecsor-logo-black.png.asset.json";
 import lecsorLogoGrey from "@/assets/lecsor-logo-grey.png.asset.json";
