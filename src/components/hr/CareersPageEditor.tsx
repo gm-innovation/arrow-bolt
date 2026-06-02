@@ -280,7 +280,7 @@ const CareersPageEditor = () => {
             <Label>Título do bloco</Label>
             <Input
               value={aboutTitle}
-              onChange={(e) => setAboutTitle(e.target.value)}
+              onChange={(e) => setDraft((current) => ({ ...current, aboutTitle: e.target.value }))}
               placeholder={`Ex.: Conheça a ${profile?.company_id ? "nossa empresa" : ""}`}
             />
           </div>
@@ -288,7 +288,7 @@ const CareersPageEditor = () => {
             <Label>Sobre / Cultura</Label>
             <Textarea
               value={aboutText}
-              onChange={(e) => setAboutText(e.target.value)}
+              onChange={(e) => setDraft((current) => ({ ...current, aboutText: e.target.value }))}
               rows={6}
               placeholder="Descreva o ambiente de trabalho, história, cultura e o que torna sua empresa única."
             />
@@ -298,7 +298,7 @@ const CareersPageEditor = () => {
             <Label>Missão</Label>
             <Textarea
               value={mission}
-              onChange={(e) => setMission(e.target.value)}
+              onChange={(e) => setDraft((current) => ({ ...current, mission: e.target.value }))}
               rows={2}
               placeholder="Frase curta com a missão da empresa."
             />
@@ -308,7 +308,7 @@ const CareersPageEditor = () => {
             <div className="flex gap-2 mt-1">
               <Input
                 value={valueDraft}
-                onChange={(e) => setValueDraft(e.target.value)}
+                onChange={(e) => setDraft((current) => ({ ...current, valueDraft: e.target.value }))}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
