@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { usePersistentDraft } from "@/hooks/usePersistentDraft";
 import {
   Plus,
   Pencil,
@@ -76,6 +77,16 @@ type Benefit = {
   display_order: number;
   is_active: boolean;
 };
+
+type CareersAboutDraft = {
+  aboutTitle: string;
+  aboutText: string;
+  mission: string;
+  values: string[];
+  valueDraft: string;
+};
+
+const normalizeValues = (values: string[]) => values.map((value) => value.trim()).filter(Boolean);
 
 const CareersPageEditor = () => {
   const { profile } = useAuth();
