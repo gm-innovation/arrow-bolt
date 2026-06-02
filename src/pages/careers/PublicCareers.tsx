@@ -6,11 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { Briefcase, MapPin, CheckCircle2, Upload, ArrowLeft } from "lucide-react";
+import {
+  MapPin,
+  CheckCircle2,
+  Upload,
+  ArrowLeft,
+  Briefcase,
+  ArrowRight,
+} from "lucide-react";
 
 type Opening = {
   id: string;
@@ -20,6 +32,16 @@ type Opening = {
   location: string | null;
   employment_type: string | null;
 };
+
+// Locked brand tokens for the public careers surface.
+// Kept inline because this page is standalone and must not inherit the app theme.
+const NAVY_900 = "#0f1b3d";
+const NAVY_700 = "#1e3a5f";
+const NAVY_400 = "#3b6fa0";
+const PAPER = "#e8edf3";
+
+const fontFamilyHead = { fontFamily: "'Space Grotesk', sans-serif" };
+const fontFamilyBody = { fontFamily: "'DM Sans', sans-serif" };
 
 const fileToBase64 = (file: File) =>
   new Promise<string>((resolve, reject) => {
@@ -35,13 +57,16 @@ const PublicCareers = () => {
   const preselected = params.get("vaga");
 
   const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState<string>("");
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [companyWebsite, setCompanyWebsite] = useState<string | null>(null);
   const [openings, setOpenings] = useState<Opening[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Opening | null>(null);
   const [spontaneous, setSpontaneous] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [areaFilter, setAreaFilter] = useState<string>("all");
 
   // form
   const [form, setForm] = useState({
@@ -73,10 +98,12 @@ const PublicCareers = () => {
           return;
         }
         setCompanyId(data.company.id);
+        setCompanyName(data.company.name || "");
+        setCompanyWebsite(data.company.website_url || null);
         if (data.company.logo_url) {
           const logo = data.company.logo_url.startsWith("http")
             ? data.company.logo_url
-            : supabase.storage.from("corp-documents").getPublicUrl(data.company.logo_url).data.publicUrl;
+            : supabase.storage.from("company-logos").getPublicUrl(data.company.logo_url).data.publicUrl;
           setCompanyLogo(logo);
         }
         const jobs: Opening[] = data.openings || [];
@@ -94,6 +121,17 @@ const PublicCareers = () => {
   }, [slug, preselected]);
 
   const showForm = useMemo(() => !!selected || spontaneous, [selected, spontaneous]);
+
+  const areas = useMemo(() => {
+    const set = new Set<string>();
+    openings.forEach((o) => o.area && set.add(o.area));
+    return Array.from(set);
+  }, [openings]);
+
+  const visibleOpenings = useMemo(() => {
+    if (areaFilter === "all") return openings;
+    return openings.filter((o) => o.area === areaFilter);
+  }, [openings, areaFilter]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,9 +186,18 @@ const PublicCareers = () => {
     }
   };
 
+  // -------- Shell with fonts ----------
+  const FontsLink = () => (
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  );
+
   if (loading) {
     return (
-      <div className="h-full overflow-y-auto bg-background flex items-center justify-center p-4">
+      <div className="h-full overflow-y-auto flex items-center justify-center p-4" style={{ background: PAPER }}>
+        <FontsLink />
         <Skeleton className="h-64 w-full max-w-2xl" />
       </div>
     );
@@ -158,11 +205,14 @@ const PublicCareers = () => {
 
   if (!companyId) {
     return (
-      <div className="h-full overflow-y-auto bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md text-center">
-          <CardContent className="p-8">
-            <h2 className="text-lg font-semibold mb-2">Página indisponível</h2>
-            <p className="text-sm text-muted-foreground">
+      <div className="h-full overflow-y-auto flex items-center justify-center p-4" style={{ background: PAPER }}>
+        <FontsLink />
+        <Card className="max-w-md text-center border-0 shadow-lg">
+          <CardContent className="p-10">
+            <h2 className="text-lg font-semibold mb-2" style={{ ...fontFamilyHead, color: NAVY_900 }}>
+              Página indisponível
+            </h2>
+            <p className="text-sm" style={{ ...fontFamilyBody, color: `${NAVY_700}99` }}>
               Este link de carreiras não está ativo no momento.
             </p>
           </CardContent>
@@ -173,12 +223,15 @@ const PublicCareers = () => {
 
   if (done) {
     return (
-      <div className="h-full overflow-y-auto bg-background flex items-center justify-center p-4">
-        <Card className="max-w-md text-center">
-          <CardContent className="p-8">
-            <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Candidatura enviada!</h2>
-            <p className="text-sm text-muted-foreground">
+      <div className="h-full overflow-y-auto flex items-center justify-center p-4" style={{ background: PAPER }}>
+        <FontsLink />
+        <Card className="max-w-md text-center border-0 shadow-lg">
+          <CardContent className="p-10">
+            <CheckCircle2 className="h-12 w-12 mx-auto mb-4" style={{ color: NAVY_400 }} />
+            <h2 className="text-xl font-bold mb-2" style={{ ...fontFamilyHead, color: NAVY_900 }}>
+              Candidatura enviada!
+            </h2>
+            <p className="text-sm" style={{ ...fontFamilyBody, color: `${NAVY_700}99` }}>
               Recebemos seu currículo. Nosso time de RH entrará em contato se houver fit com a oportunidade.
             </p>
           </CardContent>
@@ -187,92 +240,61 @@ const PublicCareers = () => {
     );
   }
 
-  return (
-    <div className="h-full overflow-y-auto bg-background">
-      <header className="border-b">
-        <div className="max-w-4xl mx-auto px-4 py-6 flex items-center gap-4">
-          {companyLogo && (
-            <img src={companyLogo} alt="Logo" className="h-12 w-auto object-contain" />
-          )}
-          <div>
-            <h1 className="text-xl font-semibold">Faça parte do nosso time</h1>
-            <p className="text-sm text-muted-foreground">
-              Valorizamos pessoas comprometidas com excelência. Vem com a gente.
-            </p>
+  const displayName = companyName || "Nossa empresa";
+
+  // -------- Form view ----------
+  if (showForm) {
+    return (
+      <div className="h-full overflow-y-auto" style={{ background: PAPER, color: NAVY_900 }}>
+        <FontsLink />
+
+        {/* Nav */}
+        <nav className="bg-white border-b" style={{ borderColor: `${NAVY_900}1A` }}>
+          <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {companyLogo ? (
+                <img src={companyLogo} alt={displayName} className="h-10 w-auto object-contain" />
+              ) : (
+                <div
+                  className="w-10 h-10 flex items-center justify-center rounded-sm"
+                  style={{ background: NAVY_900 }}
+                >
+                  <div className="w-5 h-5 rotate-45" style={{ border: `2px solid ${NAVY_400}` }} />
+                </div>
+              )}
+              <span className="text-xl font-bold tracking-tight" style={{ ...fontFamilyHead, color: NAVY_900 }}>
+                {displayName}
+              </span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelected(null);
+                setSpontaneous(false);
+                setParams({});
+              }}
+              style={{ ...fontFamilyBody, color: NAVY_700 }}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar para vagas
+            </Button>
           </div>
-        </div>
-      </header>
+        </nav>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
-        {!showForm && (
-          <>
-            {openings.length > 0 && (
-              <section>
-                <h2 className="text-lg font-semibold mb-3">Vagas abertas</h2>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {openings.map((o) => (
-                    <Card
-                      key={o.id}
-                      className="cursor-pointer hover:border-primary transition"
-                      onClick={() => setSelected(o)}
-                    >
-                      <CardHeader>
-                        <CardTitle className="text-base flex items-start gap-2">
-                          <Briefcase className="h-4 w-4 mt-1 shrink-0" />
-                          <span>{o.title}</span>
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2 text-sm text-muted-foreground">
-                        {o.area && <Badge variant="secondary">{o.area}</Badge>}
-                        {o.location && (
-                          <p className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" /> {o.location}
-                          </p>
-                        )}
-                        {o.employment_type && <p>{o.employment_type}</p>}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <Card>
-              <CardContent className="p-6 flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <h3 className="font-medium">Não encontrou a vaga ideal?</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Envie sua candidatura espontânea — vamos guardar para futuras oportunidades.
-                  </p>
-                </div>
-                <Button onClick={() => setSpontaneous(true)}>Candidatura espontânea</Button>
-              </CardContent>
-            </Card>
-          </>
-        )}
-
-        {showForm && (
-          <Card>
+        <main className="max-w-3xl mx-auto px-6 py-12">
+          <Card className="border-0 shadow-lg">
             <CardHeader>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-fit -ml-2"
-                onClick={() => {
-                  setSelected(null);
-                  setSpontaneous(false);
-                  setParams({});
-                }}
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
-              </Button>
-              <CardTitle>{selected ? `Candidatar-se: ${selected.title}` : "Candidatura espontânea"}</CardTitle>
+              <CardTitle style={{ ...fontFamilyHead, color: NAVY_900 }}>
+                {selected ? `Candidatar-se: ${selected.title}` : "Candidatura espontânea"}
+              </CardTitle>
               {selected?.description && (
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selected.description}</p>
+                <p className="text-sm whitespace-pre-wrap" style={{ ...fontFamilyBody, color: `${NAVY_700}B3` }}>
+                  {selected.description}
+                </p>
               )}
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-4" style={fontFamilyBody}>
                 {/* honeypot */}
                 <input
                   type="text"
@@ -357,17 +379,270 @@ const PublicCareers = () => {
                       onChange={(e) => setCv(e.target.files?.[0] || null)}
                     />
                   </div>
-                  <p className="text-xs text-muted-foreground mt-1">Tamanho máximo: 5MB</p>
+                  <p className="text-xs mt-1" style={{ color: `${NAVY_700}99` }}>Tamanho máximo: 5MB</p>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={submitting}>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-4 font-bold text-sm tracking-widest uppercase transition-colors disabled:opacity-60"
+                  style={{ ...fontFamilyHead, background: NAVY_900, color: "white" }}
+                  onMouseEnter={(e) => ((e.currentTarget.style.background = NAVY_400))}
+                  onMouseLeave={(e) => ((e.currentTarget.style.background = NAVY_900))}
+                >
                   {submitting ? "Enviando..." : "Enviar candidatura"}
-                </Button>
+                </button>
               </form>
             </CardContent>
           </Card>
-        )}
+        </main>
+      </div>
+    );
+  }
+
+  // -------- Listing view ----------
+  return (
+    <div className="h-full overflow-y-auto" style={{ background: PAPER, color: NAVY_900 }}>
+      <FontsLink />
+
+      {/* Nav */}
+      <nav className="bg-white border-b" style={{ borderColor: `${NAVY_900}1A` }}>
+        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {companyLogo ? (
+              <img src={companyLogo} alt={displayName} className="h-10 w-auto object-contain" />
+            ) : (
+              <div
+                className="w-10 h-10 flex items-center justify-center rounded-sm"
+                style={{ background: NAVY_900 }}
+              >
+                <div className="w-5 h-5 rotate-45" style={{ border: `2px solid ${NAVY_400}` }} />
+              </div>
+            )}
+            <span className="text-xl md:text-2xl font-bold tracking-tight" style={{ ...fontFamilyHead, color: NAVY_900 }}>
+              {displayName}
+            </span>
+          </div>
+          {companyWebsite && (
+            <a
+              href={companyWebsite}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-medium transition-colors hover:underline"
+              style={{ ...fontFamilyBody, color: NAVY_700 }}
+            >
+              Voltar para o site
+            </a>
+          )}
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative overflow-hidden py-20 md:py-24" style={{ background: NAVY_900 }}>
+        <div className="absolute inset-0 opacity-10 pointer-events-none">
+          <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="careers-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke={NAVY_400} strokeWidth="1" />
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#careers-grid)" />
+          </svg>
+        </div>
+        <div
+          className="absolute bottom-0 right-0 w-1/3 h-full opacity-40 pointer-events-none"
+          style={{ background: `linear-gradient(to left, ${NAVY_700}, transparent)` }}
+        />
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="max-w-2xl">
+            <span
+              className="inline-block text-white text-xs font-bold px-3 py-1 mb-6 tracking-widest uppercase"
+              style={{ ...fontFamilyBody, background: NAVY_400 }}
+            >
+              Carreiras
+            </span>
+            <h1
+              className="text-4xl md:text-6xl font-bold text-white leading-tight mb-6"
+              style={fontFamilyHead}
+            >
+              Faça parte do <br />
+              <span style={{ color: NAVY_400 }}>nosso time.</span>
+            </h1>
+            <p
+              className="text-base md:text-lg leading-relaxed"
+              style={{ ...fontFamilyBody, color: `${PAPER}CC` }}
+            >
+              Valorizamos pessoas comprometidas com excelência. Explore as oportunidades abaixo e venha construir junto com a {displayName}.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Jobs */}
+      <main className="max-w-7xl mx-auto px-6 py-16 md:py-20">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+          <div>
+            <h2 className="text-3xl font-bold" style={{ ...fontFamilyHead, color: NAVY_900 }}>
+              Vagas abertas
+            </h2>
+            <p className="mt-2" style={{ ...fontFamilyBody, color: `${NAVY_700}B3` }}>
+              {openings.length === 0
+                ? "Nenhuma vaga ativa no momento — envie sua candidatura espontânea abaixo."
+                : "Explore as oportunidades disponíveis no momento."}
+            </p>
+          </div>
+          {areas.length > 0 && (
+            <div className="flex gap-2 flex-wrap" style={fontFamilyBody}>
+              <button
+                onClick={() => setAreaFilter("all")}
+                className="px-4 py-2 rounded text-sm font-medium border transition-colors"
+                style={{
+                  background: areaFilter === "all" ? "white" : "transparent",
+                  borderColor: areaFilter === "all" ? `${NAVY_900}1A` : `${NAVY_900}0D`,
+                  color: areaFilter === "all" ? NAVY_900 : `${NAVY_900}99`,
+                  boxShadow: areaFilter === "all" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                }}
+              >
+                Todas
+              </button>
+              {areas.map((a) => (
+                <button
+                  key={a}
+                  onClick={() => setAreaFilter(a)}
+                  className="px-4 py-2 rounded text-sm font-medium border transition-colors"
+                  style={{
+                    background: areaFilter === a ? "white" : "transparent",
+                    borderColor: areaFilter === a ? `${NAVY_900}1A` : `${NAVY_900}0D`,
+                    color: areaFilter === a ? NAVY_900 : `${NAVY_900}99`,
+                    boxShadow: areaFilter === a ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                  }}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {visibleOpenings.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {visibleOpenings.map((o, idx) => {
+              const topColor = idx % 2 === 0 ? NAVY_400 : NAVY_700;
+              return (
+                <div
+                  key={o.id}
+                  className="bg-white p-8 shadow-sm hover:shadow-xl transition-all group"
+                  style={{ borderTop: `4px solid ${topColor}` }}
+                >
+                  <div className="flex justify-between items-start mb-6">
+                    {o.area ? (
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1"
+                        style={{
+                          ...fontFamilyBody,
+                          color: topColor,
+                          background: `${topColor}1A`,
+                        }}
+                      >
+                        {o.area}
+                      </span>
+                    ) : (
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 inline-flex items-center gap-1"
+                        style={{ ...fontFamilyBody, color: NAVY_700, background: `${NAVY_700}1A` }}
+                      >
+                        <Briefcase className="h-3 w-3" /> Vaga
+                      </span>
+                    )}
+                    <span
+                      className="text-xs font-medium uppercase"
+                      style={{ ...fontFamilyBody, color: `${NAVY_700}66` }}
+                    >
+                      Cód: {o.id.slice(0, 4).toUpperCase()}
+                    </span>
+                  </div>
+                  <h3
+                    className="text-xl font-bold mb-4 transition-colors"
+                    style={{ ...fontFamilyHead, color: NAVY_900 }}
+                  >
+                    {o.title}
+                  </h3>
+                  <div className="space-y-3 mb-8" style={fontFamilyBody}>
+                    {o.location && (
+                      <div className="flex items-center text-sm" style={{ color: `${NAVY_700}B3` }}>
+                        <MapPin className="w-4 h-4 mr-2" />
+                        {o.location}
+                      </div>
+                    )}
+                    {o.employment_type && (
+                      <div className="flex items-center text-sm" style={{ color: `${NAVY_700}B3` }}>
+                        <Briefcase className="w-4 h-4 mr-2" />
+                        {o.employment_type}
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setSelected(o)}
+                    className="w-full py-4 text-white font-bold text-sm tracking-widest uppercase transition-colors flex items-center justify-center gap-2"
+                    style={{ ...fontFamilyHead, background: NAVY_900 }}
+                    onMouseEnter={(e) => ((e.currentTarget.style.background = NAVY_400))}
+                    onMouseLeave={(e) => ((e.currentTarget.style.background = NAVY_900))}
+                  >
+                    Candidatar-se
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        ) : openings.length > 0 ? (
+          <p className="text-sm" style={{ ...fontFamilyBody, color: `${NAVY_700}99` }}>
+            Nenhuma vaga na área selecionada.
+          </p>
+        ) : null}
+
+        {/* Spontaneous CTA */}
+        <div
+          className="mt-20 rounded-2xl overflow-hidden shadow-2xl relative"
+          style={{ background: NAVY_900 }}
+        >
+          <div
+            className="absolute top-0 right-0 w-64 h-64 rounded-full pointer-events-none"
+            style={{ background: NAVY_400, filter: "blur(120px)", opacity: 0.2 }}
+          />
+          <div className="px-8 py-12 md:p-16 flex flex-col md:flex-row items-center justify-between relative z-10 gap-8">
+            <div className="max-w-xl text-center md:text-left">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-4" style={fontFamilyHead}>
+                Não encontrou sua vaga?
+              </h2>
+              <p className="text-base md:text-lg" style={{ ...fontFamilyBody, color: `${PAPER}B3` }}>
+                Estamos sempre em busca de profissionais excepcionais. Envie seu currículo para nosso banco de talentos e entraremos em contato assim que surgir uma oportunidade com seu perfil.
+              </p>
+            </div>
+            <button
+              onClick={() => setSpontaneous(true)}
+              className="text-white px-8 md:px-10 py-4 md:py-5 font-bold text-sm tracking-widest uppercase transition-all shadow-lg whitespace-nowrap"
+              style={{ ...fontFamilyHead, background: NAVY_400 }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = PAPER;
+                e.currentTarget.style.color = NAVY_900;
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = NAVY_400;
+                e.currentTarget.style.color = "white";
+              }}
+            >
+              Candidatura espontânea
+            </button>
+          </div>
+        </div>
       </main>
+
+      <footer className="py-10 border-t text-center" style={{ borderColor: `${NAVY_900}0D` }}>
+        <p className="text-sm" style={{ ...fontFamilyBody, color: `${NAVY_700}66` }}>
+          © {new Date().getFullYear()} {displayName}. Todos os direitos reservados.
+        </p>
+      </footer>
     </div>
   );
 };

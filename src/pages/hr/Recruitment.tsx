@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
-import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2, ExternalLink, StickyNote, Tag as TagIcon } from "lucide-react";
+import { Briefcase, Download, Plus, Search, Trash2, Pencil, Link2, ExternalLink, StickyNote, Tag as TagIcon, Upload, Image as ImageIcon } from "lucide-react";
 import JobOpeningDialog from "@/components/hr/JobOpeningDialog";
 import ApplicationDetailSheet from "@/components/hr/ApplicationDetailSheet";
 import HROnboarding from "@/pages/hr/Onboarding";
@@ -53,7 +53,7 @@ const HRRecruitment = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("companies")
-        .select("public_site_slug, public_intake_enabled, public_site_base_url")
+        .select("public_site_slug, public_intake_enabled, public_site_base_url, logo_url, name")
         .eq("id", profile!.company_id)
         .maybeSingle();
       if (error) throw error;
@@ -98,6 +98,43 @@ const HRRecruitment = () => {
     }
     toast({ title: "Domínio público atualizado" });
     refetchCompany();
+  };
+
+  // ---- Company logo upload ----
+  const currentLogo = (companyInfo as any)?.logo_url as string | null | undefined;
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  const handleLogoUpload = async (file: File | null) => {
+    if (!file || !profile?.company_id) return;
+    if (!/^image\/(png|jpe?g|webp|svg\+xml)$/.test(file.type)) {
+      toast({ title: "Formato inválido", description: "Use PNG, JPG, WEBP ou SVG.", variant: "destructive" });
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Imagem acima de 2MB", variant: "destructive" });
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+      const path = `${profile.company_id}/logo-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("company-logos")
+        .upload(path, file, { upsert: true, cacheControl: "0" });
+      if (upErr) throw upErr;
+      const { data: pub } = supabase.storage.from("company-logos").getPublicUrl(path);
+      const { error: updErr } = await supabase
+        .from("companies")
+        .update({ logo_url: pub.publicUrl })
+        .eq("id", profile.company_id);
+      if (updErr) throw updErr;
+      toast({ title: "Logo atualizada" });
+      refetchCompany();
+    } catch (err: any) {
+      toast({ title: "Falha no upload", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
 
@@ -436,6 +473,47 @@ const HRRecruitment = () => {
                   </p>
                 )}
               </div>
+
+              <div className="pt-3 border-t space-y-2">
+                <p className="text-xs font-medium flex items-center gap-1.5">
+                  <ImageIcon className="h-3.5 w-3.5" /> Logo da empresa
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Exibida no topo da página pública de carreiras. PNG, JPG, WEBP ou SVG, até 2MB.
+                </p>
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded border bg-muted flex items-center justify-center overflow-hidden shrink-0">
+                    {currentLogo ? (
+                      <img src={currentLogo} alt="Logo" className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                    )}
+                  </div>
+                  <div className="relative flex-1">
+                    <Button type="button" variant="outline" disabled={uploadingLogo} className="w-full justify-start">
+                      <Upload className="h-4 w-4 mr-2" />
+                      {uploadingLogo ? "Enviando..." : currentLogo ? "Substituir logo" : "Enviar logo"}
+                    </Button>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="opacity-0 absolute inset-0 cursor-pointer"
+                      disabled={uploadingLogo}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] || null;
+                        handleLogoUpload(f);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                </div>
+                {!currentLogo && (
+                  <p className="text-xs text-amber-600">
+                    Sem logo configurada: a página de carreiras está usando um placeholder.
+                  </p>
+                )}
+              </div>
+
 
               <p className="text-xs text-muted-foreground">
                 Alternativamente, o site pode integrar diretamente via API enviando POST para
