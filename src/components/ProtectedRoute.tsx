@@ -11,7 +11,10 @@ interface ProtectedRouteProps {
 export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { user, userRole, loading } = useAuth();
 
-  if (loading) {
+  // Only block on the initial cold-start load (no user known yet).
+  // If we already have a user, render children even if loading flips briefly
+  // (e.g. token refresh), so the layout doesn't unmount.
+  if (loading && !user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
