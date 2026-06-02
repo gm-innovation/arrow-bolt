@@ -501,7 +501,7 @@ export default function ApiDocs() {
         <p className="text-muted-foreground">Documentação e gestão das chaves de acesso à API do Arrow.</p>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={setTab} storageKey="super-admin-api-docs">
         <TabsList>
           <TabsTrigger value="docs">Documentação</TabsTrigger>
           <TabsTrigger value="integrations">Integrações (B2B)</TabsTrigger>
