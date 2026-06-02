@@ -607,46 +607,60 @@ const PublicCareers = () => {
       {/* Benefícios */}
       {benefits.length > 0 && (
         <section style={{ background: PAPER }}>
-          <div className="max-w-7xl mx-auto px-6 py-16 md:py-20">
-            <div className="max-w-2xl mb-10">
+          <div className="max-w-7xl mx-auto px-6 py-16 md:py-24">
+            <div className="max-w-2xl mb-12">
               <span
-                className="inline-block text-xs font-bold px-3 py-1 mb-5 tracking-widest uppercase"
-                style={{ ...fontFamilyBody, background: `${NAVY_400}1A`, color: NAVY_700 }}
+                className="inline-block text-[10px] font-bold px-3 py-1 mb-4 tracking-[0.2em] uppercase rounded-sm"
+                style={{ ...fontFamilyBody, background: "white", color: NAVY_400, border: `1px solid ${NAVY_400}33` }}
               >
                 Benefícios
               </span>
               <h2
-                className="text-3xl md:text-4xl font-bold leading-tight"
+                className="text-4xl md:text-5xl font-bold leading-[1.1] tracking-tight"
                 style={{ ...fontFamilyHead, color: NAVY_900 }}
               >
                 Por que trabalhar na {displayName}
               </h2>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {benefits.map((b) => {
                 const Icon = (b.icon && BENEFIT_ICONS[b.icon]) || Sparkles;
                 return (
                   <div
                     key={b.id}
-                    className="bg-white p-6 border transition-shadow hover:shadow-md"
-                    style={{ borderColor: `${NAVY_900}14` }}
+                    className="group bg-white p-8 rounded-2xl"
+                    style={{
+                      border: `1px solid ${NAVY_900}14`,
+                      boxShadow: "0 4px 12px rgba(15,27,61,0.05)",
+                      transition: "all 300ms ease",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = "0 24px 48px rgba(15,27,61,0.10)";
+                      e.currentTarget.style.borderColor = `${NAVY_400}4D`;
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = "0 4px 12px rgba(15,27,61,0.05)";
+                      e.currentTarget.style.borderColor = `${NAVY_900}14`;
+                      e.currentTarget.style.transform = "translateY(0)";
+                    }}
                   >
                     <div
-                      className="inline-flex items-center justify-center w-12 h-12 mb-4"
-                      style={{ background: `${NAVY_400}1A`, color: NAVY_700 }}
+                      className="w-12 h-12 mb-6 flex items-center justify-center rounded-xl"
+                      style={{ background: PAPER, color: NAVY_700 }}
                     >
                       <Icon className="h-6 w-6" />
                     </div>
                     <h3
-                      className="text-lg font-bold mb-2"
+                      className="text-xl font-bold mb-2"
                       style={{ ...fontFamilyHead, color: NAVY_900 }}
                     >
                       {b.title}
                     </h3>
                     {b.description && (
                       <p
-                        className="text-sm leading-relaxed"
-                        style={{ ...fontFamilyBody, color: `${NAVY_900}99` }}
+                        className="leading-relaxed"
+                        style={{ ...fontFamilyBody, color: `${NAVY_700}B3` }}
                       >
                         {b.description}
                       </p>
@@ -660,28 +674,27 @@ const PublicCareers = () => {
       )}
 
       {/* Jobs */}
-      <main className="max-w-7xl mx-auto px-6 py-16 md:py-20">
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
-          <div>
-            <h2 className="text-3xl font-bold" style={{ ...fontFamilyHead, color: NAVY_900 }}>
+      <main className="max-w-7xl mx-auto px-6 py-16 md:py-24">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
+          <div className="space-y-2">
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight" style={{ ...fontFamilyHead, color: NAVY_900 }}>
               Vagas abertas
             </h2>
-            <p className="mt-2" style={{ ...fontFamilyBody, color: `${NAVY_700}B3` }}>
+            <p style={{ ...fontFamilyBody, color: `${NAVY_700}99` }}>
               {openings.length === 0
                 ? "Nenhuma vaga ativa no momento — cadastre seu currículo em nosso Banco de Talentos abaixo."
                 : "Explore as oportunidades disponíveis no momento."}
             </p>
           </div>
           {areas.length > 0 && (
-            <div className="flex gap-2 flex-wrap" style={fontFamilyBody}>
+            <div className="flex flex-wrap gap-2" style={fontFamilyBody}>
               <button
                 onClick={() => setAreaFilter("all")}
-                className="px-4 py-2 rounded text-sm font-medium border transition-colors"
+                className="px-5 py-2 rounded-full text-sm font-medium transition-all"
                 style={{
-                  background: areaFilter === "all" ? "white" : "transparent",
-                  borderColor: areaFilter === "all" ? `${NAVY_900}1A` : `${NAVY_900}0D`,
-                  color: areaFilter === "all" ? NAVY_900 : `${NAVY_900}99`,
-                  boxShadow: areaFilter === "all" ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                  background: areaFilter === "all" ? NAVY_700 : "white",
+                  color: areaFilter === "all" ? "white" : NAVY_700,
+                  border: `1px solid ${areaFilter === "all" ? NAVY_700 : `${NAVY_900}14`}`,
                 }}
               >
                 Todas
@@ -690,12 +703,11 @@ const PublicCareers = () => {
                 <button
                   key={a}
                   onClick={() => setAreaFilter(a)}
-                  className="px-4 py-2 rounded text-sm font-medium border transition-colors"
+                  className="px-5 py-2 rounded-full text-sm font-medium transition-all"
                   style={{
-                    background: areaFilter === a ? "white" : "transparent",
-                    borderColor: areaFilter === a ? `${NAVY_900}1A` : `${NAVY_900}0D`,
-                    color: areaFilter === a ? NAVY_900 : `${NAVY_900}99`,
-                    boxShadow: areaFilter === a ? "0 1px 2px rgba(0,0,0,0.05)" : "none",
+                    background: areaFilter === a ? NAVY_700 : "white",
+                    color: areaFilter === a ? "white" : NAVY_700,
+                    border: `1px solid ${areaFilter === a ? NAVY_700 : `${NAVY_900}14`}`,
                   }}
                 >
                   {a}
@@ -706,75 +718,94 @@ const PublicCareers = () => {
         </div>
 
         {visibleOpenings.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {visibleOpenings.map((o, idx) => {
-              const topColor = idx % 2 === 0 ? NAVY_400 : NAVY_700;
-              return (
-                <div
-                  key={o.id}
-                  className="bg-white p-8 shadow-sm hover:shadow-xl transition-all group"
-                  style={{ borderTop: `4px solid ${topColor}` }}
-                >
-                  <div className="flex justify-between items-start mb-6">
-                    {o.area ? (
+          <div className="space-y-4">
+            {visibleOpenings.map((o) => (
+              <div
+                key={o.id}
+                className="group bg-white p-6 md:p-8 rounded-r-2xl flex flex-col md:flex-row md:items-center justify-between gap-6"
+                style={{
+                  borderLeft: `4px solid ${NAVY_400}`,
+                  borderTop: `1px solid ${NAVY_900}14`,
+                  borderRight: `1px solid ${NAVY_900}14`,
+                  borderBottom: `1px solid ${NAVY_900}14`,
+                  boxShadow: "0 2px 8px rgba(15,27,61,0.04)",
+                  transition: "all 300ms ease",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = "0 16px 32px rgba(15,27,61,0.08)";
+                  e.currentTarget.style.borderLeftColor = NAVY_700;
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(15,27,61,0.04)";
+                  e.currentTarget.style.borderLeftColor = NAVY_400;
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
+              >
+                <div className="space-y-4 flex-1 min-w-0">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {o.area && (
                       <span
-                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1"
-                        style={{
-                          ...fontFamilyBody,
-                          color: topColor,
-                          background: `${topColor}1A`,
-                        }}
+                        className="text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded"
+                        style={{ ...fontFamilyBody, color: NAVY_400, background: PAPER }}
                       >
                         {o.area}
                       </span>
-                    ) : (
-                      <span
-                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 inline-flex items-center gap-1"
-                        style={{ ...fontFamilyBody, color: NAVY_700, background: `${NAVY_700}1A` }}
-                      >
-                        <Briefcase className="h-3 w-3" /> Vaga
-                      </span>
                     )}
                     <span
-                      className="text-xs font-medium uppercase"
+                      className="text-[10px] font-bold uppercase tracking-widest"
                       style={{ ...fontFamilyBody, color: `${NAVY_700}66` }}
                     >
                       Cód: {o.id.slice(0, 4).toUpperCase()}
                     </span>
                   </div>
-                  <h3
-                    className="text-xl font-bold mb-4 transition-colors"
-                    style={{ ...fontFamilyHead, color: NAVY_900 }}
-                  >
-                    {o.title}
-                  </h3>
-                  <div className="space-y-3 mb-8" style={fontFamilyBody}>
-                    {o.location && (
-                      <div className="flex items-center text-sm" style={{ color: `${NAVY_700}B3` }}>
-                        <MapPin className="w-4 h-4 mr-2" />
-                        {o.location}
-                      </div>
-                    )}
-                    {o.employment_type && (
-                      <div className="flex items-center text-sm" style={{ color: `${NAVY_700}B3` }}>
-                        <Briefcase className="w-4 h-4 mr-2" />
-                        {o.employment_type}
-                      </div>
-                    )}
+                  <div>
+                    <h3
+                      className="text-2xl font-bold"
+                      style={{ ...fontFamilyHead, color: NAVY_900 }}
+                    >
+                      {o.title}
+                    </h3>
+                    <div
+                      className="flex flex-wrap items-center gap-x-5 gap-y-2 mt-3 text-sm"
+                      style={{ ...fontFamilyBody, color: `${NAVY_700}99` }}
+                    >
+                      {o.location && (
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="w-4 h-4" style={{ color: NAVY_400 }} />
+                          {o.location}
+                        </span>
+                      )}
+                      {o.employment_type && (
+                        <span className="flex items-center gap-1.5">
+                          <Briefcase className="w-4 h-4" style={{ color: NAVY_400 }} />
+                          {o.employment_type}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    onClick={() => setSelected(o)}
-                    className="w-full py-4 text-white font-bold text-sm tracking-widest uppercase transition-colors flex items-center justify-center gap-2"
-                    style={{ ...fontFamilyHead, background: NAVY_900 }}
-                    onMouseEnter={(e) => ((e.currentTarget.style.background = NAVY_400))}
-                    onMouseLeave={(e) => ((e.currentTarget.style.background = NAVY_900))}
-                  >
-                    Candidatar-se
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
                 </div>
-              );
-            })}
+                <button
+                  onClick={() => setSelected(o)}
+                  className="shrink-0 px-8 py-4 text-white font-bold rounded-xl transition-all"
+                  style={{
+                    ...fontFamilyHead,
+                    background: NAVY_900,
+                    boxShadow: "0 10px 20px rgba(15,27,61,0.10)",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = NAVY_700;
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = NAVY_900;
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >
+                  Candidatar-se
+                </button>
+              </div>
+            ))}
           </div>
         ) : openings.length > 0 ? (
           <p className="text-sm" style={{ ...fontFamilyBody, color: `${NAVY_700}99` }}>
