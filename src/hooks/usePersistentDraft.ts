@@ -7,7 +7,6 @@ type UsePersistentDraftOptions<T> = {
   initialValue: T;
   enabled?: boolean;
   storage?: PersistStorage;
-  debounceMs?: number;
 };
 
 const getStore = (storage: PersistStorage) => {
@@ -19,94 +18,110 @@ const getStore = (storage: PersistStorage) => {
   }
 };
 
+/**
+ * Synchronous, bulletproof draft persistence.
+ * - Writes to storage on every setDraft call (no debounce, no loss on quick navigation).
+ * - Reads once per storageKey change. If a draft exists, it wins over initialValue.
+ * - Never overwrites an existing draft with a fresh initialValue (e.g. DB refetch).
+ */
 export function usePersistentDraft<T>({
   storageKey,
   initialValue,
   enabled = true,
   storage = "local",
-  debounceMs = 250,
 }: UsePersistentDraftOptions<T>) {
-  const [draft, setDraftState] = useState<T>(initialValue);
-  const [hydrated, setHydrated] = useState(false);
-  const [hasStoredDraft, setHasStoredDraft] = useState(false);
-  const skipNextPersistRef = useRef(false);
-  const timeoutRef = useRef<number | null>(null);
+  const initialRef = useRef(initialValue);
+  initialRef.current = initialValue;
 
-  useEffect(() => {
-    if (!enabled || !storageKey) {
-      setDraftState(initialValue);
-      setHydrated(false);
-      setHasStoredDraft(false);
-      return;
-    }
-
+  const readInitial = (): { value: T; restored: boolean } => {
+    if (!enabled || !storageKey) return { value: initialValue, restored: false };
     const store = getStore(storage);
-    let restored = false;
-
     try {
-      let raw = store?.getItem(storageKey);
+      let raw = store?.getItem(storageKey) ?? null;
       if (!raw && storage === "local") {
-        raw = window.sessionStorage.getItem(storageKey);
-        if (raw) store?.setItem(storageKey, raw);
+        // Migrate legacy sessionStorage drafts.
+        const legacy = window.sessionStorage.getItem(storageKey);
+        if (legacy) {
+          raw = legacy;
+          store?.setItem(storageKey, legacy);
+        }
       }
-      if (raw) {
-        setDraftState(JSON.parse(raw) as T);
-        restored = true;
-      } else {
-        setDraftState(initialValue);
-      }
+      if (raw) return { value: JSON.parse(raw) as T, restored: true };
     } catch {
-      setDraftState(initialValue);
+      // ignore
     }
+    return { value: initialValue, restored: false };
+  };
 
-    setHasStoredDraft(restored);
-    setHydrated(true);
-    skipNextPersistRef.current = true;
-  }, [enabled, storageKey, storage, initialValue]);
+  const first = useRef(readInitial());
+  const [draft, setDraftState] = useState<T>(first.current.value);
+  const [hasStoredDraft, setHasStoredDraft] = useState(first.current.restored);
+  const lastKeyRef = useRef<string | null | undefined>(storageKey);
 
+  // If storageKey changes (e.g. companyId arrives), re-read from storage.
   useEffect(() => {
-    if (!enabled || !storageKey || !hydrated) return;
-    if (skipNextPersistRef.current) {
-      skipNextPersistRef.current = false;
-      return;
-    }
+    if (lastKeyRef.current === storageKey) return;
+    lastKeyRef.current = storageKey;
+    const { value, restored } = readInitial();
+    setDraftState(value);
+    setHasStoredDraft(restored);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, enabled, storage]);
 
-    const store = getStore(storage);
-    if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
-    timeoutRef.current = window.setTimeout(() => {
+  const writeStorage = useCallback(
+    (value: T) => {
+      if (!enabled || !storageKey) return;
+      const store = getStore(storage);
       try {
-        store?.setItem(storageKey, JSON.stringify(draft));
+        store?.setItem(storageKey, JSON.stringify(value));
         setHasStoredDraft(true);
       } catch {
-        // Storage can be unavailable/full; the caller still keeps in-memory state.
+        // ignore quota / unavailable storage
       }
-      timeoutRef.current = null;
-    }, debounceMs);
+    },
+    [enabled, storageKey, storage],
+  );
 
-    return () => {
-      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    };
-  }, [enabled, storageKey, storage, hydrated, draft, debounceMs]);
-
-  const setDraft = useCallback((next: T | ((current: T) => T)) => {
-    setDraftState((current) => (typeof next === "function" ? (next as (current: T) => T)(current) : next));
-  }, []);
+  const setDraft = useCallback(
+    (next: T | ((current: T) => T)) => {
+      setDraftState((current) => {
+        const computed = typeof next === "function" ? (next as (c: T) => T)(current) : next;
+        writeStorage(computed);
+        return computed;
+      });
+    },
+    [writeStorage],
+  );
 
   const clearDraft = useCallback(() => {
     if (!storageKey) return;
     const store = getStore(storage);
-    if (timeoutRef.current) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
     try {
       store?.removeItem(storageKey);
+      window.sessionStorage.removeItem(storageKey);
     } catch {
       // ignore
     }
     setHasStoredDraft(false);
   }, [storageKey, storage]);
 
-  return { draft, setDraft, hydrated, hasStoredDraft, clearDraft };
+  // Flush on tab hide / unload as a final safety net.
+  useEffect(() => {
+    if (!enabled || !storageKey) return;
+    const flush = () => writeStorage(draft);
+    window.addEventListener("beforeunload", flush);
+    window.addEventListener("pagehide", flush);
+    return () => {
+      window.removeEventListener("beforeunload", flush);
+      window.removeEventListener("pagehide", flush);
+      flush();
+    };
+  }, [enabled, storageKey, draft, writeStorage]);
+
+  // Reset draft to a new external value (e.g. after a successful save).
+  const resetDraft = useCallback((value: T) => {
+    setDraftState(value);
+  }, []);
+
+  return { draft, setDraft, resetDraft, hydrated: true, hasStoredDraft, clearDraft };
 }
