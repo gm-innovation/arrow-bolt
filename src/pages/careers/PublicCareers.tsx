@@ -23,6 +23,8 @@ import {
   Briefcase,
   ArrowRight,
 } from "lucide-react";
+import lecsorLogoBlack from "@/assets/lecsor-logo-black.png.asset.json";
+import lecsorLogoGrey from "@/assets/lecsor-logo-grey.png.asset.json";
 
 type Opening = {
   id: string;
