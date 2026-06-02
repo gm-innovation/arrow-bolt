@@ -327,7 +327,7 @@ const TaskDetails = () => {
       </div>
 
       {/* Tabs */}
-      <Tabs defaultValue="resumo" className="w-full">
+      <Tabs defaultValue="resumo" storageKey={`tech-task-details:${taskId}`} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="resumo">Resumo da OS</TabsTrigger>
           <TabsTrigger value="instrucoes">Instruções</TabsTrigger>

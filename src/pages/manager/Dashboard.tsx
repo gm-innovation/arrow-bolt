@@ -48,7 +48,7 @@ const ManagerDashboard = () => {
 
       <ManagerDashboardFilters filters={filters} onFiltersChange={setFilters} />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} storageKey="manager-dashboard" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="coordinators">Coordenadores</TabsTrigger>

@@ -80,7 +80,14 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem("dashboard-sidebar:collapsed") === "true";
+    } catch {
+      return false;
+    }
+  });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -92,6 +99,15 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       setCollapsed(true);
     }
   }, [isMobile]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || isMobile) return;
+    try {
+      window.localStorage.setItem("dashboard-sidebar:collapsed", String(collapsed));
+    } catch {
+      // ignore storage failures
+    }
+  }, [collapsed, isMobile]);
 
   const superAdminMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/super-admin/dashboard" },

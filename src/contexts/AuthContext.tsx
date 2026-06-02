@@ -33,6 +33,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Track current session token to skip true duplicates
   const currentTokenRef = useRef<string | null>(null);
+  const currentUserIdRef = useRef<string | null>(null);
   // Track which userId we're currently fetching role for (to avoid duplicate same-user fetches)
   const fetchingForUserIdRef = useRef<string | null>(null);
 
@@ -90,10 +91,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           event === 'INITIAL_SESSION' ||
           event === 'USER_UPDATED'
         ) {
-          const previousUserId = user?.id ?? null;
+          const previousUserId = currentUserIdRef.current;
           const newUserId = currentSession?.user?.id ?? null;
 
           currentTokenRef.current = newToken;
+          currentUserIdRef.current = newUserId;
           setSession(currentSession);
           setUser(currentSession?.user ?? null);
 
@@ -107,6 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               fetchUserRole(currentSession.user.id);
             }, 0);
           } else {
+            currentUserIdRef.current = null;
             setUserRole(null);
             setProfile(null);
             setLoading(false);
@@ -118,6 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // THEN check for existing session (initial load) — covers cases where INITIAL_SESSION isn't emitted
     supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
       currentTokenRef.current = existingSession?.access_token ?? null;
+      currentUserIdRef.current = existingSession?.user?.id ?? null;
       setSession(existingSession);
       setUser(existingSession?.user ?? null);
 
@@ -141,6 +145,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (!error && data.session && data.user) {
       currentTokenRef.current = data.session.access_token;
+      currentUserIdRef.current = data.user.id;
       setSession(data.session);
       setUser(data.user);
       setLoading(true);
@@ -169,6 +174,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    currentUserIdRef.current = null;
     setUserRole(null);
     setProfile(null);
   }, []);

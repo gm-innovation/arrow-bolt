@@ -142,7 +142,7 @@ const Absences = () => {
 
         <TabsContent value="list" className="space-y-4">
           {/* Sub-tabs for List view */}
-          <Tabs value={listTab} onValueChange={(v) => setListTab(v as 'absences' | 'oncall')}>
+          <Tabs value={listTab} onValueChange={(v) => setListTab(v as 'absences' | 'oncall')} storageKey="hr-absences-list">
             <TabsList className="mb-4">
               <TabsTrigger value="absences">
                 Ausências ({absences.length})

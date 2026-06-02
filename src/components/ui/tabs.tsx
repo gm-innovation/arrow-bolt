@@ -6,7 +6,8 @@ import { cn } from "@/lib/utils"
 type TabsRootProps = React.ComponentPropsWithoutRef<typeof TabsPrimitive.Root> & {
   /**
    * If provided, the active tab is persisted under this key and restored on mount.
-   * Defaults to sessionStorage (per-tab), use `persist="local"` for localStorage.
+   * Defaults to localStorage so navigation and hard refresh preserve context.
+   * Use `persist="session"` for per-tab browser-session memory.
    */
   storageKey?: string
   persist?: "session" | "local"
@@ -26,7 +27,7 @@ const getStore = (persist: "session" | "local") => {
 const Tabs = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Root>,
   TabsRootProps
->(({ storageKey, persist = "session", defaultValue, value, onValueChange, ...props }, ref) => {
+>(({ storageKey, persist = "local", defaultValue, value, onValueChange, ...props }, ref) => {
   const isControlled = value !== undefined
   const store = storageKey ? getStore(persist) : null
 
@@ -35,6 +36,14 @@ const Tabs = React.forwardRef<
     const saved = store.getItem(STORAGE_PREFIX + storageKey)
     return saved ?? (defaultValue as string | undefined)
   })
+
+  React.useEffect(() => {
+    if (!storageKey || !store || !isControlled) return
+    const saved = store.getItem(STORAGE_PREFIX + storageKey)
+    if (saved && saved !== value) onValueChange?.(saved)
+    // Restore a controlled tab only once on mount/key change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey, store, isControlled])
 
   const handleChange = React.useCallback(
     (next: string) => {
@@ -63,7 +72,7 @@ const Tabs = React.forwardRef<
       ref={ref}
       defaultValue={defaultValue}
       value={value}
-      onValueChange={onValueChange}
+      onValueChange={storageKey ? handleChange : onValueChange}
       {...props}
     />
   )

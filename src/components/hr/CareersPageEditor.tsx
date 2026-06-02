@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
+import { usePersistentDraft } from "@/hooks/usePersistentDraft";
 import {
   Plus,
   Pencil,
@@ -77,6 +78,16 @@ type Benefit = {
   is_active: boolean;
 };
 
+type CareersAboutDraft = {
+  aboutTitle: string;
+  aboutText: string;
+  mission: string;
+  values: string[];
+  valueDraft: string;
+};
+
+const normalizeValues = (values: string[]) => values.map((value) => value.trim()).filter(Boolean);
+
 const CareersPageEditor = () => {
   const { profile } = useAuth();
   const qc = useQueryClient();
@@ -97,80 +108,99 @@ const CareersPageEditor = () => {
     enabled: !!companyId,
   });
 
-  const [aboutTitle, setAboutTitle] = useState("");
-  const [aboutText, setAboutText] = useState("");
-  const [mission, setMission] = useState("");
-  const [values, setValues] = useState<string[]>([]);
-  const [valueDraft, setValueDraft] = useState("");
   const [savingAbout, setSavingAbout] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
+  const [aboutStatus, setAboutStatus] = useState<"idle" | "saved" | "error">("idle");
 
-  const draftKey = companyId ? `careers-about-draft:${companyId}` : null;
+  const savedAbout = useMemo<CareersAboutDraft>(() => ({
+    aboutTitle: ((company as any)?.careers_about_title || "") as string,
+    aboutText: ((company as any)?.careers_about_text || "") as string,
+    mission: ((company as any)?.careers_mission || "") as string,
+    values: ((company as any)?.careers_values || []) as string[],
+    valueDraft: "",
+  }), [company]);
 
-  // Hidrata: prioriza rascunho local; senão usa dados do banco. Roda apenas uma vez por empresa.
-  useEffect(() => {
-    if (!company || !draftKey || hydrated) return;
-    let draft: any = null;
-    try {
-      const raw = sessionStorage.getItem(draftKey);
-      if (raw) draft = JSON.parse(raw);
-    } catch { /* ignore */ }
-    setAboutTitle(draft?.aboutTitle ?? ((company as any).careers_about_title || ""));
-    setAboutText(draft?.aboutText ?? ((company as any).careers_about_text || ""));
-    setMission(draft?.mission ?? ((company as any).careers_mission || ""));
-    setValues(draft?.values ?? ((company as any).careers_values || []));
-    setHydrated(true);
-  }, [company, draftKey, hydrated]);
+  const draftKey = companyId && company ? `careers-about-draft:${companyId}` : null;
+  const { draft, setDraft, hydrated, hasStoredDraft, clearDraft } = usePersistentDraft<CareersAboutDraft>({
+    storageKey: draftKey,
+    initialValue: savedAbout,
+    enabled: !!company,
+    storage: "local",
+  });
 
-  // Salva rascunho enquanto o usuário digita.
-  useEffect(() => {
-    if (!draftKey || !hydrated) return;
-    try {
-      sessionStorage.setItem(
-        draftKey,
-        JSON.stringify({ aboutTitle, aboutText, mission, values }),
-      );
-    } catch { /* ignore */ }
-  }, [draftKey, hydrated, aboutTitle, aboutText, mission, values]);
+  const { aboutTitle, aboutText, mission, values, valueDraft } = draft;
 
   const hasUnsavedChanges = hydrated && company && (
-    aboutTitle !== ((company as any).careers_about_title || "") ||
-    aboutText !== ((company as any).careers_about_text || "") ||
-    mission !== ((company as any).careers_mission || "") ||
-    JSON.stringify(values) !== JSON.stringify((company as any).careers_values || [])
+    aboutTitle !== savedAbout.aboutTitle ||
+    aboutText !== savedAbout.aboutText ||
+    mission !== savedAbout.mission ||
+    JSON.stringify(values) !== JSON.stringify(savedAbout.values) ||
+    valueDraft.trim().length > 0
   );
 
   const addValue = () => {
     const v = valueDraft.trim();
     if (!v) return;
-    setValues((arr) => [...arr, v]);
-    setValueDraft("");
+    setDraft((current) => ({ ...current, values: [...current.values, v], valueDraft: "" }));
   };
 
-  const removeValue = (i: number) => setValues((arr) => arr.filter((_, idx) => idx !== i));
+  const removeValue = (i: number) => {
+    setDraft((current) => ({ ...current, values: current.values.filter((_, idx) => idx !== i) }));
+  };
 
   const saveAbout = async () => {
     if (!companyId) return;
     setSavingAbout(true);
-    const { error } = await supabase
-      .from("companies")
-      .update({
-        careers_about_title: aboutTitle.trim() || null,
-        careers_about_text: aboutText.trim() || null,
-        careers_mission: mission.trim() || null,
-        careers_values: values.length ? values : null,
-      } as any)
-      .eq("id", companyId);
-    setSavingAbout(false);
+    setAboutStatus("idle");
+    const payload = {
+      careers_about_title: aboutTitle.trim() || null,
+      careers_about_text: aboutText.trim() || null,
+      careers_mission: mission.trim() || null,
+      careers_values: normalizeValues(values).length ? normalizeValues(values) : null,
+    } as any;
+
+    const { data: updated, error } = await (supabase as any)
+      .rpc("update_company_careers_page", {
+        _company_id: companyId,
+        _about_title: payload.careers_about_title || "",
+        _about_text: payload.careers_about_text || "",
+        _mission: payload.careers_mission || "",
+        _values: payload.careers_values,
+      })
+      .maybeSingle();
     if (error) {
+      setSavingAbout(false);
+      setAboutStatus("error");
       toast({ title: "Erro ao salvar", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Sobre / cultura atualizado" });
-    if (draftKey) {
-      try { sessionStorage.removeItem(draftKey); } catch { /* ignore */ }
+
+    const confirmed = updated ?? null;
+    const savedValues = (confirmed as any)?.careers_values || [];
+    const expectedValues = payload.careers_values || [];
+    const matches = !!confirmed &&
+      ((confirmed as any).careers_about_title || "") === (payload.careers_about_title || "") &&
+      ((confirmed as any).careers_about_text || "") === (payload.careers_about_text || "") &&
+      ((confirmed as any).careers_mission || "") === (payload.careers_mission || "") &&
+      JSON.stringify(savedValues) === JSON.stringify(expectedValues);
+
+    if (!matches) {
+      setSavingAbout(false);
+      setAboutStatus("error");
+      toast({
+        title: "Salvamento não confirmado",
+        description: "Mantive seu rascunho local. Tente salvar novamente antes de sair.",
+        variant: "destructive",
+      });
+      return;
     }
-    refetch();
+
+    clearDraft();
+    await refetch();
+    setAboutStatus("saved");
+    qc.invalidateQueries({ queryKey: ["company-careers-about", companyId] });
+    qc.invalidateQueries({ queryKey: ["company-public-slug", companyId] });
+    setSavingAbout(false);
+    toast({ title: "Página de carreiras publicada" });
   };
 
   // ----- Benefits CRUD -----
@@ -248,7 +278,7 @@ const CareersPageEditor = () => {
             <Label>Título do bloco</Label>
             <Input
               value={aboutTitle}
-              onChange={(e) => setAboutTitle(e.target.value)}
+              onChange={(e) => setDraft((current) => ({ ...current, aboutTitle: e.target.value }))}
               placeholder={`Ex.: Conheça a ${profile?.company_id ? "nossa empresa" : ""}`}
             />
           </div>
@@ -256,7 +286,7 @@ const CareersPageEditor = () => {
             <Label>Sobre / Cultura</Label>
             <Textarea
               value={aboutText}
-              onChange={(e) => setAboutText(e.target.value)}
+              onChange={(e) => setDraft((current) => ({ ...current, aboutText: e.target.value }))}
               rows={6}
               placeholder="Descreva o ambiente de trabalho, história, cultura e o que torna sua empresa única."
             />
@@ -266,7 +296,7 @@ const CareersPageEditor = () => {
             <Label>Missão</Label>
             <Textarea
               value={mission}
-              onChange={(e) => setMission(e.target.value)}
+              onChange={(e) => setDraft((current) => ({ ...current, mission: e.target.value }))}
               rows={2}
               placeholder="Frase curta com a missão da empresa."
             />
@@ -276,7 +306,7 @@ const CareersPageEditor = () => {
             <div className="flex gap-2 mt-1">
               <Input
                 value={valueDraft}
-                onChange={(e) => setValueDraft(e.target.value)}
+                onChange={(e) => setDraft((current) => ({ ...current, valueDraft: e.target.value }))}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
@@ -307,9 +337,15 @@ const CareersPageEditor = () => {
             )}
           </div>
           <div className="flex items-center justify-end gap-3">
-            {hasUnsavedChanges && (
-              <span className="text-xs text-amber-600">Alterações não salvas</span>
-            )}
+            {savingAbout ? (
+              <span className="text-xs text-muted-foreground">Salvando e confirmando...</span>
+            ) : aboutStatus === "error" ? (
+              <span className="text-xs text-destructive">Rascunho preservado localmente</span>
+            ) : hasUnsavedChanges || hasStoredDraft ? (
+              <span className="text-xs text-amber-600">Rascunho salvo localmente</span>
+            ) : aboutStatus === "saved" ? (
+              <span className="text-xs text-emerald-600">Publicado com sucesso</span>
+            ) : null}
             <Button onClick={saveAbout} disabled={savingAbout}>
               {savingAbout ? "Salvando..." : "Salvar"}
             </Button>
