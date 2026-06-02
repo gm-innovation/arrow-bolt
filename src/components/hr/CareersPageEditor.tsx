@@ -158,7 +158,7 @@ const CareersPageEditor = () => {
       careers_values: normalizeValues(values).length ? normalizeValues(values) : null,
     } as any;
 
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("companies")
       .update(payload)
       .eq("id", companyId)
@@ -171,8 +171,7 @@ const CareersPageEditor = () => {
       return;
     }
 
-    const { data: fresh } = await refetch();
-    const confirmed = fresh ?? null;
+    const confirmed = updated ?? null;
     const savedValues = (confirmed as any)?.careers_values || [];
     const expectedValues = payload.careers_values || [];
     const matches = !!confirmed &&
@@ -192,6 +191,7 @@ const CareersPageEditor = () => {
     }
 
     clearDraft();
+    await refetch();
     setAboutStatus("saved");
     qc.invalidateQueries({ queryKey: ["company-careers-about", companyId] });
     qc.invalidateQueries({ queryKey: ["company-public-slug", companyId] });
