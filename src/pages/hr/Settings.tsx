@@ -42,7 +42,7 @@ const HRSettings = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="notifications" className="space-y-6">
+      <Tabs defaultValue="notifications" storageKey="hr-settings" className="space-y-6">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />

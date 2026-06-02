@@ -134,7 +134,7 @@ const Absences = () => {
         </div>
       </div>
 
-      <Tabs defaultValue="list">
+      <Tabs defaultValue="list" storageKey="hr-absences">
         <TabsList>
           <TabsTrigger value="list">Lista</TabsTrigger>
           <TabsTrigger value="calendar">Calendário</TabsTrigger>

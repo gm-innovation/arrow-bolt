@@ -66,7 +66,7 @@ const AdminSchedules = () => {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-foreground">Agendamentos e Lembretes</h2>
 
-      <Tabs defaultValue="list">
+      <Tabs defaultValue="list" storageKey="commercial-admin-schedules">
         <TabsList>
           <TabsTrigger value="list" className="gap-2">
             <List className="h-4 w-4" /> Lista

@@ -41,7 +41,7 @@ const University = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="courses">
+      <Tabs defaultValue="courses" storageKey="corp-university">
         <TabsList>
           <TabsTrigger value="courses" className="gap-2"><BookOpen className="h-4 w-4" /> Cursos</TabsTrigger>
           <TabsTrigger value="trails" className="gap-2"><Route className="h-4 w-4" /> Trilhas</TabsTrigger>

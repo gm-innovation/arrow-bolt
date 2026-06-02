@@ -26,7 +26,7 @@ const CommercialSettings = () => {
         <p className="text-muted-foreground mt-1">Gerencie as configurações do módulo comercial</p>
       </div>
 
-      <Tabs defaultValue="notifications" className="space-y-6">
+      <Tabs defaultValue="notifications" storageKey="commercial-settings" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" /> Notificações

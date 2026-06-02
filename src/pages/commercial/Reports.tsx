@@ -164,7 +164,7 @@ const Reports = () => {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="charts" className="w-full">
+      <Tabs defaultValue="charts" storageKey="commercial-reports" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="charts">Visualização Gráfica</TabsTrigger>
           <TabsTrigger value="executive">Dashboard Executivo</TabsTrigger>

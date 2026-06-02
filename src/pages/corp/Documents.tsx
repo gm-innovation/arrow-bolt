@@ -94,7 +94,7 @@ const CorpDocuments = () => {
 
         <Card>
           <CardContent className="p-0">
-            <Tabs defaultValue="my">
+            <Tabs defaultValue="my" storageKey="corp-documents">
               <TabsList className="w-full justify-start border-b rounded-none h-auto p-1">
                 <TabsTrigger value="my">Meus Documentos</TabsTrigger>
                 <TabsTrigger value="received">Recebidos</TabsTrigger>
