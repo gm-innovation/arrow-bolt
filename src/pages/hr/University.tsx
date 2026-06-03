@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import HRUniversityEnrollments from '@/components/university/HRUniversityEnrollments';
 import HRUniversityAchievements from '@/components/university/HRUniversityAchievements';
+import MyLearningPanel from '@/components/university/MyLearningPanel';
 import { pdf } from '@react-pdf/renderer';
 import CertificatePDF from '@/components/university/CertificatePDF';
 import { PDFCanvasViewer } from '@/components/ui/PDFCanvasViewer';
@@ -104,17 +105,24 @@ const University = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <GraduationCap className="h-7 w-7 text-primary" />
-          <h1 className="text-2xl font-bold text-foreground">Treinamentos Corporativos</h1>
+          <h1 className="text-2xl font-bold text-foreground">Treinamentos</h1>
         </div>
       </div>
 
-      <Tabs defaultValue="courses" storageKey="hr-university">
+      <Tabs defaultValue="my-learning" storageKey="hr-university">
         <TabsList>
+          <TabsTrigger value="my-learning" className="gap-2"><GraduationCap className="h-4 w-4" /> Meus Treinamentos</TabsTrigger>
           <TabsTrigger value="courses" className="gap-2"><BookOpen className="h-4 w-4" /> Cursos</TabsTrigger>
           <TabsTrigger value="trails" className="gap-2"><Route className="h-4 w-4" /> Trilhas</TabsTrigger>
           <TabsTrigger value="enrollments" className="gap-2"><Users className="h-4 w-4" /> Matrículas</TabsTrigger>
           <TabsTrigger value="achievements" className="gap-2"><Award className="h-4 w-4" /> Conquistas</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="my-learning">
+          <MyLearningPanel courseHrefBase="/corp/university" showHeader={false} />
+        </TabsContent>
+
+
 
         <TabsContent value="courses" className="space-y-4">
           <div className="flex items-center gap-3">
