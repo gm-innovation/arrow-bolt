@@ -48,7 +48,7 @@ const TITLES: Array<{ test: RegExp; title: string }> = [
   { test: /^\/corp\/university\/my-learning/, title: "Meu Aprendizado" },
   { test: /^\/corp\/university\/course/, title: "Curso" },
   { test: /^\/corp\/university\/trail/, title: "Trilha" },
-  { test: /^\/corp\/university/, title: "Universidade" },
+  { test: /^\/corp\/university/, title: "Treinamentos" },
 ];
 
 const usePageTitle = () => {
