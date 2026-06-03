@@ -14,6 +14,8 @@ import { useNavigate } from 'react-router-dom';
 
 interface AIChatProps {
   userRole: string;
+  agentName?: string;
+  avatarUrl?: string;
   context?: {
     taskTypeId?: string;
     serviceOrderId?: string;
@@ -43,7 +45,7 @@ const quickSuggestions: Record<string, string[]> = {
   ]
 };
 
-export function AIChat({ userRole, context }: AIChatProps) {
+export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }: AIChatProps) {
   const navigate = useNavigate();
   const {
     messages,
@@ -196,9 +198,17 @@ export function AIChat({ userRole, context }: AIChatProps) {
 
         {messages.length === 0 && !reportPreview ? (
           <div className="flex flex-col items-center justify-center h-full text-center space-y-4 py-8">
-            <Sparkles className="h-12 w-12 text-primary/50" />
+            {avatarUrl ? (
+              <img
+                src={avatarUrl}
+                alt={agentName}
+                className="h-32 w-32 rounded-full object-cover border-2 border-primary/20 shadow-md"
+              />
+            ) : (
+              <Sparkles className="h-12 w-12 text-primary/50" />
+            )}
             <div>
-              <h3 className="font-semibold text-foreground">Olá! Sou o NavalOS AI</h3>
+              <h3 className="font-semibold text-foreground">Olá! Sou {agentName}</h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Como posso ajudar você hoje?
               </p>

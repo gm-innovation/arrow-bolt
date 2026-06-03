@@ -69,14 +69,14 @@ export function AIAssistant({ context }: AIAssistantProps) {
     return (
       <Button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 p-0 overflow-hidden bg-primary hover:bg-primary/90"
+        className="fixed bottom-6 right-6 h-20 w-20 rounded-full shadow-xl z-50 p-0 overflow-hidden bg-primary hover:bg-primary/90 ring-2 ring-primary/30"
         size="icon"
         aria-label={`Abrir ${agentName}`}
       >
         {avatarUrl ? (
           <img src={avatarUrl} alt={agentName} className="h-full w-full object-cover" />
         ) : (
-          <Bot className="h-6 w-6" />
+          <Bot className="h-8 w-8" />
         )}
       </Button>
     );
@@ -86,18 +86,18 @@ export function AIAssistant({ context }: AIAssistantProps) {
     <div
       className={cn(
         "fixed bottom-6 right-6 z-50 flex flex-col bg-background border rounded-lg shadow-2xl transition-all duration-200",
-        isMinimized ? "w-80 h-14" : "w-96 h-[600px] max-h-[85vh]"
+        isMinimized ? "w-80 h-16" : "w-96 h-[600px] max-h-[85vh]"
       )}
     >
       <div className="flex items-center justify-between px-4 py-3 border-b bg-primary text-primary-foreground rounded-t-lg">
-        <div className="flex items-center gap-2">
-          <Avatar className="h-8 w-8 border border-primary-foreground/30">
-            <AvatarImage src={avatarUrl} alt={agentName} />
+        <div className="flex items-center gap-3">
+          <Avatar className="h-12 w-12 border-2 border-primary-foreground/40">
+            <AvatarImage src={avatarUrl} alt={agentName} className="object-cover" />
             <AvatarFallback className="bg-primary-foreground/20 text-primary-foreground">
-              <Bot className="h-4 w-4" />
+              <Bot className="h-5 w-5" />
             </AvatarFallback>
           </Avatar>
-          <span className="font-semibold">{agentName}</span>
+          <span className="font-semibold text-base">{agentName}</span>
         </div>
         <div className="flex items-center gap-1">
           <Button
@@ -122,6 +122,8 @@ export function AIAssistant({ context }: AIAssistantProps) {
       {!isMinimized && (
         <AIChat
           userRole={getRoleName()}
+          agentName={agentName}
+          avatarUrl={avatarUrl}
           context={context}
         />
       )}
