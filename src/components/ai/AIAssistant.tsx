@@ -53,18 +53,8 @@ export function AIAssistant({ context }: AIAssistantProps) {
   const avatarUrl = agentIdentity?.avatar_url || defaultAvatar.url;
   const agentName = agentIdentity?.name || 'Arrow AI';
 
-  const getRoleName = () => {
-    switch (userRole) {
-      case 'technician':
-        return 'technician';
-      case 'coordinator':
-        return 'admin';
-      case 'manager':
-        return 'manager';
-      default:
-        return 'technician';
-    }
-  };
+  const getRoleName = () => userRole || 'technician';
+
 
   if (!isOpen) {
     return (
