@@ -69,14 +69,11 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
-      const root = scrollRef.current;
-      if (!root) return;
-      const viewport = root.querySelector('[data-radix-scroll-area-viewport]') as HTMLElement | null;
-      const target = viewport ?? root;
-      target.scrollTop = target.scrollHeight;
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
     });
     return () => cancelAnimationFrame(id);
   }, [messages, isLoading, reportPreview]);
@@ -158,7 +155,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-4">
         {/* Proactive Alerts */}
         {proactiveAlerts.length > 0 && (
           <div className="mb-4 space-y-2">
@@ -304,6 +301,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
             })}
           </div>
         )}
+        <div ref={messagesEndRef} className="h-1" />
       </ScrollArea>
 
       {/* Input */}
