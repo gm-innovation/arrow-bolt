@@ -1,21 +1,23 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone, Edit } from 'lucide-react';
+import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone, Edit, Repeat } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAbsences, getAbsenceTypeLabel, getAbsenceStatusLabel, Absence } from '@/hooks/useAbsences';
 import { useOnCall, OnCall } from '@/hooks/useOnCall';
+import { useHolidays } from '@/hooks/useHolidays';
 import { Skeleton } from '@/components/ui/skeleton';
 import NewAbsenceDialog from '@/components/hr/NewAbsenceDialog';
 import NewOnCallDialog from '@/components/hr/NewOnCallDialog';
 import EditAbsenceDialog from '@/components/hr/EditAbsenceDialog';
 import EditOnCallDialog from '@/components/hr/EditOnCallDialog';
+import NewHolidayDialog from '@/components/hr/NewHolidayDialog';
 import UnifiedScheduleCalendar from '@/components/hr/UnifiedScheduleCalendar';
 import {
   AlertDialog,
