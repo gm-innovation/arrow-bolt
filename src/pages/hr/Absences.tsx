@@ -141,6 +141,7 @@ const Absences = () => {
         <TabsList>
           <TabsTrigger value="list">Lista</TabsTrigger>
           <TabsTrigger value="calendar">Calendário</TabsTrigger>
+          <TabsTrigger value="holidays">Feriados</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
