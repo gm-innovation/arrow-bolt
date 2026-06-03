@@ -116,12 +116,27 @@ export function IdentityTab({ agent, draft, setDraft }: Props) {
 
       <div>
         <Label>URL do avatar</Label>
-        <Input
-          value={identity.avatar_url ?? ""}
-          onChange={(e) => update({ avatar_url: e.target.value })}
-          placeholder="https://..."
-        />
+        <div className="flex items-center gap-3 mt-1">
+          {identity.avatar_url ? (
+            <img
+              src={identity.avatar_url}
+              alt="Avatar do agente"
+              className="h-16 w-16 rounded-full object-cover border"
+            />
+          ) : (
+            <div className="h-16 w-16 rounded-full bg-muted border" />
+          )}
+          <Input
+            value={identity.avatar_url ?? ""}
+            onChange={(e) => update({ avatar_url: e.target.value })}
+            placeholder="https://... ou /__l5e/assets-v1/..."
+          />
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Avatar padrão: Marina, assistente da Arrow (macacão coral).
+        </p>
       </div>
+
     </div>
   );
 }
