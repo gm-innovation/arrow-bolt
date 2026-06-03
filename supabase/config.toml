@@ -90,3 +90,7 @@ verify_jwt = false
 [functions.ai-finetune-create]
 verify_jwt = true
 
+[functions.list-llm-models]
+verify_jwt = false
+
+
