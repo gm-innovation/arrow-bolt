@@ -449,4 +449,83 @@ const Absences = () => {
   );
 };
 
+const HolidaysSection = () => {
+  const { holidays, isLoading, refetch, deleteHoliday } = useHolidays();
+  const [open, setOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const grouped = holidays.reduce((acc, h) => {
+    const year = parseISO(h.holiday_date).getFullYear();
+    (acc[year] ||= []).push(h);
+    return acc;
+  }, {} as Record<number, typeof holidays>);
+
+  if (isLoading) return <Skeleton className="h-64" />;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" />Feriados Cadastrados</CardTitle>
+          <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo Feriado</Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {holidays.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">Nenhum feriado cadastrado</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Recorrência</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(grouped).sort(([a], [b]) => Number(b) - Number(a)).map(([year, yearHolidays]) => (
+                <>
+                  <TableRow key={`y-${year}`} className="bg-muted/50">
+                    <TableCell colSpan={4} className="font-bold">{year}</TableCell>
+                  </TableRow>
+                  {yearHolidays.map((h) => (
+                    <TableRow key={h.id}>
+                      <TableCell>{format(parseISO(h.holiday_date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}</TableCell>
+                      <TableCell className="font-medium">{h.name}</TableCell>
+                      <TableCell>
+                        {h.is_recurring ? (
+                          <Badge variant="secondary" className="gap-1"><Repeat className="h-3 w-3" />Anual</Badge>
+                        ) : <Badge variant="outline">Único</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(h.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+      <NewHolidayDialog open={open} onOpenChange={setOpen} onSuccess={() => { setOpen(false); refetch(); }} />
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir este feriado?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => { if (deleteId) { await deleteHoliday.mutateAsync(deleteId); setDeleteId(null); } }}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+};
+
 export default Absences;
