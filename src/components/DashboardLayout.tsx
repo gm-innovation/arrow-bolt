@@ -170,7 +170,6 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Relatórios", icon: FileBarChart, path: "/hr/reports" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const commercialMenuItems = [

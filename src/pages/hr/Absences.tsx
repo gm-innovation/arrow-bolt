@@ -6,18 +6,20 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone, Edit, Repeat } from 'lucide-react';
+import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone, Edit, Repeat, Home } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAbsences, getAbsenceTypeLabel, getAbsenceStatusLabel, Absence } from '@/hooks/useAbsences';
 import { useOnCall, OnCall } from '@/hooks/useOnCall';
 import { useHolidays } from '@/hooks/useHolidays';
+import { useHomeOffice, HomeOfficeSchedule } from '@/hooks/useHomeOffice';
 import { Skeleton } from '@/components/ui/skeleton';
 import NewAbsenceDialog from '@/components/hr/NewAbsenceDialog';
 import NewOnCallDialog from '@/components/hr/NewOnCallDialog';
 import EditAbsenceDialog from '@/components/hr/EditAbsenceDialog';
 import EditOnCallDialog from '@/components/hr/EditOnCallDialog';
 import NewHolidayDialog from '@/components/hr/NewHolidayDialog';
+import NewHomeOfficeDialog from '@/components/hr/NewHomeOfficeDialog';
 import UnifiedScheduleCalendar from '@/components/hr/UnifiedScheduleCalendar';
 import {
   AlertDialog,
@@ -141,6 +143,7 @@ const Absences = () => {
         <TabsList>
           <TabsTrigger value="list">Lista</TabsTrigger>
           <TabsTrigger value="calendar">Calendário</TabsTrigger>
+          <TabsTrigger value="home_office">Home Office</TabsTrigger>
           <TabsTrigger value="holidays">Feriados</TabsTrigger>
         </TabsList>
 
@@ -177,7 +180,6 @@ const Absences = () => {
                         <SelectItem value="all">Todos os tipos</SelectItem>
                         <SelectItem value="vacation">Férias</SelectItem>
                         <SelectItem value="day_off">Folga</SelectItem>
-                        <SelectItem value="home_office">Home Office</SelectItem>
                         <SelectItem value="medical_exam">Exame Médico</SelectItem>
                         <SelectItem value="training">Treinamento</SelectItem>
                         <SelectItem value="sick_leave">Atestado</SelectItem>
@@ -385,6 +387,10 @@ const Absences = () => {
           />
         </TabsContent>
 
+        <TabsContent value="home_office">
+          <HomeOfficeSection monthStart={monthStart} monthEnd={monthEnd} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
+        </TabsContent>
+
         <TabsContent value="holidays">
           <HolidaysSection />
         </TabsContent>
@@ -521,6 +527,84 @@ const HolidaysSection = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={async () => { if (deleteId) { await deleteHoliday.mutateAsync(deleteId); setDeleteId(null); } }}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+};
+
+const HomeOfficeSection = ({ monthStart, monthEnd, selectedMonth, onMonthChange }: { monthStart: string; monthEnd: string; selectedMonth: Date; onMonthChange: (d: Date) => void; }) => {
+  const { schedules, isLoading, refetch, remove } = useHomeOffice({ startDate: monthStart, endDate: monthEnd });
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<HomeOfficeSchedule | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  if (isLoading) return <Skeleton className="h-64" />;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <CardTitle className="flex items-center gap-2"><Home className="h-5 w-5" />Home Office Agendado</CardTitle>
+          <div className="flex gap-2">
+            <Input
+              type="month"
+              value={format(selectedMonth, 'yyyy-MM')}
+              onChange={(e) => {
+                const [year, month] = e.target.value.split('-');
+                onMonthChange(new Date(parseInt(year), parseInt(month) - 1, 15));
+              }}
+              className="w-[180px]"
+            />
+            <Button onClick={() => { setEditing(null); setOpen(true); }}><Plus className="h-4 w-4 mr-2" />Novo Home Office</Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {schedules.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">Nenhum home office agendado para este período</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Colaborador</TableHead>
+                <TableHead>Período</TableHead>
+                <TableHead>Observações</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {schedules.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell className="font-medium">{s.technician?.profiles?.full_name || 'Colaborador'}</TableCell>
+                  <TableCell>
+                    {format(parseISO(s.start_date), 'dd/MM/yyyy', { locale: ptBR })}
+                    {s.start_date !== s.end_date && <> - {format(parseISO(s.end_date), 'dd/MM/yyyy', { locale: ptBR })}</>}
+                  </TableCell>
+                  <TableCell className="max-w-[300px] truncate">{s.notes || '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => { setEditing(s); setOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(s.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+      <NewHomeOfficeDialog open={open} onOpenChange={setOpen} editing={editing} onSuccess={() => { setOpen(false); setEditing(null); refetch(); }} />
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir este home office?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => { if (deleteId) { await remove.mutateAsync(deleteId); setDeleteId(null); } }}>Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

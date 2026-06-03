@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Phone, Umbrella, Calendar, Stethoscope, GraduationCap, UserX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Phone, Umbrella, Calendar, Stethoscope, GraduationCap, UserX, Home } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Absence } from '@/hooks/useAbsences';
 import { OnCall } from '@/hooks/useOnCall';
+import { useHomeOffice } from '@/hooks/useHomeOffice';
 
 interface Props {
   absences: Absence[];
@@ -19,6 +20,11 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
   const monthStart = startOfMonth(selectedMonth);
   const monthEnd = endOfMonth(selectedMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  const { schedules: homeOffices } = useHomeOffice({
+    startDate: format(monthStart, 'yyyy-MM-dd'),
+    endDate: format(monthEnd, 'yyyy-MM-dd'),
+  });
 
   const parseLocalDate = (dateStr: string): Date => {
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -39,6 +45,14 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
       return isSameDay(day, onCallDate);
     });
   };
+  const getHomeOfficeForDay = (day: Date) => {
+    return homeOffices.filter(h => {
+      const start = parseLocalDate(h.start_date);
+      const end = parseLocalDate(h.end_date);
+      return day >= start && day <= end;
+    });
+  };
+
 
   const getAbsenceColor = (type: Absence['absence_type']) => {
     const colors = {
@@ -113,6 +127,10 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
             <span>Atestado</span>
           </div>
           <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-teal-100 border border-teal-300" />
+            <span>Home Office</span>
+          </div>
+          <div className="flex items-center gap-1">
             <Phone className="h-3 w-3 text-orange-600" />
             <span>Sobreaviso</span>
           </div>
@@ -134,6 +152,7 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
           {days.map((day) => {
             const dayAbsences = getAbsencesForDay(day);
             const dayOnCall = getOnCallForDay(day);
+            const dayHomeOffice = getHomeOfficeForDay(day);
             const isWeekendDay = isWeekend(day);
             
             return (
@@ -165,6 +184,20 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
                       </div>
                     );
                   })}
+
+                  {/* Home Office */}
+                  {dayHomeOffice.slice(0, 2).map((h) => (
+                    <div
+                      key={h.id}
+                      className="text-[10px] px-1 py-0.5 rounded border truncate flex items-center gap-1 bg-teal-100 text-teal-800 border-teal-300"
+                      title={`Home Office - ${h.technician?.profiles?.full_name || ''}`}
+                    >
+                      <Home className="h-2.5 w-2.5 flex-shrink-0" />
+                      <span className="truncate">
+                        {h.technician?.profiles?.full_name?.split(' ')[0]}
+                      </span>
+                    </div>
+                  ))}
                   
                   {/* Sobreavisos */}
                   {dayOnCall.slice(0, 2).map((onCall) => (
@@ -182,9 +215,9 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
                   ))}
                   
                   {/* Show count if more items */}
-                  {(dayAbsences.length + dayOnCall.length > 4) && (
+                  {(dayAbsences.length + dayOnCall.length + dayHomeOffice.length > 6) && (
                     <div className="text-[9px] text-muted-foreground text-center">
-                      +{dayAbsences.length + dayOnCall.length - 4} mais
+                      +{dayAbsences.length + dayOnCall.length + dayHomeOffice.length - 6} mais
                     </div>
                   )}
                 </div>
