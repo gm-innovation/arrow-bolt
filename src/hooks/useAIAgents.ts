@@ -34,12 +34,15 @@ export type AIAgentGuardrails = {
 };
 
 export type AIAgentToolsModel = {
+  provider?: "lovable" | "openrouter";
   model?: string;
   image_model?: string;
   temperature?: number;
   max_tokens?: number;
   enabled_tools?: string[];
   rag_context?: string;
+  openrouter_route?: "" | "price" | "throughput" | "latency";
+  openrouter_providers?: string[];
 };
 
 export type AIAgentAppearance = {
