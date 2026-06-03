@@ -345,7 +345,7 @@ const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entr
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>Relatório de Ponto</Text>
+          <Text style={styles.title}>Relatório de Atendimento</Text>
           <Text style={styles.subtitle}>{technicianName}</Text>
           <Text style={styles.period}>
             {format(month, "MMMM 'de' yyyy", { locale: ptBR })}
