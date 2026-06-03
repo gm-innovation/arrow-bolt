@@ -384,6 +384,10 @@ const Absences = () => {
             onEditOnCall={setEditingOnCall}
           />
         </TabsContent>
+
+        <TabsContent value="holidays">
+          <HolidaysSection />
+        </TabsContent>
       </Tabs>
 
       <NewAbsenceDialog
