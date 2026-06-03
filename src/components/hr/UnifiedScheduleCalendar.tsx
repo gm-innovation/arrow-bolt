@@ -1,10 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, ChevronRight, Phone, Umbrella, Calendar, Stethoscope, GraduationCap, UserX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Phone, Umbrella, Calendar, Stethoscope, GraduationCap, UserX, Home } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isWeekend, isSameDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Absence } from '@/hooks/useAbsences';
 import { OnCall } from '@/hooks/useOnCall';
+import { useHomeOffice } from '@/hooks/useHomeOffice';
 
 interface Props {
   absences: Absence[];
@@ -19,6 +20,11 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
   const monthStart = startOfMonth(selectedMonth);
   const monthEnd = endOfMonth(selectedMonth);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
+
+  const { schedules: homeOffices } = useHomeOffice({
+    startDate: format(monthStart, 'yyyy-MM-dd'),
+    endDate: format(monthEnd, 'yyyy-MM-dd'),
+  });
 
   const parseLocalDate = (dateStr: string): Date => {
     const [year, month, day] = dateStr.split('-').map(Number);
@@ -39,6 +45,14 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
       return isSameDay(day, onCallDate);
     });
   };
+  const getHomeOfficeForDay = (day: Date) => {
+    return homeOffices.filter(h => {
+      const start = parseLocalDate(h.start_date);
+      const end = parseLocalDate(h.end_date);
+      return day >= start && day <= end;
+    });
+  };
+
 
   const getAbsenceColor = (type: Absence['absence_type']) => {
     const colors = {
