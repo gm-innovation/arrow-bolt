@@ -112,7 +112,6 @@ const EditAbsenceDialog = ({ absence, open, onOpenChange, onSuccess }: Props) =>
                 <SelectContent>
                   <SelectItem value="vacation">Férias</SelectItem>
                   <SelectItem value="day_off">Folga</SelectItem>
-                  <SelectItem value="home_office">Home Office</SelectItem>
                   <SelectItem value="medical_exam">Exame Médico</SelectItem>
                   <SelectItem value="training">Treinamento</SelectItem>
                   <SelectItem value="sick_leave">Atestado</SelectItem>
