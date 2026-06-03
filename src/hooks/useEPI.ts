@@ -7,8 +7,6 @@ export interface EpiItem {
   id: string;
   company_id: string;
   name: string;
-  ca_number?: string | null;
-  ca_expires_at?: string | null;
   size?: string | null;
   description?: string | null;
   min_stock: number;
@@ -29,7 +27,7 @@ export interface EpiDelivery {
   notes?: string | null;
   signature_url?: string | null;
   created_at: string;
-  epi_item?: { name: string; ca_number?: string | null };
+  epi_item?: { name: string };
   recipient?: { full_name: string };
 }
 
@@ -56,7 +54,7 @@ export const useEPI = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from('epi_deliveries')
-        .select('*, epi_item:epi_items(name, ca_number), recipient:profiles!epi_deliveries_recipient_profile_id_fkey(full_name)')
+        .select('*, epi_item:epi_items(name), recipient:profiles!epi_deliveries_recipient_profile_id_fkey(full_name)')
         .order('delivered_at', { ascending: false });
       if (error) throw error;
       return (data || []) as EpiDelivery[];

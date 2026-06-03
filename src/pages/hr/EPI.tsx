@@ -52,10 +52,6 @@ const EPI = () => {
                 <DialogHeader><DialogTitle>Novo EPI</DialogTitle></DialogHeader>
                 <form className="space-y-3" onSubmit={async (e) => { e.preventDefault(); await createItem.mutateAsync(itemForm); setItemDialog(false); setItemForm({ name: '', min_stock: 0, current_stock: 0, is_active: true }); }}>
                   <div className="space-y-2"><Label>Nome *</Label><Input required value={itemForm.name || ''} onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })} /></div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2"><Label>CA</Label><Input value={itemForm.ca_number || ''} onChange={(e) => setItemForm({ ...itemForm, ca_number: e.target.value })} /></div>
-                    <div className="space-y-2"><Label>Validade CA</Label><Input type="date" value={itemForm.ca_expires_at || ''} onChange={(e) => setItemForm({ ...itemForm, ca_expires_at: e.target.value })} /></div>
-                  </div>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="space-y-2"><Label>Tamanho</Label><Input value={itemForm.size || ''} onChange={(e) => setItemForm({ ...itemForm, size: e.target.value })} /></div>
                     <div className="space-y-2"><Label>Estoque mín.</Label><Input type="number" value={itemForm.min_stock ?? 0} onChange={(e) => setItemForm({ ...itemForm, min_stock: Number(e.target.value) })} /></div>
@@ -70,15 +66,13 @@ const EPI = () => {
           <Card>
             <CardContent className="pt-6">
               <Table>
-                <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>CA</TableHead><TableHead>Validade CA</TableHead><TableHead>Tamanho</TableHead><TableHead>Estoque</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>Nome</TableHead><TableHead>Tamanho</TableHead><TableHead>Estoque</TableHead><TableHead>Ações</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {items.length === 0 ? (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhum EPI cadastrado</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Nenhum EPI cadastrado</TableCell></TableRow>
                   ) : items.map((it) => (
                     <TableRow key={it.id}>
                       <TableCell className="font-medium">{it.name}</TableCell>
-                      <TableCell>{it.ca_number || '-'}</TableCell>
-                      <TableCell>{it.ca_expires_at ? format(parseISO(it.ca_expires_at), 'dd/MM/yyyy') : '-'}</TableCell>
                       <TableCell>{it.size || '-'}</TableCell>
                       <TableCell>
                         <Badge variant={it.current_stock < it.min_stock ? 'destructive' : 'secondary'}>{it.current_stock}</Badge>
@@ -102,7 +96,7 @@ const EPI = () => {
                   <div className="space-y-2"><Label>EPI *</Label>
                     <Select value={deliveryForm.epi_item_id} onValueChange={(v) => setDeliveryForm({ ...deliveryForm, epi_item_id: v })}>
                       <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                      <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}{it.ca_number ? ` (CA ${it.ca_number})` : ''}</SelectItem>)}</SelectContent>
+                      <SelectContent>{items.map((it) => <SelectItem key={it.id} value={it.id}>{it.name}</SelectItem>)}</SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2"><Label>Colaborador *</Label>
@@ -150,18 +144,24 @@ const EPI = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle className="h-5 w-5" /> Próximos 30 dias</CardTitle></CardHeader>
             <CardContent>
               <Table>
-                <TableHeader><TableRow><TableHead>Tipo</TableHead><TableHead>Item / Colaborador</TableHead><TableHead>Data</TableHead></TableRow></TableHeader>
+                <TableHeader><TableRow><TableHead>EPI</TableHead><TableHead>Colaborador</TableHead><TableHead>Vencimento</TableHead></TableRow></TableHeader>
                 <TableBody>
-                  {[
-                    ...items.filter(i => i.ca_expires_at && isBefore(parseISO(i.ca_expires_at), soon)).map(i => ({ kind: 'CA', label: i.name, date: i.ca_expires_at! })),
-                    ...deliveries.filter(d => d.expires_at && isBefore(parseISO(d.expires_at), soon)).map(d => ({ kind: 'Entrega', label: `${d.epi_item?.name} → ${d.recipient?.full_name}`, date: d.expires_at! })),
-                  ].sort((a, b) => a.date.localeCompare(b.date)).map((row, idx) => (
-                    <TableRow key={idx}>
-                      <TableCell><Badge variant={isBefore(parseISO(row.date), today) ? 'destructive' : 'secondary'}>{row.kind}</Badge></TableCell>
-                      <TableCell>{row.label}</TableCell>
-                      <TableCell className="flex items-center gap-1"><Calendar className="h-3 w-3" />{format(parseISO(row.date), 'dd/MM/yyyy')}</TableCell>
-                    </TableRow>
-                  ))}
+                  {deliveries.filter(d => d.expires_at && isBefore(parseISO(d.expires_at), soon)).length === 0 ? (
+                    <TableRow><TableCell colSpan={3} className="text-center text-muted-foreground py-8">Nenhum vencimento nos próximos 30 dias</TableCell></TableRow>
+                  ) : deliveries
+                    .filter(d => d.expires_at && isBefore(parseISO(d.expires_at), soon))
+                    .sort((a, b) => (a.expires_at || '').localeCompare(b.expires_at || ''))
+                    .map((d) => (
+                      <TableRow key={d.id}>
+                        <TableCell>{d.epi_item?.name}</TableCell>
+                        <TableCell>{d.recipient?.full_name}</TableCell>
+                        <TableCell className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          {format(parseISO(d.expires_at!), 'dd/MM/yyyy')}
+                          {isBefore(parseISO(d.expires_at!), today) && <Badge variant="destructive" className="ml-2">Vencido</Badge>}
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </CardContent>
