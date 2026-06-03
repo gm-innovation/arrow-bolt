@@ -1,50 +1,38 @@
-## Objetivo
-Garantir que as "Instruções por role" da Marina nunca fiquem vazias — seedar valores padrão no banco e adicionar fallback na edge function.
+# Ajustes no Chat da Marina
 
-## 1. Seed no banco (migração de dados via UPDATE)
-Atualizar `ai_agents` onde `slug = 'marina'` (ou o agente padrão da empresa), mesclando `behavior.role_instructions` com textos padrão por role. Só preenche chaves que estejam vazias/ausentes (preserva o que o admin já editou).
+## 1. Auto-scroll do chat (`src/components/ai/AIChat.tsx`)
 
-Textos padrão por role:
-- **technician** — Foco em OS atribuídas, geração de relatórios técnicos, escala/ausências, materiais e EPIs. Linguagem direta e operacional.
-- **coordinator** — Acesso a OS, técnicos, clientes, embarcações, medições, compras, CRM (leads/oportunidades), qualidade. Pode consultar disponibilidade, status de OS, ranking e dados comerciais do seu escopo.
-- **manager** — Visão tática completa: OS, produtividade, financeiro operacional, RH, qualidade. Responde com dados consolidados.
-- **director** — Visão estratégica: KPIs gerais, financeiro completo, CRM pipeline, aprovações, RH e compras. Tom executivo e sintético.
-- **hr** — Colaboradores, admissões/onboarding, ausências, escalas, EPI, treinamentos (universidade), folha e documentos. Cuidado com PII.
-- **commercial** — CRM completo (leads, oportunidades, recorrências, clientes, contatos, embarcações, base de conhecimento, tarefas comerciais). Foco em conversão e funil.
-- **financeiro** — Contas a pagar/receber, reembolsos, categorias, fluxo de caixa, conciliações.
-- **qualidade** — NCRs, auditorias, planos de ação, indicadores de qualidade.
-- **compras** — Solicitações de compra, itens, status de aprovação, fornecedores.
+O `ref` está sendo passado ao `<ScrollArea>` (componente shadcn baseado em Radix), mas o elemento que realmente rola é o `viewport` interno (`[data-radix-scroll-area-viewport]`), não o root. Por isso `scrollTop = scrollHeight` não funciona.
 
-SQL conceitual:
-```sql
-UPDATE ai_agents
-SET behavior = jsonb_set(
-  coalesce(behavior, '{}'::jsonb),
-  '{role_instructions}',
-  coalesce(behavior->'role_instructions', '{}'::jsonb) || '<DEFAULTS_JSONB>'::jsonb
-)
-WHERE slug = 'marina' OR is_default = true;
-```
-O operador `||` à direita do que já existe garante que valores salvos pelo admin não sejam sobrescritos — então invertemos: `DEFAULTS || existing`, mantendo `existing` como prioridade.
+Correções:
+- Trocar o `useRef<HTMLDivElement>` por uma ref que aponte para o viewport: buscar `scrollRef.current?.querySelector('[data-radix-scroll-area-viewport]')` dentro do `useEffect` e setar `scrollTop` nele.
+- Adicionar `isLoading` e `reportPreview` às dependências do `useEffect` para também rolar quando o "Pensando..." aparece e quando a resposta final chega (mensagem nova com `content` preenchido dispara via `messages`, mas garantimos com `isLoading` também).
+- Usar `requestAnimationFrame` antes de setar o scroll para garantir que o DOM já renderizou a nova mensagem.
 
-## 2. Fallback na edge function
-Em `supabase/functions/ai-assistant/index.ts`, criar constante `DEFAULT_ROLE_INSTRUCTIONS` com os mesmos textos. Ao montar o prompt:
-```ts
-const roleInstruction =
-  behavior?.role_instructions?.[userRole]?.trim() ||
-  DEFAULT_ROLE_INSTRUCTIONS[userRole] ||
-  undefined;
-```
-Assim, se alguém apagar a instrução na UI, a Marina ainda recebe um comportamento sensato por role.
+Nenhuma outra mudança de UI.
 
-## 3. Sem mudanças na UI
-A BehaviorTab já lê `behavior.role_instructions[role]` — após o seed, os textareas aparecerão preenchidos automaticamente ao recarregar a página.
+## 2. Respostas mais diretas e inteligentes
+
+Dois pontos, sem hardcode de comportamento por agente — apenas defaults e uma regra técnica universal:
+
+### 2a. Regra global no system prompt (`supabase/functions/ai-assistant/index.ts`, função `buildSystemPrompt`)
+Adicionar nas "REGRAS CRÍTICAS" uma regra de diretividade que vale para qualquer agente:
+
+> "Seja direto. Quando o usuário fizer um pedido executável (ex.: 'busque', 'liste', 'mostre'), execute imediatamente a ferramenta apropriada com parâmetros padrão razoáveis (sem filtros = busca geral) em vez de pedir confirmação ou esclarecimento. Só pergunte se faltar informação realmente obrigatória e não inferível. Evite respostas em duas etapas ('posso buscar?' → busca); faça a busca e mostre o resultado."
+
+Isso resolve o caso da captura: "só procure" → ela deveria já ter chamado a tool sem perguntar de novo.
+
+### 2b. Ajustar default da role `commercial`
+Atualizar `DEFAULT_ROLE_INSTRUCTIONS.commercial` reforçando: "Aja, não pergunte. Se o usuário disser 'veja leads novos' ou 'só procure', execute a busca com filtros padrão (últimos 7 dias, todos os status) e apresente o resultado direto. Reserve perguntas só para quando o resultado for ambíguo."
+
+### 2c. Seed no banco
+Migration `UPDATE ai_agents` para sobrescrever (não mais COALESCE) `behavior.role_instructions.commercial` da Marina com o texto novo — caso contrário, o seed antigo continua valendo. Demais roles permanecem como estão (já preenchidas).
 
 ## Arquivos afetados
-- Nova migração de dados (UPDATE em `ai_agents`)
-- `supabase/functions/ai-assistant/index.ts` (constante + fallback)
+- `src/components/ai/AIChat.tsx` — correção do auto-scroll
+- `supabase/functions/ai-assistant/index.ts` — nova regra global + texto default do commercial
+- Nova migration — atualiza `role_instructions.commercial` da Marina
 
 ## Validação
-1. Recarregar `/super-admin/ai-management` → aba Comportamento → textareas preenchidos.
-2. Testar Marina como coordinator perguntando sobre leads → deve responder com dados reais.
-3. Limpar manualmente uma instrução, salvar, perguntar de novo → fallback entra em ação.
+1. Abrir o chat da Marina, mandar várias mensagens seguidas → scroll desce sozinho até a última resposta.
+2. Repetir "veja se há leads novos" → "só procure": ela deve executar a busca direto e devolver a lista, sem nova pergunta.
