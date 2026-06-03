@@ -171,6 +171,7 @@ export const getAbsenceTypeLabel = (type: Absence['absence_type']) => {
   const labels = {
     vacation: 'Férias',
     day_off: 'Folga',
+    home_office: 'Home Office',
     medical_exam: 'Exame Médico',
     training: 'Treinamento',
     sick_leave: 'Atestado',
