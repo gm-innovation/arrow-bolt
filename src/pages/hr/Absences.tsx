@@ -6,18 +6,20 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone, Edit, Repeat } from 'lucide-react';
+import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone, Edit, Repeat, Home } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAbsences, getAbsenceTypeLabel, getAbsenceStatusLabel, Absence } from '@/hooks/useAbsences';
 import { useOnCall, OnCall } from '@/hooks/useOnCall';
 import { useHolidays } from '@/hooks/useHolidays';
+import { useHomeOffice, HomeOfficeSchedule } from '@/hooks/useHomeOffice';
 import { Skeleton } from '@/components/ui/skeleton';
 import NewAbsenceDialog from '@/components/hr/NewAbsenceDialog';
 import NewOnCallDialog from '@/components/hr/NewOnCallDialog';
 import EditAbsenceDialog from '@/components/hr/EditAbsenceDialog';
 import EditOnCallDialog from '@/components/hr/EditOnCallDialog';
 import NewHolidayDialog from '@/components/hr/NewHolidayDialog';
+import NewHomeOfficeDialog from '@/components/hr/NewHomeOfficeDialog';
 import UnifiedScheduleCalendar from '@/components/hr/UnifiedScheduleCalendar';
 import {
   AlertDialog,
@@ -141,6 +143,7 @@ const Absences = () => {
         <TabsList>
           <TabsTrigger value="list">Lista</TabsTrigger>
           <TabsTrigger value="calendar">Calendário</TabsTrigger>
+          <TabsTrigger value="home_office">Home Office</TabsTrigger>
           <TabsTrigger value="holidays">Feriados</TabsTrigger>
         </TabsList>
 
@@ -382,6 +385,10 @@ const Absences = () => {
             onEditAbsence={setEditingAbsence}
             onEditOnCall={setEditingOnCall}
           />
+        </TabsContent>
+
+        <TabsContent value="home_office">
+          <HomeOfficeSection monthStart={monthStart} monthEnd={monthEnd} selectedMonth={selectedMonth} onMonthChange={setSelectedMonth} />
         </TabsContent>
 
         <TabsContent value="holidays">
