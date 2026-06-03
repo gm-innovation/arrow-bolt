@@ -534,4 +534,82 @@ const HolidaysSection = () => {
   );
 };
 
+const HomeOfficeSection = ({ monthStart, monthEnd, selectedMonth, onMonthChange }: { monthStart: string; monthEnd: string; selectedMonth: Date; onMonthChange: (d: Date) => void; }) => {
+  const { schedules, isLoading, refetch, remove } = useHomeOffice({ startDate: monthStart, endDate: monthEnd });
+  const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<HomeOfficeSchedule | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  if (isLoading) return <Skeleton className="h-64" />;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <CardTitle className="flex items-center gap-2"><Home className="h-5 w-5" />Home Office Agendado</CardTitle>
+          <div className="flex gap-2">
+            <Input
+              type="month"
+              value={format(selectedMonth, 'yyyy-MM')}
+              onChange={(e) => {
+                const [year, month] = e.target.value.split('-');
+                onMonthChange(new Date(parseInt(year), parseInt(month) - 1, 15));
+              }}
+              className="w-[180px]"
+            />
+            <Button onClick={() => { setEditing(null); setOpen(true); }}><Plus className="h-4 w-4 mr-2" />Novo Home Office</Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {schedules.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">Nenhum home office agendado para este período</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Colaborador</TableHead>
+                <TableHead>Período</TableHead>
+                <TableHead>Observações</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {schedules.map((s) => (
+                <TableRow key={s.id}>
+                  <TableCell className="font-medium">{s.technician?.profiles?.full_name || 'Colaborador'}</TableCell>
+                  <TableCell>
+                    {format(parseISO(s.start_date), 'dd/MM/yyyy', { locale: ptBR })}
+                    {s.start_date !== s.end_date && <> - {format(parseISO(s.end_date), 'dd/MM/yyyy', { locale: ptBR })}</>}
+                  </TableCell>
+                  <TableCell className="max-w-[300px] truncate">{s.notes || '-'}</TableCell>
+                  <TableCell>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" onClick={() => { setEditing(s); setOpen(true); }}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteId(s.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+      <NewHomeOfficeDialog open={open} onOpenChange={setOpen} editing={editing} onSuccess={() => { setOpen(false); setEditing(null); refetch(); }} />
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir este home office?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => { if (deleteId) { await remove.mutateAsync(deleteId); setDeleteId(null); } }}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
+  );
+};
+
 export default Absences;
