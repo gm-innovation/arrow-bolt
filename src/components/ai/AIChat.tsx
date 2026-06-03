@@ -155,7 +155,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-4">
         {/* Proactive Alerts */}
         {proactiveAlerts.length > 0 && (
           <div className="mb-4 space-y-2">
