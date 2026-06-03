@@ -60,6 +60,7 @@ const ManagerProfile = lazy(() => import("./pages/manager/Profile"));
 const ManagerSettings = lazy(() => import("./pages/manager/Settings"));
 
 const SuperAdminApiDocs = lazy(() => import("./pages/super-admin/ApiDocs"));
+const AIManagement = lazy(() => import("./pages/super-admin/AIManagement"));
 
 const TechDashboard = lazy(() => import("./pages/tech/Dashboard"));
 const TechTasks = lazy(() => import("./pages/tech/Tasks"));
@@ -219,6 +220,7 @@ const App = () => {
                     <Route path="/super-admin/chat" element={<Chat />} />
                     <Route path="/super-admin/install" element={<InstallApp />} />
                     <Route path="/super-admin/api-docs" element={<SuperAdminApiDocs />} />
+                    <Route path="/super-admin/ai-management" element={<AIManagement />} />
                   </Route>
 
                   {/* Manager - nested layout route */}
