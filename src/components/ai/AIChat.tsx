@@ -301,6 +301,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
             })}
           </div>
         )}
+        <div ref={messagesEndRef} className="h-1" />
       </ScrollArea>
 
       {/* Input */}
