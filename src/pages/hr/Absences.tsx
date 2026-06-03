@@ -91,6 +91,7 @@ const Absences = () => {
     const icons = {
       vacation: Umbrella,
       day_off: Calendar,
+      home_office: Calendar,
       medical_exam: Stethoscope,
       training: GraduationCap,
       sick_leave: Stethoscope,
