@@ -45,7 +45,7 @@ const quickSuggestions: Record<string, string[]> = {
   ]
 };
 
-export function AIChat({ userRole, context }: AIChatProps) {
+export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }: AIChatProps) {
   const navigate = useNavigate();
   const {
     messages,
