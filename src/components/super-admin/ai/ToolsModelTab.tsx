@@ -1,9 +1,14 @@
+import { useEffect, useMemo, useState } from "react";
 import { AIAgent } from "@/hooks/useAIAgents";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, AlertCircle } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   agent: AIAgent;
@@ -11,22 +16,21 @@ interface Props {
   setDraft: (d: Partial<AIAgent>) => void;
 }
 
-const MODELS = [
-  "google/gemini-2.5-pro",
-  "google/gemini-2.5-flash",
-  "google/gemini-2.5-flash-lite",
-  "google/gemini-3-flash-preview",
-  "google/gemini-3.5-flash",
-  "openai/gpt-5",
-  "openai/gpt-5-mini",
-  "openai/gpt-5-nano",
-  "openai/gpt-5.2",
-];
+type LLMModel = {
+  id: string;
+  name: string;
+  context?: number;
+  input_price?: number;
+  output_price?: number;
+};
 
 const IMAGE_MODELS = [
   "google/gemini-2.5-pro",
   "google/gemini-2.5-flash-image",
   "google/gemini-3-pro-image-preview",
+  "google/gemini-3.1-flash-image-preview",
+  "openai/gpt-image-2",
+  "openai/gpt-image-1-mini",
 ];
 
 const TOOLS = [
@@ -44,6 +48,47 @@ export function ToolsModelTab({ agent, draft, setDraft }: Props) {
   const update = (patch: Partial<typeof tm>) =>
     setDraft({ ...draft, tools_model: { ...tm, ...patch } });
 
+  const provider = tm.provider ?? "lovable";
+
+  const [models, setModels] = useState<LLMModel[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    supabase.functions
+      .invoke("list-llm-models", { body: null, method: "GET" as any })
+      // edge function uses query param via GET; supabase-js doesn't expose GET easily,
+      // use raw URL fetch fallback
+      .catch(() => null);
+
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-llm-models?provider=${provider}`;
+    fetch(url, {
+      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "" },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        setModels(d.models ?? []);
+        if (d.error) setError(d.error);
+      })
+      .catch((e) => !cancelled && setError(e.message))
+      .finally(() => !cancelled && setLoading(false));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [provider]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return models;
+    return models.filter((m) => m.id.toLowerCase().includes(q) || m.name?.toLowerCase().includes(q));
+  }, [models, search]);
+
   const tools = tm.enabled_tools ?? [];
   const toggleTool = (key: string, on: boolean) =>
     update({ enabled_tools: on ? [...tools, key] : tools.filter((t) => t !== key) });
@@ -52,13 +97,22 @@ export function ToolsModelTab({ agent, draft, setDraft }: Props) {
     <div className="space-y-6 max-w-2xl">
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label>Modelo principal</Label>
-          <Select value={tm.model ?? "google/gemini-2.5-flash"} onValueChange={(v) => update({ model: v })}>
+          <Label>Provedor de LLM</Label>
+          <Select
+            value={provider}
+            onValueChange={(v) => update({ provider: v as any, model: "" })}
+          >
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {MODELS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+              <SelectItem value="lovable">Lovable AI Gateway (sem chave)</SelectItem>
+              <SelectItem value="openrouter">OpenRouter (requer OPENROUTER_API_KEY)</SelectItem>
             </SelectContent>
           </Select>
+          {provider === "openrouter" && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Configure o secret <code>OPENROUTER_API_KEY</code> no backend.
+            </p>
+          )}
         </div>
         <div>
           <Label>Modelo para imagens</Label>
@@ -70,6 +124,88 @@ export function ToolsModelTab({ agent, draft, setDraft }: Props) {
           </Select>
         </div>
       </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <Label>Modelo principal {loading && <Loader2 className="inline h-3 w-3 animate-spin" />}</Label>
+          {provider === "openrouter" && (
+            <span className="text-xs text-muted-foreground">{models.length} modelos disponíveis</span>
+          )}
+        </div>
+        {provider === "openrouter" && (
+          <Input
+            placeholder="Buscar modelo (ex: claude, llama, qwen)..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="mb-2"
+          />
+        )}
+        <Select value={tm.model ?? ""} onValueChange={(v) => update({ model: v })}>
+          <SelectTrigger>
+            <SelectValue placeholder={loading ? "Carregando..." : "Selecione um modelo"} />
+          </SelectTrigger>
+          <SelectContent className="max-h-80">
+            {filtered.slice(0, 200).map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                <div className="flex flex-col">
+                  <span>{m.name}</span>
+                  {(m.input_price || m.output_price) ? (
+                    <span className="text-xs text-muted-foreground">
+                      ${(m.input_price * 1e6).toFixed(2)}/Mtok in · ${(m.output_price * 1e6).toFixed(2)}/Mtok out
+                      {m.context ? ` · ${(m.context / 1000).toFixed(0)}k ctx` : ""}
+                    </span>
+                  ) : m.context ? (
+                    <span className="text-xs text-muted-foreground">{(m.context / 1000).toFixed(0)}k ctx</span>
+                  ) : null}
+                </div>
+              </SelectItem>
+            ))}
+            {filtered.length === 0 && !loading && (
+              <div className="p-2 text-sm text-muted-foreground text-center">Nenhum modelo encontrado</div>
+            )}
+          </SelectContent>
+        </Select>
+        {error && (
+          <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+            <AlertCircle className="h-3 w-3" /> {error}
+          </p>
+        )}
+        {tm.model && <Badge variant="outline" className="mt-2">{tm.model}</Badge>}
+      </div>
+
+      {provider === "openrouter" && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Estratégia de roteamento</Label>
+            <Select
+              value={tm.openrouter_route ?? ""}
+              onValueChange={(v) => update({ openrouter_route: (v || undefined) as any })}
+            >
+              <SelectTrigger><SelectValue placeholder="Padrão" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="price">Menor custo</SelectItem>
+                <SelectItem value="throughput">Maior throughput</SelectItem>
+                <SelectItem value="latency">Menor latência</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Provedores permitidos (CSV)</Label>
+            <Input
+              placeholder="ex: anthropic, openai, together"
+              value={(tm.openrouter_providers ?? []).join(", ")}
+              onChange={(e) =>
+                update({
+                  openrouter_providers: e.target.value
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                })
+              }
+            />
+          </div>
+        </div>
+      )}
 
       <div>
         <Label>Temperature: {tm.temperature ?? 0.7}</Label>
