@@ -149,7 +149,7 @@ interface DayData {
 
 interface AbsenceData {
   id: string;
-  absence_type: 'vacation' | 'day_off' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
+  absence_type: 'vacation' | 'day_off' | 'home_office' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
   start_date: string;
   end_date: string;
 }

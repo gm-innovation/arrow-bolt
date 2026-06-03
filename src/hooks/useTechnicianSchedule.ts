@@ -5,7 +5,7 @@ import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 
 export interface TechnicianAbsence {
   id: string;
-  absence_type: 'vacation' | 'day_off' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
+  absence_type: 'vacation' | 'day_off' | 'home_office' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
   start_date: string;
   end_date: string;
   reason?: string;
