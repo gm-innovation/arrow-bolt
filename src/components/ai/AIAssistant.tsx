@@ -45,9 +45,10 @@ export function AIAssistant({ context }: AIAssistantProps) {
       .is('company_id', null)
       .maybeSingle()
       .then(({ data }: any) => {
-        if (data) setAgentIdentity({ name: data.name, ...(data.identity ?? {}) });
+        // IMPORTANT: spread identity first so the column `name` wins over identity.name
+        if (data) setAgentIdentity({ ...(data.identity ?? {}), name: data.name });
       });
-  }, []);
+  }, [isOpen]);
 
   const avatarUrl = agentIdentity?.avatar_url || defaultAvatar.url;
   const agentName = agentIdentity?.name || 'Arrow AI';
