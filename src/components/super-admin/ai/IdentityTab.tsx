@@ -23,7 +23,13 @@ export function IdentityTab({ agent, draft, setDraft }: Props) {
           <Label>Nome do agente</Label>
           <Input
             value={draft.name ?? agent.name}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+            onChange={(e) =>
+              setDraft({
+                ...draft,
+                name: e.target.value,
+                identity: { ...identity, name: e.target.value },
+              })
+            }
           />
         </div>
         <div>
