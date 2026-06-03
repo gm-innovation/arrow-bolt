@@ -14,6 +14,8 @@ import { useNavigate } from 'react-router-dom';
 
 interface AIChatProps {
   userRole: string;
+  agentName?: string;
+  avatarUrl?: string;
   context?: {
     taskTypeId?: string;
     serviceOrderId?: string;
