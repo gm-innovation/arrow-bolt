@@ -313,7 +313,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
           <nav className="space-y-2">
             {menuItems.map((item) => (
               <Button
-                key={item.title}
+                key={item.path}
                 variant="ghost"
                 className={cn(
                   "w-full justify-start gap-3 h-10",
@@ -384,7 +384,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
               <nav className="space-y-1">
                 {menuItems.map((item) => (
                   <Button
-                    key={item.title}
+                    key={item.path}
                     variant="ghost"
                     className={cn(
                       "w-full transition-all duration-200",
