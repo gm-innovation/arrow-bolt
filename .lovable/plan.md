@@ -1,27 +1,27 @@
 ## Problema
 
-Quando o usuário pergunta "tem algum lead novo?", Marina interpreta "novo" como recência (últimos 7 dias) e filtra por `since_days`, em vez de filtrar pelo `status = "novo"`. Resultado: ela diz "não há leads" mesmo havendo leads com status "novo" (como visto no print dos últimos 30 dias).
+Há um conflito de instruções no system prompt da Marina:
 
-## Solução
+- **Regra 10** (`index.ts` linha 383): "novo" = status do funil, não usar `since_days`.
+- **Contexto `commercial`** (`index.ts` linha 20): diz literalmente que para "veja leads novos" deve executar com filtros padrão "**últimos 7 dias, todos os status**".
 
-Ajustar a interpretação da palavra "novo/novos" no contexto de leads para usar o filtro de **status**, não de data.
+O modelo está seguindo o contexto comercial (mais específico/proeminente) em vez da regra 10, então continua filtrando por data ao invés de status.
 
-### 1. `supabase/functions/ai-assistant/tools.ts` — tool `query_crm_leads`
+## Correção
 
-- Atualizar `description` para deixar explícito que leads possuem o status `"novo"` (além de `contatado`, `qualificado`, `convertido`, `descartado` etc.) e que perguntas sobre "leads novos" devem usar `status: "novo"` — não `since_days`.
-- Atualizar a `description` do parâmetro `status` mencionando os valores válidos do funil de leads.
-- Atualizar a `description` do parâmetro `since_days` deixando claro que serve apenas para recorte temporal explícito (ex.: "últimos 30 dias"), nunca para a palavra "novo".
+**1. `supabase/functions/ai-assistant/index.ts` — contexto `commercial` (linha 20):**
 
-### 2. `supabase/functions/ai-assistant/index.ts` — system prompt
+Remover o exemplo "últimos 7 dias, todos os status" e substituir por exemplo alinhado à regra 10:
+- "leads novos" → `status: "novo"` (sem filtro de data)
+- "últimos N dias" → usa `since_days` só quando o usuário pedir intervalo explícito
+- Manter o tom "AJA, NÃO PERGUNTE" e o limite padrão de 20
 
-Adicionar regra curta ao bloco de regras críticas:
+**2. `supabase/functions/ai-assistant/tools.ts` — parâmetro `since_days` (linha 149):**
 
-> Para leads/oportunidades, "novo/novos" refere-se ao **status** do registro, não à data de criação. Use `status: "novo"` em `query_crm_leads`. Só use `since_days` quando o usuário pedir explicitamente um intervalo ("últimos 7 dias", "este mês" etc.).
+Reforçar na descrição do parâmetro: "Apenas para intervalos temporais explícitos do usuário (ex.: 'últimos 7 dias'). NÃO usar para a palavra 'novo/novos' — isso é status, não data."
 
-### 3. Deploy
-
-A edge function `ai-assistant` é redeployada automaticamente após a edição.
+**3. Deploy:** `ai-assistant` redeploya automaticamente.
 
 ## Validação
 
-Perguntar "tem algum lead novo?" — Marina deve chamar `query_crm_leads({ status: "novo" })` e listar os leads com status novo (ex.: Alexandre/DOF, Teste Deploy) sem aplicar filtro de 7 dias.
+Testar "olá, tem algum lead novo pra mim?" → Marina deve chamar `query_crm_leads({ status: "novo" })` sem `since_days` e listar leads com status novo (ex.: Alexandre/DOF, Teste Deploy).
