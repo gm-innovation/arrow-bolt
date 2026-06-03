@@ -5,7 +5,7 @@ import { format, startOfMonth, endOfMonth, addMonths } from 'date-fns';
 
 export interface TechnicianAbsence {
   id: string;
-  absence_type: 'vacation' | 'day_off' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
+  absence_type: 'vacation' | 'day_off' | 'home_office' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
   start_date: string;
   end_date: string;
   reason?: string;
@@ -103,6 +103,7 @@ export const getAbsenceTypeLabel = (type: TechnicianAbsence['absence_type']) => 
   const labels = {
     vacation: 'Férias',
     day_off: 'Folga',
+    home_office: 'Home Office',
     medical_exam: 'Exame Médico',
     training: 'Treinamento',
     sick_leave: 'Atestado',
@@ -115,6 +116,7 @@ export const getAbsenceTypeIcon = (type: TechnicianAbsence['absence_type']) => {
   const icons = {
     vacation: '🏖️',
     day_off: '📴',
+    home_office: '🏠',
     medical_exam: '🏥',
     training: '📋',
     sick_leave: '🏥',

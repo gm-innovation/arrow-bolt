@@ -28,7 +28,7 @@ const University = () => {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <GraduationCap className="h-7 w-7 text-primary" />
-        <h1 className="text-2xl font-bold text-foreground">Universidade Corporativa</h1>
+        <h1 className="text-2xl font-bold text-foreground">Treinamentos Corporativos</h1>
       </div>
 
       <div className="flex items-center gap-3">

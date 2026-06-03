@@ -149,7 +149,7 @@ interface DayData {
 
 interface AbsenceData {
   id: string;
-  absence_type: 'vacation' | 'day_off' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
+  absence_type: 'vacation' | 'day_off' | 'home_office' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
   start_date: string;
   end_date: string;
 }
@@ -219,6 +219,7 @@ const processData = (
       const labels: Record<string, string> = {
         vacation: 'Férias',
         day_off: 'Folga',
+        home_office: 'Home Office',
         medical_exam: 'Exame Médico',
         training: 'Treinamento',
         sick_leave: 'Atestado',
@@ -344,7 +345,7 @@ const TechnicianReportPDFDocument = ({ technicianName, technicianId, month, entr
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.header}>
-          <Text style={styles.title}>Relatório de Ponto</Text>
+          <Text style={styles.title}>Relatório de Atendimento</Text>
           <Text style={styles.subtitle}>{technicianName}</Text>
           <Text style={styles.period}>
             {format(month, "MMMM 'de' yyyy", { locale: ptBR })}

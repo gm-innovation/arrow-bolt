@@ -1,21 +1,23 @@
 import { useState } from 'react';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone, Edit } from 'lucide-react';
+import { Plus, Search, Trash2, Umbrella, Stethoscope, GraduationCap, Calendar, Phone, Edit, Repeat } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useAbsences, getAbsenceTypeLabel, getAbsenceStatusLabel, Absence } from '@/hooks/useAbsences';
 import { useOnCall, OnCall } from '@/hooks/useOnCall';
+import { useHolidays } from '@/hooks/useHolidays';
 import { Skeleton } from '@/components/ui/skeleton';
 import NewAbsenceDialog from '@/components/hr/NewAbsenceDialog';
 import NewOnCallDialog from '@/components/hr/NewOnCallDialog';
 import EditAbsenceDialog from '@/components/hr/EditAbsenceDialog';
 import EditOnCallDialog from '@/components/hr/EditOnCallDialog';
+import NewHolidayDialog from '@/components/hr/NewHolidayDialog';
 import UnifiedScheduleCalendar from '@/components/hr/UnifiedScheduleCalendar';
 import {
   AlertDialog,
@@ -91,6 +93,7 @@ const Absences = () => {
     const icons = {
       vacation: Umbrella,
       day_off: Calendar,
+      home_office: Calendar,
       medical_exam: Stethoscope,
       training: GraduationCap,
       sick_leave: Stethoscope,
@@ -138,6 +141,7 @@ const Absences = () => {
         <TabsList>
           <TabsTrigger value="list">Lista</TabsTrigger>
           <TabsTrigger value="calendar">Calendário</TabsTrigger>
+          <TabsTrigger value="holidays">Feriados</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list" className="space-y-4">
@@ -173,6 +177,7 @@ const Absences = () => {
                         <SelectItem value="all">Todos os tipos</SelectItem>
                         <SelectItem value="vacation">Férias</SelectItem>
                         <SelectItem value="day_off">Folga</SelectItem>
+                        <SelectItem value="home_office">Home Office</SelectItem>
                         <SelectItem value="medical_exam">Exame Médico</SelectItem>
                         <SelectItem value="training">Treinamento</SelectItem>
                         <SelectItem value="sick_leave">Atestado</SelectItem>
@@ -379,6 +384,10 @@ const Absences = () => {
             onEditOnCall={setEditingOnCall}
           />
         </TabsContent>
+
+        <TabsContent value="holidays">
+          <HolidaysSection />
+        </TabsContent>
       </Tabs>
 
       <NewAbsenceDialog
@@ -437,6 +446,85 @@ const Absences = () => {
         </AlertDialogContent>
       </AlertDialog>
     </div>
+  );
+};
+
+const HolidaysSection = () => {
+  const { holidays, isLoading, refetch, deleteHoliday } = useHolidays();
+  const [open, setOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const grouped = holidays.reduce((acc, h) => {
+    const year = parseISO(h.holiday_date).getFullYear();
+    (acc[year] ||= []).push(h);
+    return acc;
+  }, {} as Record<number, typeof holidays>);
+
+  if (isLoading) return <Skeleton className="h-64" />;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" />Feriados Cadastrados</CardTitle>
+          <Button onClick={() => setOpen(true)}><Plus className="h-4 w-4 mr-2" />Novo Feriado</Button>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {holidays.length === 0 ? (
+          <div className="text-center text-muted-foreground py-8">Nenhum feriado cadastrado</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Data</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Recorrência</TableHead>
+                <TableHead className="w-[100px]">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Object.entries(grouped).sort(([a], [b]) => Number(b) - Number(a)).map(([year, yearHolidays]) => (
+                <>
+                  <TableRow key={`y-${year}`} className="bg-muted/50">
+                    <TableCell colSpan={4} className="font-bold">{year}</TableCell>
+                  </TableRow>
+                  {yearHolidays.map((h) => (
+                    <TableRow key={h.id}>
+                      <TableCell>{format(parseISO(h.holiday_date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}</TableCell>
+                      <TableCell className="font-medium">{h.name}</TableCell>
+                      <TableCell>
+                        {h.is_recurring ? (
+                          <Badge variant="secondary" className="gap-1"><Repeat className="h-3 w-3" />Anual</Badge>
+                        ) : <Badge variant="outline">Único</Badge>}
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteId(h.id)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+      <NewHolidayDialog open={open} onOpenChange={setOpen} onSuccess={() => { setOpen(false); refetch(); }} />
+      <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
+            <AlertDialogDescription>Tem certeza que deseja excluir este feriado?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={async () => { if (deleteId) { await deleteHoliday.mutateAsync(deleteId); setDeleteId(null); } }}>Excluir</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Card>
   );
 };
 

@@ -133,7 +133,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Logs de Auditoria", icon: History, path: "/admin/audit-logs" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const managerMenuItems = [
@@ -144,7 +144,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Config. Medição", icon: Calculator, path: "/manager/measurement-settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const techMenuItems = [
@@ -154,22 +154,23 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Notificações", icon: Bell, path: "/tech/notifications" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const hrMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/hr/dashboard" },
     { title: "Colaboradores", icon: Users, path: "/hr/employees" },
-    { title: "Controle de Ponto", icon: History, path: "/hr/time-control" },
+    { title: "Controle de Atendimento", icon: History, path: "/hr/time-control" },
     { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
-    { title: "Feriados", icon: ClipboardList, path: "/hr/holidays" },
     { title: "Documentos", icon: FileText, path: "/hr/documents" },
     { title: "Recrutamento", icon: Inbox, path: "/hr/recruitment" },
-    { title: "Universidade", icon: GraduationCap, path: "/hr/university" },
+    { title: "Gestão de EPI", icon: ClipboardList, path: "/hr/epi" },
+    { title: "Parcerias", icon: Inbox, path: "/hr/partnerships" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/hr/university" },
     { title: "Relatórios", icon: FileBarChart, path: "/hr/reports" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const commercialMenuItems = [
@@ -189,7 +190,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Configurações", icon: Settings, path: "/commercial/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const directorMenuItems = [
@@ -200,7 +201,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Config. Medição", icon: Calculator, path: "/manager/measurement-settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const comprasMenuItems = [
@@ -209,7 +210,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Configurações", icon: Settings, path: "/supplies/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const qualidadeMenuItems = [
@@ -221,7 +222,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Configurações", icon: Settings, path: "/quality/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const financeiroMenuItems = [
@@ -233,7 +234,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Configurações", icon: Settings, path: "/finance/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Universidade", icon: GraduationCap, path: "/corp/university" },
+    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
   const menuItems = {
@@ -312,7 +313,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
           <nav className="space-y-2">
             {menuItems.map((item) => (
               <Button
-                key={item.title}
+                key={item.path}
                 variant="ghost"
                 className={cn(
                   "w-full justify-start gap-3 h-10",
@@ -383,7 +384,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
               <nav className="space-y-1">
                 {menuItems.map((item) => (
                   <Button
-                    key={item.title}
+                    key={item.path}
                     variant="ghost"
                     className={cn(
                       "w-full transition-all duration-200",

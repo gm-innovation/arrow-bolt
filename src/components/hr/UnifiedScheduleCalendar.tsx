@@ -44,6 +44,7 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
     const colors = {
       vacation: 'bg-blue-100 text-blue-800 border-blue-300',
       day_off: 'bg-green-100 text-green-800 border-green-300',
+      home_office: 'bg-teal-100 text-teal-800 border-teal-300',
       medical_exam: 'bg-yellow-100 text-yellow-800 border-yellow-300',
       training: 'bg-purple-100 text-purple-800 border-purple-300',
       sick_leave: 'bg-red-100 text-red-800 border-red-300',
@@ -56,6 +57,7 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
     const icons = {
       vacation: Umbrella,
       day_off: Calendar,
+      home_office: Calendar,
       medical_exam: Stethoscope,
       training: GraduationCap,
       sick_leave: Stethoscope,

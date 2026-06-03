@@ -99,7 +99,6 @@ const HRDashboard = lazy(() => import("./pages/hr/Dashboard"));
 
 const HRTimeControl = lazy(() => import("./pages/hr/TimeControl"));
 const HRAbsences = lazy(() => import("./pages/hr/Absences"));
-const HRHolidays = lazy(() => import("./pages/hr/Holidays"));
 const HRReports = lazy(() => import("./pages/hr/Reports"));
 const HRProfile = lazy(() => import("./pages/hr/Profile"));
 const HRSettings = lazy(() => import("./pages/hr/Settings"));
@@ -108,6 +107,8 @@ const HROnboarding = lazy(() => import("./pages/hr/Onboarding"));
 const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"));
 const HREmployees = lazy(() => import("./pages/hr/Employees"));
 const HRUniversity = lazy(() => import("./pages/hr/University"));
+const HREPI = lazy(() => import("./pages/hr/EPI"));
+const HRPartnerships = lazy(() => import("./pages/hr/Partnerships"));
 const PublicOnboarding = lazy(() => import("./pages/onboarding/PublicOnboarding"));
 const PublicCareers = lazy(() => import("./pages/careers/PublicCareers"));
 const HRRecruitment = lazy(() => import("./pages/hr/Recruitment"));
@@ -281,7 +282,9 @@ const App = () => {
                     <Route path="/hr/time-control" element={<HRTimeControl />} />
                     <Route path="/hr/absences" element={<HRAbsences />} />
                     <Route path="/hr/on-call" element={<Navigate to="/hr/absences" replace />} />
-                    <Route path="/hr/holidays" element={<HRHolidays />} />
+                    <Route path="/hr/holidays" element={<Navigate to="/hr/absences?tab=holidays" replace />} />
+                    <Route path="/hr/epi" element={<HREPI />} />
+                    <Route path="/hr/partnerships" element={<HRPartnerships />} />
                     <Route path="/hr/reports" element={<HRReports />} />
                     <Route path="/hr/documents" element={<HRDocumentsPage />} />
                     <Route path="/hr/onboarding" element={<HROnboarding />} />

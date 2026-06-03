@@ -7,7 +7,7 @@ export interface Absence {
   id: string;
   technician_id: string;
   company_id: string;
-  absence_type: 'vacation' | 'day_off' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
+  absence_type: 'vacation' | 'day_off' | 'home_office' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
   start_date: string;
   end_date: string;
   start_time?: string;
@@ -171,6 +171,7 @@ export const getAbsenceTypeLabel = (type: Absence['absence_type']) => {
   const labels = {
     vacation: 'Férias',
     day_off: 'Folga',
+    home_office: 'Home Office',
     medical_exam: 'Exame Médico',
     training: 'Treinamento',
     sick_leave: 'Atestado',

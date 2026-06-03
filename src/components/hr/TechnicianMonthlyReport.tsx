@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils';
 
 interface AbsenceData {
   id: string;
-  absence_type: 'vacation' | 'day_off' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
+  absence_type: 'vacation' | 'day_off' | 'home_office' | 'medical_exam' | 'training' | 'sick_leave' | 'other';
   start_date: string;
   end_date: string;
 }
@@ -57,6 +57,7 @@ const getAbsenceTypeLabel = (type: AbsenceData['absence_type']) => {
   const labels = {
     vacation: 'Férias',
     day_off: 'Folga',
+    home_office: 'Home Office',
     medical_exam: 'Ex. Médico',
     training: 'Treinamento',
     sick_leave: 'Atestado',
@@ -69,6 +70,7 @@ const getAbsenceBgColor = (type: AbsenceData['absence_type']) => {
   const colors = {
     vacation: 'bg-blue-100 dark:bg-blue-900/30',
     day_off: 'bg-green-100 dark:bg-green-900/30',
+    home_office: 'bg-teal-100 dark:bg-teal-900/30',
     medical_exam: 'bg-purple-100 dark:bg-purple-900/30',
     training: 'bg-indigo-100 dark:bg-indigo-900/30',
     sick_leave: 'bg-red-100 dark:bg-red-900/30',

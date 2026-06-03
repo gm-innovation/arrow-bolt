@@ -6,7 +6,7 @@ export interface CalendarAbsence {
   id: string;
   technician_id: string;
   technician_name: string;
-  absence_type: 'vacation' | 'day_off' | 'medical_exam' | 'training' | 'sick_leave';
+  absence_type: 'vacation' | 'day_off' | 'home_office' | 'medical_exam' | 'training' | 'sick_leave';
   start_date: string;
   end_date: string;
   status: string;
