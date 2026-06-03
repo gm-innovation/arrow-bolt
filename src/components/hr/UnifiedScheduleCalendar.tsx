@@ -127,6 +127,10 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
             <span>Atestado</span>
           </div>
           <div className="flex items-center gap-1">
+            <div className="w-3 h-3 rounded bg-teal-100 border border-teal-300" />
+            <span>Home Office</span>
+          </div>
+          <div className="flex items-center gap-1">
             <Phone className="h-3 w-3 text-orange-600" />
             <span>Sobreaviso</span>
           </div>
@@ -148,6 +152,7 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
           {days.map((day) => {
             const dayAbsences = getAbsencesForDay(day);
             const dayOnCall = getOnCallForDay(day);
+            const dayHomeOffice = getHomeOfficeForDay(day);
             const isWeekendDay = isWeekend(day);
             
             return (
@@ -179,6 +184,20 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
                       </div>
                     );
                   })}
+
+                  {/* Home Office */}
+                  {dayHomeOffice.slice(0, 2).map((h) => (
+                    <div
+                      key={h.id}
+                      className="text-[10px] px-1 py-0.5 rounded border truncate flex items-center gap-1 bg-teal-100 text-teal-800 border-teal-300"
+                      title={`Home Office - ${h.technician?.profiles?.full_name || ''}`}
+                    >
+                      <Home className="h-2.5 w-2.5 flex-shrink-0" />
+                      <span className="truncate">
+                        {h.technician?.profiles?.full_name?.split(' ')[0]}
+                      </span>
+                    </div>
+                  ))}
                   
                   {/* Sobreavisos */}
                   {dayOnCall.slice(0, 2).map((onCall) => (
@@ -196,9 +215,9 @@ const UnifiedScheduleCalendar = ({ absences, onCallList, selectedMonth, onMonthC
                   ))}
                   
                   {/* Show count if more items */}
-                  {(dayAbsences.length + dayOnCall.length > 4) && (
+                  {(dayAbsences.length + dayOnCall.length + dayHomeOffice.length > 6) && (
                     <div className="text-[9px] text-muted-foreground text-center">
-                      +{dayAbsences.length + dayOnCall.length - 4} mais
+                      +{dayAbsences.length + dayOnCall.length + dayHomeOffice.length - 6} mais
                     </div>
                   )}
                 </div>
