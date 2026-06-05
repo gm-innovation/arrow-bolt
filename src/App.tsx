@@ -388,6 +388,7 @@ const App = () => {
                     <Route path="/quality/controlled-copies" element={<QualityControlledCopies />} />
                     <Route path="/quality/signature" element={<QualityMySignature />} />
                     <Route path="/quality/iso-structure" element={<QualityIsoStructure />} />
+                    <Route path="/quality/interested-parties" element={<QualityInterestedParties />} />
                     <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>
 
