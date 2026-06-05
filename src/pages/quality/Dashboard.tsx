@@ -11,6 +11,7 @@ import {
   Clock,
   FolderOpen,
   HardHat,
+  BadgeCheck,
 } from "lucide-react";
 import { useQualityNCRs } from "@/hooks/useQualityNCRs";
 import { useQualityActionPlans } from "@/hooks/useQualityActionPlans";
@@ -18,6 +19,7 @@ import { useQualityAudits } from "@/hooks/useQualityAudits";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityControlledCopies } from "@/hooks/useQualityControlledCopies";
 import { useQualityAlerts } from "@/hooks/useQualityAlerts";
+import { useCompanyPendingAcknowledgements } from "@/hooks/useQualityAcknowledgements";
 import { format, parseISO, differenceInDays } from "date-fns";
 import QualityAlertsPanel from "@/components/quality/QualityAlertsPanel";
 
@@ -28,6 +30,7 @@ const QualityDashboard = () => {
   const { documents } = useQualityDocuments();
   const { copies } = useQualityControlledCopies();
   const { counters: alertCounters } = useQualityAlerts();
+  const pendingAcks = useCompanyPendingAcknowledgements();
 
   const openNCRs = ncrs.filter((n) => !["closed", "cancelled"].includes(n.status));
   const activePlans = plans.filter((p) => !["closed", "effective", "ineffective"].includes(p.status));
@@ -55,7 +58,7 @@ const QualityDashboard = () => {
       <QualityAlertsPanel />
 
       {/* GED */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <Link to="/quality/documents">
           <Card className="hover:bg-muted/30 transition cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -113,6 +116,18 @@ const QualityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{alertCounters.safety}</div>
               <p className="text-xs text-muted-foreground">Documentos de Saúde e Segurança</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/quality/my-acknowledgements">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Ciências pendentes</CardTitle>
+              <BadgeCheck className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{pendingAcks}</div>
+              <p className="text-xs text-muted-foreground">Atribuições aguardando confirmação</p>
             </CardContent>
           </Card>
         </Link>
