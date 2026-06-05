@@ -402,18 +402,23 @@ const App = () => {
 
                   {/* Quality - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['qualidade']}><DashboardLayout userType="qualidade" /></ProtectedRoute>}>
-                    <Route path="/quality/dashboard" element={<QualityDashboard />} />
-                    <Route path="/quality/ncrs" element={<QualityNCRs />} />
-                    <Route path="/quality/action-plans" element={<QualityActionPlans />} />
-                    <Route path="/quality/audits" element={<QualityAudits />} />
-                    <Route path="/quality/reports" element={<QualityReports />} />
-                    <Route path="/quality/settings" element={<QualitySettings />} />
-                    <Route path="/quality/documents" element={<QualityDocuments />} />
+                    <Route path="/quality/dashboard" element={<QualityDashboardHub />} />
+                    <Route path="/quality/reports" element={<Navigate to="/quality/dashboard?tab=reports" replace />} />
+                    <Route path="/quality/documents" element={<QualityDocumentsHub />} />
                     <Route path="/quality/documents/:id" element={<QualityDocumentDetail />} />
-                    <Route path="/quality/controlled-copies" element={<QualityControlledCopies />} />
+                    <Route path="/quality/controlled-copies" element={<Navigate to="/quality/documents?tab=copies" replace />} />
+                    <Route path="/quality/ncrs" element={<QualityNCRsHub />} />
+                    <Route path="/quality/improvements" element={<Navigate to="/quality/ncrs?tab=improvements" replace />} />
+                    <Route path="/quality/action-plans" element={<Navigate to="/quality/ncrs?tab=action-plans" replace />} />
+                    <Route path="/quality/audits" element={<QualityAudits />} />
+                    <Route path="/quality/risks" element={<QualityRisksHub />} />
+                    <Route path="/quality/interested-parties" element={<Navigate to="/quality/risks?tab=parties" replace />} />
+                    <Route path="/quality/competencies" element={<QualityCompetenciesHub />} />
+                    <Route path="/quality/my-competencies" element={<Navigate to="/quality/competencies?tab=me" replace />} />
+                    <Route path="/quality/my-acknowledgements" element={<Navigate to="/quality/competencies?tab=acknowledgements" replace />} />
+                    <Route path="/quality/settings" element={<QualitySettingsHub />} />
+                    <Route path="/quality/iso-structure" element={<Navigate to="/quality/settings?tab=iso" replace />} />
                     <Route path="/quality/signature" element={<QualityMySignature />} />
-                    <Route path="/quality/iso-structure" element={<QualityIsoStructure />} />
-                    <Route path="/quality/interested-parties" element={<QualityInterestedParties />} />
                     <Route path="/quality/management-review" element={<QualityManagementReview />} />
                     <Route path="/quality/management-review/:id" element={<QualityManagementReviewDetail />} />
                     <Route path="/quality/voice-of-customer" element={<QualityVoiceOfCustomer />} />
@@ -421,16 +426,11 @@ const App = () => {
                     <Route path="/quality/satisfaction/:id" element={<QualitySatisfactionDetail />} />
                     <Route path="/quality/complaints" element={<Navigate to="/quality/voice-of-customer" replace />} />
                     <Route path="/quality/complaints/:id" element={<QualityComplaintDetail />} />
-                    <Route path="/quality/improvements" element={<QualityImprovements />} />
                     <Route path="/quality/safety" element={<QualitySafety />} />
-                    <Route path="/quality/my-acknowledgements" element={<QualityMyAcknowledgements />} />
-                    <Route path="/quality/competencies" element={<QualityCompetencyMatrix />} />
-                    <Route path="/quality/my-competencies" element={<QualityMyCompetencies />} />
-                   <Route path="/quality/risks" element={<QualityRisks />} />
-                  <Route path="/quality/suppliers" element={<QualitySuppliers />} />
-                  <Route path="/quality/suppliers/:id" element={<QualitySupplierDetail />} />
-                  <Route path="/quality/devices" element={<QualityDevices />} />
-                  <Route path="/quality/devices/:id" element={<QualityDeviceDetail />} />
+                    <Route path="/quality/suppliers" element={<QualitySuppliers />} />
+                    <Route path="/quality/suppliers/:id" element={<QualitySupplierDetail />} />
+                    <Route path="/quality/devices" element={<QualityDevices />} />
+                    <Route path="/quality/devices/:id" element={<QualityDeviceDetail />} />
                     <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>
 
