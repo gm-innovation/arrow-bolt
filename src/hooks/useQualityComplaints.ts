@@ -55,6 +55,7 @@ export const useQualityComplaints = (kind?: ComplaintKind) => {
       title: string;
       description: string;
       source: ComplaintSource;
+      kind?: ComplaintKind;
       client_id?: string | null;
       is_anonymous?: boolean;
       responder_name?: string;
@@ -68,6 +69,7 @@ export const useQualityComplaints = (kind?: ComplaintKind) => {
           title: input.title,
           description: input.description,
           source: input.source,
+          kind: input.kind ?? "complaint",
           client_id: input.client_id ?? null,
           is_anonymous: input.is_anonymous ?? false,
           responder_name: input.responder_name ?? null,
@@ -79,9 +81,9 @@ export const useQualityComplaints = (kind?: ComplaintKind) => {
       if (error) throw error;
       return data as any;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["quality_complaints"] });
-      toast({ title: "Reclamação registrada" });
+      toast({ title: vars.kind === "suggestion" ? "Sugestão registrada" : "Reclamação registrada" });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
