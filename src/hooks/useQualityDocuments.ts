@@ -217,6 +217,27 @@ export const useQualityDocument = (id: string | undefined) => {
         .update({ status: "pending_approval" })
         .eq("id", id!);
       if (dErr) throw dErr;
+
+      // notifica os usuários Master da Qualidade
+      try {
+        const { data: masters } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "qualidade" as any);
+        if (masters && masters.length > 0 && data) {
+          await supabase.from("notifications").insert(
+            masters.map((m: any) => ({
+              user_id: m.user_id,
+              title: "Documento aguardando aprovação",
+              message: `${data.code} — ${data.title} foi enviado para aprovação.`,
+              notification_type: "quality_document",
+              reference_id: id!,
+            }))
+          );
+        }
+      } catch (e) {
+        console.warn("[quality] notify submit failed", e);
+      }
     },
     onSuccess: () => {
       invalidate();
@@ -258,6 +279,31 @@ export const useQualityDocument = (id: string | undefined) => {
         .update({ status: "published", current_version_id: input.versionId, published_at: now })
         .eq("id", id!);
       if (dErr) throw dErr;
+
+      // notifica criador + colaboradores com permissão de visualização
+      try {
+        const targets = new Set<string>();
+        if (data?.created_by && data.created_by !== user!.id) targets.add(data.created_by);
+        const { data: perms } = await supabase
+          .from("quality_document_permissions")
+          .select("user_id")
+          .eq("document_id", id!)
+          .eq("can_view", true);
+        perms?.forEach((p: any) => p.user_id && targets.add(p.user_id));
+        if (targets.size > 0 && data) {
+          await supabase.from("notifications").insert(
+            Array.from(targets).map((uid) => ({
+              user_id: uid,
+              title: "Documento publicado",
+              message: `${data.code} — ${data.title} foi aprovado e publicado.`,
+              notification_type: "quality_document",
+              reference_id: id!,
+            }))
+          );
+        }
+      } catch (e) {
+        console.warn("[quality] notify approve failed", e);
+      }
     },
     onSuccess: () => {
       invalidate();
