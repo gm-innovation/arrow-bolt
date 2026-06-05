@@ -10,6 +10,7 @@ import { Plus, Trash2 } from "lucide-react";
 import CompetencyMatrixHeatmap from "@/components/quality/CompetencyMatrixHeatmap";
 import RoleRequirementEditor from "@/components/quality/RoleRequirementEditor";
 import CompetencyMappingDialog from "@/components/quality/CompetencyMappingDialog";
+import DocumentPrerequisitesEditor from "@/components/quality/DocumentPrerequisitesEditor";
 import { useQualityCompetencies, type CompetencyCategory } from "@/hooks/useQualityCompetencies";
 import { useQualityCompetencyMappings } from "@/hooks/useQualityCompetencyMappings";
 
@@ -42,6 +43,7 @@ const CompetencyMatrixPage = () => {
           <TabsTrigger value="catalog">Competências</TabsTrigger>
           <TabsTrigger value="requirements">Requisitos por Cargo</TabsTrigger>
           <TabsTrigger value="mappings">Mapeamentos</TabsTrigger>
+          <TabsTrigger value="prereqs">Documentos × Cursos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="matrix" className="mt-4">

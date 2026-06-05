@@ -171,6 +171,30 @@ const QualityDashboard = () => {
             </CardContent>
           </Card>
         </Link>
+        <Link to="/quality/risks">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Riscos críticos sem tratamento</CardTitle>
+              <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{criticalUntreated}</div>
+              <p className="text-xs text-muted-foreground">Severidade alta/crítica e sem ação</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/quality/risks">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Revisões de risco vencidas</CardTitle>
+              <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{overdueReviews}</div>
+              <p className="text-xs text-muted-foreground">Próxima revisão atrasada</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Qualidade Operacional */}
