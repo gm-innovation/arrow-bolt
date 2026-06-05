@@ -225,7 +225,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Partes Interessadas", icon: Users, path: "/quality/interested-parties" },
     { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
     { title: "Cópias Controladas", icon: Printer, path: "/quality/controlled-copies" },
-    { title: "Minha Assinatura", icon: PenLine, path: "/quality/signature" },
+    
     { title: "Não-Conformidades", icon: AlertTriangle, path: "/quality/ncrs" },
     { title: "Planos de Ação", icon: ClipboardCheck, path: "/quality/action-plans" },
     { title: "Auditorias", icon: Search, path: "/quality/audits" },
