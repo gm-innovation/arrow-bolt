@@ -235,6 +235,8 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Auditorias", icon: Search, path: "/quality/audits" },
     { title: "Saúde e Segurança", icon: HardHat, path: "/quality/safety" },
     { title: "Minha Ciência", icon: BadgeCheck, path: "/quality/my-acknowledgements" },
+    { title: "Matriz de Competência", icon: GraduationCap, path: "/quality/competencies" },
+    { title: "Minhas Competências", icon: Target, path: "/quality/my-competencies" },
     { title: "Voz do Cliente", icon: MessagesSquare, path: "/quality/voice-of-customer" },
     { title: "Relatórios", icon: BarChart3, path: "/quality/reports" },
     { title: "Parâmetros SGQ", icon: Settings, path: "/quality/settings" },

@@ -1,47 +1,123 @@
 
-# Sprint 3.3 — Li e Ciente (frontend)
+# Sprint 3.4 — Matriz de Competência (versão final, aprovada)
 
-A migration de banco já foi aplicada (coluna `requires_strong_acknowledgement`, tabela `quality_document_acknowledgement_assignments` com RLS + GRANTs, função `quality_register_acknowledgement` com `SET search_path = public` e checagem 100% atômica, trigger de clone ao publicar, view `quality_acknowledgements_v`, notificação de atribuição). Resta o frontend.
+Ajustes finais aplicados:
+- **RPC dedicada `quality_accept_auto_suggestion(p_user_id, p_competency_id)`** zera `manual_override`, define `current_level := auto_suggested_level`, registra `assessed_by = auth.uid()` e `last_assessed_at = now()`. Botão "Aceitar auto-sugestão" chama essa RPC (não faz UPDATE direto).
+- **Role `qualidade` confirmada no enum `app_role`**. Master = `super_admin | director | coordinator | qualidade` em todas as RLS, helpers e checagens de função.
 
-## 1. `src/hooks/useQualityAcknowledgements.ts` (novo)
-Dois hooks:
-- `useMyAcknowledgements()` — lista da view `quality_acknowledgements_v` filtrada por `user_id`; expõe `pending`, `history`, e mutação `acknowledge` que chama a RPC `quality_register_acknowledgement` enviando `navigator.userAgent`. Mapeia erros do banco (`signature_required_but_missing`, `forbidden_not_assignee`, `assignment_cancelled`) para toasts amigáveis.
-- `useDocumentAcknowledgements(documentId, versionId)` — para o Master: lista atribuições, mutações `assign(user_ids[], version_id, due_date?)`, `cancel(id)` (UPDATE status=cancelled), `setRequiresStrong(boolean)` (UPDATE em `quality_documents`). Calcula `total/acknowledged/pending/cancelled/progress`.
+Demais decisões já confirmadas:
+- Manual prevalece quando `current_level > auto_suggested_level` (campo `manual_override` + badge "M↑" no heatmap).
+- Trigger de `university_enrollments` com `WHEN (NEW.status = 'completed' AND OLD.status IS DISTINCT FROM 'completed')`.
+- Adicionar tokens `success`/`warning` ao design system antes do heatmap.
 
-## 2. `src/pages/quality/MyAcknowledgements.tsx` (novo)
-Tabs **Pendentes / Histórico**.
-- Cada pendência mostra código + título + revisão, badges "Confirmação simples" ou "Assinatura eletrônica", prazo, atraso em vermelho.
-- Botões "Abrir" (link para `/quality/documents/:id`) e "Li e estou ciente" / "Confirmar com assinatura".
-- Para ciência forte: dialog confirmando uso da assinatura cadastrada; se o usuário não tiver `quality_signatures` ativa, mostra link para `/quality/signature`.
-- Histórico lista ciências concluídas e atribuições canceladas.
+---
 
-## 3. `src/components/quality/DocumentAcknowledgementsPanel.tsx` (novo)
-Painel da nova aba **Ciência** no `DocumentDetail`:
-- Switch "Exige assinatura eletrônica" controlando `requires_strong_acknowledgement`.
-- 4 indicadores: Atribuídos / Concluídos / Pendentes / Progresso (Progress bar + %).
-- Busca de colaborador (mínimo 2 chars em `profiles`), multi-seleção via checkbox, campo de prazo opcional (`<input type="date">`), botão "Atribuir".
-- Tabela das atribuições com colunas: colaborador, revisão (badge "Atual"/"Anterior"), prazo, status, data da ciência, botão lixeira (apenas para pendentes).
+## 0. Design system (pré-requisito do heatmap)
+- **`src/index.css`** (`:root` e `.dark`): variáveis `--success`, `--success-foreground`, `--success-soft`, `--success-soft-foreground`, `--warning`, `--warning-foreground`, `--warning-soft`, `--warning-soft-foreground` (HSL).
+- **`tailwind.config.ts`**: registrar `success` e `warning` (com `DEFAULT`, `foreground`, `soft`, `soft-foreground`) em `extend.colors`.
+- **`src/components/ui/badge.tsx`**: variantes `success`/`warning` passam a usar os tokens (`bg-success-soft text-success-soft-foreground`, etc.).
 
-## 4. `src/pages/quality/DocumentDetail.tsx` (editar)
-- Adicionar `import DocumentAcknowledgementsPanel from "@/components/quality/DocumentAcknowledgementsPanel"` e ícone `BadgeCheck` no `lucide-react`.
-- Nova `<TabsTrigger value="acknowledgements">Ciência</TabsTrigger>` e `<TabsContent value="acknowledgements">` renderizando o painel com `documentId`, `currentVersionId={document.current_version_id}`, `requiresStrong={(document as any).requires_strong_acknowledgement}`.
+---
 
-## 5. `src/App.tsx` (editar)
-- `const QualityMyAcknowledgements = lazy(() => import("./pages/quality/MyAcknowledgements"))`.
-- `<Route path="/quality/my-acknowledgements" element={<QualityMyAcknowledgements />} />` no bloco de rotas Quality.
+## 1. Banco de dados (1 migration)
 
-## 6. `src/components/DashboardLayout.tsx` (editar)
-Em `qualidadeMenuItems`, inserir antes de "Voz do Cliente":
-`{ title: "Minha Ciência", icon: BadgeCheck, path: "/quality/my-acknowledgements" }`
-e importar `BadgeCheck` do `lucide-react` se ainda não estiver presente.
+### Enums
+- `quality_competency_level`: `none`(0) / `basic`(1) / `intermediate`(2) / `advanced`(3) / `expert`(4).
+- `quality_competency_category`: `technical | behavioral | regulatory | safety | management`.
+- `quality_evidence_type`: `university_course | university_trail | hr_certificate | acknowledgement | manual`.
 
-## 7. `src/pages/quality/Dashboard.tsx` (editar)
-Novo card "Ciências pendentes" (consulta direta à view para a empresa do usuário, contagem por status=pending). Link para `/quality/my-acknowledgements`. Adicionado como 6ª coluna no grid (ajustar `lg:grid-cols-5` → `lg:grid-cols-6` ou empurrar para nova linha).
+### Helper de permissão
+```sql
+CREATE OR REPLACE FUNCTION public.quality_is_master(_user_id uuid)
+RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
+  SELECT public.has_role(_user_id, 'super_admin')
+      OR public.has_role(_user_id, 'director')
+      OR public.has_role(_user_id, 'coordinator')
+      OR public.has_role(_user_id, 'qualidade')
+$$;
+```
 
-## Notas de execução
-- A view `quality_acknowledgements_v` usa `security_invoker = true`; as RLS herdam das tabelas base — Master vê tudo da empresa, colaborador vê só o seu.
-- A função RPC retorna o `signature_event_id` criado; o hook não precisa usá-lo (só invalida queries).
-- O cliente Supabase ainda não tem tipos para a nova tabela/view/RPC — uso `as any` nos `from(...)` e `rpc(...)` (os tipos serão regenerados após o próximo build de schema).
-- Nenhum edge function, nenhum bucket de storage tocado nesta sprint.
+### Tabelas (todas com `company_id`, RLS, GRANTs `authenticated` + `service_role`)
+- **`quality_competencies`** — `name`, `description`, `category`, `active`. Master CRUD; demais SELECT na empresa.
+- **`quality_role_requirements`** — `role app_role`, `competency_id`, `required_level`, `is_mandatory`, `notes`. UNIQUE`(company_id, role, competency_id)`. Master CRUD; demais SELECT.
+- **`quality_user_competencies`** — `user_id`, `competency_id`, `current_level`, `manual_override boolean DEFAULT false`, `auto_suggested_level`, `auto_suggestion_reason`, `last_assessed_at`, `assessed_by`, `assessment_notes`. UNIQUE`(company_id, user_id, competency_id)`. RLS: usuário lê próprio; Master CRUD na empresa.
+- **`quality_competency_evidences`** — `user_competency_id`, `evidence_type`, `source_id`, `source_label`, `evidence_date`, `level_contribution`. RLS: usuário lê próprias; Master vê tudo na empresa.
+- **`quality_competency_mappings`** — `competency_id`, `evidence_type`, `source_id`, `grants_level`. UNIQUE`(company_id, competency_id, evidence_type, source_id)`. Master CRUD; demais SELECT.
+- **`quality_training_plans`** — `user_id`, `competency_id`, `current_level`, `required_level`, `target_level`, `status` (`proposed|in_progress|completed|cancelled`), `due_date`, `responsible_id`, `notes`, `linked_course_id`, `linked_trail_id`, `auto_generated`, `generated_at`, `completed_at`, `completed_evidence_id`. RLS: colaborador lê seus; Master CRUD na empresa; `responsible_id` pode atualizar status do próprio plano.
 
-Quando aprovar, mudo para build mode e crio/edito esses 7 arquivos.
+### Funções (`SECURITY DEFINER` + `SET search_path = public`)
+- **`quality_recompute_user_competency(p_user_id, p_competency_id)`** — varre `quality_competency_mappings`, valida evidências reais (`university_enrollments` completed, trilhas com todos os cursos completos, `technician_documents` ativos/válidos, `quality_signature_events` com `action='acknowledgment'`), calcula `auto_suggested_level = MAX(grants_level válidos)`. UPSERT em `quality_user_competencies`: se `manual_override = true AND current_level >= auto_suggested_level`, mantém manual; caso contrário `current_level := auto_suggested_level` e `manual_override := false`. Reescreve `quality_competency_evidences` da linha.
+- **`quality_recompute_user_competencies_all(p_user_id)`** — loop sobre competências mapeadas.
+- **`quality_set_manual_level(p_user_id, p_competency_id, p_level, p_notes)`** — checa `quality_is_master(auth.uid())`; UPSERT com `manual_override = true`, `current_level = p_level`, `assessed_by = auth.uid()`, `last_assessed_at = now()`.
+- **`quality_accept_auto_suggestion(p_user_id, p_competency_id)`** — checa Master OU `auth.uid() = p_user_id`; lê `auto_suggested_level` atual; UPDATE `manual_override = false`, `current_level = auto_suggested_level`, `assessed_by = auth.uid()`, `last_assessed_at = now()`, `assessment_notes = 'Aceito auto-sugestão por evidências'`. Erro se a linha não existir.
+- **`quality_generate_training_plans(p_user_id)`** — idempotente; cria plans `proposed` apenas para gaps positivos sem plano ativo; preenche `linked_course_id`/`linked_trail_id` a partir dos mappings; insere uma `notification` por plano.
+
+### Triggers
+- `AFTER INSERT ON university_enrollments` WHEN (`NEW.status = 'completed'`) → `quality_recompute_user_competencies_all(NEW.user_id)`.
+- `AFTER UPDATE ON university_enrollments` **WHEN (`NEW.status = 'completed' AND OLD.status IS DISTINCT FROM 'completed'`)** → mesma RPC.
+- `AFTER INSERT ON quality_signature_events` WHEN (`NEW.action = 'acknowledgment'`) → recomputa para `NEW.user_id`.
+- `AFTER INSERT OR UPDATE ON technician_documents` → resolve `user_id` via `technicians` e recomputa.
+
+### View
+- **`quality_competency_matrix_v`** (security_invoker) — `profiles × user_roles × quality_role_requirements × quality_user_competencies` (LEFT JOIN). Colunas: `company_id, user_id, full_name, role, competency_id, competency_name, category, required_level, current_level, manual_override, auto_suggested_level, gap, is_mandatory`.
+
+---
+
+## 2. Frontend
+
+### Hooks (`src/hooks/`)
+- `useQualityCompetencies.ts` — CRUD catálogo.
+- `useQualityRoleRequirements.ts` — CRUD + `requirementsForRole(role)`.
+- `useQualityCompetencyMappings.ts` — CRUD; combos de cursos/trilhas/tipos de documento.
+- `useQualityMatrix.ts` — leitura da view + filtros (role/categoria/só-gaps); mutações `setManualLevel` (RPC `quality_set_manual_level`), `acceptAutoSuggestion` (RPC `quality_accept_auto_suggestion`), `recompute(user_id)` (RPC `quality_recompute_user_competencies_all`).
+- `useQualityTrainingPlans.ts` — `mine`/`all`, `generate(user_id)` (RPC), `updateStatus`, `cancel`, `linkCourse`.
+
+### Páginas
+- `src/pages/quality/CompetencyMatrix.tsx` (`/quality/competencies`) — 4 tabs: **Matriz** (heatmap), **Competências** (catálogo), **Requisitos por Cargo**, **Mapeamentos**.
+- `src/pages/quality/MyCompetencies.tsx` (`/quality/my-competencies`) — tabs **Meu mapa** + **Meu plano**.
+
+### Componentes (`src/components/quality/`)
+- `CompetencyMatrixHeatmap.tsx` — `Table` com sticky-col; cores por gap:
+  - `gap = 0` → `bg-success-soft text-success-soft-foreground`
+  - `gap = 1` → `bg-warning-soft text-warning-soft-foreground`
+  - `gap ≥ 2` ou mandatório faltante → `bg-destructive/15 text-destructive`
+  - Badge "M↑" + tooltip quando `manual_override AND current_level > auto_suggested_level`.
+- `CompetencyAssessmentDrawer.tsx` — Select de nível, textarea de notas, botão **Aceitar auto-sugestão** (chama RPC dedicada), lista de evidências.
+- `TrainingPlanCard.tsx` — status, link curso/trilha, ações (concluir/cancelar/vincular curso).
+- `RoleRequirementEditor.tsx` — grid editável role × competência.
+- `CompetencyMappingDialog.tsx` — Select tipo de evidência → Combobox da fonte → nível outorgado.
+
+### Edições pontuais
+- `src/App.tsx` — rotas lazy `/quality/competencies` e `/quality/my-competencies`.
+- `src/components/DashboardLayout.tsx` — `qualidadeMenuItems`: "Matriz de Competência" (`GraduationCap`) e "Minhas Competências" (`Target`).
+- `src/pages/quality/Dashboard.tsx` — cards "Conformidade da Matriz" (% mandatórios atendidos) e "Gaps críticos" (count gap ≥2 em mandatórios), ambos linkando para `/quality/competencies`.
+
+---
+
+## 3. Permissões (consolidado)
+| Ação | Roles permitidas |
+|---|---|
+| CRUD catálogo / requisitos / mapeamentos | `super_admin`, `director`, `coordinator`, `qualidade` |
+| `quality_set_manual_level` | Master (acima) |
+| `quality_accept_auto_suggestion` | Master OU o próprio `user_id` |
+| `quality_generate_training_plans` | Master (manual) + execução automática via gatilho |
+| Ver matriz completa da empresa | Master |
+| Ver própria linha + planos | qualquer `authenticated` da empresa |
+| Marcar plano concluído | Master OU `responsible_id` do plano |
+
+---
+
+## 4. Notas técnicas
+- Migration única: 3 enums + 6 tabelas + GRANTs + RLS + helper `quality_is_master` + 5 funções de domínio + 4 triggers + 1 view.
+- Toda escrita em `quality_user_competencies` originada de evidência passa por `quality_recompute_user_competency` (auditável via `quality_competency_evidences`).
+- Tipos da Supabase serão regenerados após a migration; uso provisório de `as any` em `from(...)`/`rpc(...)`.
+- Sem novos buckets, sem novas edge functions.
+- Notificação criada para cada plano gerado.
+
+## Fora de escopo
+- Autoavaliação com workflow de validação do gestor.
+- Re-avaliação periódica programada.
+- Importação CSV da matriz.
+- Exportação PDF para auditoria.
+
+Ordem de execução ao entrar em build: **migration → design tokens → hooks → componentes → páginas → edições pontuais**.
