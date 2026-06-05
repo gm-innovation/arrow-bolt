@@ -59,10 +59,10 @@ const QualitySettings = () => {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold flex items-center gap-2">
-          <SettingsIcon className="h-6 w-6" /> Configurações da Qualidade
+          <SettingsIcon className="h-6 w-6" /> Parâmetros do SGQ
         </h2>
         <p className="text-muted-foreground">
-          Catálogo de tipos de documento, ciclos de revisão e parâmetros do SGQ.
+          Catálogo de tipos de documento, ciclos de revisão e ajustes do Sistema de Gestão da Qualidade.
         </p>
       </div>
 

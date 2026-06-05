@@ -69,21 +69,6 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
     }
   };
 
-  const getSettingsPath = () => {
-    switch (userType) {
-      case "super-admin": return "/super-admin/settings";
-      case "admin": return "/admin/settings";
-      case "manager": return "/manager/settings";
-      case "tech": return "/tech/settings";
-      case "hr": return "/hr/settings";
-      case "commercial": return "/commercial/settings";
-      case "compras": return "/supplies/settings";
-      case "qualidade": return "/quality/settings";
-      case "financeiro": return "/finance/settings";
-      case "director": return "/manager/settings";
-      default: return "/";
-    }
-  };
 
   return (
     <DropdownMenu>
@@ -118,9 +103,9 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
           <User className="mr-2 h-4 w-4" />
           <span>Perfil</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate(getSettingsPath())}>
+        <DropdownMenuItem onClick={() => navigate("/account/settings")}>
           <Settings className="mr-2 h-4 w-4" />
-          <span>Configurações</span>
+          <span>Minha Conta</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
