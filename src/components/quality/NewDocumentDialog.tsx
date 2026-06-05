@@ -160,6 +160,63 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Origem</Label>
+              <Select value={form.origin} onValueChange={(v) => setForm({ ...form, origin: v as any })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="internal">Interno</SelectItem>
+                  <SelectItem value="client">Cliente</SelectItem>
+                  <SelectItem value="external_norm">Norma externa</SelectItem>
+                  <SelectItem value="external_law">Lei / Regulamento</SelectItem>
+                  <SelectItem value="external_certificate">Certificado / Licença</SelectItem>
+                  <SelectItem value="safety">Saúde e Segurança</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Modo de controle</Label>
+              <Select
+                value={form.document_control_mode}
+                onValueChange={(v) => setForm({ ...form, document_control_mode: v as any })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full_control">Controle total (revisão + aprovação)</SelectItem>
+                  <SelectItem value="received_only">Apenas registro de ciência</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {form.origin !== "internal" && (
+            <div className="border rounded-md p-3 space-y-3 bg-muted/30">
+              <div className="space-y-1">
+                <Label>Origem / Emissor</Label>
+                <Input
+                  value={form.external_source}
+                  onChange={(e) => setForm({ ...form, external_source: e.target.value })}
+                  placeholder="Ex.: ABNT, Marinha do Brasil, Cliente X"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Início da validade</Label>
+                  <Input type="date" value={form.validity_start} onChange={(e) => setForm({ ...form, validity_start: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Fim da validade</Label>
+                  <Input type="date" value={form.validity_end} onChange={(e) => setForm({ ...form, validity_end: e.target.value })} />
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Renovação automática (informativo)</Label>
+                <Switch checked={form.auto_renewal} onCheckedChange={(v) => setForm({ ...form, auto_renewal: v })} />
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between border rounded-md p-3">
             <div>
               <Label>Visibilidade ampliada</Label>
