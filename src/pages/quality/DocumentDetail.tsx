@@ -32,6 +32,7 @@ import { pdf } from "@react-pdf/renderer";
 import { QualityDocumentPDF } from "@/components/quality/QualityDocumentPDF";
 import { useAuth } from "@/contexts/AuthContext";
 import { logQualityDocumentAccess } from "@/lib/qualityAccessLog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const statusLabel: Record<string, string> = {
   draft: "Rascunho",
@@ -475,9 +476,25 @@ const QualityDocumentDetail = () => {
             <DocumentAccessLogPanel documentId={document.id} />
           </TabsContent>
         </Tabs>
+        </Tabs>
+
+        <Dialog open={showViewer} onOpenChange={setShowViewer}>
+          <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>
+                {document.code} — Rev {(publishedVersion || activeVersion)?.revision_label}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 min-h-0">
+              <PDFCanvasViewer blob={fileBlob} />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );
 };
+
+export default QualityDocumentDetail;
 
 export default QualityDocumentDetail;
