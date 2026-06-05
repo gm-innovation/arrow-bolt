@@ -476,7 +476,6 @@ const QualityDocumentDetail = () => {
             <DocumentAccessLogPanel documentId={document.id} />
           </TabsContent>
         </Tabs>
-        </Tabs>
 
         <Dialog open={showViewer} onOpenChange={setShowViewer}>
           <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
@@ -494,7 +493,5 @@ const QualityDocumentDetail = () => {
     </TooltipProvider>
   );
 };
-
-export default QualityDocumentDetail;
 
 export default QualityDocumentDetail;
