@@ -161,6 +161,8 @@ const QualityMyCompetencies = lazy(() => import("./pages/quality/MyCompetencies"
 const QualityRisks = lazy(() => import("./pages/quality/Risks"));
 const QualitySuppliers = lazy(() => import("./pages/quality/Suppliers"));
 const QualitySupplierDetail = lazy(() => import("./pages/quality/SupplierDetail"));
+const QualityDevices = lazy(() => import("./pages/quality/Devices"));
+const QualityDeviceDetail = lazy(() => import("./pages/quality/DeviceDetail"));
 const PublicSatisfactionResponse = lazy(() => import("./pages/public/SatisfactionResponse"));
 
 const FinanceDashboard = lazy(() => import("./pages/finance/Dashboard"));
