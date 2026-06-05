@@ -49,6 +49,8 @@ const QualityDashboard = () => {
         <p className="text-muted-foreground">Sistema de Gestão da Qualidade — ISO 9001</p>
       </div>
 
+      <QualityAlertsPanel />
+
       {/* GED */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Link to="/quality/documents">
