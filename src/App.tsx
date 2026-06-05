@@ -163,6 +163,8 @@ const FinanceReports = lazy(() => import("./pages/finance/Reports"));
 const FinanceSettings = lazy(() => import("./pages/finance/Settings"));
 
 import { CorpLayoutRoute, CorpAdminLayoutRoute, CorpReportsLayoutRoute } from "./components/corp/CorpRoute";
+import { AccountLayoutRoute } from "./components/account/AccountLayoutRoute";
+const AccountSettings = lazy(() => import("./pages/account/AccountSettings"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -415,6 +417,11 @@ const App = () => {
                     <Route path="/finance/reports" element={<FinanceReports />} />
                     <Route path="/finance/settings" element={<FinanceSettings />} />
                     <Route path="/finance/profile" element={<CorpUserProfile />} />
+                  </Route>
+
+                  {/* Account (personal settings) - shared across all roles */}
+                  <Route element={<AccountLayoutRoute />}>
+                    <Route path="/account/settings" element={<AccountSettings />} />
                   </Route>
 
                   {/* Catch all */}
