@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Plus, Trash2 } from "lucide-react";
 import { usePurchaseRequests } from "@/hooks/usePurchaseRequests";
+import { useQualitySuppliers } from "@/hooks/useQualitySuppliers";
 
 interface NewPurchaseRequestDialogProps {
   open: boolean;
@@ -25,6 +26,10 @@ interface ItemForm {
 
 const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDialogProps) => {
   const { createRequest } = usePurchaseRequests();
+  const { items: suppliers } = useQualitySuppliers({ status: "approved" });
+  const { items: conditionalSuppliers } = useQualitySuppliers({ status: "conditional" });
+  const eligibleSuppliers = [...suppliers, ...conditionalSuppliers].sort((a, b) => a.name.localeCompare(b.name));
+  const [supplierId, setSupplierId] = useState<string>("none");
   const [items, setItems] = useState<ItemForm[]>([]);
   const [newItem, setNewItem] = useState<ItemForm>({
     description: "",
@@ -56,10 +61,12 @@ const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDial
   const onSubmit = async (data: { title: string; description: string; category: string; priority: string; justification: string }) => {
     await createRequest.mutateAsync({
       ...data,
+      supplier_id: supplierId === "none" ? null : supplierId,
       items,
     });
     reset();
     setItems([]);
+    setSupplierId("none");
     onOpenChange(false);
   };
 
@@ -104,6 +111,24 @@ const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDial
                   <SelectItem value="urgente">Urgente</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="md:col-span-2">
+              <Label>Fornecedor SGQ (opcional)</Label>
+              <Select value={supplierId} onValueChange={setSupplierId}>
+                <SelectTrigger><SelectValue placeholder="Selecione um fornecedor aprovado..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem fornecedor definido</SelectItem>
+                  {eligibleSuppliers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} {s.current_grade ? `(${s.current_grade})` : ""} — {s.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Apenas fornecedores aprovados ou condicionais aparecem aqui.
+              </p>
             </div>
 
             <div className="md:col-span-2">

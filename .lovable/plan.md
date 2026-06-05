@@ -1,123 +1,208 @@
 
-# Sprint 3.4 — Matriz de Competência (versão final, aprovada)
+# Sprints 3.6 e 3.7 — Fechamento ISO 9001 (revisão final)
+
+Duas sprints irmãs, mesmo padrão arquitetural já usado em 3.2/3.5 (tabelas com `company_id` + RLS Master, views agregadas em `quality_alerts_v` / `quality_improvements_v`, página dedicada + cards no Dashboard).
+
+Master = `super_admin | director | coordinator | qualidade` via `quality_is_master(auth.uid())` já existente.
 
 Ajustes finais aplicados:
-- **RPC dedicada `quality_accept_auto_suggestion(p_user_id, p_competency_id)`** zera `manual_override`, define `current_level := auto_suggested_level`, registra `assessed_by = auth.uid()` e `last_assessed_at = now()`. Botão "Aceitar auto-sugestão" chama essa RPC (não faz UPDATE direto).
-- **Role `qualidade` confirmada no enum `app_role`**. Master = `super_admin | director | coordinator | qualidade` em todas as RLS, helpers e checagens de função.
-
-Demais decisões já confirmadas:
-- Manual prevalece quando `current_level > auto_suggested_level` (campo `manual_override` + badge "M↑" no heatmap).
-- Trigger de `university_enrollments` com `WHEN (NEW.status = 'completed' AND OLD.status IS DISTINCT FROM 'completed')`.
-- Adicionar tokens `success`/`warning` ao design system antes do heatmap.
+- **3.6 — Status automático após avaliação (Opção A)**: o trigger `quality_supplier_after_evaluation_trigger` chama `quality_supplier_next_status(p_score, p_open_critical_incidents)` e grava o resultado em `evaluations.status_after` e em `suppliers.status`. Master continua podendo sobrescrever manualmente na tela do supplier (UPDATE direto).
+- **3.7 — Bucket dedicado `quality-calibrations`** (privado), separado de `quality-documents`. Policies em `storage.objects` permitem leitura/escrita para Master OU `responsible_user_id` do device referenciado no path `{company_id}/{device_id}/...`.
+- **3.7 — Refresh on-mount**: `useQualityDevices.ts` dispara `supabase.rpc('quality_device_status_refresh')` em `useEffect(..., [])` ao montar a página de Calibração, antes do `useQuery`. Garante que `next_calibration_due < hoje` atualize `status = 'overdue'` sem precisar de cron/edge function nesta sprint.
 
 ---
 
-## 0. Design system (pré-requisito do heatmap)
-- **`src/index.css`** (`:root` e `.dark`): variáveis `--success`, `--success-foreground`, `--success-soft`, `--success-soft-foreground`, `--warning`, `--warning-foreground`, `--warning-soft`, `--warning-soft-foreground` (HSL).
-- **`tailwind.config.ts`**: registrar `success` e `warning` (com `DEFAULT`, `foreground`, `soft`, `soft-foreground`) em `extend.colors`.
-- **`src/components/ui/badge.tsx`**: variantes `success`/`warning` passam a usar os tokens (`bg-success-soft text-success-soft-foreground`, etc.).
+## Sprint 3.6 — Provedores Externos (§8.4)
 
----
+Objetivo: cadastrar fornecedores críticos, qualificar inicialmente, avaliar desempenho periodicamente, manter "lista de aprovados" auditável e expor reavaliações vencidas como alertas SGQ.
 
-## 1. Banco de dados (1 migration)
+Não há tabela `suppliers` no projeto hoje (somente `purchase_requests` sem FK). Esta sprint cria a entidade.
 
-### Enums
-- `quality_competency_level`: `none`(0) / `basic`(1) / `intermediate`(2) / `advanced`(3) / `expert`(4).
-- `quality_competency_category`: `technical | behavioral | regulatory | safety | management`.
-- `quality_evidence_type`: `university_course | university_trail | hr_certificate | acknowledgement | manual`.
+### 1. Banco de dados (1 migration)
 
-### Helper de permissão
-```sql
-CREATE OR REPLACE FUNCTION public.quality_is_master(_user_id uuid)
-RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path = public AS $$
-  SELECT public.has_role(_user_id, 'super_admin')
-      OR public.has_role(_user_id, 'director')
-      OR public.has_role(_user_id, 'coordinator')
-      OR public.has_role(_user_id, 'qualidade')
-$$;
-```
+#### Enums
+- `quality_supplier_category`: `material | service | calibration | training | software | logistics | other`.
+- `quality_supplier_status`: `pending | approved | conditional | suspended | disqualified`.
+- `quality_supplier_evaluation_kind`: `initial | periodic | incident | requalification`.
+- `quality_supplier_criticality`: `low | medium | high | critical`.
 
-### Tabelas (todas com `company_id`, RLS, GRANTs `authenticated` + `service_role`)
-- **`quality_competencies`** — `name`, `description`, `category`, `active`. Master CRUD; demais SELECT na empresa.
-- **`quality_role_requirements`** — `role app_role`, `competency_id`, `required_level`, `is_mandatory`, `notes`. UNIQUE`(company_id, role, competency_id)`. Master CRUD; demais SELECT.
-- **`quality_user_competencies`** — `user_id`, `competency_id`, `current_level`, `manual_override boolean DEFAULT false`, `auto_suggested_level`, `auto_suggestion_reason`, `last_assessed_at`, `assessed_by`, `assessment_notes`. UNIQUE`(company_id, user_id, competency_id)`. RLS: usuário lê próprio; Master CRUD na empresa.
-- **`quality_competency_evidences`** — `user_competency_id`, `evidence_type`, `source_id`, `source_label`, `evidence_date`, `level_contribution`. RLS: usuário lê próprias; Master vê tudo na empresa.
-- **`quality_competency_mappings`** — `competency_id`, `evidence_type`, `source_id`, `grants_level`. UNIQUE`(company_id, competency_id, evidence_type, source_id)`. Master CRUD; demais SELECT.
-- **`quality_training_plans`** — `user_id`, `competency_id`, `current_level`, `required_level`, `target_level`, `status` (`proposed|in_progress|completed|cancelled`), `due_date`, `responsible_id`, `notes`, `linked_course_id`, `linked_trail_id`, `auto_generated`, `generated_at`, `completed_at`, `completed_evidence_id`. RLS: colaborador lê seus; Master CRUD na empresa; `responsible_id` pode atualizar status do próprio plano.
+#### Tabelas (todas com `company_id`, RLS, GRANTs `authenticated` + `service_role`)
 
-### Funções (`SECURITY DEFINER` + `SET search_path = public`)
-- **`quality_recompute_user_competency(p_user_id, p_competency_id)`** — varre `quality_competency_mappings`, valida evidências reais (`university_enrollments` completed, trilhas com todos os cursos completos, `technician_documents` ativos/válidos, `quality_signature_events` com `action='acknowledgment'`), calcula `auto_suggested_level = MAX(grants_level válidos)`. UPSERT em `quality_user_competencies`: se `manual_override = true AND current_level >= auto_suggested_level`, mantém manual; caso contrário `current_level := auto_suggested_level` e `manual_override := false`. Reescreve `quality_competency_evidences` da linha.
-- **`quality_recompute_user_competencies_all(p_user_id)`** — loop sobre competências mapeadas.
-- **`quality_set_manual_level(p_user_id, p_competency_id, p_level, p_notes)`** — checa `quality_is_master(auth.uid())`; UPSERT com `manual_override = true`, `current_level = p_level`, `assessed_by = auth.uid()`, `last_assessed_at = now()`.
-- **`quality_accept_auto_suggestion(p_user_id, p_competency_id)`** — checa Master OU `auth.uid() = p_user_id`; lê `auto_suggested_level` atual; UPDATE `manual_override = false`, `current_level = auto_suggested_level`, `assessed_by = auth.uid()`, `last_assessed_at = now()`, `assessment_notes = 'Aceito auto-sugestão por evidências'`. Erro se a linha não existir.
-- **`quality_generate_training_plans(p_user_id)`** — idempotente; cria plans `proposed` apenas para gaps positivos sem plano ativo; preenche `linked_course_id`/`linked_trail_id` a partir dos mappings; insere uma `notification` por plano.
+- **`quality_suppliers`** — `name`, `tax_id`, `category`, `criticality`, `status` (default `pending`), `contact_name/email/phone`, `scope_description`, `notes`, `requalification_frequency_months` (default 12), `last_evaluation_at`, `next_evaluation_due`, `current_score numeric(5,2)`, `current_grade text`, `owner_user_id`, `created_by`. UNIQUE`(company_id, tax_id)` parcial onde `tax_id IS NOT NULL`.
+- **`quality_supplier_evaluations`** — `supplier_id`, `kind`, `evaluation_date`, `period_start/end`, `score`, `grade`, `status_after`, `evaluator_id`, `summary`, `recommendations`, `next_due_at`.
+- **`quality_supplier_evaluation_criteria`** — `evaluation_id`, `criterion_code` (`quality|delivery|price|support|compliance|safety`), `weight`, `score`, `notes`.
+- **`quality_supplier_documents`** — `supplier_id`, `document_type`, `file_url`, `file_name`, `valid_until`, `uploaded_by`.
+- **`quality_supplier_incidents`** — `supplier_id`, `incident_date`, `severity` (`low|medium|high|critical`), `description`, `linked_ncr_id` (FK opcional `quality_ncrs`), `resolved_at`.
 
-### Triggers
-- `AFTER INSERT ON university_enrollments` WHEN (`NEW.status = 'completed'`) → `quality_recompute_user_competencies_all(NEW.user_id)`.
-- `AFTER UPDATE ON university_enrollments` **WHEN (`NEW.status = 'completed' AND OLD.status IS DISTINCT FROM 'completed'`)** → mesma RPC.
-- `AFTER INSERT ON quality_signature_events` WHEN (`NEW.action = 'acknowledgment'`) → recomputa para `NEW.user_id`.
-- `AFTER INSERT OR UPDATE ON technician_documents` → resolve `user_id` via `technicians` e recomputa.
+#### Integração
+- `purchase_requests`: adicionar `supplier_id uuid REFERENCES quality_suppliers(id)` (nullable, sem cascade).
 
-### View
-- **`quality_competency_matrix_v`** (security_invoker) — `profiles × user_roles × quality_role_requirements × quality_user_competencies` (LEFT JOIN). Colunas: `company_id, user_id, full_name, role, competency_id, competency_name, category, required_level, current_level, manual_override, auto_suggested_level, gap, is_mandatory`.
+#### Funções (SECURITY DEFINER + `SET search_path = public`)
+- `quality_supplier_compute_score(p_evaluation_id)` — `SUM(score*weight)/SUM(weight)`; atualiza `score` e `grade` (A ≥ 90, B ≥ 75, C ≥ 60, D < 60) na própria evaluation.
+- `quality_supplier_next_status(p_score numeric, p_open_critical_incidents int) RETURNS quality_supplier_status` — utilitário **chamado pelo trigger** (Opção A): `p_open_critical_incidents > 0 → 'suspended'`; `p_score >= 75 → 'approved'`; `p_score >= 60 → 'conditional'`; `p_score < 60 → 'suspended'`; `NULL → 'pending'`.
+- `quality_supplier_after_evaluation_trigger()` — AFTER INSERT/UPDATE em `quality_supplier_evaluations`:
+  1. conta `open_critical = COUNT(*) FROM quality_supplier_incidents WHERE supplier_id = NEW.supplier_id AND severity='critical' AND resolved_at IS NULL`;
+  2. `v_status := quality_supplier_next_status(NEW.score, open_critical)`;
+  3. grava `NEW.status_after = v_status` (se ainda NULL);
+  4. UPDATE `quality_suppliers` SET `current_score = NEW.score, current_grade = NEW.grade, status = v_status, last_evaluation_at = NEW.evaluation_date, next_evaluation_due = NEW.evaluation_date + (requalification_frequency_months || ' months')::interval`.
+  > Master pode sobrescrever `quality_suppliers.status` via UPDATE direto na UI a qualquer momento.
 
----
+#### Triggers
+- `BEFORE INSERT` em `quality_supplier_evaluations`: se `score IS NULL`, chama `quality_supplier_compute_score`.
+- `AFTER INSERT OR UPDATE` em `quality_supplier_evaluations`: `quality_supplier_after_evaluation_trigger`.
+- `BEFORE INSERT` em `quality_suppliers`: se `next_evaluation_due IS NULL`, define `now() + interval '6 months'`.
 
-## 2. Frontend
+#### Extensão de views
+- `quality_alerts_v` ganha duas fontes:
+  - `source='supplier'`, `category='requalification'`: `due_soon` ≤ 30d, `overdue` < hoje; só para `status IN ('approved','conditional')`.
+  - `source='supplier'`, `category='pending_qualification'`: `status='pending'` há > 30 dias.
+- `quality_improvements_v` ganha `source='supplier'` para `status IN ('suspended','disqualified')`.
 
-### Hooks (`src/hooks/`)
-- `useQualityCompetencies.ts` — CRUD catálogo.
-- `useQualityRoleRequirements.ts` — CRUD + `requirementsForRole(role)`.
-- `useQualityCompetencyMappings.ts` — CRUD; combos de cursos/trilhas/tipos de documento.
-- `useQualityMatrix.ts` — leitura da view + filtros (role/categoria/só-gaps); mutações `setManualLevel` (RPC `quality_set_manual_level`), `acceptAutoSuggestion` (RPC `quality_accept_auto_suggestion`), `recompute(user_id)` (RPC `quality_recompute_user_competencies_all`).
-- `useQualityTrainingPlans.ts` — `mine`/`all`, `generate(user_id)` (RPC), `updateStatus`, `cancel`, `linkCourse`.
-
-### Páginas
-- `src/pages/quality/CompetencyMatrix.tsx` (`/quality/competencies`) — 4 tabs: **Matriz** (heatmap), **Competências** (catálogo), **Requisitos por Cargo**, **Mapeamentos**.
-- `src/pages/quality/MyCompetencies.tsx` (`/quality/my-competencies`) — tabs **Meu mapa** + **Meu plano**.
-
-### Componentes (`src/components/quality/`)
-- `CompetencyMatrixHeatmap.tsx` — `Table` com sticky-col; cores por gap:
-  - `gap = 0` → `bg-success-soft text-success-soft-foreground`
-  - `gap = 1` → `bg-warning-soft text-warning-soft-foreground`
-  - `gap ≥ 2` ou mandatório faltante → `bg-destructive/15 text-destructive`
-  - Badge "M↑" + tooltip quando `manual_override AND current_level > auto_suggested_level`.
-- `CompetencyAssessmentDrawer.tsx` — Select de nível, textarea de notas, botão **Aceitar auto-sugestão** (chama RPC dedicada), lista de evidências.
-- `TrainingPlanCard.tsx` — status, link curso/trilha, ações (concluir/cancelar/vincular curso).
-- `RoleRequirementEditor.tsx` — grid editável role × competência.
-- `CompetencyMappingDialog.tsx` — Select tipo de evidência → Combobox da fonte → nível outorgado.
-
-### Edições pontuais
-- `src/App.tsx` — rotas lazy `/quality/competencies` e `/quality/my-competencies`.
-- `src/components/DashboardLayout.tsx` — `qualidadeMenuItems`: "Matriz de Competência" (`GraduationCap`) e "Minhas Competências" (`Target`).
-- `src/pages/quality/Dashboard.tsx` — cards "Conformidade da Matriz" (% mandatórios atendidos) e "Gaps críticos" (count gap ≥2 em mandatórios), ambos linkando para `/quality/competencies`.
-
----
-
-## 3. Permissões (consolidado)
-| Ação | Roles permitidas |
+#### Permissões (RLS)
+| Ação | Quem |
 |---|---|
-| CRUD catálogo / requisitos / mapeamentos | `super_admin`, `director`, `coordinator`, `qualidade` |
-| `quality_set_manual_level` | Master (acima) |
-| `quality_accept_auto_suggestion` | Master OU o próprio `user_id` |
-| `quality_generate_training_plans` | Master (manual) + execução automática via gatilho |
-| Ver matriz completa da empresa | Master |
-| Ver própria linha + planos | qualquer `authenticated` da empresa |
-| Marcar plano concluído | Master OU `responsible_id` do plano |
+| Ver suppliers/evaluations/docs/incidents da empresa | `authenticated` da company |
+| CRUD suppliers e evaluations | Master OU `owner_user_id` |
+| Sobrescrever `status` do supplier | Master |
+| Inserir incident | qualquer `authenticated` da company |
+| Resolver incident | Master |
+| Upload docs | Master OU `owner_user_id` |
+
+### 2. Frontend
+
+#### Hooks novos
+- `useQualitySuppliers.ts` — lista, filtros (categoria, status, criticidade, vencidos), CRUD.
+- `useQualitySupplierEvaluations.ts` — por supplier; criar/listar com critérios.
+- `useQualitySupplierIncidents.ts` — CRUD, vínculo opcional com NCR.
+
+#### Páginas
+- `src/pages/quality/Suppliers.tsx` (`/quality/suppliers`) — tabs:
+  1. **Lista** (tabela com filtros + badges A/B/C/D + status + dueDate).
+  2. **Avaliação vencida** (recorte de `quality_alerts_v`).
+  3. **Incidentes abertos**.
+- `src/pages/quality/SupplierDetail.tsx` (`/quality/suppliers/:id`) — tabs: **Resumo**, **Avaliações**, **Critérios**, **Documentos**, **Incidentes**.
+
+#### Componentes novos (`src/components/quality/`)
+- `SupplierRegisterTable.tsx`
+- `SupplierEvaluationDrawer.tsx` — critérios pesados; status sai pronto do trigger.
+- `SupplierIncidentDialog.tsx` — combobox de NCRs abertas.
+- `SupplierDocumentsList.tsx` — padrão `corp_documents` com `valid_until`.
+- `SupplierStatusBadge.tsx` — tokens `success`/`warning`/`destructive`.
+
+#### Edições pontuais
+- `src/App.tsx` — rotas lazy `/quality/suppliers` e `/quality/suppliers/:id`.
+- `src/components/DashboardLayout.tsx` — item "Provedores Externos" (`Factory` do `lucide-react`) no `qualidadeMenuItems`.
+- `src/pages/quality/Dashboard.tsx` — cards "Provedores com reavaliação vencida" e "Provedores suspensos/desqualificados".
+- `src/hooks/useQualityAlerts.ts` — counters `supplier_requalification` e `supplier_pending` + labels.
+- `src/components/supplies/NewPurchaseRequestDialog.tsx` — Combobox opcional de supplier `status IN ('approved','conditional')`, grava `supplier_id`.
+
+### 3. Fora de escopo (3.6)
+- Workflow de aprovação multi-etapa para qualificação inicial.
+- Cotação eletrônica / portal do fornecedor.
+- Importação CSV ou Omie de fornecedores legados.
+- Exportação PDF da lista de aprovados.
 
 ---
 
-## 4. Notas técnicas
-- Migration única: 3 enums + 6 tabelas + GRANTs + RLS + helper `quality_is_master` + 5 funções de domínio + 4 triggers + 1 view.
-- Toda escrita em `quality_user_competencies` originada de evidência passa por `quality_recompute_user_competency` (auditável via `quality_competency_evidences`).
-- Tipos da Supabase serão regenerados após a migration; uso provisório de `as any` em `from(...)`/`rpc(...)`.
-- Sem novos buckets, sem novas edge functions.
-- Notificação criada para cada plano gerado.
+## Sprint 3.7 — Calibração / Recursos de Monitoramento (§7.1.5)
 
-## Fora de escopo
-- Autoavaliação com workflow de validação do gestor.
-- Re-avaliação periódica programada.
-- Importação CSV da matriz.
-- Exportação PDF para auditoria.
+Objetivo: inventariar instrumentos de medição, registrar certificados de calibração, alertar a próxima calibração e expor instrumentos vencidos como alertas SGQ.
 
-Ordem de execução ao entrar em build: **migration → design tokens → hooks → componentes → páginas → edições pontuais**.
+### 0. Storage (pré-requisito da migration)
+Criar bucket **privado** `quality-calibrations` via `supabase--storage_create_bucket(name='quality-calibrations', public=false)` antes da migration. Path padrão: `{company_id}/{device_id}/{calibration_id}/{sanitized_filename}`.
+
+Policies em `storage.objects` (na migration):
+- SELECT/INSERT/UPDATE/DELETE permitidos para Master OU para `responsible_user_id` do device cujo `id` aparece como segundo segmento do path. Usa subquery em `quality_measuring_devices` por `device_id`.
+
+### 1. Banco de dados (1 migration)
+
+#### Enums
+- `quality_device_status`: `active | in_calibration | out_of_service | retired | overdue`.
+- `quality_calibration_kind`: `internal | external_lab | manufacturer | self_check`.
+- `quality_calibration_result`: `approved | approved_with_restriction | reproved`.
+
+#### Tabelas (todas com `company_id`, RLS, GRANTs)
+
+- **`quality_measuring_devices`** — `code` (TAG/patrimônio), `name`, `description`, `manufacturer`, `model`, `serial_number`, `measurement_range`, `unit`, `resolution`, `accuracy`, `location`, `responsible_user_id`, `status` (default `active`), `criticality`, `calibration_frequency_months` (default 12), `last_calibration_at`, `next_calibration_due`, `acquired_at`, `retired_at`, `notes`. UNIQUE`(company_id, code)`.
+- **`quality_calibrations`** — `device_id`, `kind`, `calibration_date`, `result`, `provider_supplier_id` FK opcional `quality_suppliers(id)`, `certificate_number`, `certificate_file_url`, `certificate_file_name`, `cost`, `measurement_uncertainty`, `traceability`, `valid_until`, `restrictions`, `next_due_at`, `performed_by_user_id`, `notes`.
+- **`quality_calibration_checkpoints`** — `calibration_id`, `nominal_value`, `measured_value`, `error`, `tolerance`, `pass boolean`.
+- **`quality_device_usage_log`** (esqueleto, sem UI) — `device_id`, `service_order_id`, `used_at`, `used_by`.
+
+#### Funções
+- `quality_calibration_after_change_trigger()` — AFTER INSERT/UPDATE em `quality_calibrations`:
+  - se `result IN ('approved','approved_with_restriction')` → `device.last_calibration_at = calibration_date`, `device.next_calibration_due = COALESCE(valid_until, calibration_date + frequency_months)`, `device.status = 'active'`;
+  - se `result = 'reproved'` → `device.status = 'out_of_service'`.
+- **`quality_device_status_refresh()`** — `UPDATE quality_measuring_devices SET status='overdue' WHERE status='active' AND next_calibration_due < CURRENT_DATE`. GRANT EXECUTE TO `authenticated`. Chamada on-mount pelo hook (ver Frontend).
+- `quality_device_block_usage(p_device_id) RETURNS boolean` — utilitário para futura validação em OS.
+
+#### Triggers
+- `BEFORE INSERT` em `quality_measuring_devices`: se `next_calibration_due IS NULL` e `last_calibration_at IS NOT NULL`, calcula `last_calibration_at + calibration_frequency_months`.
+- `AFTER INSERT OR UPDATE` em `quality_calibrations`: `quality_calibration_after_change_trigger`.
+
+#### Extensão de views
+- `quality_alerts_v`: `source='device'`, `category='calibration'`, `overdue` se `next_calibration_due < hoje`, `due_soon` se ≤ 30d; só para `status IN ('active','in_calibration','overdue')`.
+- `quality_improvements_v`: `source='device'` para `status='out_of_service'` e para `result='reproved'` na última calibração.
+
+#### Permissões
+| Ação | Quem |
+|---|---|
+| Ver devices/calibrations/checkpoints da company | `authenticated` da company |
+| CRUD devices | Master OU `responsible_user_id` |
+| Inserir calibration | Master OU `responsible_user_id` |
+| Aposentar device | Master |
+| Upload certificado (storage) | Master OU `responsible_user_id` do device |
+
+### 2. Frontend
+
+#### Hooks novos
+- `useQualityDevices.ts` — **`useEffect(() => { supabase.rpc('quality_device_status_refresh'); }, [])` antes do `useQuery`** para garantir status atualizado ao abrir a página. Filtros (status, criticidade, vencidos, local, responsável), CRUD.
+- `useQualityCalibrations.ts` — por device; criar/listar com checkpoints.
+
+#### Páginas
+- `src/pages/quality/Devices.tsx` (`/quality/devices`) — tabs:
+  1. **Inventário**.
+  2. **Calibrações vencidas** (via `quality_alerts_v`).
+  3. **Histórico de certificados**.
+- `src/pages/quality/DeviceDetail.tsx` (`/quality/devices/:id`) — tabs: **Resumo**, **Histórico**, **Checkpoints**, **Certificados**.
+
+#### Componentes novos
+- `DeviceRegisterTable.tsx`
+- `CalibrationDrawer.tsx` — upload no bucket `quality-calibrations`, Combobox de `provider_supplier_id` filtrando `category='calibration' AND status IN ('approved','conditional')`.
+- `CalibrationCheckpointsEditor.tsx`
+- `DeviceStatusBadge.tsx`
+- `CertificateViewerDialog.tsx` — reaproveita `PDFCanvasViewer`.
+
+#### Edições pontuais
+- `src/App.tsx` — rotas lazy `/quality/devices` e `/quality/devices/:id`.
+- `src/components/DashboardLayout.tsx` — item "Calibração" (`Gauge` do `lucide-react`).
+- `src/pages/quality/Dashboard.tsx` — cards "Calibrações vencidas" e "Instrumentos fora de serviço".
+- `src/hooks/useQualityAlerts.ts` — counter `device_calibration` + label.
+
+### 3. Fora de escopo (3.7)
+- Bloqueio rígido na criação de OS para device vencido (função `quality_device_block_usage` fica disponível).
+- Reserva/agendamento de instrumentos.
+- Importação CSV.
+- App mobile dedicado para conferência em campo.
+- Integração com laboratórios externos (API).
+- Cron de verdade para refresh (próxima sprint, com edge function `pg_cron`).
+
+---
+
+## Ordem de execução combinada
+
+1. **3.6**: migration → hooks → componentes → `Suppliers.tsx` → `SupplierDetail.tsx` → edições pontuais (App, Layout, Dashboard, Alerts, NewPurchaseRequestDialog).
+2. **3.7**: criar bucket `quality-calibrations` → migration (policies storage + tabelas + FK para `quality_suppliers`) → hooks (com refresh on-mount) → componentes → `Devices.tsx` → `DeviceDetail.tsx` → edições pontuais.
+
+3.7 depende de 3.6 por causa do FK opcional `provider_supplier_id`. Caso o usuário queira inverter, basta adiar esse FK para uma migration posterior.
+
+## Notas técnicas comuns
+
+- Sem novas edge functions nesta sprint.
+- Tokens `success`/`warning` já existem (3.4).
+- Tipos do Supabase serão regerados após cada migration; uso provisório de `as any`.
+- Padrão Combobox para listas longas (`large-table-fetching-strategy`).
+- Sanitização de filename já documentada (`filename-sanitization-storage-requirement`).
+
+## Pergunta antes do build
+
+Confirmar: entregar 3.6 e 3.7 em **dois build modes separados** (recomendado, dois ciclos de aprovação) ou tudo num único build?

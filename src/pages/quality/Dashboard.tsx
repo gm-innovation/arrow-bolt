@@ -12,7 +12,9 @@ import {
   FolderOpen,
   HardHat,
   BadgeCheck,
+  Building2,
 } from "lucide-react";
+import { useQualitySuppliers } from "@/hooks/useQualitySuppliers";
 import { useQualityNCRs } from "@/hooks/useQualityNCRs";
 import { useQualityActionPlans } from "@/hooks/useQualityActionPlans";
 import { useQualityAudits } from "@/hooks/useQualityAudits";
@@ -47,6 +49,11 @@ const QualityDashboard = () => {
   const overdueReviews = allRisks.filter(
     (r) => r.next_review_due_at && new Date(r.next_review_due_at) < new Date() && r.status !== "closed" && r.status !== "accepted",
   ).length;
+  const { items: suppliers } = useQualitySuppliers();
+  const supplierOverdue = suppliers.filter(
+    (s) => s.next_evaluation_due && new Date(s.next_evaluation_due) < new Date() && (s.status === "approved" || s.status === "conditional"),
+  ).length;
+  const supplierSuspended = suppliers.filter((s) => s.status === "suspended" || s.status === "disqualified").length;
 
   const openNCRs = ncrs.filter((n) => !["closed", "cancelled"].includes(n.status));
   const activePlans = plans.filter((p) => !["closed", "effective", "ineffective"].includes(p.status));
@@ -192,6 +199,30 @@ const QualityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{overdueReviews}</div>
               <p className="text-xs text-muted-foreground">Próxima revisão atrasada</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/quality/suppliers">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Reavaliação de fornecedor vencida</CardTitle>
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{supplierOverdue}</div>
+              <p className="text-xs text-muted-foreground">Aprovados/condicionais sem reavaliação</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/quality/suppliers">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Fornecedores suspensos</CardTitle>
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{supplierSuspended}</div>
+              <p className="text-xs text-muted-foreground">Suspensos ou desqualificados</p>
             </CardContent>
           </Card>
         </Link>
