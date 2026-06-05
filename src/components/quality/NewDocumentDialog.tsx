@@ -67,6 +67,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
 
   const submit = async () => {
     if (!form.code || !form.title) return;
+    const isExternal = form.origin !== "internal";
     const created = await create.mutateAsync({
       code: form.code.trim(),
       title: form.title.trim(),
@@ -75,7 +76,13 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
       normative_reference: form.normative_reference || null,
       next_review_date: form.next_review_date || null,
       widely_visible: form.widely_visible,
-    });
+      origin: form.origin,
+      external_source: isExternal ? form.external_source || null : null,
+      validity_start: isExternal && form.validity_start ? form.validity_start : null,
+      validity_end: isExternal && form.validity_end ? form.validity_end : null,
+      auto_renewal: form.auto_renewal,
+      document_control_mode: form.document_control_mode,
+    } as any);
     onOpenChange(false);
     onCreated?.((created as any).id);
   };
