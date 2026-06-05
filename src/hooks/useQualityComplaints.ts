@@ -36,14 +36,15 @@ export const useQualityComplaints = (kind?: ComplaintKind) => {
   const qc = useQueryClient();
 
   const { data: complaints = [], isLoading } = useQuery({
-    queryKey: ["quality_complaints", profile?.company_id],
+    queryKey: ["quality_complaints", profile?.company_id, kind ?? "all"],
     enabled: !!user && !!profile?.company_id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("quality_complaints" as any)
         .select("*, client:clients(id,company_name)")
-        .eq("company_id", profile!.company_id)
-        .order("received_at", { ascending: false });
+        .eq("company_id", profile!.company_id);
+      if (kind) q = q.eq("kind", kind);
+      const { data, error } = await q.order("received_at", { ascending: false });
       if (error) throw error;
       return (data as any[]) as ComplaintRow[];
     },
