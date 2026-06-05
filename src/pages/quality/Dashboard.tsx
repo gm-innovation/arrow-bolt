@@ -12,7 +12,9 @@ import {
   FolderOpen,
   HardHat,
   BadgeCheck,
+  Building2,
 } from "lucide-react";
+import { useQualitySuppliers } from "@/hooks/useQualitySuppliers";
 import { useQualityNCRs } from "@/hooks/useQualityNCRs";
 import { useQualityActionPlans } from "@/hooks/useQualityActionPlans";
 import { useQualityAudits } from "@/hooks/useQualityAudits";
@@ -47,6 +49,11 @@ const QualityDashboard = () => {
   const overdueReviews = allRisks.filter(
     (r) => r.next_review_due_at && new Date(r.next_review_due_at) < new Date() && r.status !== "closed" && r.status !== "accepted",
   ).length;
+  const { items: suppliers } = useQualitySuppliers();
+  const supplierOverdue = suppliers.filter(
+    (s) => s.next_evaluation_due && new Date(s.next_evaluation_due) < new Date() && (s.status === "approved" || s.status === "conditional"),
+  ).length;
+  const supplierSuspended = suppliers.filter((s) => s.status === "suspended" || s.status === "disqualified").length;
 
   const openNCRs = ncrs.filter((n) => !["closed", "cancelled"].includes(n.status));
   const activePlans = plans.filter((p) => !["closed", "effective", "ineffective"].includes(p.status));
