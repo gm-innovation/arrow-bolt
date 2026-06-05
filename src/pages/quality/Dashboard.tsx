@@ -17,6 +17,7 @@ import { useQualityAudits } from "@/hooks/useQualityAudits";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityControlledCopies } from "@/hooks/useQualityControlledCopies";
 import { format, parseISO, differenceInDays } from "date-fns";
+import QualityAlertsPanel from "@/components/quality/QualityAlertsPanel";
 
 const QualityDashboard = () => {
   const { ncrs } = useQualityNCRs();
