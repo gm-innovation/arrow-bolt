@@ -65,4 +65,6 @@ export const CATEGORY_LABELS: Record<string, string> = {
   internal: "Docs Internos",
   safety: "Saúde e Segurança",
   management_review: "Análise Crítica",
+  supplier_requalification: "Reavaliação de Fornecedor",
+  supplier_pending: "Qualificação Pendente",
 };
