@@ -61,6 +61,7 @@ export const usePurchaseRequests = () => {
       category: string;
       priority: string;
       justification?: string;
+      supplier_id?: string | null;
       items: { description: string; quantity: number; unit: string; estimated_unit_price: number; notes?: string }[];
     }) => {
       const { data: profile } = await supabase
@@ -82,7 +83,8 @@ export const usePurchaseRequests = () => {
           priority: values.priority,
           justification: values.justification || null,
           status: "pending_manager",
-        })
+          supplier_id: values.supplier_id || null,
+        } as any)
         .select()
         .single();
 
