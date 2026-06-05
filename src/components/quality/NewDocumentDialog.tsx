@@ -52,7 +52,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
         normative_reference: "",
         next_review_date: "",
         widely_visible: false,
-        origin: "internal",
+        origin: lockedOrigin ?? "internal",
         external_source: "",
         validity_start: "",
         validity_end: "",
@@ -60,7 +60,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
         document_control_mode: "full_control",
       });
     }
-  }, [open]);
+  }, [open, lockedOrigin]);
 
   const selectedType = types.find((t) => t.id === form.document_type_id);
 
