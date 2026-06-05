@@ -219,6 +219,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
 
   const qualidadeMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/quality/dashboard" },
+    { title: "Documentos", icon: FolderOpen, path: "/quality/documents" },
+    { title: "Cópias Controladas", icon: Printer, path: "/quality/controlled-copies" },
+    { title: "Minha Assinatura", icon: PenLine, path: "/quality/signature" },
     { title: "Não-Conformidades", icon: AlertTriangle, path: "/quality/ncrs" },
     { title: "Planos de Ação", icon: ClipboardCheck, path: "/quality/action-plans" },
     { title: "Auditorias", icon: Search, path: "/quality/audits" },
