@@ -40,7 +40,7 @@ export const useQualitySettings = () => {
         .eq("company_id", profile!.company_id)
         .maybeSingle();
       if (error) throw error;
-      return data as QualitySettings | null;
+      return (data as unknown) as QualitySettings | null;
     },
   });
 
