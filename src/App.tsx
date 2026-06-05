@@ -163,6 +163,12 @@ const QualitySuppliers = lazy(() => import("./pages/quality/Suppliers"));
 const QualitySupplierDetail = lazy(() => import("./pages/quality/SupplierDetail"));
 const QualityDevices = lazy(() => import("./pages/quality/Devices"));
 const QualityDeviceDetail = lazy(() => import("./pages/quality/DeviceDetail"));
+const QualityDashboardHub = lazy(() => import("./pages/quality/DashboardHub"));
+const QualityDocumentsHub = lazy(() => import("./pages/quality/DocumentsHub"));
+const QualityNCRsHub = lazy(() => import("./pages/quality/NCRsHub"));
+const QualityRisksHub = lazy(() => import("./pages/quality/RisksHub"));
+const QualityCompetenciesHub = lazy(() => import("./pages/quality/CompetenciesHub"));
+const QualitySettingsHub = lazy(() => import("./pages/quality/SettingsHub"));
 const PublicSatisfactionResponse = lazy(() => import("./pages/public/SatisfactionResponse"));
 
 const FinanceDashboard = lazy(() => import("./pages/finance/Dashboard"));
