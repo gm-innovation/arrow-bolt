@@ -195,7 +195,7 @@ const SupplierDetailPage = () => {
                         </Badge>
                         <span className="text-xs text-muted-foreground">{format(parseISO(i.incident_date), "dd/MM/yyyy")}</span>
                         {i.resolved_at && (
-                          <Badge variant="success" as any>Resolvido</Badge>
+                          <Badge variant={"success" as any}>Resolvido</Badge>
                         )}
                       </div>
                       <p className="text-sm mt-1">{i.description}</p>
