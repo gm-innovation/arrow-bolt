@@ -44,6 +44,7 @@ import {
   Printer,
   PenLine,
   MessagesSquare,
+  Sparkles,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -224,6 +225,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Estrutura ISO", icon: BookOpen, path: "/quality/iso-structure" },
     { title: "Partes Interessadas", icon: Users, path: "/quality/interested-parties" },
     { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
+    { title: "Melhorias", icon: Sparkles, path: "/quality/improvements" },
     { title: "Cópias Controladas", icon: Printer, path: "/quality/controlled-copies" },
     
     { title: "Não-Conformidades", icon: AlertTriangle, path: "/quality/ncrs" },
