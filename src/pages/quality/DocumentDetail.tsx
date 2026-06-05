@@ -369,6 +369,9 @@ const QualityDocumentDetail = () => {
             <TabsTrigger value="copies">
               <Printer className="h-4 w-4 mr-1" /> Cópias Controladas
             </TabsTrigger>
+            <TabsTrigger value="acknowledgements">
+              <BadgeCheck className="h-4 w-4 mr-1" /> Ciência
+            </TabsTrigger>
             <TabsTrigger value="log">
               <Activity className="h-4 w-4 mr-1" /> Log de Acesso
             </TabsTrigger>
@@ -472,6 +475,14 @@ const QualityDocumentDetail = () => {
 
           <TabsContent value="copies">
             <DocumentControlledCopiesPanel documentId={document.id} currentVersionId={document.current_version_id} />
+          </TabsContent>
+
+          <TabsContent value="acknowledgements">
+            <DocumentAcknowledgementsPanel
+              documentId={document.id}
+              currentVersionId={document.current_version_id}
+              requiresStrong={!!(document as any).requires_strong_acknowledgement}
+            />
           </TabsContent>
 
           <TabsContent value="log">
