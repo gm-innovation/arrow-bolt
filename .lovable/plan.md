@@ -1,37 +1,40 @@
 ## Problema
 
-Marina respondeu corretamente "temos 2 leads novos…" mas, no follow-up "me explica cada um o que tem", devolveu "Desculpe, não entendi sua pergunta". O histórico é enviado (memory_size=20), porém:
+Após Marina listar 2 leads, o usuário perguntou "quais as solicitações?" — querendo dizer "o que cada um desses leads pediu". Marina respondeu pedindo clarificação ("de qual tipo? compra, corporativa, OS?") porque:
 
-- A **regra técnica #2** do system prompt força "Sempre que o usuário perguntar sobre dados do sistema, chame a ferramenta antes de responder". Como não existe ferramenta `explain_lead`, o modelo trava.
-- As **role_instructions** salvas no Agent Manager reforçam "AJA, execute a ferramenta imediatamente" sem prever follow-ups conversacionais sobre dados já apresentados.
-
-Resultado: agente perde a capacidade de conversar sobre o que ele mesmo acabou de mostrar.
+1. **A ferramenta `query_crm_leads` não retorna o campo `message`** (nem `type` / `items`) — só nome, e-mail, telefone, empresa, status, source, data. Marina nunca recebeu a "solicitação" do lead, então não tem como respondê-la a partir do histórico.
+2. **A regra conversacional não orienta a desambiguar a favor do contexto recente.** "Solicitações" logo após uma listagem de leads deveria ser interpretado como "o que esses leads pediram", não como módulo paralelo (compras/corp/OS).
 
 ## O que ajustar
 
-### 1. `supabase/functions/ai-assistant/index.ts` — system prompt (regras técnicas mínimas)
+### 1. `supabase/functions/ai-assistant/tools.ts` — `query_crm_leads`
 
-Reescrever as regras para permitir comportamento conversacional:
+Adicionar `message`, `type` e `items` aos campos retornados, para que a resposta inicial já contenha o conteúdo da solicitação de cada lead. Atualizar a descrição da ferramenta indicando que `message` é o texto livre da solicitação e `items` é a lista de produtos/serviços de interesse.
 
-- **Regra 2 (atual):** "Sempre que o usuário perguntar sobre dados do sistema, chame a ferramenta antes de responder."
-- **Nova regra 2:** "Para pedidos de **novos dados**, chame a ferramenta. Para **follow-ups** sobre itens já apresentados no histórico desta conversa (ex.: 'me explica', 'detalha esse', 'e o segundo?', 'qual o telefone dele?'), responda usando o contexto já presente, sem rechamar a ferramenta — a menos que falte campo específico."
-- Adicionar **Regra 7:** "Seja conversacional. Mantenha o fio da conversa: pronomes ('ele', 'esse', 'cada um') referem-se aos últimos itens listados. Nunca peça para o usuário reformular se a referência é clara pelo histórico."
+```
+fields: ["id","name","email","phone","company_name","status","source","type","message","items","created_at"]
+```
 
-### 2. Database — `ai_agents.behavior.role_instructions` (todos os perfis CRM)
+### 2. `supabase/functions/ai-assistant/index.ts` — regra 7 (conversacional)
 
-Adicionar ao final de cada role_instructions (commercial, coordinator, manager, director, super_admin):
+Expandir a regra para incluir desambiguação contextual:
 
-> "FOLLOW-UPS: quando o usuário pedir detalhes sobre itens que você já listou nesta conversa ('me explica cada um', 'fala mais do primeiro', 'qual o e-mail dele'), responda a partir do histórico — não rechame ferramenta nem peça para reformular. Só rechame ferramenta se o usuário pedir algo realmente novo (outro filtro, outro recorte, outro módulo)."
+> "Seja conversacional. Pronomes e termos genéricos ('ele', 'esse', 'cada um', 'as solicitações', 'os pedidos', 'os detalhes') referem-se primeiro aos últimos itens que você listou. Antes de pedir clarificação, tente resolver pelo contexto da conversa. Só pergunte se realmente nenhuma interpretação contextual for plausível."
 
-Manter a regra existente de "AJA, NÃO PERGUNTE" — ela continua válida para pedidos novos.
+### 3. Database — `ai_agents.behavior.role_instructions` (perfis CRM)
 
-### 3. Validação
+Acrescentar ao bloco FOLLOW-UPS já existente:
 
-- Cenário A: "tem algum lead novo?" → chama `query_crm_leads({status:'new'})` e lista.
-- Cenário B (follow-up): "me explica cada um o que tem" → responde a partir do histórico, descrevendo nome, empresa, e-mail, telefone e data de cada lead já listado, **sem** chamar ferramenta de novo e **sem** pedir reformulação.
-- Cenário C: "e os leads de oportunidade?" → considera pedido novo, chama ferramenta com novo filtro.
+> "Termos genéricos logo após uma listagem ('quais as solicitações?', 'o que pediram?', 'me mostra os detalhes') referem-se aos itens recém-listados. Para leads, 'solicitação' é o campo `message`/`items` retornado pela ferramenta."
+
+### 4. Validação
+
+- "olá, tem algum lead novo?" → lista 2 leads incluindo o que cada um solicitou (campo `message`/`items`).
+- "quais as solicitações?" (follow-up) → resume `message`/`items` de cada lead listado, sem pedir clarificação.
+- "quais as solicitações de compra?" → entende qualificador explícito e chama `query_purchase_requests`.
 
 ## Arquivos alterados
 
-- `supabase/functions/ai-assistant/index.ts` (apenas o bloco `REGRAS TÉCNICAS MÍNIMAS` em `buildSystemPrompt`)
-- Banco: UPDATE em `ai_agents.behavior.role_instructions` (sem migration — é dado de configuração editável pela UI Agent Manager → Comportamento, mantendo a regra de "tudo via UI")
+- `supabase/functions/ai-assistant/tools.ts` (campos de `query_crm_leads`)
+- `supabase/functions/ai-assistant/index.ts` (regra 7 do system prompt)
+- Banco: UPDATE em `ai_agents.behavior.role_instructions` (sem migration — config editável pela UI Agent Manager)
