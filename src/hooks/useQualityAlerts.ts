@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type QAlertStatus = "due_soon" | "overdue" | "up_to_date";
-export type QAlertSource = "org_context" | "interested_party" | "party_evidence" | "document" | "management_review" | "risk" | "supplier";
+export type QAlertSource = "org_context" | "interested_party" | "party_evidence" | "document" | "management_review" | "risk" | "supplier" | "device";
 
 export interface QualityAlert {
   source: QAlertSource;
