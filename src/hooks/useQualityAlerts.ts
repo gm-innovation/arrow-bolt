@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type QAlertStatus = "due_soon" | "overdue" | "up_to_date";
-export type QAlertSource = "org_context" | "interested_party" | "party_evidence" | "document";
+export type QAlertSource = "org_context" | "interested_party" | "party_evidence" | "document" | "management_review";
 
 export interface QualityAlert {
   source: QAlertSource;
@@ -45,6 +45,7 @@ export const useQualityAlerts = () => {
     external_certificate: countBy((a) => a.source === "document" && a.category === "external_certificate"),
     client: countBy((a) => a.source === "document" && a.category === "client"),
     internal: countBy((a) => a.source === "document" && a.category === "internal"),
+    management_review: countBy((a) => a.source === "management_review"),
   };
 
   return { alerts, active, counters, isLoading };
@@ -60,4 +61,5 @@ export const CATEGORY_LABELS: Record<string, string> = {
   client: "Docs do Cliente",
   internal: "Docs Internos",
   safety: "Saúde e Segurança",
+  management_review: "Análise Crítica",
 };

@@ -148,6 +148,8 @@ const QualityControlledCopies = lazy(() => import("./pages/quality/ControlledCop
 const QualityMySignature = lazy(() => import("./pages/quality/MySignature"));
 const QualityIsoStructure = lazy(() => import("./pages/quality/IsoStructure"));
 const QualityInterestedParties = lazy(() => import("./pages/quality/InterestedParties"));
+const QualityManagementReview = lazy(() => import("./pages/quality/ManagementReview"));
+const QualityManagementReviewDetail = lazy(() => import("./pages/quality/ManagementReviewDetail"));
 
 const FinanceDashboard = lazy(() => import("./pages/finance/Dashboard"));
 const FinancePayables = lazy(() => import("./pages/finance/Payables"));
@@ -389,6 +391,8 @@ const App = () => {
                     <Route path="/quality/signature" element={<QualityMySignature />} />
                     <Route path="/quality/iso-structure" element={<QualityIsoStructure />} />
                     <Route path="/quality/interested-parties" element={<QualityInterestedParties />} />
+                    <Route path="/quality/management-review" element={<QualityManagementReview />} />
+                    <Route path="/quality/management-review/:id" element={<QualityManagementReviewDetail />} />
                     <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>
 
