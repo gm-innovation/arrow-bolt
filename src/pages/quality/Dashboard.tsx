@@ -13,7 +13,9 @@ import {
   HardHat,
   BadgeCheck,
   Building2,
+  Gauge,
 } from "lucide-react";
+import { useQualityDevices } from "@/hooks/useQualityDevices";
 import { useQualitySuppliers } from "@/hooks/useQualitySuppliers";
 import { useQualityNCRs } from "@/hooks/useQualityNCRs";
 import { useQualityActionPlans } from "@/hooks/useQualityActionPlans";
