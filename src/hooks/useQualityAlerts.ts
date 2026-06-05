@@ -45,6 +45,7 @@ export const useQualityAlerts = () => {
     external_certificate: countBy((a) => a.source === "document" && a.category === "external_certificate"),
     client: countBy((a) => a.source === "document" && a.category === "client"),
     internal: countBy((a) => a.source === "document" && a.category === "internal"),
+    safety: countBy((a) => a.source === "document" && a.category === "safety"),
     management_review: countBy((a) => a.source === "management_review"),
   };
 
