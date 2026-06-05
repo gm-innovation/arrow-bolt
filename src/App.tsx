@@ -150,9 +150,8 @@ const QualityIsoStructure = lazy(() => import("./pages/quality/IsoStructure"));
 const QualityInterestedParties = lazy(() => import("./pages/quality/InterestedParties"));
 const QualityManagementReview = lazy(() => import("./pages/quality/ManagementReview"));
 const QualityManagementReviewDetail = lazy(() => import("./pages/quality/ManagementReviewDetail"));
-const QualitySatisfaction = lazy(() => import("./pages/quality/Satisfaction"));
+const QualityVoiceOfCustomer = lazy(() => import("./pages/quality/VoiceOfCustomer"));
 const QualitySatisfactionDetail = lazy(() => import("./pages/quality/SatisfactionDetail"));
-const QualityComplaints = lazy(() => import("./pages/quality/Complaints"));
 const QualityComplaintDetail = lazy(() => import("./pages/quality/ComplaintDetail"));
 const PublicSatisfactionResponse = lazy(() => import("./pages/public/SatisfactionResponse"));
 
@@ -399,9 +398,10 @@ const App = () => {
                     <Route path="/quality/interested-parties" element={<QualityInterestedParties />} />
                     <Route path="/quality/management-review" element={<QualityManagementReview />} />
                     <Route path="/quality/management-review/:id" element={<QualityManagementReviewDetail />} />
-                    <Route path="/quality/satisfaction" element={<QualitySatisfaction />} />
+                    <Route path="/quality/voice-of-customer" element={<QualityVoiceOfCustomer />} />
+                    <Route path="/quality/satisfaction" element={<Navigate to="/quality/voice-of-customer" replace />} />
                     <Route path="/quality/satisfaction/:id" element={<QualitySatisfactionDetail />} />
-                    <Route path="/quality/complaints" element={<QualityComplaints />} />
+                    <Route path="/quality/complaints" element={<Navigate to="/quality/voice-of-customer" replace />} />
                     <Route path="/quality/complaints/:id" element={<QualityComplaintDetail />} />
                     <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>

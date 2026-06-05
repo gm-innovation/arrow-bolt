@@ -1,28 +1,19 @@
-# Sprint 2.6 — Aprovada · Pronta para Implementar
+# Refatoração: Voz do Cliente — Aprovada
 
-**Backend já aplicado.** Falta o frontend.
+Unifica `/quality/satisfaction` + `/quality/complaints` em **`/quality/voice-of-customer`**.
 
-## Arquivos a criar
-- `src/hooks/useSatisfactionCampaigns.ts` (+ sub-hook `useCampaignDetail`)
-- `src/hooks/useQualityComplaints.ts`
-- `src/pages/quality/Satisfaction.tsx`
-- `src/pages/quality/SatisfactionDetail.tsx`
-- `src/pages/quality/Complaints.tsx`
-- `src/pages/quality/ComplaintDetail.tsx`
-- `src/pages/public/SatisfactionResponse.tsx` — **fora de `AuthProvider`**, mesmo padrão de `/onboarding/:token`
+## Backend (migration)
+- Novo enum `complaint_kind` (`complaint` | `suggestion`).
+- Coluna `kind public.complaint_kind NOT NULL DEFAULT 'complaint'` em `quality_complaints`.
+- `quality_complaint_to_ncr()` passa a rejeitar registros com `kind='suggestion'`.
 
-## Arquivos a editar
-- `src/App.tsx` — registra 4 rotas autenticadas em `/quality/...` e a rota pública `/satisfaction/r/:token` no nível das outras rotas públicas (fora do `AuthProvider`)
-- `src/components/DashboardLayout.tsx` — adiciona "Satisfação" e "Reclamações" no menu de Qualidade
+## Frontend
+- **Criar** `src/pages/quality/VoiceOfCustomer.tsx` (container com 4 KPIs + Tabs: Visão Geral, Campanhas, Reclamações, Sugestões).
+- **Criar** `src/components/quality/voc/OverviewTab.tsx`, `CampaignsTab.tsx`, `ComplaintsTab.tsx`, `SuggestionsTab.tsx` — reusam hooks `useSatisfactionCampaigns` e `useQualityComplaints`.
+- **Atualizar** `useQualityComplaints` para aceitar/filtrar por `kind`.
+- **Manter** `SatisfactionDetail.tsx` e `ComplaintDetail.tsx` (telas de detalhe seguem isoladas).
+- **Remover** `src/pages/quality/Satisfaction.tsx` e `src/pages/quality/Complaints.tsx`.
+- **`App.tsx`**: nova rota `/quality/voice-of-customer`; `/quality/satisfaction` e `/quality/complaints` redirecionam pra ela; detalhes seguem em `/quality/satisfaction/:id` e `/quality/complaints/:id`.
+- **`DashboardLayout.tsx`**: remover os 2 itens; adicionar único item **"Voz do Cliente"** com ícone `MessagesSquare`.
 
-## Cobertura obrigatória da página pública
-Os 5 estados serão tratados com mensagens amigáveis:
-1. **Carregando** — spinner discreto
-2. **Token inválido** — "Link inválido ou expirado. Confira se você acessou o endereço correto."
-3. **Já respondida** — "Sua resposta já foi registrada. Obrigado pelo retorno!"
-4. **Campanha inativa** — "Esta pesquisa não está mais aceitando respostas."
-5. **Sucesso** — "Resposta enviada! Agradecemos seu tempo."
-
-Layout mobile-first, sem dependência de `AuthProvider`, `SidebarProvider` ou `ProtectedRoute`. Usa apenas as RPCs públicas (`quality_get_invite_public` + `quality_submit_satisfaction_response`).
-
-Aprove para iniciar o build.
+Página pública `/satisfaction/r/:token` permanece intacta.

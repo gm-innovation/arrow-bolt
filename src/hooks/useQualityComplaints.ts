@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 
 export type ComplaintStatus = "new" | "acknowledged" | "under_analysis" | "resolved" | "rejected";
 export type ComplaintSource = "survey" | "email" | "phone" | "in_person" | "system" | "other";
+export type ComplaintKind = "complaint" | "suggestion";
 
 export interface ComplaintRow {
   id: string;
@@ -13,6 +14,7 @@ export interface ComplaintRow {
   client_id: string | null;
   is_anonymous: boolean;
   source: ComplaintSource;
+  kind: ComplaintKind;
   title: string;
   description: string;
   received_at: string;
@@ -29,19 +31,20 @@ export interface ComplaintRow {
   client?: { id: string; company_name: string } | null;
 }
 
-export const useQualityComplaints = () => {
+export const useQualityComplaints = (kind?: ComplaintKind) => {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
 
   const { data: complaints = [], isLoading } = useQuery({
-    queryKey: ["quality_complaints", profile?.company_id],
+    queryKey: ["quality_complaints", profile?.company_id, kind ?? "all"],
     enabled: !!user && !!profile?.company_id,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("quality_complaints" as any)
         .select("*, client:clients(id,company_name)")
-        .eq("company_id", profile!.company_id)
-        .order("received_at", { ascending: false });
+        .eq("company_id", profile!.company_id);
+      if (kind) q = q.eq("kind", kind);
+      const { data, error } = await q.order("received_at", { ascending: false });
       if (error) throw error;
       return (data as any[]) as ComplaintRow[];
     },
@@ -52,6 +55,7 @@ export const useQualityComplaints = () => {
       title: string;
       description: string;
       source: ComplaintSource;
+      kind?: ComplaintKind;
       client_id?: string | null;
       is_anonymous?: boolean;
       responder_name?: string;
@@ -65,6 +69,7 @@ export const useQualityComplaints = () => {
           title: input.title,
           description: input.description,
           source: input.source,
+          kind: input.kind ?? "complaint",
           client_id: input.client_id ?? null,
           is_anonymous: input.is_anonymous ?? false,
           responder_name: input.responder_name ?? null,
@@ -76,9 +81,9 @@ export const useQualityComplaints = () => {
       if (error) throw error;
       return data as any;
     },
-    onSuccess: () => {
+    onSuccess: (_d, vars) => {
       qc.invalidateQueries({ queryKey: ["quality_complaints"] });
-      toast({ title: "Reclamação registrada" });
+      toast({ title: vars.kind === "suggestion" ? "Sugestão registrada" : "Reclamação registrada" });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });

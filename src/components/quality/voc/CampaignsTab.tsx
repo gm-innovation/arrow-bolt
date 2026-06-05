@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,15 @@ import {
   DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Smile, ExternalLink } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Plus, ExternalLink } from "lucide-react";
 import { useSatisfactionCampaigns, CampaignStatus } from "@/hooks/useSatisfactionCampaigns";
 
 const statusLabel: Record<CampaignStatus, string> = {
@@ -28,12 +36,12 @@ const statusVariant: Record<CampaignStatus, "default" | "secondary" | "outline">
   closed: "secondary",
 };
 
-export default function Satisfaction() {
+export default function CampaignsTab() {
   const { campaigns, isLoading, create } = useSatisfactionCampaigns();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ name: "", description: "", starts_at: "", ends_at: "" });
 
-  const onSubmit = async () => {
+  const submit = async () => {
     if (!form.name || !form.starts_at || !form.ends_at) return;
     await create.mutateAsync(form);
     setOpen(false);
@@ -41,20 +49,14 @@ export default function Satisfaction() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Smile className="h-6 w-6 text-primary" />
-            Satisfação do Cliente
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Campanhas de NPS e CSAT para clientes (ISO 9001 §9.1.2).
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Campanhas de NPS/CSAT para coleta estruturada de feedback.
+        </p>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button size="sm">
               <Plus className="h-4 w-4 mr-2" />
               Nova campanha
             </Button>
@@ -77,7 +79,6 @@ export default function Satisfaction() {
                 <Textarea
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Objetivo, público, contexto..."
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -103,7 +104,7 @@ export default function Satisfaction() {
               <Button variant="outline" onClick={() => setOpen(false)}>
                 Cancelar
               </Button>
-              <Button onClick={onSubmit} disabled={create.isPending}>
+              <Button onClick={submit} disabled={create.isPending}>
                 Criar
               </Button>
             </DialogFooter>
@@ -111,55 +112,57 @@ export default function Satisfaction() {
         </Dialog>
       </div>
 
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Carregando...</p>
-      ) : campaigns.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Nenhuma campanha cadastrada. Crie a primeira para começar a coletar NPS e CSAT.
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {campaigns.map((c) => (
-            <Card key={c.id} className="hover:shadow-md transition-shadow">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base">{c.name}</CardTitle>
-                  <Badge variant={statusVariant[c.status]}>{statusLabel[c.status]}</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(c.starts_at).toLocaleDateString("pt-BR")} —{" "}
-                  {new Date(c.ends_at).toLocaleDateString("pt-BR")}
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-3 gap-2 text-center">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Convites</p>
-                    <p className="text-lg font-semibold">{c.invites_count ?? 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Respostas</p>
-                    <p className="text-lg font-semibold">{c.responses_count ?? 0}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">NPS médio</p>
-                    <p className="text-lg font-semibold">
+      <Card>
+        <CardContent className="p-0">
+          {isLoading ? (
+            <p className="p-6 text-center text-sm text-muted-foreground">Carregando...</p>
+          ) : campaigns.length === 0 ? (
+            <p className="p-6 text-center text-sm text-muted-foreground">
+              Nenhuma campanha cadastrada.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Campanha</TableHead>
+                  <TableHead>Período</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">Convites</TableHead>
+                  <TableHead className="text-center">Respostas</TableHead>
+                  <TableHead className="text-center">NPS médio</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {campaigns.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell className="text-xs">
+                      {new Date(c.starts_at).toLocaleDateString("pt-BR")} —{" "}
+                      {new Date(c.ends_at).toLocaleDateString("pt-BR")}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant[c.status]}>{statusLabel[c.status]}</Badge>
+                    </TableCell>
+                    <TableCell className="text-center">{c.invites_count ?? 0}</TableCell>
+                    <TableCell className="text-center">{c.responses_count ?? 0}</TableCell>
+                    <TableCell className="text-center">
                       {c.avg_nps != null ? c.avg_nps.toFixed(1) : "—"}
-                    </p>
-                  </div>
-                </div>
-                <Button asChild variant="outline" size="sm" className="w-full">
-                  <Link to={`/quality/satisfaction/${c.id}`}>
-                    Abrir <ExternalLink className="ml-2 h-3 w-3" />
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button asChild size="sm" variant="outline">
+                        <Link to={`/quality/satisfaction/${c.id}`}>
+                          Abrir <ExternalLink className="ml-1 h-3 w-3" />
+                        </Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
