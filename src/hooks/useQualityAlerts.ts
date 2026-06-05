@@ -49,6 +49,7 @@ export const useQualityAlerts = () => {
     management_review: countBy((a) => a.source === "management_review"),
     supplier_requalification: countBy((a) => a.source === "supplier" && a.category === "requalification"),
     supplier_pending: countBy((a) => a.source === "supplier" && a.category === "pending_qualification"),
+    device_calibration: countBy((a) => a.source === "device" && a.category === "calibration"),
   };
 
   return { alerts, active, counters, isLoading };
