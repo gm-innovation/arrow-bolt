@@ -235,6 +235,30 @@ const QualityDashboard = () => {
             </CardContent>
           </Card>
         </Link>
+        <Link to="/quality/devices">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Calibrações vencidas</CardTitle>
+              <Gauge className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{devicesOverdue}</div>
+              <p className="text-xs text-muted-foreground">Instrumentos com calibração atrasada</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/quality/devices">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Instrumentos fora de serviço</CardTitle>
+              <Gauge className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{devicesOutOfService}</div>
+              <p className="text-xs text-muted-foreground">Reprovados ou bloqueados</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Qualidade Operacional */}
