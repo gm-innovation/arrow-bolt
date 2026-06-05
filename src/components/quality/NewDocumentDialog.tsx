@@ -171,7 +171,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Origem</Label>
-              <Select value={form.origin} onValueChange={(v) => setForm({ ...form, origin: v as any })}>
+              <Select value={form.origin} onValueChange={(v) => setForm({ ...form, origin: v as any })} disabled={!!lockedOrigin}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="internal">Interno</SelectItem>
