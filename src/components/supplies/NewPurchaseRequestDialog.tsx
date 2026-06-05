@@ -114,6 +114,24 @@ const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDial
             </div>
 
             <div className="md:col-span-2">
+              <Label>Fornecedor SGQ (opcional)</Label>
+              <Select value={supplierId} onValueChange={setSupplierId}>
+                <SelectTrigger><SelectValue placeholder="Selecione um fornecedor aprovado..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem fornecedor definido</SelectItem>
+                  {eligibleSuppliers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} {s.current_grade ? `(${s.current_grade})` : ""} — {s.status}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Apenas fornecedores aprovados ou condicionais aparecem aqui.
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
               <Label htmlFor="description">Descrição</Label>
               <Textarea id="description" {...register("description")} placeholder="Descreva a necessidade..." />
             </div>
