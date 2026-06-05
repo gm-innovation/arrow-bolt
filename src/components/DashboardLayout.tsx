@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   Wrench,
+  Gauge,
   Calculator,
   History,
   Target,
