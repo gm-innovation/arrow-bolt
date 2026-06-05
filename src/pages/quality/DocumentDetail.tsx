@@ -273,6 +273,43 @@ const QualityDocumentDetail = () => {
                 </p>
               </div>
               <div className="flex gap-2 flex-wrap">
+                {activeVersion?.content_kind === "rich_text" && (
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={viewGeneratedPDF}>
+                          <Eye className="h-4 w-4 mr-1" /> Visualizar PDF
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Visualização integrada (não conta como impressão)</TooltipContent>
+                    </Tooltip>
+                    <Button variant="outline" size="sm" onClick={() => downloadGeneratedPDF(null)}>
+                      <Download className="h-4 w-4 mr-1" /> Baixar PDF
+                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" onClick={() => downloadGeneratedPDF("uncontrolled")}>
+                          <Printer className="h-4 w-4 mr-1" /> Cópia não controlada
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Gera o PDF com marca d'água "CÓPIA NÃO CONTROLADA"</TooltipContent>
+                    </Tooltip>
+                  </>
+                )}
+                {activeVersion?.content_kind === "file" && activeVersion.file_path && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={openIntegratedViewer}>
+                      <Eye className="h-4 w-4 mr-1" /> Visualizar arquivo
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadFile(activeVersion.file_path!, activeVersion.file_name!)}
+                    >
+                      <Download className="h-4 w-4 mr-1" /> Baixar
+                    </Button>
+                  </>
+                )}
                 {activeVersion?.status === "draft" && (
                   <Button variant="outline" onClick={() => submitForApproval.mutate(activeVersion.id)}>
                     <Send className="h-4 w-4 mr-2" /> Enviar para aprovação
