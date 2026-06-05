@@ -208,6 +208,7 @@ const App = () => {
           <Routes>
             <Route path="/onboarding/:token" element={<Suspense fallback={<LoadingFallback />}><PublicOnboarding /></Suspense>} />
             <Route path="/carreiras/:slug" element={<Suspense fallback={<LoadingFallback />}><PublicCareers /></Suspense>} />
+            <Route path="/satisfaction/r/:token" element={<Suspense fallback={<LoadingFallback />}><PublicSatisfactionResponse /></Suspense>} />
             <Route path="*" element={
               <AuthProvider>
                 <SidebarProvider>
@@ -398,6 +399,10 @@ const App = () => {
                     <Route path="/quality/interested-parties" element={<QualityInterestedParties />} />
                     <Route path="/quality/management-review" element={<QualityManagementReview />} />
                     <Route path="/quality/management-review/:id" element={<QualityManagementReviewDetail />} />
+                    <Route path="/quality/satisfaction" element={<QualitySatisfaction />} />
+                    <Route path="/quality/satisfaction/:id" element={<QualitySatisfactionDetail />} />
+                    <Route path="/quality/complaints" element={<QualityComplaints />} />
+                    <Route path="/quality/complaints/:id" element={<QualityComplaintDetail />} />
                     <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>
 
