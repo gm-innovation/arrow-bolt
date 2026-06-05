@@ -421,8 +421,10 @@ const App = () => {
                     <Route path="/quality/competencies" element={<QualityCompetencyMatrix />} />
                     <Route path="/quality/my-competencies" element={<QualityMyCompetencies />} />
                    <Route path="/quality/risks" element={<QualityRisks />} />
-                   <Route path="/quality/suppliers" element={<QualitySuppliers />} />
-                   <Route path="/quality/suppliers/:id" element={<QualitySupplierDetail />} />
+                  <Route path="/quality/suppliers" element={<QualitySuppliers />} />
+                  <Route path="/quality/suppliers/:id" element={<QualitySupplierDetail />} />
+                  <Route path="/quality/devices" element={<QualityDevices />} />
+                  <Route path="/quality/devices/:id" element={<QualityDeviceDetail />} />
                     <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>
 
