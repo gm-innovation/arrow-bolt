@@ -9,15 +9,23 @@ import { Switch } from "@/components/ui/switch";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityDocumentTypes } from "@/hooks/useQualityDocumentTypes";
 
+type DocOrigin = "internal" | "client" | "external_norm" | "external_law" | "external_certificate" | "safety";
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreated?: (id: string) => void;
+  lockedOrigin?: DocOrigin;
+  typeCodePrefixes?: string[];
+  title?: string;
 }
 
-const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
+const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCodePrefixes, title }: Props) => {
   const { create } = useQualityDocuments();
-  const { types } = useQualityDocumentTypes();
+  const { types: allTypes } = useQualityDocumentTypes();
+  const types = typeCodePrefixes && typeCodePrefixes.length > 0
+    ? allTypes.filter((t: any) => typeCodePrefixes.includes(t.code_prefix))
+    : allTypes;
   const [form, setForm] = useState({
     document_type_id: "",
     code: "",
