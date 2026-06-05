@@ -379,7 +379,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       {/* Desktop Sidebar */}
       {!isMobile && (
         <div className={cn(
-          "relative flex-shrink-0 transition-all duration-300 ease-in-out bg-white border-r border-gray-200",
+          "relative flex-shrink-0 flex flex-col h-full transition-all duration-300 ease-in-out bg-white border-r border-gray-200",
           collapsed ? "w-16" : "w-64"
         )}>
           {/* Header */}
