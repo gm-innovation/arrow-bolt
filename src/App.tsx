@@ -150,6 +150,11 @@ const QualityIsoStructure = lazy(() => import("./pages/quality/IsoStructure"));
 const QualityInterestedParties = lazy(() => import("./pages/quality/InterestedParties"));
 const QualityManagementReview = lazy(() => import("./pages/quality/ManagementReview"));
 const QualityManagementReviewDetail = lazy(() => import("./pages/quality/ManagementReviewDetail"));
+const QualitySatisfaction = lazy(() => import("./pages/quality/Satisfaction"));
+const QualitySatisfactionDetail = lazy(() => import("./pages/quality/SatisfactionDetail"));
+const QualityComplaints = lazy(() => import("./pages/quality/Complaints"));
+const QualityComplaintDetail = lazy(() => import("./pages/quality/ComplaintDetail"));
+const PublicSatisfactionResponse = lazy(() => import("./pages/public/SatisfactionResponse"));
 
 const FinanceDashboard = lazy(() => import("./pages/finance/Dashboard"));
 const FinancePayables = lazy(() => import("./pages/finance/Payables"));
