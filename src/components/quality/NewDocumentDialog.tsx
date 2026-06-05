@@ -99,7 +99,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Novo Documento</DialogTitle>
+          <DialogTitle>{title ?? "Novo Documento"}</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4">
