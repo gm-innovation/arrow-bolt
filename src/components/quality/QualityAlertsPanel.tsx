@@ -16,6 +16,8 @@ const sourceRoute = (a: QualityAlert) => {
       return "/quality/interested-parties";
     case "document":
       return `/quality/documents/${a.entity_id}`;
+    case "management_review":
+      return "/quality/management-review";
     default:
       return "/quality";
   }
@@ -34,6 +36,7 @@ const QualityAlertsPanel = () => {
     { key: "external_certificate", label: "Certificados/Licenças" },
     { key: "client", label: "Docs Cliente" },
     { key: "internal", label: "Docs Internos" },
+    { key: "management_review", label: "Análise Crítica" },
   ];
 
   const filtered = filter
@@ -41,6 +44,7 @@ const QualityAlertsPanel = () => {
         if (filter === "org_context") return a.source === "org_context";
         if (filter === "interested_party") return a.source === "interested_party";
         if (filter === "party_evidence") return a.source === "party_evidence";
+        if (filter === "management_review") return a.source === "management_review";
         return a.source === "document" && a.category === filter;
       })
     : active;
