@@ -1,11 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { ArrowLeft, FileText, History, Lock, Activity, Printer, Send, CheckCircle2, Archive, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  FileText,
+  History,
+  Lock,
+  Activity,
+  Printer,
+  Send,
+  CheckCircle2,
+  Archive,
+  Upload,
+  Download,
+  Eye,
+} from "lucide-react";
 import { useQualityDocument } from "@/hooks/useQualityDocuments";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
 import { RichTextEditor } from "@/components/quality/RichTextEditor";
@@ -14,6 +27,12 @@ import { supabase } from "@/integrations/supabase/client";
 import DocumentPermissionsPanel from "@/components/quality/DocumentPermissionsPanel";
 import DocumentAccessLogPanel from "@/components/quality/DocumentAccessLogPanel";
 import DocumentControlledCopiesPanel from "@/components/quality/DocumentControlledCopiesPanel";
+import { PDFCanvasViewer } from "@/components/ui/PDFCanvasViewer";
+import { pdf } from "@react-pdf/renderer";
+import { QualityDocumentPDF } from "@/components/quality/QualityDocumentPDF";
+import { useAuth } from "@/contexts/AuthContext";
+import { logQualityDocumentAccess } from "@/lib/qualityAccessLog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const statusLabel: Record<string, string> = {
   draft: "Rascunho",
@@ -29,6 +48,7 @@ const sanitize = (n: string) =>
 const QualityDocumentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete } =
     useQualityDocument(id);
   const { signature, registerSignatureEvent } = useQualitySignature();
@@ -37,8 +57,14 @@ const QualityDocumentDetail = () => {
   const [changeSummary, setChangeSummary] = useState("");
   const [revisionLabel, setRevisionLabel] = useState("1.0");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [fileBlob, setFileBlob] = useState<Blob | null>(null);
+  const [showViewer, setShowViewer] = useState(false);
 
   const activeVersion = versions[0] || null;
+  const publishedVersion = useMemo(
+    () => versions.find((v) => v.status === "published") || null,
+    [versions]
+  );
 
   useEffect(() => {
     if (activeVersion) {
@@ -48,6 +74,19 @@ const QualityDocumentDetail = () => {
       setRevisionLabel("1.0");
     }
   }, [activeVersion?.id]);
+
+  // log de visualização ao abrir o documento
+  useEffect(() => {
+    if (document && user) {
+      logQualityDocumentAccess({
+        document_id: document.id,
+        version_id: document.current_version_id,
+        user_id: user.id,
+        action: "view",
+        context: { route: "detail" },
+      });
+    }
+  }, [document?.id, user?.id]);
 
   if (isLoading || !document) {
     return <p className="text-muted-foreground text-center py-12">Carregando documento...</p>;
@@ -103,7 +142,112 @@ const QualityDocumentDetail = () => {
     const { data } = await supabase.storage.from("quality-documents").createSignedUrl(path, 300, {
       download: filename,
     });
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    if (data?.signedUrl) {
+      window.open(data.signedUrl, "_blank");
+      if (user) {
+        logQualityDocumentAccess({
+          document_id: document.id,
+          version_id: activeVersion?.id ?? null,
+          user_id: user.id,
+          action: "download",
+          context: { filename },
+        });
+      }
+    }
+  };
+
+  const openIntegratedViewer = async () => {
+    if (!activeVersion?.file_path) return;
+    const { data } = await supabase.storage
+      .from("quality-documents")
+      .createSignedUrl(activeVersion.file_path, 300);
+    if (data?.signedUrl) {
+      const res = await fetch(data.signedUrl);
+      setFileBlob(await res.blob());
+      setShowViewer(true);
+      if (user) {
+        logQualityDocumentAccess({
+          document_id: document.id,
+          version_id: activeVersion.id,
+          user_id: user.id,
+          action: "view",
+          context: { mode: "integrated_pdf_viewer" },
+        });
+      }
+    }
+  };
+
+  const buildPDFBlob = async (opts: { watermark?: "uncontrolled" | "obsolete" | "draft" | null } = {}) => {
+    const v = publishedVersion || activeVersion;
+    if (!v) return null;
+    const watermark =
+      opts.watermark !== undefined
+        ? opts.watermark
+        : document.status === "obsolete"
+        ? "obsolete"
+        : v.status === "draft"
+        ? "draft"
+        : null;
+    // resolve nomes
+    const [{ data: prep }, { data: appr }, { data: comp }] = await Promise.all([
+      v.prepared_by
+        ? supabase.from("profiles").select("full_name").eq("id", v.prepared_by).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+      v.approved_by
+        ? supabase.from("profiles").select("full_name").eq("id", v.approved_by).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+      supabase.from("companies").select("name").eq("id", document.company_id).maybeSingle(),
+    ]);
+    const doc = (
+      <QualityDocumentPDF
+        companyName={comp?.name || undefined}
+        code={document.code}
+        title={document.title}
+        revisionLabel={v.revision_label}
+        publishedAt={document.published_at}
+        nextReviewDate={document.next_review_date}
+        approverName={appr?.full_name || null}
+        preparedByName={prep?.full_name || null}
+        classification={document.classification}
+        normativeReference={document.normative_reference}
+        richContent={v.rich_content}
+        watermark={watermark}
+      />
+    );
+    return await pdf(doc as any).toBlob();
+  };
+
+  const downloadGeneratedPDF = async (watermark: "uncontrolled" | null = null) => {
+    const v = publishedVersion || activeVersion;
+    if (!v) return;
+    if (v.content_kind !== "rich_text") {
+      alert("Esta versão é um arquivo anexado — use 'Baixar arquivo' na aba Versões.");
+      return;
+    }
+    const blob = await buildPDFBlob({ watermark });
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = window.document.createElement("a");
+    a.href = url;
+    a.download = `${document.code}_rev${v.revision_label}${watermark === "uncontrolled" ? "_NAO_CONTROLADA" : ""}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    if (user) {
+      logQualityDocumentAccess({
+        document_id: document.id,
+        version_id: v.id,
+        user_id: user.id,
+        action: watermark === "uncontrolled" ? "download" : "print",
+        context: { watermark },
+      });
+    }
+  };
+
+  const viewGeneratedPDF = async () => {
+    const blob = await buildPDFBlob({ watermark: null });
+    if (!blob) return;
+    setFileBlob(blob);
+    setShowViewer(true);
   };
 
   return (
@@ -130,6 +274,43 @@ const QualityDocumentDetail = () => {
                 </p>
               </div>
               <div className="flex gap-2 flex-wrap">
+                {activeVersion?.content_kind === "rich_text" && (
+                  <>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={viewGeneratedPDF}>
+                          <Eye className="h-4 w-4 mr-1" /> Visualizar PDF
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Visualização integrada (não conta como impressão)</TooltipContent>
+                    </Tooltip>
+                    <Button variant="outline" size="sm" onClick={() => downloadGeneratedPDF(null)}>
+                      <Download className="h-4 w-4 mr-1" /> Baixar PDF
+                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button variant="ghost" size="sm" onClick={() => downloadGeneratedPDF("uncontrolled")}>
+                          <Printer className="h-4 w-4 mr-1" /> Cópia não controlada
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Gera o PDF com marca d'água "CÓPIA NÃO CONTROLADA"</TooltipContent>
+                    </Tooltip>
+                  </>
+                )}
+                {activeVersion?.content_kind === "file" && activeVersion.file_path && (
+                  <>
+                    <Button variant="outline" size="sm" onClick={openIntegratedViewer}>
+                      <Eye className="h-4 w-4 mr-1" /> Visualizar arquivo
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadFile(activeVersion.file_path!, activeVersion.file_name!)}
+                    >
+                      <Download className="h-4 w-4 mr-1" /> Baixar
+                    </Button>
+                  </>
+                )}
                 {activeVersion?.status === "draft" && (
                   <Button variant="outline" onClick={() => submitForApproval.mutate(activeVersion.id)}>
                     <Send className="h-4 w-4 mr-2" /> Enviar para aprovação
@@ -295,6 +476,19 @@ const QualityDocumentDetail = () => {
             <DocumentAccessLogPanel documentId={document.id} />
           </TabsContent>
         </Tabs>
+
+        <Dialog open={showViewer} onOpenChange={setShowViewer}>
+          <DialogContent className="max-w-5xl h-[85vh] flex flex-col">
+            <DialogHeader>
+              <DialogTitle>
+                {document.code} — Rev {(publishedVersion || activeVersion)?.revision_label}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="flex-1 min-h-0">
+              <PDFCanvasViewer blob={fileBlob} />
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </TooltipProvider>
   );
