@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { UserCog, Lock, Palette, Bell, ShieldAlert, Loader2 } from "lucide-react";
+import { UserCog, Lock, Palette, Bell, ShieldAlert, Loader2, PenLine } from "lucide-react";
+import SignatureSection from "@/components/account/SignatureSection";
 
 const AccountSettings = () => {
   const { user, profile, updatePassword } = useAuth();
@@ -70,10 +71,15 @@ const AccountSettings = () => {
         <TabsList>
           <TabsTrigger value="account"><UserCog className="h-4 w-4 mr-2" /> Conta</TabsTrigger>
           <TabsTrigger value="security"><Lock className="h-4 w-4 mr-2" /> Segurança</TabsTrigger>
+          <TabsTrigger value="signature"><PenLine className="h-4 w-4 mr-2" /> Assinatura</TabsTrigger>
           <TabsTrigger value="appearance"><Palette className="h-4 w-4 mr-2" /> Aparência</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-2" /> Notificações</TabsTrigger>
           <TabsTrigger value="session"><ShieldAlert className="h-4 w-4 mr-2" /> Sessão</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="signature" className="mt-4">
+          <SignatureSection />
+        </TabsContent>
 
         <TabsContent value="account" className="mt-4">
           <Card>

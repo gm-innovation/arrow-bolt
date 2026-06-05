@@ -1,42 +1,26 @@
-## Separar "Minha Conta" de "Parâmetros do Módulo"
+## Mover "Minha Assinatura" para uma aba dentro de "Minha Conta"
 
-### Arquivos
+`/quality/signature` é dado pessoal do usuário (assinatura eletrônica reutilizável em todo o SGQ), não parâmetro do módulo. Faz mais sentido em **Minha Conta**.
 
-**Novo — `src/pages/account/AccountSettings.tsx`**
-Página única com Tabs:
-- **Conta**: nome (read-only, com nota "fale com RH/Diretoria"), e-mail (read-only)
-- **Segurança**: trocar senha (mín. 8 caracteres, confirmação) usando `updatePassword` do AuthContext
-- **Aparência**: switch tema claro/escuro (toggle de classe `dark` + persistência em `localStorage`)
-- **Notificações**: placeholder "em breve"
-- **Sessão**: placeholder "em breve"
+### Mudanças
 
-**Novo — `src/components/account/AccountLayoutRoute.tsx`**
-Wrapper que lê `userRole` do `useAuth`, mapeia para o `userType` do `DashboardLayout` e renderiza `<ProtectedRoute><DashboardLayout userType={...} /></ProtectedRoute>` com `<Outlet />`. Permite uma única rota `/account/settings` funcionar para todos os papéis preservando a sidebar do papel atual.
+**`src/pages/account/AccountSettings.tsx`**
+- Adicionar nova aba **"Assinatura"** (ícone `PenLine`) entre "Segurança" e "Aparência".
+- Conteúdo: renderizar o componente atual de `MySignature` (extrair o corpo de `src/pages/quality/MySignature.tsx` para um componente reutilizável `SignatureSection`, ou importar `MySignature` diretamente — vou extrair para um componente puro sem o cabeçalho duplicado da página).
 
-Mapeamento: `super_admin→super-admin`, `coordinator→admin`, `manager→director`, `director→director`, `technician→tech`, `hr→hr`, `commercial→commercial`, `compras→compras`, `qualidade→qualidade`, `financeiro→financeiro`.
+**Novo — `src/components/account/SignatureSection.tsx`**
+- Conteúdo de `MySignature` sem o `<h2>`/subtítulo de página (apenas o(s) Card(s) de gestão da assinatura). Reutiliza o mesmo `useQualitySignature`.
 
-**Editado — `src/App.tsx`**
-- Importar `AccountLayoutRoute` e `AccountSettings`.
-- Adicionar bloco antes do catch-all:
-  ```
-  <Route element={<AccountLayoutRoute />}>
-    <Route path="/account/settings" element={<AccountSettings />} />
-  </Route>
-  ```
+**`src/pages/quality/MySignature.tsx`**
+- Vira um wrapper fino que renderiza o título da página + `<SignatureSection />`, para preservar a rota `/quality/signature` (links antigos continuam funcionando).
 
-**Editado — `src/components/UserMenu.tsx`**
-- Remover `getSettingsPath()`.
-- Item passa a se chamar **"Minha Conta"** e navega para `/account/settings`.
-- Item "Perfil" permanece como está.
+**`src/components/DashboardLayout.tsx`**
+- Remover o item `Minha Assinatura` de `qualidadeMenuItems`.
 
-**Editado — `src/components/DashboardLayout.tsx`**
-- Em `qualidadeMenuItems`, o item `"Configurações"` (path `/quality/settings`) vira `"Parâmetros SGQ"`. Path e ícone preservados.
-
-**Editado — `src/pages/quality/Settings.tsx`**
-- Título: `"Configurações da Qualidade"` → `"Parâmetros do SGQ"`.
-- Subtítulo: `"Catálogo de tipos de documento, ciclos de revisão e ajustes do Sistema de Gestão da Qualidade."`
+**`src/App.tsx`**
+- Manter `/quality/signature` apontando para `MySignature` (sem mudanças de rota). Apenas o item da sidebar é removido.
 
 ### Não muda
-- Rotas dos módulos (`/quality/settings`, `/admin/settings`, etc.) continuam existindo como painel de cada módulo.
-- Página de Perfil.
-- Demais itens de outros módulos na sidebar.
+- Hook `useQualitySignature`, storage, RLS.
+- Rota `/quality/signature` (deprecada na navegação mas ainda navegável por links existentes).
+- Funcionalidade da assinatura nos documentos do SGQ.
