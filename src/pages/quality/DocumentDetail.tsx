@@ -47,6 +47,7 @@ const sanitize = (n: string) =>
 const QualityDocumentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete } =
     useQualityDocument(id);
   const { signature, registerSignatureEvent } = useQualitySignature();
@@ -55,8 +56,14 @@ const QualityDocumentDetail = () => {
   const [changeSummary, setChangeSummary] = useState("");
   const [revisionLabel, setRevisionLabel] = useState("1.0");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [fileBlob, setFileBlob] = useState<Blob | null>(null);
+  const [showViewer, setShowViewer] = useState(false);
 
   const activeVersion = versions[0] || null;
+  const publishedVersion = useMemo(
+    () => versions.find((v) => v.status === "published") || null,
+    [versions]
+  );
 
   useEffect(() => {
     if (activeVersion) {
@@ -66,6 +73,19 @@ const QualityDocumentDetail = () => {
       setRevisionLabel("1.0");
     }
   }, [activeVersion?.id]);
+
+  // log de visualização ao abrir o documento
+  useEffect(() => {
+    if (document && user) {
+      logQualityDocumentAccess({
+        document_id: document.id,
+        version_id: document.current_version_id,
+        user_id: user.id,
+        action: "view",
+        context: { route: "detail" },
+      });
+    }
+  }, [document?.id, user?.id]);
 
   if (isLoading || !document) {
     return <p className="text-muted-foreground text-center py-12">Carregando documento...</p>;
