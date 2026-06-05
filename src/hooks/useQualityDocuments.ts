@@ -230,7 +230,7 @@ export const useQualityDocument = (id: string | undefined) => {
               user_id: m.user_id,
               title: "Documento aguardando aprovação",
               message: `${data.code} — ${data.title} foi enviado para aprovação.`,
-              notification_type: "document_received",
+              notification_type: "document_received" as const,
               reference_id: id!,
             }))
           );
@@ -296,7 +296,7 @@ export const useQualityDocument = (id: string | undefined) => {
               user_id: uid,
               title: "Documento publicado",
               message: `${data.code} — ${data.title} foi aprovado e publicado.`,
-              notification_type: "document_received",
+              notification_type: "document_received" as const,
               reference_id: id!,
             }))
           );
