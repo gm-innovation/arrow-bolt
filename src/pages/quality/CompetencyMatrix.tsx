@@ -134,6 +134,10 @@ const CompetencyMatrixPage = () => {
             <CompetencyMappingDialog open={mappingOpen} onClose={() => setMappingOpen(false)} />
           )}
         </TabsContent>
+
+        <TabsContent value="prereqs" className="mt-4">
+          <DocumentPrerequisitesEditor />
+        </TabsContent>
       </Tabs>
     </div>
   );
