@@ -29,6 +29,7 @@ import DocumentPermissionsPanel from "@/components/quality/DocumentPermissionsPa
 import DocumentAccessLogPanel from "@/components/quality/DocumentAccessLogPanel";
 import DocumentControlledCopiesPanel from "@/components/quality/DocumentControlledCopiesPanel";
 import DocumentAcknowledgementsPanel from "@/components/quality/DocumentAcknowledgementsPanel";
+import DocumentPrerequisitesPanel from "@/components/quality/DocumentPrerequisitesPanel";
 import { PDFCanvasViewer } from "@/components/ui/PDFCanvasViewer";
 import { pdf } from "@react-pdf/renderer";
 import { QualityDocumentPDF } from "@/components/quality/QualityDocumentPDF";
@@ -477,7 +478,8 @@ const QualityDocumentDetail = () => {
             <DocumentControlledCopiesPanel documentId={document.id} currentVersionId={document.current_version_id} />
           </TabsContent>
 
-          <TabsContent value="acknowledgements">
+          <TabsContent value="acknowledgements" className="space-y-4">
+            <DocumentPrerequisitesPanel documentId={document.id} />
             <DocumentAcknowledgementsPanel
               documentId={document.id}
               currentVersionId={document.current_version_id}
