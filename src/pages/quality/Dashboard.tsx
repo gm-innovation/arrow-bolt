@@ -10,12 +10,14 @@ import {
   Printer,
   Clock,
   FolderOpen,
+  HardHat,
 } from "lucide-react";
 import { useQualityNCRs } from "@/hooks/useQualityNCRs";
 import { useQualityActionPlans } from "@/hooks/useQualityActionPlans";
 import { useQualityAudits } from "@/hooks/useQualityAudits";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityControlledCopies } from "@/hooks/useQualityControlledCopies";
+import { useQualityAlerts } from "@/hooks/useQualityAlerts";
 import { format, parseISO, differenceInDays } from "date-fns";
 import QualityAlertsPanel from "@/components/quality/QualityAlertsPanel";
 
@@ -25,6 +27,7 @@ const QualityDashboard = () => {
   const { audits } = useQualityAudits();
   const { documents } = useQualityDocuments();
   const { copies } = useQualityControlledCopies();
+  const { counters: alertCounters } = useQualityAlerts();
 
   const openNCRs = ncrs.filter((n) => !["closed", "cancelled"].includes(n.status));
   const activePlans = plans.filter((p) => !["closed", "effective", "ineffective"].includes(p.status));
@@ -52,7 +55,7 @@ const QualityDashboard = () => {
       <QualityAlertsPanel />
 
       {/* GED */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <Link to="/quality/documents">
           <Card className="hover:bg-muted/30 transition cursor-pointer">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -98,6 +101,18 @@ const QualityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{copiesPending.length}</div>
               <p className="text-xs text-muted-foreground">Aguardando recolhimento</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/quality/safety">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">S&S — vencidos/vencendo</CardTitle>
+              <HardHat className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{alertCounters.safety}</div>
+              <p className="text-xs text-muted-foreground">Documentos de Saúde e Segurança</p>
             </CardContent>
           </Card>
         </Link>
