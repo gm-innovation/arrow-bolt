@@ -68,4 +68,5 @@ export const CATEGORY_LABELS: Record<string, string> = {
   management_review: "Análise Crítica",
   supplier_requalification: "Reavaliação de Fornecedor",
   supplier_pending: "Qualificação Pendente",
+  device_calibration: "Calibração de Instrumentos",
 };
