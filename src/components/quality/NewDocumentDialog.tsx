@@ -26,6 +26,12 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
     normative_reference: "",
     next_review_date: "",
     widely_visible: false,
+    origin: "internal" as "internal" | "client" | "external_norm" | "external_law" | "external_certificate" | "safety",
+    external_source: "",
+    validity_start: "",
+    validity_end: "",
+    auto_renewal: false,
+    document_control_mode: "full_control" as "full_control" | "received_only",
   });
 
   useEffect(() => {
@@ -38,6 +44,12 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
         normative_reference: "",
         next_review_date: "",
         widely_visible: false,
+        origin: "internal",
+        external_source: "",
+        validity_start: "",
+        validity_end: "",
+        auto_renewal: false,
+        document_control_mode: "full_control",
       });
     }
   }, [open]);
