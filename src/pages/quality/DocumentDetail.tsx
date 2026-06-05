@@ -18,6 +18,7 @@ import {
   Upload,
   Download,
   Eye,
+  BadgeCheck,
 } from "lucide-react";
 import { useQualityDocument } from "@/hooks/useQualityDocuments";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
@@ -27,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DocumentPermissionsPanel from "@/components/quality/DocumentPermissionsPanel";
 import DocumentAccessLogPanel from "@/components/quality/DocumentAccessLogPanel";
 import DocumentControlledCopiesPanel from "@/components/quality/DocumentControlledCopiesPanel";
+import DocumentAcknowledgementsPanel from "@/components/quality/DocumentAcknowledgementsPanel";
 import { PDFCanvasViewer } from "@/components/ui/PDFCanvasViewer";
 import { pdf } from "@react-pdf/renderer";
 import { QualityDocumentPDF } from "@/components/quality/QualityDocumentPDF";
@@ -367,6 +369,9 @@ const QualityDocumentDetail = () => {
             <TabsTrigger value="copies">
               <Printer className="h-4 w-4 mr-1" /> Cópias Controladas
             </TabsTrigger>
+            <TabsTrigger value="acknowledgements">
+              <BadgeCheck className="h-4 w-4 mr-1" /> Ciência
+            </TabsTrigger>
             <TabsTrigger value="log">
               <Activity className="h-4 w-4 mr-1" /> Log de Acesso
             </TabsTrigger>
@@ -470,6 +475,14 @@ const QualityDocumentDetail = () => {
 
           <TabsContent value="copies">
             <DocumentControlledCopiesPanel documentId={document.id} currentVersionId={document.current_version_id} />
+          </TabsContent>
+
+          <TabsContent value="acknowledgements">
+            <DocumentAcknowledgementsPanel
+              documentId={document.id}
+              currentVersionId={document.current_version_id}
+              requiresStrong={!!(document as any).requires_strong_acknowledgement}
+            />
           </TabsContent>
 
           <TabsContent value="log">

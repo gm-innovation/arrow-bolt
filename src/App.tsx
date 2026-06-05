@@ -155,6 +155,7 @@ const QualitySatisfactionDetail = lazy(() => import("./pages/quality/Satisfactio
 const QualityComplaintDetail = lazy(() => import("./pages/quality/ComplaintDetail"));
 const QualityImprovements = lazy(() => import("./pages/quality/Improvements"));
 const QualitySafety = lazy(() => import("./pages/quality/Safety"));
+const QualityMyAcknowledgements = lazy(() => import("./pages/quality/MyAcknowledgements"));
 const PublicSatisfactionResponse = lazy(() => import("./pages/public/SatisfactionResponse"));
 
 const FinanceDashboard = lazy(() => import("./pages/finance/Dashboard"));
@@ -409,6 +410,7 @@ const App = () => {
                     <Route path="/quality/complaints/:id" element={<QualityComplaintDetail />} />
                     <Route path="/quality/improvements" element={<QualityImprovements />} />
                     <Route path="/quality/safety" element={<QualitySafety />} />
+                    <Route path="/quality/my-acknowledgements" element={<QualityMyAcknowledgements />} />
                     <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>
 
