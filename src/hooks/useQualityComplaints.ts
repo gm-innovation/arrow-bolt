@@ -5,6 +5,7 @@ import { toast } from "@/hooks/use-toast";
 
 export type ComplaintStatus = "new" | "acknowledged" | "under_analysis" | "resolved" | "rejected";
 export type ComplaintSource = "survey" | "email" | "phone" | "in_person" | "system" | "other";
+export type ComplaintKind = "complaint" | "suggestion";
 
 export interface ComplaintRow {
   id: string;
@@ -13,6 +14,7 @@ export interface ComplaintRow {
   client_id: string | null;
   is_anonymous: boolean;
   source: ComplaintSource;
+  kind: ComplaintKind;
   title: string;
   description: string;
   received_at: string;
@@ -29,7 +31,7 @@ export interface ComplaintRow {
   client?: { id: string; company_name: string } | null;
 }
 
-export const useQualityComplaints = () => {
+export const useQualityComplaints = (kind?: ComplaintKind) => {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
 
