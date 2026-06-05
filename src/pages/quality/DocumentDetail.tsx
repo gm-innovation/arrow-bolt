@@ -1,11 +1,24 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
-import { ArrowLeft, FileText, History, Lock, Activity, Printer, Send, CheckCircle2, Archive, Upload } from "lucide-react";
+import {
+  ArrowLeft,
+  FileText,
+  History,
+  Lock,
+  Activity,
+  Printer,
+  Send,
+  CheckCircle2,
+  Archive,
+  Upload,
+  Download,
+  Eye,
+} from "lucide-react";
 import { useQualityDocument } from "@/hooks/useQualityDocuments";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
 import { RichTextEditor } from "@/components/quality/RichTextEditor";
@@ -14,6 +27,11 @@ import { supabase } from "@/integrations/supabase/client";
 import DocumentPermissionsPanel from "@/components/quality/DocumentPermissionsPanel";
 import DocumentAccessLogPanel from "@/components/quality/DocumentAccessLogPanel";
 import DocumentControlledCopiesPanel from "@/components/quality/DocumentControlledCopiesPanel";
+import { PDFCanvasViewer } from "@/components/ui/PDFCanvasViewer";
+import { pdf } from "@react-pdf/renderer";
+import { QualityDocumentPDF } from "@/components/quality/QualityDocumentPDF";
+import { useAuth } from "@/contexts/AuthContext";
+import { logQualityDocumentAccess } from "@/lib/qualityAccessLog";
 
 const statusLabel: Record<string, string> = {
   draft: "Rascunho",
