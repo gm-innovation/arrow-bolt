@@ -17,6 +17,7 @@ import { useQualityAudits } from "@/hooks/useQualityAudits";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityControlledCopies } from "@/hooks/useQualityControlledCopies";
 import { format, parseISO, differenceInDays } from "date-fns";
+import QualityAlertsPanel from "@/components/quality/QualityAlertsPanel";
 
 const QualityDashboard = () => {
   const { ncrs } = useQualityNCRs();
@@ -47,6 +48,8 @@ const QualityDashboard = () => {
         <h2 className="text-2xl font-bold text-foreground">Qualidade</h2>
         <p className="text-muted-foreground">Sistema de Gestão da Qualidade — ISO 9001</p>
       </div>
+
+      <QualityAlertsPanel />
 
       {/* GED */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
