@@ -40,6 +40,9 @@ import {
   GraduationCap,
   TrendingUp,
   Bot,
+  FolderOpen,
+  Printer,
+  PenLine,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
