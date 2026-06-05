@@ -1,83 +1,67 @@
 
-# Sprint 3.1 — Melhorias Consolidadas
+# Sprint 3.2 — Saúde e Segurança via GED (final, aprovado)
 
-Sem auditoria iminente, prosseguimos na ordem padrão. Esta sprint fecha o ciclo PDCA dando ao Gestor da Qualidade **uma fila única** de oportunidades de melhoria, agregando origens que hoje vivem isoladas (NCRs, Auditorias, Análise Crítica, Reclamações de Cliente e itens manuais).
+Reaproveita toda a infra de GED (Fase 1/2) e entrega uma área dedicada de S&S com tipos de documento próprios, dashboard de vencimentos e integração ao sistema de alertas existente.
 
-## Objetivo
-Página `/quality/improvements` que lista, prioriza e acompanha **todas** as oportunidades de melhoria do SGQ, independentemente da origem, com vínculo bidirecional ao Plano de Ação correspondente.
+## Confirmações pré-build
+- ✅ `quality_alerts_v` já popula `category='safety'` para documentos com `origin='safety'` (verificado: `SELECT d.origin::text AS category ...`). **Nenhuma alteração de view necessária.** Basta acrescentar o counter `safety` no hook `useQualityAlerts`.
+- ✅ Sem novas tabelas.
+- ✅ Seeding idempotente sob demanda via `quality_seed_safety_document_types`.
+- ✅ Detalhe reutiliza `/quality/documents/:id`.
+- ✅ Ficha de EPI e ASOs por colaborador fora do escopo.
 
-## Escopo
+## Banco de dados (1 migration)
 
-### Origens consolidadas (read-only, sem duplicar dados)
-- `quality_ncrs` (status ≠ closed, ou com `improvement_opportunity=true`)
-- `quality_audit_findings` (não-conformidades e observações)
-- `quality_management_review_outputs` (saídas da Análise Crítica que viram melhoria)
-- `quality_complaints` (reclamações de cliente com tratamento pendente)
-- **Melhorias manuais** (nova tabela `quality_improvements_manual` — sugestões de colaboradores que não nasceram de NCR/auditoria)
+1. `ALTER TABLE quality_document_types ADD CONSTRAINT IF NOT EXISTS uq_qdt_company_prefix UNIQUE (company_id, code_prefix);` (verificar existência antes).
+2. Função `quality_seed_safety_document_types(p_company_id uuid) RETURNS void` — SECURITY DEFINER com `SET search_path = public`, faz `INSERT ... ON CONFLICT (company_id, code_prefix) DO NOTHING` para os 7 tipos:
 
-### O que NÃO entra
-- Não recria entidades; é uma camada de leitura unificada.
-- Não substitui as telas de NCR/Auditoria/Análise Crítica — cada origem mantém sua tela própria; aqui é a **visão consolidada**.
+| code_prefix | name                                              | default_review_interval_months |
+|-------------|---------------------------------------------------|--------------------------------|
+| PCMSO       | Programa de Controle Médico de Saúde Ocupacional  | 12                             |
+| PGR         | Programa de Gerenciamento de Riscos               | 24                             |
+| LTCAT       | Laudo Técnico das Condições Ambientais            | 12                             |
+| NR01        | Documentação NR-01 (GRO)                          | 12                             |
+| FICHA_EPI   | Ficha de Controle de EPI (modelo)                 | 12                             |
+| ASO         | Atestado de Saúde Ocupacional (modelo)            | 12                             |
+| LAUDO_SST   | Outros Laudos de S&S                              | 12                             |
 
-## Estrutura técnica
-
-### 1. View consolidada (sem trigger, sem duplicação)
-`quality_improvements_v` — UNION ALL das 5 origens, colunas padronizadas:
-
-```text
-id              uuid       -- id do registro de origem
-company_id      uuid
-source          text       -- ncr | audit_finding | review_output | complaint | manual
-source_label    text       -- "NCR-2026-001", "Auditoria Interna Q1", etc.
-title           text
-description     text
-priority        text       -- high | medium | low (derivado por origem)
-status          text       -- open | in_progress | done | cancelled
-opened_at       timestamptz
-due_date        date       -- null se não houver
-owner_user_id   uuid       -- responsável
-action_plan_id  uuid       -- vínculo com quality_action_plans (se existir)
-source_url      text       -- deep link para a tela de origem
-```
-
-Regras de mapeamento por origem documentadas em comentário SQL na view.
-
-### 2. Nova tabela `quality_improvements_manual`
-Para sugestões espontâneas (kaizen, ideias de colaboradores) que não nasceram em outra entidade. Mesmos campos básicos + `submitted_by`, `category`.
-
-GRANTs + RLS por `company_id` + papel (qualquer colaborador insere; coordinator/director/super_admin gerencia).
-
-### 3. Vínculo com Plano de Ação
-Botão **"Gerar Plano de Ação"** em cada linha que ainda não tem `action_plan_id`. Cria registro em `quality_action_plans` herdando `title`, `owner_user_id`, `due_date` e preenchendo `source` + `source_id` (já existem nessa tabela ou serão adicionados se faltarem — verificar na implementação).
+3. `GRANT EXECUTE ON FUNCTION quality_seed_safety_document_types(uuid) TO authenticated;` — RLS efetiva fica no SECURITY DEFINER, que valida via `has_role` que o caller é coordinator/director/super_admin da `p_company_id` antes de inserir.
 
 ## Frontend
 
-### Página `/quality/improvements`
-- **Filtros:** origem (multi), status, prioridade, responsável, período, com/sem plano de ação.
-- **Cards de KPI no topo:** total aberto, vencidos, sem responsável, sem plano de ação.
-- **Tabela** com colunas: Origem (badge colorido), Identificador, Título, Prioridade, Responsável, Prazo, Status, Plano de ação (✓/Gerar).
-- **Linha clicável** → drawer lateral com detalhes + link para tela de origem.
-- **Ação em massa:** atribuir responsável, gerar planos de ação em lote.
+### Hook `src/hooks/useQualitySafetyDocuments.ts`
+Wrapper sobre `useQualityDocuments` filtrando `origin='safety'`. Expõe:
+- `documents`, `byType`, `expiringSoon`, `expired`
+- `seedTypes()` chama `supabase.rpc('quality_seed_safety_document_types', { p_company_id })`
+- `hasSafetyTypes` boolean (calculado de `quality_document_types` por `code_prefix` IN dos 7)
 
-### Hook `useQualityImprovements`
-Consome a view + CRUD da tabela manual.
+### Ajuste `src/hooks/useQualityAlerts.ts`
+Acrescentar no objeto `counters`:
+```ts
+safety: countBy((a) => a.source === "document" && a.category === "safety"),
+```
+
+### Página `src/pages/quality/Safety.tsx` (rota `/quality/safety`)
+- KPIs: Ativos, Vencendo em ≤30d, Vencidos, Sem prazo.
+- Filtros: Tipo, Status (vigente/vencendo/vencido), Período.
+- Tabela: Tipo (badge), Código, Título, Versão Vigente, Validade, Status, Ação (abrir `/quality/documents/:id`).
+- Botão **"Novo documento de S&S"** abre dialog reusando criação de `quality_documents`, com `origin='safety'` fixo e Select restrito aos 7 tipos.
+- Banner "Configurar tipos padrão de S&S" se `!hasSafetyTypes`.
 
 ### Navegação
-Item **"Melhorias"** (ícone `Sparkles` ou `TrendingUp`) em `DashboardLayout.tsx`, dentro do menu Qualidade, entre "Análise Crítica" e "Indicadores".
+- `App.tsx`: lazy `QualitySafety` + `<Route path="/quality/safety" element={<QualitySafety />} />`.
+- `DashboardLayout.tsx`: item **"Saúde e Segurança"** (ícone `HardHat`) entre "Auditorias" e "Voz do Cliente".
+
+### Dashboard da Qualidade
+Card "S&S — documentos vencidos/vencendo" usando `counters.safety` no `Dashboard.tsx`.
 
 ## Permissões
-- **Visualizar:** super_admin, director, coordinator, qualquer papel com acesso ao módulo Qualidade.
-- **Criar melhoria manual:** todos os colaboradores autenticados (`company_id` scoped).
-- **Editar/atribuir/gerar plano:** super_admin, director, coordinator.
+Sem mudanças nas policies; coordinator/director/super_admin gerenciam, demais leem conforme `widely_visible` / permissões granulares já existentes em `quality_documents`.
 
 ## Entregáveis
-1. Migration: tabela `quality_improvements_manual` + view `quality_improvements_v` + (se necessário) colunas `source`/`source_id` em `quality_action_plans` + RLS + GRANTs.
-2. Hook `useQualityImprovements.ts`.
-3. Página `src/pages/quality/Improvements.tsx` + drawer de detalhes.
-4. Item de menu em `DashboardLayout.tsx` + rota em `App.tsx`.
-5. Atualização do `quality_review_status_v` ou criação de KPI próprio para alimentar o card "Melhorias abertas" no dashboard de Indicadores.
-
-## Fora do escopo (próximas sprints)
-- Sprint 3.2 — Saúde e Segurança via GED
-- Sprint 3.3 — Conscientização ("Li e ciente" + Matriz de Competência)
-- Sprint 3.4+ — Riscos/Oportunidades §6.1, Fornecedores §8.4, Calibração §7.1.5
+1. Migration: `UNIQUE(company_id, code_prefix)` + `quality_seed_safety_document_types`.
+2. `useQualitySafetyDocuments.ts`.
+3. Ajuste em `useQualityAlerts.ts` (counter `safety`).
+4. `Safety.tsx`.
+5. Rota + item de menu.
+6. Card no Dashboard da Qualidade.

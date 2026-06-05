@@ -9,15 +9,23 @@ import { Switch } from "@/components/ui/switch";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityDocumentTypes } from "@/hooks/useQualityDocumentTypes";
 
+type DocOrigin = "internal" | "client" | "external_norm" | "external_law" | "external_certificate" | "safety";
+
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onCreated?: (id: string) => void;
+  lockedOrigin?: DocOrigin;
+  typeCodePrefixes?: string[];
+  title?: string;
 }
 
-const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
+const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCodePrefixes, title }: Props) => {
   const { create } = useQualityDocuments();
-  const { types } = useQualityDocumentTypes();
+  const { types: allTypes } = useQualityDocumentTypes();
+  const types = typeCodePrefixes && typeCodePrefixes.length > 0
+    ? allTypes.filter((t: any) => typeCodePrefixes.includes(t.code_prefix))
+    : allTypes;
   const [form, setForm] = useState({
     document_type_id: "",
     code: "",
@@ -44,7 +52,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
         normative_reference: "",
         next_review_date: "",
         widely_visible: false,
-        origin: "internal",
+        origin: lockedOrigin ?? "internal",
         external_source: "",
         validity_start: "",
         validity_end: "",
@@ -52,7 +60,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
         document_control_mode: "full_control",
       });
     }
-  }, [open]);
+  }, [open, lockedOrigin]);
 
   const selectedType = types.find((t) => t.id === form.document_type_id);
 
@@ -91,7 +99,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-xl">
         <DialogHeader>
-          <DialogTitle>Novo Documento</DialogTitle>
+          <DialogTitle>{title ?? "Novo Documento"}</DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4">
@@ -163,7 +171,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated }: Props) => {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label>Origem</Label>
-              <Select value={form.origin} onValueChange={(v) => setForm({ ...form, origin: v as any })}>
+              <Select value={form.origin} onValueChange={(v) => setForm({ ...form, origin: v as any })} disabled={!!lockedOrigin}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="internal">Interno</SelectItem>

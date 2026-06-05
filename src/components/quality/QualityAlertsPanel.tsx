@@ -36,6 +36,7 @@ const QualityAlertsPanel = () => {
     { key: "external_certificate", label: "Certificados/Licenças" },
     { key: "client", label: "Docs Cliente" },
     { key: "internal", label: "Docs Internos" },
+    { key: "safety", label: "Saúde e Segurança" },
     { key: "management_review", label: "Análise Crítica" },
   ];
 
