@@ -18,6 +18,7 @@ import {
   Upload,
   Download,
   Eye,
+  BadgeCheck,
 } from "lucide-react";
 import { useQualityDocument } from "@/hooks/useQualityDocuments";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
@@ -27,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import DocumentPermissionsPanel from "@/components/quality/DocumentPermissionsPanel";
 import DocumentAccessLogPanel from "@/components/quality/DocumentAccessLogPanel";
 import DocumentControlledCopiesPanel from "@/components/quality/DocumentControlledCopiesPanel";
+import DocumentAcknowledgementsPanel from "@/components/quality/DocumentAcknowledgementsPanel";
 import { PDFCanvasViewer } from "@/components/ui/PDFCanvasViewer";
 import { pdf } from "@react-pdf/renderer";
 import { QualityDocumentPDF } from "@/components/quality/QualityDocumentPDF";
