@@ -233,6 +233,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Planos de Ação", icon: ClipboardCheck, path: "/quality/action-plans" },
     { title: "Auditorias", icon: Search, path: "/quality/audits" },
     { title: "Saúde e Segurança", icon: HardHat, path: "/quality/safety" },
+    { title: "Minha Ciência", icon: BadgeCheck, path: "/quality/my-acknowledgements" },
     { title: "Voz do Cliente", icon: MessagesSquare, path: "/quality/voice-of-customer" },
     { title: "Relatórios", icon: BarChart3, path: "/quality/reports" },
     { title: "Parâmetros SGQ", icon: Settings, path: "/quality/settings" },
