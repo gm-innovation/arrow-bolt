@@ -202,6 +202,30 @@ const QualityDashboard = () => {
             </CardContent>
           </Card>
         </Link>
+        <Link to="/quality/suppliers">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Reavaliação de fornecedor vencida</CardTitle>
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{supplierOverdue}</div>
+              <p className="text-xs text-muted-foreground">Aprovados/condicionais sem reavaliação</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/quality/suppliers">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Fornecedores suspensos</CardTitle>
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{supplierSuspended}</div>
+              <p className="text-xs text-muted-foreground">Suspensos ou desqualificados</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Qualidade Operacional */}
