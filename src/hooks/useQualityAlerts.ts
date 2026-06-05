@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type QAlertStatus = "due_soon" | "overdue" | "up_to_date";
-export type QAlertSource = "org_context" | "interested_party" | "party_evidence" | "document" | "management_review" | "risk" | "supplier";
+export type QAlertSource = "org_context" | "interested_party" | "party_evidence" | "document" | "management_review" | "risk" | "supplier" | "device";
 
 export interface QualityAlert {
   source: QAlertSource;
@@ -49,6 +49,7 @@ export const useQualityAlerts = () => {
     management_review: countBy((a) => a.source === "management_review"),
     supplier_requalification: countBy((a) => a.source === "supplier" && a.category === "requalification"),
     supplier_pending: countBy((a) => a.source === "supplier" && a.category === "pending_qualification"),
+    device_calibration: countBy((a) => a.source === "device" && a.category === "calibration"),
   };
 
   return { alerts, active, counters, isLoading };
@@ -67,4 +68,5 @@ export const CATEGORY_LABELS: Record<string, string> = {
   management_review: "Análise Crítica",
   supplier_requalification: "Reavaliação de Fornecedor",
   supplier_pending: "Qualificação Pendente",
+  device_calibration: "Calibração de Instrumentos",
 };

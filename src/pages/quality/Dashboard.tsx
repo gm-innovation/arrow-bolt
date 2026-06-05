@@ -13,7 +13,9 @@ import {
   HardHat,
   BadgeCheck,
   Building2,
+  Gauge,
 } from "lucide-react";
+import { useQualityDevices } from "@/hooks/useQualityDevices";
 import { useQualitySuppliers } from "@/hooks/useQualitySuppliers";
 import { useQualityNCRs } from "@/hooks/useQualityNCRs";
 import { useQualityActionPlans } from "@/hooks/useQualityActionPlans";
@@ -54,6 +56,13 @@ const QualityDashboard = () => {
     (s) => s.next_evaluation_due && new Date(s.next_evaluation_due) < new Date() && (s.status === "approved" || s.status === "conditional"),
   ).length;
   const supplierSuspended = suppliers.filter((s) => s.status === "suspended" || s.status === "disqualified").length;
+  const { items: devices } = useQualityDevices();
+  const today0 = new Date();
+  const devicesOverdue = devices.filter(
+    (d) => d.next_calibration_due && new Date(d.next_calibration_due) < today0
+      && (d.status === "active" || d.status === "in_calibration" || d.status === "overdue"),
+  ).length;
+  const devicesOutOfService = devices.filter((d) => d.status === "out_of_service").length;
 
   const openNCRs = ncrs.filter((n) => !["closed", "cancelled"].includes(n.status));
   const activePlans = plans.filter((p) => !["closed", "effective", "ineffective"].includes(p.status));
@@ -223,6 +232,30 @@ const QualityDashboard = () => {
             <CardContent>
               <div className="text-2xl font-bold">{supplierSuspended}</div>
               <p className="text-xs text-muted-foreground">Suspensos ou desqualificados</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/quality/devices">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Calibrações vencidas</CardTitle>
+              <Gauge className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{devicesOverdue}</div>
+              <p className="text-xs text-muted-foreground">Instrumentos com calibração atrasada</p>
+            </CardContent>
+          </Card>
+        </Link>
+        <Link to="/quality/devices">
+          <Card className="hover:bg-muted/30 transition cursor-pointer">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Instrumentos fora de serviço</CardTitle>
+              <Gauge className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{devicesOutOfService}</div>
+              <p className="text-xs text-muted-foreground">Reprovados ou bloqueados</p>
             </CardContent>
           </Card>
         </Link>
