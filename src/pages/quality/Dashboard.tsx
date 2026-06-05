@@ -56,6 +56,13 @@ const QualityDashboard = () => {
     (s) => s.next_evaluation_due && new Date(s.next_evaluation_due) < new Date() && (s.status === "approved" || s.status === "conditional"),
   ).length;
   const supplierSuspended = suppliers.filter((s) => s.status === "suspended" || s.status === "disqualified").length;
+  const { items: devices } = useQualityDevices();
+  const today0 = new Date();
+  const devicesOverdue = devices.filter(
+    (d) => d.next_calibration_due && new Date(d.next_calibration_due) < today0
+      && (d.status === "active" || d.status === "in_calibration" || d.status === "overdue"),
+  ).length;
+  const devicesOutOfService = devices.filter((d) => d.status === "out_of_service").length;
 
   const openNCRs = ncrs.filter((n) => !["closed", "cancelled"].includes(n.status));
   const activePlans = plans.filter((p) => !["closed", "effective", "ineffective"].includes(p.status));
