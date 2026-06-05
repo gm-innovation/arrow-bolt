@@ -141,7 +141,112 @@ const QualityDocumentDetail = () => {
     const { data } = await supabase.storage.from("quality-documents").createSignedUrl(path, 300, {
       download: filename,
     });
-    if (data?.signedUrl) window.open(data.signedUrl, "_blank");
+    if (data?.signedUrl) {
+      window.open(data.signedUrl, "_blank");
+      if (user) {
+        logQualityDocumentAccess({
+          document_id: document.id,
+          version_id: activeVersion?.id ?? null,
+          user_id: user.id,
+          action: "download",
+          context: { filename },
+        });
+      }
+    }
+  };
+
+  const openIntegratedViewer = async () => {
+    if (!activeVersion?.file_path) return;
+    const { data } = await supabase.storage
+      .from("quality-documents")
+      .createSignedUrl(activeVersion.file_path, 300);
+    if (data?.signedUrl) {
+      const res = await fetch(data.signedUrl);
+      setFileBlob(await res.blob());
+      setShowViewer(true);
+      if (user) {
+        logQualityDocumentAccess({
+          document_id: document.id,
+          version_id: activeVersion.id,
+          user_id: user.id,
+          action: "view",
+          context: { mode: "integrated_pdf_viewer" },
+        });
+      }
+    }
+  };
+
+  const buildPDFBlob = async (opts: { watermark?: "uncontrolled" | "obsolete" | "draft" | null } = {}) => {
+    const v = publishedVersion || activeVersion;
+    if (!v) return null;
+    const watermark =
+      opts.watermark !== undefined
+        ? opts.watermark
+        : document.status === "obsolete"
+        ? "obsolete"
+        : v.status === "draft"
+        ? "draft"
+        : null;
+    // resolve nomes
+    const [{ data: prep }, { data: appr }, { data: comp }] = await Promise.all([
+      v.prepared_by
+        ? supabase.from("profiles").select("full_name").eq("id", v.prepared_by).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+      v.approved_by
+        ? supabase.from("profiles").select("full_name").eq("id", v.approved_by).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+      supabase.from("companies").select("name").eq("id", document.company_id).maybeSingle(),
+    ]);
+    const doc = (
+      <QualityDocumentPDF
+        companyName={comp?.name || undefined}
+        code={document.code}
+        title={document.title}
+        revisionLabel={v.revision_label}
+        publishedAt={document.published_at}
+        nextReviewDate={document.next_review_date}
+        approverName={appr?.full_name || null}
+        preparedByName={prep?.full_name || null}
+        classification={document.classification}
+        normativeReference={document.normative_reference}
+        richContent={v.rich_content}
+        watermark={watermark}
+      />
+    );
+    return await pdf(doc as any).toBlob();
+  };
+
+  const downloadGeneratedPDF = async (watermark: "uncontrolled" | null = null) => {
+    const v = publishedVersion || activeVersion;
+    if (!v) return;
+    if (v.content_kind !== "rich_text") {
+      alert("Esta versão é um arquivo anexado — use 'Baixar arquivo' na aba Versões.");
+      return;
+    }
+    const blob = await buildPDFBlob({ watermark });
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = window.document.createElement("a");
+    a.href = url;
+    a.download = `${document.code}_rev${v.revision_label}${watermark === "uncontrolled" ? "_NAO_CONTROLADA" : ""}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    if (user) {
+      logQualityDocumentAccess({
+        document_id: document.id,
+        version_id: v.id,
+        user_id: user.id,
+        action: watermark === "uncontrolled" ? "download" : "print",
+        context: { watermark },
+      });
+    }
+  };
+
+  const viewGeneratedPDF = async () => {
+    const blob = await buildPDFBlob({ watermark: null });
+    if (!blob) return;
+    setFileBlob(blob);
+    setShowViewer(true);
   };
 
   return (
