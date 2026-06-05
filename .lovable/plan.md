@@ -1,111 +1,107 @@
-## Fase 2 — Refinamentos finais antes da Sprint 2.1
+# Sprint 2.4 — Indicadores e KPIs do SGQ (revisado)
 
-Todos os pontos anteriormente aprovados permanecem válidos. Estes são apenas refinamentos de modelagem.
+Painel completo de indicadores ISO 9001 §9.1 em `/quality/reports`, consumindo dados dos sprints 2.1–2.3. Sem novas tabelas, sem triggers, sem mutações.
 
----
+## Decisões confirmadas
 
-### 1. `review_status` removido do schema
+1. **Bucket temporal:** mensal. Seletor 3/6/12m apenas filtra client-side.
+2. **Janela padrão:** 12 meses (ciclo ISO anual).
+3. **Reincidência:** match por `lower(trim(root_cause))` nesta sprint. Tooltip explícito na tela: *"Reincidência baseada em texto idêntico (case-insensitive). Categorização semântica virá em sprint futura."*
+4. **Coordinator:** visão global nos KPIs, consistente com RLS atual.
 
-Campo é puramente derivado de `next_review_due_at` e da janela de alerta. Armazenar geraria inconsistência e exigiria job extra.
+## Catálogo de KPIs (10)
 
-**Decisão:**
-- **Não persistir** `review_status`.
-- Calcular em runtime via SQL helper / view ou no frontend:
+**GED**
+- Documentos publicados vs. vencendo em 30 dias
+- Tempo médio de aprovação — calculado em `quality_document_versions` como `approved_at - created_at` (campos confirmados como existentes)
 
-```text
-overdue    : next_review_due_at <  today
-due_soon   : next_review_due_at <= today + alert_window_days
-up_to_date : caso contrário
+**NCRs**
+- Abertas por severidade — série temporal mensal
+- Tempo médio de tratamento (abertura → `closed`)
+- Taxa de reincidência (12m, match texto exato)
+
+**Planos de ação**
+- Eficácia (% `effective` sobre avaliados)
+- Em atraso (`due_date < now()` e status ativo)
+
+**Auditorias & Análise crítica**
+- Planejadas vs. realizadas (12m)
+- Findings por classificação
+- Reuniões de análise crítica realizadas + saídas em aberto
+
+## Backend (1 migration `sprint_2_4`)
+
+### Índices de suporte (criados antes das views)
+```sql
+CREATE INDEX IF NOT EXISTS idx_quality_ncrs_company_created
+  ON public.quality_ncrs (company_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_quality_action_plans_company_created
+  ON public.quality_action_plans (company_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_quality_audits_company_created
+  ON public.quality_audits (company_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_quality_documents_company_created
+  ON public.quality_documents (company_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_quality_doc_versions_approved
+  ON public.quality_document_versions (document_id, created_at, approved_at);
+```
+Garante que `generate_series` cruzado com `created_at` use index scan.
+
+### Views (SECURITY INVOKER, herdam RLS das base tables)
+- **`quality_kpi_snapshot_v`** — 1 linha por `company_id`, contadores atuais (alimenta os 4 cards).
+- **`quality_kpi_timeseries_v`** — gera 12 buckets mensais via `generate_series(date_trunc('month', now()) - interval '11 months', date_trunc('month', now()), interval '1 month')` e faz `LEFT JOIN` com as tabelas-base filtrando por `created_at >= bucket AND created_at < bucket + 1 month`. Métricas: `ncrs_opened`, `ncrs_closed`, `plans_effective`, `plans_ineffective`, `audits_planned`, `audits_executed`, `documents_published`.
+- **`quality_kpi_recurrence_v`** — top 10 `lower(trim(root_cause))` mais frequentes em NCRs dos últimos 12m, com contagem.
+
+### RPC
+```sql
+quality_kpi_get_overview(p_company_id uuid) RETURNS jsonb
+  SECURITY INVOKER
+  STABLE
+  -- Retorna { cards, series[12], recurrence[10], approval_time_days }
+  -- SEMPRE 12 meses (frontend filtra para 3/6/12)
+```
+Contrato fixo: o parâmetro de período **nunca** atravessa a RPC — proteção contra futuras tentativas de parametrização que quebrariam cache do React Query.
+
+## Frontend
+
+### Hook `src/hooks/useQualityKpis.ts`
+```ts
+useQuery({
+  queryKey: ['quality-kpis', companyId],
+  queryFn: () => supabase.rpc('quality_kpi_get_overview', { p_company_id }),
+  staleTime: 5 * 60 * 1000,  // 5 min — evita refetch ao trocar de aba
+  refetchOnWindowFocus: true,
+})
 ```
 
-- Criar view utilitária `quality_review_status_v` (entity_type, entity_id, next_review_due_at, computed_status) para consumo unificado pelo dashboard.
+### `src/pages/quality/Reports.tsx` (reescrita)
+- Header + seletor 3/6/12m (filtragem client-side de `series`)
+- **Linha 1 — 4 KpiCards:** NCRs abertas · Planos em atraso · Eficácia % · Docs vencendo em 30d
+- **Linha 2 — 4 gráficos Recharts** (grid 2 col):
+  - LineChart NCRs abertas vs. fechadas
+  - BarChart findings por classificação
+  - LineChart eficácia de planos (%)
+  - BarChart auditorias planejadas vs. realizadas
+- **Linha 3 — Tabela reincidência** (top 10), com tooltip sobre limitação textual
+- Empty state quando histórico < 3 meses
 
----
+### Componentes novos
+- `src/components/quality/KpiCard.tsx` — valor + label + delta vs. mês anterior
+- `src/components/quality/KpiChart.tsx` — wrapper Recharts com tokens do design system (`hsl(var(--primary))`, etc.) — zero cores hardcoded
 
-### 2. `next_review_due_at`: derivado, com trigger garantindo consistência
+### Integração no Dashboard
+- Os 4 mesmos `KpiCard` aparecem em `Dashboard.tsx`, reaproveitando o hook (cache compartilhado via React Query)
 
-Mantemos o campo persistido (opção B) por performance no dashboard e em listagens, mas **sempre recalculado por trigger** — nunca escrito manualmente pelo app.
+## Permissões
+- `/quality/reports` acessível por `director`, `super_admin`, `coordinator` (somente leitura)
+- Sem mutações nesta sprint
 
-**Regra:**
-```text
-next_review_due_at = last_reviewed_at::date + (review_frequency_months || ' months')::interval
-```
+## Fora de escopo (futuro)
+- Satisfação do cliente / NPS
+- Exportação PDF do painel
+- Comparativo entre empresas
+- Drill-down interativo
+- Categorização semântica de causa-raiz
+- Segmentação de KPIs por área/coordenador
 
-**Trigger:** `BEFORE INSERT OR UPDATE OF last_reviewed_at, review_frequency_months` em cada uma das tabelas alvo, recalcula `next_review_due_at`. Se `review_frequency_months` ou `last_reviewed_at` forem `NULL`, `next_review_due_at` vira `NULL`.
-
-Função única reutilizável: `public.quality_recalc_next_review()`.
-
----
-
-### 3. Adicionar `last_review_notes` (auditoria)
-
-Quando o Master "Marca como revisado", a UI pede uma observação opcional explicando o que mudou / o que foi validado.
-
-**Campo adicional padrão:**
-
-```text
-last_review_notes text  -- preenchido junto com last_reviewed_at
-```
-
-Aplicado em `quality_org_context` e `quality_interested_parties` (não em análise crítica — ver item 4).
-
----
-
-### 4. `quality_critical_reviews`: ciclo é "quando ocorrer", não "revisar"
-
-Correção conceitual: cada registro é **uma reunião realizada**, não uma entidade que se revisa.
-
-**Modelo separado, sem reaproveitar o pacote dos itens 1–3:**
-
-```text
-quality_critical_reviews
-  meeting_date              date
-  inputs                    jsonb
-  outputs                   jsonb
-  minutes_document_id       uuid
-  signed_event_id           uuid
-  status                    text  -- planned | held | signed | archived
-  next_meeting_due_at       date  -- quando deve ocorrer a próxima
-```
-
-**Configuração da cadência:**
-- `review_frequency_months` da Análise Crítica fica **em Settings** (configuração global), não por registro.
-- Ao gravar uma reunião com `status='held'` ou `'signed'`, trigger calcula `next_meeting_due_at = meeting_date + frequência_configurada`.
-- Dashboard consome esse `next_meeting_due_at` para alertar "próxima análise crítica vencendo".
-- **Sem** `last_reviewed_at` / `last_review_notes` / `review_status` aqui — esses conceitos não se aplicam a reuniões.
-
----
-
-### 5. Settings — texto explícito
-
-Seção "Ciclos de revisão" passa a detalhar:
-
-```text
-- Frequência padrão por entidade
-    - Contexto da Organização          (meses)
-    - Partes Interessadas              (meses)
-    - Análise Crítica pela Direção     (meses, padrão 12)
-- Janela de alerta antes do vencimento (dias, padrão 30)
-```
-
-Janela única compartilhada por todas as entidades de revisão e pela expiração de documentos do GED.
-
----
-
-### Resumo das alterações sobre o plano anterior
-
-| Item | Antes | Depois |
-|---|---|---|
-| `review_status` | coluna persistida | removido — calculado em runtime / view |
-| `next_review_due_at` | escrito pelo app | persistido mas recalculado por trigger único |
-| `last_review_notes` | inexistente | adicionado em contexto e partes interessadas |
-| `quality_critical_reviews` | mesmo pacote das outras | modelo próprio: `next_meeting_due_at`, sem `last_reviewed_at`/`review_notes`/`review_status` |
-| Settings | "ciclos de revisão" genérico | frequência por entidade + janela de alerta explícitas |
-
-Todo o restante (escopo via GED tipo `ESCOPO_SGQ`, Partes Interessadas + evidências, documentos externos com `origin` ampliado, tópicos obrigatórios configuráveis da ata, Saúde e Segurança via `origin='safety'`, Melhorias com origem automática + manual, Conscientização, alertas dashboard + notificação interna obrigatórios) permanece **inalterado e aprovado**.
-
----
-
-### Próximo passo
-
-Aprovar libera o **detalhamento técnico da Sprint 2.1** (Escopo via GED, Normas, Termos, Contexto da Organização com revisão periódica): schema SQL completo com triggers, RLS, telas, hooks e componentes para nova aprovação antes da implementação.
+## Pronto para implementar
+Todas as 4 perguntas respondidas e os 4 ajustes técnicos incorporados. Aguardando aprovação para entrar em build mode.
