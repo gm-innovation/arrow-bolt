@@ -38,6 +38,7 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
   const { activities, upsert: upsertAct, remove: removeAct } = useProcessActivities(process?.id || null);
   const { documents } = useQualityDocuments();
   const { upsertProcess } = useQualityProcesses();
+  const { data: history = [] } = useQualityProcessDocumentHistory(process?.id || null);
   const [s, setS] = useState({
     suppliers: sipoc?.suppliers || "", inputs: sipoc?.inputs || "",
     activities: sipoc?.activities || "", outputs: sipoc?.outputs || "", customers: sipoc?.customers || "",
@@ -48,15 +49,35 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
 
   const linkDoc = (id: string) => upsertProcess.mutate({ id: process.id, current_document_id: id === "none" ? null : id });
   const doc = documents.find(d => d.id === process.current_document_id);
+  const docInvalid = doc && (
+    (doc.status !== "published" && (doc.status as any) !== "approved")
+    || (doc.expires_at && new Date(doc.expires_at) < new Date())
+  );
+  const docInvalidReason = !doc
+    ? null
+    : doc.status !== "published" && (doc.status as any) !== "approved"
+      ? `Documento está com status "${doc.status}"`
+      : (doc.expires_at && new Date(doc.expires_at) < new Date())
+        ? `Documento vencido em ${doc.expires_at}`
+        : null;
+
+  const docCode = (id: string | null) => {
+    if (!id) return "—";
+    const d = documents.find(x => x.id === id);
+    return d ? `${d.code} — ${d.title}` : id.slice(0, 8);
+  };
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader><SheetTitle>{process.name}</SheetTitle></SheetHeader>
         <Tabs defaultValue="doc" className="mt-4">
-          <TabsList><TabsTrigger value="doc">Documento Controlado</TabsTrigger>
+          <TabsList>
+            <TabsTrigger value="doc">Documento Controlado</TabsTrigger>
             <TabsTrigger value="sipoc">SIPOC</TabsTrigger>
-            <TabsTrigger value="acts">Atividades</TabsTrigger></TabsList>
+            <TabsTrigger value="acts">Atividades</TabsTrigger>
+            <TabsTrigger value="history"><HistoryIcon className="h-3.5 w-3.5 mr-1" />Histórico</TabsTrigger>
+          </TabsList>
           <TabsContent value="doc" className="space-y-3">
             <Label>Vincular documento controlado</Label>
             <Select value={process.current_document_id || "none"} onValueChange={linkDoc}>
