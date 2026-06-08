@@ -42,7 +42,6 @@ const statusLabel: Record<KnowledgeStatus, string> = {
 const KnowledgePage = () => {
   const { articles, isLoading, create, update, markReviewed, remove } =
     useQualityKnowledge();
-  const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
