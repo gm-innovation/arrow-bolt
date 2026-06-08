@@ -8,7 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Search, AlertTriangle } from "lucide-react";
 import { useQualityNCRs } from "@/hooks/useQualityNCRs";
 import NewNCRDialog from "@/components/quality/NewNCRDialog";
+import CreateImprovementFromButton from "@/components/quality/CreateImprovementFromButton";
 import { format } from "date-fns";
+
 
 const statusLabels: Record<string, string> = {
   open: "Aberta", analysis: "Em Análise", action_plan: "Plano de Ação",
@@ -110,7 +112,7 @@ const QualityNCRs = () => {
                     </TableCell>
                     <TableCell>{ncr.responsible?.full_name || "—"}</TableCell>
                     <TableCell>{ncr.deadline ? format(new Date(ncr.deadline), "dd/MM/yyyy") : "—"}</TableCell>
-                    <TableCell>
+                    <TableCell className="flex gap-1">
                       {ncr.status === "open" && (
                         <Button size="sm" variant="outline" onClick={() => updateNCR.mutate({ id: ncr.id, status: "analysis" })}>
                           Analisar
@@ -121,7 +123,16 @@ const QualityNCRs = () => {
                           Encerrar
                         </Button>
                       )}
+                      <CreateImprovementFromButton
+                        originType="ncr"
+                        originId={ncr.id}
+                        defaultTitle={`Melhoria — ${ncr.title}`}
+                        defaultDescription={(ncr as any).description ?? ""}
+                        iconOnly
+                        variant="ghost"
+                      />
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>

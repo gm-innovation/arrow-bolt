@@ -7,7 +7,9 @@ import { Plus, Search, Paperclip } from "lucide-react";
 import { useQualityAudits } from "@/hooks/useQualityAudits";
 import NewAuditDialog from "@/components/quality/NewAuditDialog";
 import AuditAttachmentsDrawer from "@/components/quality/AuditAttachmentsDrawer";
+import CreateImprovementFromButton from "@/components/quality/CreateImprovementFromButton";
 import { format } from "date-fns";
+
 
 const statusLabels: Record<string, string> = {
   planned: "Planejada", in_progress: "Em Andamento", completed: "Concluída", cancelled: "Cancelada",
@@ -90,7 +92,17 @@ const QualityAudits = () => {
                           Concluir
                         </Button>
                       )}
+                      {(audit.status === "completed" || audit.status === "in_progress") && (
+                        <CreateImprovementFromButton
+                          originType="audit"
+                          originId={audit.id}
+                          defaultTitle={`Melhoria — Auditoria #${audit.audit_number}: ${audit.title}`}
+                          iconOnly
+                          variant="ghost"
+                        />
+                      )}
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>
