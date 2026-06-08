@@ -33,8 +33,15 @@ const RELEVANCES = [
   { value: "baixa", label: "Baixa" },
 ];
 
+const TREATMENT_LABELS: Record<string, { label: string; tone: string }> = {
+  pendente: { label: "Pendente", tone: "border-yellow-500 text-yellow-700" },
+  em_andamento: { label: "Em andamento", tone: "border-blue-500 text-blue-700" },
+  atendida: { label: "Atendida", tone: "border-green-500 text-green-700" },
+  nao_aplicavel: { label: "Não aplicável", tone: "border-muted-foreground text-muted-foreground" },
+};
+
 const InterestedParties = () => {
-  const { parties, latestEvidences, isLoading, create, remove } = useQualityInterestedParties();
+  const { parties, latestEvidences, isLoading, create, update, remove } = useQualityInterestedParties();
   const { cycles } = useQualitySettings();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
