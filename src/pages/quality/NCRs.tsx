@@ -132,6 +132,7 @@ const QualityNCRs = () => {
                         iconOnly
                         variant="ghost"
                       />
+                      <NcrFormalPdfButton ncrId={ncr.id} iconOnly />
                     </TableCell>
 
                   </TableRow>
