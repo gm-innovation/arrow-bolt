@@ -204,6 +204,21 @@ const InterestedParties = () => {
                       </TableCell>
                       <TableCell className="capitalize">{CATEGORIES.find((c) => c.value === p.category)?.label ?? p.category}</TableCell>
                       <TableCell className="capitalize">{p.relevance}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={(p as any).treatment_status || "pendente"}
+                          onValueChange={(v) => update.mutate({ id: p.id, treatment_status: v } as any)}
+                        >
+                          <SelectTrigger className="h-7 w-[140px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(TREATMENT_LABELS).map(([k, v]) => (
+                              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>
                         {last ? (
                           <div className="text-sm">
