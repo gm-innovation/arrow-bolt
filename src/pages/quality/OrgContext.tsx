@@ -105,6 +105,7 @@ const OrgContext = () => {
         </TabsList>
 
         <TabsContent value="overview" className="mt-4 space-y-4">
+          <LastManagementReviewCard />
           <Card>
             <CardHeader><CardTitle className="text-base">Escopo do SGQ</CardTitle></CardHeader>
             <CardContent>
