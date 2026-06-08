@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +24,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Plus, ExternalLink } from "lucide-react";
-import { useSatisfactionCampaigns, CampaignStatus } from "@/hooks/useSatisfactionCampaigns";
+import { useSatisfactionCampaigns, CampaignStatus, CampaignRow } from "@/hooks/useSatisfactionCampaigns";
+import { toast } from "@/hooks/use-toast";
 
 const statusLabel: Record<CampaignStatus, string> = {
   draft: "Rascunho",
@@ -36,23 +38,58 @@ const statusVariant: Record<CampaignStatus, "default" | "secondary" | "outline">
   closed: "secondary",
 };
 
+const TypeBadges = ({ c }: { c: CampaignRow }) => (
+  <div className="flex flex-wrap gap-1">
+    {c.collects_nps && <Badge variant="outline" className="text-[10px]">NPS</Badge>}
+    {c.collects_csat && <Badge variant="outline" className="text-[10px]">CSAT</Badge>}
+    {c.collects_ces && <Badge variant="outline" className="text-[10px]">CES</Badge>}
+  </div>
+);
+
+const fmt = (v: number | null | undefined, d = 1) =>
+  v == null ? "—" : v.toFixed(d);
+
 export default function CampaignsTab() {
   const { campaigns, isLoading, create } = useSatisfactionCampaigns();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", starts_at: "", ends_at: "" });
+  const [form, setForm] = useState({
+    name: "",
+    description: "",
+    starts_at: "",
+    ends_at: "",
+    collects_nps: true,
+    collects_csat: true,
+    collects_ces: false,
+  });
 
   const submit = async () => {
     if (!form.name || !form.starts_at || !form.ends_at) return;
+    if (!form.collects_nps && !form.collects_csat && !form.collects_ces) {
+      toast({
+        title: "Selecione um tipo",
+        description: "Marque ao menos um: NPS, CSAT ou CES.",
+        variant: "destructive",
+      });
+      return;
+    }
     await create.mutateAsync(form);
     setOpen(false);
-    setForm({ name: "", description: "", starts_at: "", ends_at: "" });
+    setForm({
+      name: "",
+      description: "",
+      starts_at: "",
+      ends_at: "",
+      collects_nps: true,
+      collects_csat: true,
+      collects_ces: false,
+    });
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Campanhas de NPS/CSAT para coleta estruturada de feedback.
+          Campanhas de NPS/CSAT/CES para coleta estruturada de feedback.
         </p>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
@@ -65,7 +102,7 @@ export default function CampaignsTab() {
             <DialogHeader>
               <DialogTitle>Nova campanha de satisfação</DialogTitle>
             </DialogHeader>
-            <div className="space-y-3 py-2">
+            <div className="space-y-4 py-2">
               <div className="space-y-1">
                 <Label>Nome</Label>
                 <Input
@@ -81,6 +118,55 @@ export default function CampaignsTab() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
               </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de campanha</Label>
+                <p className="text-xs text-muted-foreground">
+                  Escolha quais métricas serão coletadas. Marque uma ou combine várias.
+                </p>
+                <div className="space-y-2 rounded-md border p-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={form.collects_nps}
+                      onCheckedChange={(v) => setForm({ ...form, collects_nps: !!v })}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium leading-none">NPS</p>
+                      <p className="text-xs text-muted-foreground">
+                        Net Promoter Score (0–10): probabilidade de recomendação.
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={form.collects_csat}
+                      onCheckedChange={(v) => setForm({ ...form, collects_csat: !!v })}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium leading-none">CSAT</p>
+                      <p className="text-xs text-muted-foreground">
+                        Customer Satisfaction (1–5): satisfação geral.
+                      </p>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={form.collects_ces}
+                      onCheckedChange={(v) => setForm({ ...form, collects_ces: !!v })}
+                      className="mt-0.5"
+                    />
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium leading-none">CES</p>
+                      <p className="text-xs text-muted-foreground">
+                        Customer Effort Score (1–7): facilidade percebida pelo cliente.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label>Início</Label>
@@ -125,11 +211,14 @@ export default function CampaignsTab() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Campanha</TableHead>
+                  <TableHead>Tipo</TableHead>
                   <TableHead>Período</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-center">Convites</TableHead>
                   <TableHead className="text-center">Respostas</TableHead>
-                  <TableHead className="text-center">NPS médio</TableHead>
+                  <TableHead className="text-center">NPS</TableHead>
+                  <TableHead className="text-center">CSAT</TableHead>
+                  <TableHead className="text-center">CES</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -137,6 +226,7 @@ export default function CampaignsTab() {
                 {campaigns.map((c) => (
                   <TableRow key={c.id}>
                     <TableCell className="font-medium">{c.name}</TableCell>
+                    <TableCell><TypeBadges c={c} /></TableCell>
                     <TableCell className="text-xs">
                       {new Date(c.starts_at).toLocaleDateString("pt-BR")} —{" "}
                       {new Date(c.ends_at).toLocaleDateString("pt-BR")}
@@ -147,7 +237,13 @@ export default function CampaignsTab() {
                     <TableCell className="text-center">{c.invites_count ?? 0}</TableCell>
                     <TableCell className="text-center">{c.responses_count ?? 0}</TableCell>
                     <TableCell className="text-center">
-                      {c.avg_nps != null ? c.avg_nps.toFixed(1) : "—"}
+                      {c.collects_nps ? fmt(c.avg_nps) : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {c.collects_csat ? fmt(c.avg_csat) : <span className="text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {c.collects_ces ? fmt(c.avg_ces) : <span className="text-muted-foreground">—</span>}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button asChild size="sm" variant="outline">

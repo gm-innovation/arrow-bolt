@@ -60,6 +60,11 @@ export default function SatisfactionDetail() {
             </Link>
           </Button>
           <h1 className="text-2xl font-bold">{campaign.name}</h1>
+          <div className="flex flex-wrap gap-1">
+            {campaign.collects_nps && <Badge variant="outline" className="text-[10px]">NPS</Badge>}
+            {campaign.collects_csat && <Badge variant="outline" className="text-[10px]">CSAT</Badge>}
+            {campaign.collects_ces && <Badge variant="outline" className="text-[10px]">CES</Badge>}
+          </div>
           {campaign.description && (
             <p className="text-sm text-muted-foreground max-w-2xl">{campaign.description}</p>
           )}
@@ -174,8 +179,9 @@ export default function SatisfactionDetail() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Respondente</TableHead>
-                      <TableHead>NPS</TableHead>
-                      <TableHead>CSAT</TableHead>
+                      {campaign.collects_nps && <TableHead>NPS</TableHead>}
+                      {campaign.collects_csat && <TableHead>CSAT</TableHead>}
+                      {campaign.collects_ces && <TableHead>CES</TableHead>}
                       <TableHead>Comentário</TableHead>
                       <TableHead>Data</TableHead>
                     </TableRow>
@@ -189,18 +195,27 @@ export default function SatisfactionDetail() {
                             <div className="text-xs text-muted-foreground">{r.responder_email}</div>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{r.nps_score}</span>
-                            {npsBadge(r.derived_nps)}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{r.csat_score}</span>
-                            {csatBadge(r.derived_csat)}
-                          </div>
-                        </TableCell>
+                        {campaign.collects_nps && (
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{r.nps_score ?? "—"}</span>
+                              {npsBadge(r.derived_nps)}
+                            </div>
+                          </TableCell>
+                        )}
+                        {campaign.collects_csat && (
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{r.csat_score ?? "—"}</span>
+                              {csatBadge(r.derived_csat)}
+                            </div>
+                          </TableCell>
+                        )}
+                        {campaign.collects_ces && (
+                          <TableCell>
+                            <span className="font-semibold">{r.ces_score ?? "—"}</span>
+                          </TableCell>
+                        )}
                         <TableCell className="max-w-xs truncate">
                           {r.comment || <span className="text-muted-foreground">—</span>}
                         </TableCell>

@@ -15,12 +15,16 @@ export interface CampaignRow {
   status: CampaignStatus;
   target_kind: "all_clients" | "selected";
   target_client_ids: string[];
+  collects_nps: boolean;
+  collects_csat: boolean;
+  collects_ces: boolean;
   created_at: string;
   updated_at: string;
   invites_count?: number;
   responses_count?: number;
   avg_nps?: number | null;
   avg_csat?: number | null;
+  avg_ces?: number | null;
 }
 
 export const useSatisfactionCampaigns = () => {
@@ -45,7 +49,7 @@ export const useSatisfactionCampaigns = () => {
         supabase.from("quality_satisfaction_invites" as any).select("campaign_id").in("campaign_id", ids),
         supabase
           .from("quality_satisfaction_responses" as any)
-          .select("campaign_id,nps_score,csat_score")
+          .select("campaign_id,nps_score,csat_score,ces_score")
           .in("campaign_id", ids),
       ]);
 
@@ -53,29 +57,48 @@ export const useSatisfactionCampaigns = () => {
       ((invites as any[]) ?? []).forEach((i) => {
         inviteCount[i.campaign_id] = (inviteCount[i.campaign_id] ?? 0) + 1;
       });
-      const respMap: Record<string, { n: number[]; c: number[] }> = {};
+      const respMap: Record<string, { n: number[]; c: number[]; e: number[]; total: number }> = {};
       ((responses as any[]) ?? []).forEach((r) => {
-        respMap[r.campaign_id] = respMap[r.campaign_id] ?? { n: [], c: [] };
-        respMap[r.campaign_id].n.push(r.nps_score);
-        respMap[r.campaign_id].c.push(r.csat_score);
+        respMap[r.campaign_id] = respMap[r.campaign_id] ?? { n: [], c: [], e: [], total: 0 };
+        respMap[r.campaign_id].total += 1;
+        if (r.nps_score != null) respMap[r.campaign_id].n.push(r.nps_score);
+        if (r.csat_score != null) respMap[r.campaign_id].c.push(r.csat_score);
+        if (r.ces_score != null) respMap[r.campaign_id].e.push(r.ces_score);
       });
+
+      const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
 
       return rows.map((r) => {
         const rm = respMap[r.id];
         return {
           ...r,
           invites_count: inviteCount[r.id] ?? 0,
-          responses_count: rm?.n.length ?? 0,
-          avg_nps: rm?.n.length ? rm.n.reduce((a, b) => a + b, 0) / rm.n.length : null,
-          avg_csat: rm?.c.length ? rm.c.reduce((a, b) => a + b, 0) / rm.c.length : null,
+          responses_count: rm?.total ?? 0,
+          avg_nps: rm ? avg(rm.n) : null,
+          avg_csat: rm ? avg(rm.c) : null,
+          avg_ces: rm ? avg(rm.e) : null,
         };
       }) as CampaignRow[];
     },
   });
 
   const create = useMutation({
-    mutationFn: async (input: { name: string; description?: string; starts_at: string; ends_at: string }) => {
+    mutationFn: async (input: {
+      name: string;
+      description?: string;
+      starts_at: string;
+      ends_at: string;
+      collects_nps?: boolean;
+      collects_csat?: boolean;
+      collects_ces?: boolean;
+    }) => {
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
+      const collects_nps = input.collects_nps ?? true;
+      const collects_csat = input.collects_csat ?? true;
+      const collects_ces = input.collects_ces ?? false;
+      if (!collects_nps && !collects_csat && !collects_ces) {
+        throw new Error("Selecione ao menos um tipo de campanha (NPS, CSAT ou CES).");
+      }
       const { data, error } = await supabase
         .from("quality_satisfaction_campaigns" as any)
         .insert({
@@ -86,6 +109,9 @@ export const useSatisfactionCampaigns = () => {
           ends_at: input.ends_at,
           target_kind: "all_clients",
           target_client_ids: [],
+          collects_nps,
+          collects_csat,
+          collects_ces,
           created_by: user!.id,
           status: "draft",
         })
