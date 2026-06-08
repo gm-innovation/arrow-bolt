@@ -142,11 +142,20 @@ const NormsTab = () => {
       code: form.code,
       title: form.title,
       issuer: form.issuer || null,
+      revision: form.revision || null,
+      status: form.status,
       valid_from: form.valid_from || null,
       valid_until: form.valid_until || null,
+      attachment_url: form.attachment_url || null,
+      attachment_name: form.attachment_name || null,
+      review_frequency_months: form.review_frequency_months ? Number(form.review_frequency_months) : null,
       notes: form.notes || null,
+    } as any);
+    setForm({
+      code: "", title: "", issuer: "", revision: "", status: "vigente",
+      valid_from: "", valid_until: "", attachment_url: "", attachment_name: "",
+      review_frequency_months: "", notes: "",
     });
-    setForm({ code: "", title: "", issuer: "", valid_from: "", valid_until: "", notes: "" });
     setOpen(false);
   };
 
