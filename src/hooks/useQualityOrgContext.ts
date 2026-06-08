@@ -24,6 +24,14 @@ export interface ContextItem {
   updated_at: string;
 }
 
+export interface ExcludedClause {
+  clause: string;
+  title: string;
+  justification: string;
+  approved_at: string;
+  approved_by: string;
+}
+
 export interface OrgContext {
   id: string;
   company_id: string;
@@ -35,6 +43,7 @@ export interface OrgContext {
   last_reviewed_by: string | null;
   last_review_notes: string | null;
   next_review_due_at: string | null;
+  excluded_clauses: ExcludedClause[];
   created_at: string;
   updated_at: string;
 }
