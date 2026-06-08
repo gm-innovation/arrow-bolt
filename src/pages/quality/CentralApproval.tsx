@@ -27,6 +27,8 @@ const SCOPE_LABELS: Record<keyof ApprovalScope, string> = {
   context_official: "Snapshot oficial de Contexto",
   ncr: "Não-Conformidades (fechamento)",
   deviation: "Desvios",
+  objective: "Objetivos da Qualidade",
+  planned_change: "Mudanças planejadas",
 };
 
 const ENTITY_LABELS: Record<string, string> = {
