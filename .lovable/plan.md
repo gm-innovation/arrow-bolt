@@ -1,148 +1,138 @@
-# Plano final — Conformidade ISO (DOCX)
+# Plano — Onda 4 e 5: aderência ampla ao DOCX + refinos (v2)
 
-> Onda 1 ✅ concluída · Onda 2 ✅ concluída · Onda 3 ✅ concluída
+**Decisão fundadora (não negociável):** começar **obrigatoriamente** pela Etapa 0 de homologação. Nenhuma migração ou tela nova antes da validação do documento `docs/sgq-homologacao-onda4.md`. A Onda 4A só será detalhada tecnicamente depois.
 
-Travas fechadas: (1) escopo da aprovação central restrito na Onda 1, (2) `quality_processes` aponta para `quality_documents` (Opção B).
-
----
-
-## Decisões fechadas
-
-- **Master** = flag por empresa: `quality_settings.quality_master_user_id` (uuid). Roles existentes controlam acesso; só o user designado aprova.
-- **Documentos da empresa**: `quality_company_documents` (CNPJ, Alvará, IE…), sem `client_id`.
-- **Processo ↔ Documento (Opção B)**: `quality_processes` é o cadastro organizacional; a parte controlada (revisão, validade, aprovação, layout) vive em `quality_documents` vinculado via `current_document_id`.
-- **Lista Mestre**: consolida `quality_documents` + `quality_processes` (via documento atual) + responsáveis.
-- **Sidebar**: 10 itens atuais. Sem novos hubs.
-- **Sem** assinatura digital do master em exports.
-
-### Escopo da aprovação central (Onda 1, obrigatório)
-- Publicação/revisão de **documentos do SGQ** (`quality_documents`)
-- **Documentos da empresa** (`quality_company_documents`) — publicação e renovação
-- Publicação de **processos** (efetivamente: o documento controlado vinculado ao processo)
-- Publicação da **Política da Qualidade** (Onda 2)
-- **Snapshot oficial do Contexto** (`quality_context_versions` com flag `is_official=true`)
-
-### Aprovação central configurável / Onda 2+ (não bloqueia operação)
-- Fechamento de NCR
-- Registro de Desvio
-- Outros registros transacionais
-- Flag `require_master_approval` por tipo de entidade em `quality_settings.approval_scope jsonb` (master ativa/desativa).
-
-### Agrupamento final de abas
-- **Documentos** → Documentos | Cópias Controladas | Lista Mestre | Documentos da Empresa
-- **Não-Conformidades** → NCs | Melhorias | Planos de Ação | Desvios
-- **Auditorias** → Auditorias | Calendário | Anexos
-- **Riscos & Oportunidades** → Riscos | Partes Interessadas | Contexto | Processos | SWOT/Cenário
-- **Competências & Treinamentos** → Matriz | Meu Desenvolvimento | Treinamentos | Estrutura/Responsabilidades
-- **Análise Crítica** → módulo próprio (card de vínculo ao Contexto)
-- **Configurações** → Parâmetros SGQ | Layout global | Aprovação central / workflow | TI & Backup | Política da Qualidade
-- **Dashboard de Qualidade** → banner persistente de ciência da Política
+Justificativa: já existem ~15 tabelas relacionadas (`quality_reference_norms`, `quality_terms`, `quality_interested_parties` + evidências, `quality_improvements_manual`, `quality_measuring_devices`/`calibrations`/`checkpoints`, `quality_satisfaction_*`, `quality_safety_documents`, etc.). Pular homologação = duplicar tela, criar schema paralelo, quebrar regra existente, queimar crédito com retrabalho.
 
 ---
 
-## Onda 1 — Governança e aderência estrutural
+## Etapa 0 — Homologação (obrigatória, sem código)
 
-### 1. Aprovação central pelo Master (escopo restrito)
-- `quality_settings.quality_master_user_id uuid` + `quality_settings.approval_scope jsonb` (default: documentos, company_documents, processos, política, contexto_oficial = true; ncr, desvio = false).
-- `quality_central_approvals` (entity_type, entity_id, requested_by, requested_at, approved_by, approved_at, status, notes).
-- Hook `useCentralApproval(entity_type, entity_id)` consulta `approval_scope` antes de exigir aprovação.
-- Bandeja em **Configurações → Aprovação central / workflow** (visível só ao master).
-- RLS: `approved_by` só setado por `auth.uid() = quality_master_user_id` da empresa.
-- Trigger reflete `approved` na entidade origem; estado `pending_master_approval` nas entidades sob escopo.
+**Saída executável:** `docs/sgq-homologacao-onda4.md`, uma ficha padronizada por tema com este formato:
 
-### 2. Mapeamento de Processos / SIPOC — Opção B
-- `quality_processes` (name, owner_user_id, type, description, status, **current_document_id** uuid FK → `quality_documents.id`).
-- `quality_process_sipoc` (process_id, suppliers, inputs, activities, outputs, customers).
-- `quality_process_activities` (process_id, order_index, activity, responsible_user_id, indicators).
-- Aba "Processos" em **Riscos & Oportunidades** com lista + drawer SIPOC + atividades + card "Documento controlado" (versão, revisão, próximo review, status de aprovação).
-- Publicar/revisar o processo = publicar/revisar o documento vinculado (passa pelo master).
-- `process_id` opcional em `quality_risks` e `quality_ncrs`.
+| Campo | Descrição |
+|---|---|
+| Requisito do DOCX | O que a gestora pediu |
+| Estado atual no sistema | O que já existe |
+| Tabelas / hooks / telas existentes | Nome exato |
+| Gap de regra | O que falta de lógica |
+| Gap de UI | O que falta de tela/fluxo |
+| Gap de permissão | O que falta em RLS/roles |
+| Gap de integração | RH, cliente, storage, etc. |
+| Decisão | reaproveitar / adaptar / criar |
+| Prioridade | alta / média / baixa |
+| Recomendação de sprint | 4A / 4B / 5 / refino |
 
-### 3. Análise Crítica vinculada ao Contexto
-- `quality_org_context.last_management_review_id uuid` (FK opcional).
-- Card "Última Análise Crítica" em `OrgContext.tsx`.
-- Snapshot de revisão grava `management_review_id` quando originado de reunião.
+**Temas (10):** Referência Normativa · Termos e Definições · Partes Interessadas · Planejamento · Recursos/RH · Documentos dos colaboradores · Calibração · Satisfação do Cliente · Saúde e Segurança · Melhorias.
 
-### 4. Documentos da Empresa com expiração
-- `quality_company_documents` (company_id, document_type, title, file_url, issued_at, expires_at, status, owner_user_id, notes).
-- Aba "Documentos da Empresa" em **Documentos**.
-- Alertas T-30/T-7/vencido via `quality_alert_history`.
-- Publicação e renovação passam por aprovação central.
+**Decisões específicas que a Etapa 0 precisa fechar:**
+- **Referência Normativa e Termos:** versionamento fica na própria entidade ou via vínculo com `quality_documents`? Princípio: não duplicar versionamento documental quando o GED já resolve. Mesma lógica adotada em Processo ↔ Documento.
+- **Saúde e Segurança:** módulo vive em Qualidade, RH, ou ambos? O que é documento de colaborador vs documento legal? Ficha de EPI é individual ou documento controlado geral?
+- **Recursos/RH:** o que vem do módulo RH atual, o que Qualidade só consulta, o que precisa ser criado.
 
-### 5. Auditorias — periodicidade mensal + anexos
-- `quality_audits.recurrence` (monthly|quarterly|semiannual|annual|ad_hoc) + `next_due_at`.
-- `quality_audit_attachments` (audit_id, file_name, file_url, kind: plan|evidence|report|photo, uploaded_by).
-- Aba "Calendário" em **Auditorias** com ciclo mensal + alertas.
-- Drawer ganha aba "Anexos".
+Validação com a gestora **antes** de qualquer migração da Onda 4A.
 
 ---
 
-## Onda 2 — Consolidação e refinamento operacional
+## Refinos prioritários (entram antes ou em paralelo à Onda 4A)
 
-### 6. Lista Mestre (escopo restrito)
-- Aba em **Documentos** consolidando `quality_documents` + `quality_processes` (via `current_document_id`) + responsáveis.
-- Colunas: código, título, tipo (Documento/Processo), versão vigente, dono, responsável pelo processo (quando aplicável), última revisão, próxima revisão, status, status de aprovação.
-- Versão e validade do processo vêm sempre do documento vinculado — sem duplicar versionamento.
-- Filtros por tipo/status; export CSV/PDF simples.
+| # | Refino | Por quê é urgente |
+|---|---|---|
+| **R1** | Tela de configuração visual do `approval_scope` em Configurações (hoje só JSON) | Reduz erro operacional do Master |
+| **R3** | Regra: processo só fica `vigente` se `current_document_id` aponta para documento publicado e não vencido. Alerta quando documento vencer. Tabela `quality_process_document_history` para histórico de troca | Protege Lista Mestre e a lógica Processo ↔ Documento (Opção B) |
 
-### 7. Layout padronizado do portal
-- `quality_settings.document_layout jsonb` (header, footer, logo, cor primária, carimbo de aprovação, marca-d'água "CÓPIA NÃO CONTROLADA").
-- Aba "Layout global" em **Configurações** com editor + preview.
-- `QualityDocumentPDF.tsx` lê layout global e aplica em todos os PDFs.
-
-### 8. Campo de Desvios
-- `quality_deviations` (origin_type: document|process|product, origin_ref_id, description, justification, approved_by, approved_at, expires_at, status).
-- CTA "Registrar Desvio" em `DocumentDetail.tsx`, Processos e NCRs.
-- Aba "Desvios" em **Não-Conformidades**.
-- Aprovação central **configurável** via `approval_scope` (default off; master pode ligar).
-
-### 9. Política da Qualidade / Conscientização
-- `quality_settings.quality_policy_text` + `quality_policy_version`.
-- `quality_policy_acknowledgements` (user_id, policy_version, acknowledged_at).
-- Edição/publicação em **Configurações → Política da Qualidade** (passa pelo master; nova versão zera ciência).
-- Ciência via banner persistente no **Dashboard de Qualidade**, com botão "Li e estou ciente".
-- Indicadores de adesão (% por departamento) na própria página.
-
-### 10. TI & Backup em Configurações
-- `quality_it_safeguards` (kind: backup|antivirus, performed_at, performed_by, target, result: ok|fail, evidence_url, notes).
-- Aba "TI & Backup" em **Configurações** com calendário e registro mensal obrigatório.
-- Alerta quando passa o período definido em `quality_settings.review_cycles` sem registro.
-
-### 11. Cálculo automático do cenário SWOT
-- Função em `useQualityOrgContext` classifica em Ofensivo / Defensivo / Reorientação / Sobrevivência.
-- Aba "SWOT / Cenário" em **Riscos & Oportunidades** com card "Cenário Estratégico Atual".
-- Snapshot grava `scenario` em `quality_context_versions`.
+Demais refinos, em ordem: R2 (trilha/SLA/delegação do Master) → R4 (Lista Mestre filtros/XLSX) → R5 (Política: diff de versões, ciência por departamento, visualização pública opcional).
 
 ---
 
-## Onda 3 — Maturidade organizacional
+## Onda 4A — Aderência ISO documental
 
-### 12. Liderança / Organograma
-- `quality_org_chart_nodes` (parent_id, user_id, position_title, responsibilities, authorities, order_index).
-- Aba "Estrutura/Responsabilidades" em **Competências & Treinamentos**.
-- Export PDF usando layout global.
+**Pré-condição:** Etapa 0 validada para os 5 temas abaixo.
+
+### 1. Referência Normativa
+- **Antes de migração:** decidir na Etapa 0 se versiona na própria tabela ou via `quality_documents`.
+- Campos prováveis a estender (sujeito à decisão acima): `revision`, `status` (vigente/substituída/cancelada), `responsible_user_id`, `superseded_by_id`, anexo (storage ou doc_id).
+- Página dedicada com filtros (vigente / vencendo / vencida), alertas 30/60/90 dias via `quality_alert_history`.
+
+### 2. Termos e Definições
+- **Mesma homologação prévia:** versionamento próprio ou via `quality_documents`.
+- Se ficar próprio: `version`, `status` (rascunho/vigente/obsoleto), `responsible_user_id`, ciclo de revisão.
+- Página com busca textual e filtro por norma.
+
+### 3. Partes Interessadas com evidências
+- `quality_interested_party_evidences` já existe; falta UI: drawer por parte com upload, expiração, vínculo opcional a `quality_documents`.
+- Coluna nova `treatment_status` (pendente/em_andamento/atendida/não_aplicável).
+- Reaproveitar trigger `quality_recalc_next_review` já existente; expor `next_review_due_at` na listagem.
+
+### 4. Consolidação funcional de Melhorias
+- Estender `quality_improvements_manual` com `origin_type` (manual/ncr/audit/satisfaction/risk/deviation/critical_review) + `origin_id` polimórfico, `effectiveness_status` (pendente/eficaz/ineficaz), `effectiveness_verified_at`, `effectiveness_notes`.
+- Botão "Criar melhoria a partir de..." nas telas de NC, auditoria, desvio, resposta de satisfação (pré-preenche origin).
+- Página `/quality/improvements` com visão consolidada (origem · ação · responsável · prazo · status · eficácia) e métricas no Dashboard.
+
+### 5. Refinamentos de Contexto / Partes Interessadas
+- Painel "Revisões em atraso" no Dashboard reaproveitando `next_review_due_at`.
+- Destacar visualmente qual snapshot está marcado como `is_official`.
 
 ---
 
-## Fora de escopo
-- BSC / Objetivos Estratégicos
-- Boolean "considera mudanças climáticas"
-- Assinatura digital do master em exports
-- Aba de Política em Competências & Treinamentos
-- Aprovação central de NCRs/Desvios como obrigatória (fica configurável)
+## Onda 4B — Planejamento e Gestão
+
+**Restrição de arquitetura:** **não criar novo item na sidebar.** O conjunto continua em 10 itens. Planejamento entra como **submódulo dentro de Riscos & Oportunidades**, podendo usar rotas internas (`/quality/risks/planning`) mas acessado como subaba/submódulo, não como item raiz.
+
+**Alerta anti-BSC:** Objetivos da Qualidade aqui **não significam implantação de BSC**. São objetivos operacionais do SGQ vinculados à política, com metas, indicadores e planos de ação. Sem perspectivas financeira / cliente / processo / aprendizado.
+
+### 6. Objetivos da Qualidade
+Nova tabela `quality_objectives`: `code`, `title`, `description`, `policy_id` (vínculo opcional com Política), `target_value`, `unit`, `period` (anual/semestral/trimestral), `start_date`, `end_date`, `responsible_user_id`, `status` (rascunho/vigente/atingido/não_atingido/cancelado). Aprovação central obrigatória (acrescentar `objective` ao `approval_scope`).
+
+### 7. Indicadores ligados a objetivos
+Nova tabela `quality_objective_measurements`: `objective_id`, `period_label`, `measured_value`, `measured_at`, `notes`, `evidence_url`. View consolidada real vs meta, % atingimento (padrão das views `quality_kpi_*`).
+
+### 8. Mudanças Planejadas
+Nova tabela `quality_planned_changes`: `title`, `description`, `change_type` (processo/documento/estrutura/sistema), `justification`, `impact_analysis`, `required_resources`, `responsible_user_id`, `planned_date`, `status` (proposta/aprovada/implementada/cancelada), `approved_by`, `effectiveness_review`. Aprovação central obrigatória.
+
+### 9. Vínculos cruzados (fechamento do ciclo)
+- `quality_action_plans.objective_id` (opcional)
+- `quality_risk_actions.objective_id` (opcional)
+- `quality_management_review_outputs.generates_action_plan_id` — fecha o ciclo análise crítica → ação → objetivo.
+
+### 10. Navegação
+Em **Riscos & Oportunidades**, as abas passam a ser: Riscos · Partes Interessadas · Contexto · Processos · SWOT/Cenário · **Planejamento** (submódulo com sub-abas internas: Objetivos & Indicadores · Mudanças Planejadas · Ações consolidadas).
 
 ---
 
-## Detalhes técnicos
+## Onda 5 — Integrações e Operação (NÃO é build pré-aprovada)
 
-**Migrations (uma por onda):**
-1. **Onda 1** — tabelas: `quality_central_approvals`, `quality_processes` (já com `current_document_id`), `quality_process_sipoc`, `quality_process_activities`, `quality_company_documents`, `quality_audit_attachments`. Colunas: `quality_settings.quality_master_user_id`, `quality_settings.approval_scope`, `quality_org_context.last_management_review_id`, `quality_audits.recurrence` + `next_due_at`, `quality_context_versions.is_official`. GRANTs + RLS por `company_id`.
-2. **Onda 2** — tabelas: `quality_deviations`, `quality_policy_acknowledgements`, `quality_it_safeguards`. Colunas: `quality_settings.document_layout`, `quality_policy_text`, `quality_policy_version`; `quality_context_versions.scenario`.
-3. **Onda 3** — `quality_org_chart_nodes`.
+> **Onda 5 só vira plano técnico após a Etapa 0 e validação de donos de negócio.** Nada de migração ou rota nova nesta onda sem que as decisões abaixo estejam fechadas por escrito.
 
-**Hooks novos:** `useCentralApproval`, `useQualityProcesses`, `useQualityCompanyDocuments`, `useQualityMasterList`, `useQualityDeviations`, `useQualityPolicy`, `useQualityITSafeguards`, `useQualityOrgChart`.
+Decisões obrigatórias antes de qualquer implementação:
 
-**Verificações finais:**
-- **O1**: Documento publicado sem master fica `pending_master_approval`; bandeja só ao master; Processo publicado = documento vinculado publicado; Contexto mostra última Análise Crítica; Documento da Empresa vencido alerta; Auditoria mensal pendente alerta; NCR/Desvio **não** exigem master por default.
-- **O2**: Lista Mestre puxa versão/validade do documento (mesmo para processos); layout reflete em todos os PDFs; cenário SWOT recalcula ao salvar item; política nova zera ciência; TI & Backup alerta mensal.
-- **O3**: Organograma exporta com layout global.
+**11. Recursos / RH** — cargos e competências vêm do módulo RH ou viram entidade SGQ? Provável caminho: SGQ consulta `profiles`/`departments` e mantém só `quality_role_requirements` + `quality_competency_mappings` (já existem) via view `quality_resources_v`.
+
+**12. Documentos dos colaboradores** — reaproveitar `technician_documents` + `onboarding_documents` por view de leitura, sem duplicar storage. Permissão cruzada: papel `qualidade` consulta; RH é dono.
+
+**13. Calibração** — homologar telas existentes (`Devices.tsx`, `DeviceDetail.tsx`) e tabelas (`quality_measuring_devices`, `quality_calibrations`, `quality_calibration_checkpoints`, `quality_device_usage_log`). Falta: alertas de vencimento no Dashboard, certificado obrigatório no fechamento.
+
+**14. Satisfação do Cliente** — homologar `quality_satisfaction_campaigns/invites/responses`. Falta: painel consolidado NPS/CSAT, workflow "abrir tratativa" gerando melhoria/NC, Lista Mestra de pesquisas.
+
+**15. Saúde e Segurança** — decidir escopo (Qualidade, RH, ambos), tipos pré-cadastrados (PCMSO, PGR, LTCAT, NR01, Ficha EPI), permissões cruzadas. Reaproveitar `quality_safety_documents` (hook existe) — homologar schema atual antes de estender.
+
+---
+
+## Ordem final recomendada
+
+1. **Etapa 0** — obrigatória, sem código.
+2. **Refinos R1 + R3** — em paralelo ou logo após Etapa 0.
+3. **Onda 4A** — itens 1 a 5.
+4. **Onda 4B** — itens 6 a 10, submódulo dentro de Riscos & Oportunidades.
+5. **Refinos R2 → R4 → R5** — intercalados conforme dor.
+6. **Onda 5** — somente após decisões de negócio fechadas.
+
+**Inversão possível:** se houver auditoria externa próxima, Calibração e Saúde & Segurança sobem para antes da 4B.
+
+---
+
+## Próxima ação
+
+Iniciar pela **Etapa 0**. Onda 4A só será detalhada tecnicamente após a homologação documentada dos 10 temas em `docs/sgq-homologacao-onda4.md`.
+
+Confirma que posso gerar a Etapa 0 agora?
