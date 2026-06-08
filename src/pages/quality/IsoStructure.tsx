@@ -120,10 +120,21 @@ const ScopeTab = () => {
 };
 
 // =============== Normas ===============
+const NORM_STATUS_LABELS: Record<string, { label: string; tone: string }> = {
+  vigente: { label: "Vigente", tone: "border-green-500 text-green-700" },
+  substituida: { label: "Substituída", tone: "border-blue-500 text-blue-700" },
+  cancelada: { label: "Cancelada", tone: "border-destructive text-destructive" },
+  rascunho: { label: "Rascunho", tone: "border-yellow-500 text-yellow-700" },
+};
+
 const NormsTab = () => {
-  const { norms, create, remove } = useQualityReferenceNorms();
+  const { norms, create, update, remove } = useQualityReferenceNorms();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ code: "", title: "", issuer: "", valid_from: "", valid_until: "", notes: "" });
+  const [form, setForm] = useState({
+    code: "", title: "", issuer: "", revision: "", status: "vigente",
+    valid_from: "", valid_until: "", attachment_url: "", attachment_name: "",
+    review_frequency_months: "", notes: "",
+  });
 
   const submit = async () => {
     if (!form.code || !form.title) return;
