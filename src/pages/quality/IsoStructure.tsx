@@ -318,8 +318,11 @@ const TermsTab = () => {
       term: form.term,
       definition: form.definition,
       source_norm_id: form.source_norm_id || null,
-    });
-    setForm({ term: "", definition: "", source_norm_id: "" });
+      version: Number(form.version) || 1,
+      status: form.status,
+      review_frequency_months: form.review_frequency_months ? Number(form.review_frequency_months) : null,
+    } as any);
+    setForm({ term: "", definition: "", source_norm_id: "", version: "1", status: "vigente", review_frequency_months: "" });
     setOpen(false);
   };
 
@@ -341,6 +344,29 @@ const TermsTab = () => {
               <div className="space-y-1">
                 <Label>Definição *</Label>
                 <Textarea rows={4} value={form.definition} onChange={(e) => setForm({ ...form, definition: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>Versão</Label>
+                  <Input type="number" min={1} value={form.version}
+                    onChange={(e) => setForm({ ...form, version: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(TERM_STATUS_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Revisão (meses)</Label>
+                  <Input type="number" min={1} value={form.review_frequency_months}
+                    onChange={(e) => setForm({ ...form, review_frequency_months: e.target.value })} />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label>Norma de origem</Label>
@@ -366,13 +392,18 @@ const TermsTab = () => {
           <p className="text-center py-6 text-muted-foreground text-sm">Nenhum termo cadastrado.</p>
         ) : (
           <div className="space-y-3">
-            {terms.map((t) => {
+            {terms.map((t: any) => {
               const norm = norms.find((n) => n.id === t.source_norm_id);
+              const st = TERM_STATUS_LABELS[t.status || "vigente"];
               return (
                 <div key={t.id} className="border rounded-lg p-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-semibold">{t.term}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold">{t.term}</p>
+                        <Badge variant="outline" className={st?.tone}>{st?.label || t.status}</Badge>
+                        <Badge variant="outline" className="text-xs">v{t.version || 1}</Badge>
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1">{t.definition}</p>
                       {norm && <Badge variant="outline" className="mt-2 text-xs">{norm.code}</Badge>}
                     </div>
