@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QualityCompetencyMatrix from "./CompetencyMatrix";
 import QualityMyCompetencies from "./MyCompetencies";
 import QualityMyAcknowledgements from "./MyAcknowledgements";
+import OrgChart from "./OrgChart";
 
 const CompetenciesHub = () => {
   const [sp, setSp] = useSearchParams();
@@ -25,10 +26,12 @@ const CompetenciesHub = () => {
         <TabsTrigger value="me">Meu Desenvolvimento</TabsTrigger>
         <TabsTrigger value="acknowledgements">Minha Ciência</TabsTrigger>
         <TabsTrigger value="training">Treinamentos</TabsTrigger>
+        <TabsTrigger value="org">Estrutura / Responsabilidades</TabsTrigger>
       </TabsList>
       <TabsContent value="matrix"><QualityCompetencyMatrix /></TabsContent>
       <TabsContent value="me"><QualityMyCompetencies /></TabsContent>
       <TabsContent value="acknowledgements"><QualityMyAcknowledgements /></TabsContent>
+      <TabsContent value="org"><OrgChart /></TabsContent>
     </Tabs>
   );
 };
