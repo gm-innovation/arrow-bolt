@@ -49,7 +49,7 @@ export const useSatisfactionCampaigns = () => {
         supabase.from("quality_satisfaction_invites" as any).select("campaign_id").in("campaign_id", ids),
         supabase
           .from("quality_satisfaction_responses" as any)
-          .select("campaign_id,nps_score,csat_score")
+          .select("campaign_id,nps_score,csat_score,ces_score")
           .in("campaign_id", ids),
       ]);
 
@@ -57,21 +57,26 @@ export const useSatisfactionCampaigns = () => {
       ((invites as any[]) ?? []).forEach((i) => {
         inviteCount[i.campaign_id] = (inviteCount[i.campaign_id] ?? 0) + 1;
       });
-      const respMap: Record<string, { n: number[]; c: number[] }> = {};
+      const respMap: Record<string, { n: number[]; c: number[]; e: number[]; total: number }> = {};
       ((responses as any[]) ?? []).forEach((r) => {
-        respMap[r.campaign_id] = respMap[r.campaign_id] ?? { n: [], c: [] };
-        respMap[r.campaign_id].n.push(r.nps_score);
-        respMap[r.campaign_id].c.push(r.csat_score);
+        respMap[r.campaign_id] = respMap[r.campaign_id] ?? { n: [], c: [], e: [], total: 0 };
+        respMap[r.campaign_id].total += 1;
+        if (r.nps_score != null) respMap[r.campaign_id].n.push(r.nps_score);
+        if (r.csat_score != null) respMap[r.campaign_id].c.push(r.csat_score);
+        if (r.ces_score != null) respMap[r.campaign_id].e.push(r.ces_score);
       });
+
+      const avg = (arr: number[]) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
 
       return rows.map((r) => {
         const rm = respMap[r.id];
         return {
           ...r,
           invites_count: inviteCount[r.id] ?? 0,
-          responses_count: rm?.n.length ?? 0,
-          avg_nps: rm?.n.length ? rm.n.reduce((a, b) => a + b, 0) / rm.n.length : null,
-          avg_csat: rm?.c.length ? rm.c.reduce((a, b) => a + b, 0) / rm.c.length : null,
+          responses_count: rm?.total ?? 0,
+          avg_nps: rm ? avg(rm.n) : null,
+          avg_csat: rm ? avg(rm.c) : null,
+          avg_ces: rm ? avg(rm.e) : null,
         };
       }) as CampaignRow[];
     },
