@@ -80,7 +80,7 @@ const EFFECTIVENESS_VARIANT: Record<ImprovementEffectiveness, string> = {
 
 
 const Improvements = () => {
-  const { items, isLoading, createManual, generateActionPlan } = useQualityImprovements();
+  const { items, isLoading, createManual, generateActionPlan, verifyEffectiveness } = useQualityImprovements();
 
   const [filters, setFilters] = useState({
     source: "all",
@@ -88,6 +88,11 @@ const Improvements = () => {
     status: "open_only",
     plan: "all",
   });
+
+  const [effDialog, setEffDialog] = useState<{ row: ImprovementRow | null; status: ImprovementEffectiveness; notes: string }>({
+    row: null, status: "eficaz", notes: "",
+  });
+
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
