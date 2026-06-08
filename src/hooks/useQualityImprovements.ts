@@ -8,10 +8,16 @@ export type ImprovementSource =
   | "audit_finding"
   | "review_output"
   | "complaint"
-  | "manual";
+  | "manual"
+  | "risk"
+  | "supplier"
+  | "device";
+
 
 export type ImprovementPriority = "high" | "medium" | "low";
 export type ImprovementStatus = "open" | "in_progress" | "done" | "cancelled";
+
+export type ImprovementEffectiveness = "pendente" | "eficaz" | "ineficaz" | "nao_aplicavel";
 
 export interface ImprovementRow {
   id: string;
@@ -27,7 +33,9 @@ export interface ImprovementRow {
   owner_user_id: string | null;
   action_plan_id: string | null;
   source_url: string;
+  effectiveness_status: ImprovementEffectiveness | null;
 }
+
 
 export interface ManualImprovementInput {
   title: string;
@@ -132,5 +140,32 @@ export const useQualityImprovements = () => {
       }),
   });
 
-  return { items: items ?? [], isLoading, createManual, generateActionPlan };
+  const verifyEffectiveness = useMutation({
+    mutationFn: async (input: {
+      id: string;
+      status: ImprovementEffectiveness;
+      notes?: string | null;
+    }) => {
+      if (!user?.id) throw new Error("Sessão inválida");
+      const { error } = await supabase
+        .from("quality_improvements_manual" as any)
+        .update({
+          effectiveness_status: input.status,
+          effectiveness_notes: input.notes ?? null,
+          effectiveness_verified_at: new Date().toISOString(),
+          effectiveness_verified_by: user.id,
+        })
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["quality_improvements"] });
+      toast({ title: "Eficácia atualizada" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro ao registrar eficácia", description: e.message, variant: "destructive" }),
+  });
+
+  return { items: items ?? [], isLoading, createManual, generateActionPlan, verifyEffectiveness };
 };
+

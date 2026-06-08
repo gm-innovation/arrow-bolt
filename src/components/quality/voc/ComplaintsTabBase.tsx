@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import CreateImprovementFromButton from "@/components/quality/CreateImprovementFromButton";
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -257,10 +259,21 @@ export default function ComplaintsTabBase({
                     </TableCell>
                     <TableCell>{new Date(c.received_at).toLocaleDateString("pt-BR")}</TableCell>
                     <TableCell className="text-right">
-                      <Button asChild size="sm" variant="outline">
-                        <Link to={`/quality/complaints/${c.id}`}>Abrir</Link>
-                      </Button>
+                      <div className="inline-flex items-center gap-1">
+                        <CreateImprovementFromButton
+                          originType="satisfaction"
+                          originId={c.id}
+                          defaultTitle={`Melhoria — ${kind === "complaint" ? "Reclamação" : "Sugestão"}: ${c.title}`}
+                          defaultDescription={(c as any).description ?? ""}
+                          iconOnly
+                          variant="ghost"
+                        />
+                        <Button asChild size="sm" variant="outline">
+                          <Link to={`/quality/complaints/${c.id}`}>Abrir</Link>
+                        </Button>
+                      </div>
                     </TableCell>
+
                   </TableRow>
                 ))}
               </TableBody>

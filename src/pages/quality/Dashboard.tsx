@@ -28,7 +28,13 @@ import { useQualityMatrix } from "@/hooks/useQualityMatrix";
 import { useQualityRisks } from "@/hooks/useQualityRisks";
 import { format, parseISO, differenceInDays } from "date-fns";
 import QualityAlertsPanel from "@/components/quality/QualityAlertsPanel";
-import { GraduationCap, Target, ShieldAlert } from "lucide-react";
+import { GraduationCap, Target, ShieldAlert, CalendarClock } from "lucide-react";
+import {
+  useQualityReviewStatus,
+  ENTITY_LABEL,
+  ENTITY_LINK,
+} from "@/hooks/useQualityReviewStatus";
+
 
 const QualityDashboard = () => {
   const { ncrs } = useQualityNCRs();
@@ -63,6 +69,8 @@ const QualityDashboard = () => {
       && (d.status === "active" || d.status === "in_calibration" || d.status === "overdue"),
   ).length;
   const devicesOutOfService = devices.filter((d) => d.status === "out_of_service").length;
+  const { overdue: reviewOverdue, dueSoon: reviewDueSoon } = useQualityReviewStatus();
+
 
   const openNCRs = ncrs.filter((n) => !["closed", "cancelled"].includes(n.status));
   const activePlans = plans.filter((p) => !["closed", "effective", "ineffective"].includes(p.status));
@@ -312,9 +320,55 @@ const QualityDashboard = () => {
       </div>
 
       <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <CalendarClock className="h-5 w-5 text-primary" />
+            Revisões em atraso
+          </CardTitle>
+          <div className="flex gap-2 text-xs">
+            <Badge variant="destructive">{reviewOverdue.length} atrasada(s)</Badge>
+            <Badge variant="outline">{reviewDueSoon.length} próxima(s)</Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {reviewOverdue.length === 0 && reviewDueSoon.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhuma revisão pendente nas entidades estruturais.</p>
+          ) : (
+            <div className="space-y-2">
+              {[...reviewOverdue, ...reviewDueSoon].slice(0, 8).map((r) => (
+                <Link
+                  key={`${r.entity_type}-${r.entity_id}`}
+                  to={ENTITY_LINK[r.entity_type]}
+                  className="flex items-center justify-between p-3 rounded-lg border hover:bg-muted/30"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate">{r.entity_label}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {ENTITY_LABEL[r.entity_type]}
+                      {r.next_review_due_at &&
+                        ` · Revisão prevista para ${format(parseISO(r.next_review_due_at), "dd/MM/yyyy")}`}
+                    </p>
+                  </div>
+                  <Badge variant={r.computed_status === "overdue" ? "destructive" : "outline"}>
+                    {r.computed_status === "overdue" ? "Atrasada" : "≤ 30 dias"}
+                  </Badge>
+                </Link>
+              ))}
+              {reviewOverdue.length + reviewDueSoon.length > 8 && (
+                <p className="text-xs text-muted-foreground pt-1">
+                  +{reviewOverdue.length + reviewDueSoon.length - 8} outras pendentes.
+                </p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader>
           <CardTitle>Itens Pendentes</CardTitle>
         </CardHeader>
+
         <CardContent>
           {pendingApproval.length === 0 &&
           expiringSoon.length === 0 &&

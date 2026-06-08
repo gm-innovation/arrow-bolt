@@ -25,6 +25,7 @@ import {
   ImprovementRow,
   ImprovementSource,
   ImprovementPriority,
+  ImprovementEffectiveness,
 } from "@/hooks/useQualityImprovements";
 import { differenceInDays, parseISO } from "date-fns";
 
@@ -34,6 +35,9 @@ const SOURCE_LABELS: Record<ImprovementSource, string> = {
   review_output: "Análise Crítica",
   complaint: "Reclamação",
   manual: "Manual",
+  risk: "Risco",
+  supplier: "Fornecedor",
+  device: "Instrumento",
 };
 
 const SOURCE_VARIANTS: Record<ImprovementSource, string> = {
@@ -42,6 +46,9 @@ const SOURCE_VARIANTS: Record<ImprovementSource, string> = {
   review_output: "bg-blue-500/10 text-blue-700 border-blue-500/30",
   complaint: "bg-orange-500/10 text-orange-700 border-orange-500/30",
   manual: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+  risk: "bg-rose-500/10 text-rose-700 border-rose-500/30",
+  supplier: "bg-sky-500/10 text-sky-700 border-sky-500/30",
+  device: "bg-violet-500/10 text-violet-700 border-violet-500/30",
 };
 
 const PRIORITY_LABELS: Record<ImprovementPriority, string> = {
@@ -57,8 +64,23 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
+const EFFECTIVENESS_LABELS: Record<ImprovementEffectiveness, string> = {
+  pendente: "Pendente",
+  eficaz: "Eficaz",
+  ineficaz: "Ineficaz",
+  nao_aplicavel: "N/A",
+};
+
+const EFFECTIVENESS_VARIANT: Record<ImprovementEffectiveness, string> = {
+  pendente: "bg-muted text-muted-foreground",
+  eficaz: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+  ineficaz: "bg-destructive/10 text-destructive border-destructive/30",
+  nao_aplicavel: "bg-muted text-muted-foreground",
+};
+
+
 const Improvements = () => {
-  const { items, isLoading, createManual, generateActionPlan } = useQualityImprovements();
+  const { items, isLoading, createManual, generateActionPlan, verifyEffectiveness } = useQualityImprovements();
 
   const [filters, setFilters] = useState({
     source: "all",
@@ -66,6 +88,11 @@ const Improvements = () => {
     status: "open_only",
     plan: "all",
   });
+
+  const [effDialog, setEffDialog] = useState<{ row: ImprovementRow | null; status: ImprovementEffectiveness; notes: string }>({
+    row: null, status: "eficaz", notes: "",
+  });
+
 
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -283,7 +310,9 @@ const Improvements = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Prazo</TableHead>
                   <TableHead>Plano</TableHead>
+                  <TableHead>Eficácia</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -327,6 +356,33 @@ const Improvements = () => {
                           </Button>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {row.source === "manual" ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEffDialog({
+                                row,
+                                status: (row.effectiveness_status && row.effectiveness_status !== "pendente"
+                                  ? row.effectiveness_status
+                                  : "eficaz") as ImprovementEffectiveness,
+                                notes: "",
+                              })
+                            }
+                            className="cursor-pointer"
+                            title="Avaliar eficácia"
+                          >
+                            <Badge
+                              variant="outline"
+                              className={EFFECTIVENESS_VARIANT[(row.effectiveness_status ?? "pendente") as ImprovementEffectiveness]}
+                            >
+                              {EFFECTIVENESS_LABELS[(row.effectiveness_status ?? "pendente") as ImprovementEffectiveness]}
+                            </Badge>
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button asChild size="sm" variant="ghost">
                           <Link to={row.source_url}>
@@ -334,6 +390,7 @@ const Improvements = () => {
                           </Link>
                         </Button>
                       </TableCell>
+
                     </TableRow>
                   );
                 })}
@@ -342,9 +399,69 @@ const Improvements = () => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!effDialog.row} onOpenChange={(o) => !o && setEffDialog({ row: null, status: "eficaz", notes: "" })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verificar eficácia</DialogTitle>
+          </DialogHeader>
+          {effDialog.row && (
+            <div className="space-y-3">
+              <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                <p className="font-medium">{effDialog.row.title}</p>
+                <p className="text-xs text-muted-foreground">{effDialog.row.source_label}</p>
+              </div>
+              <div>
+                <Label>Resultado</Label>
+                <Select
+                  value={effDialog.status}
+                  onValueChange={(v) => setEffDialog({ ...effDialog, status: v as ImprovementEffectiveness })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="eficaz">Eficaz</SelectItem>
+                    <SelectItem value="ineficaz">Ineficaz</SelectItem>
+                    <SelectItem value="nao_aplicavel">Não aplicável</SelectItem>
+                    <SelectItem value="pendente">Voltar para pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Notas da verificação</Label>
+                <Textarea
+                  rows={4}
+                  value={effDialog.notes}
+                  onChange={(e) => setEffDialog({ ...effDialog, notes: e.target.value })}
+                  placeholder="Evidências consideradas, indicadores comparados, conclusão…"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEffDialog({ row: null, status: "eficaz", notes: "" })}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!effDialog.row) return;
+                await verifyEffectiveness.mutateAsync({
+                  id: effDialog.row.id,
+                  status: effDialog.status,
+                  notes: effDialog.notes || null,
+                });
+                setEffDialog({ row: null, status: "eficaz", notes: "" });
+              }}
+              disabled={verifyEffectiveness.isPending}
+            >
+              {verifyEffectiveness.isPending ? "Salvando…" : "Registrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 const KpiCard = ({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) => (
   <Card>

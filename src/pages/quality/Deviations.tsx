@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
 import { useAuth } from "@/contexts/AuthContext";
+import CreateImprovementFromButton from "@/components/quality/CreateImprovementFromButton";
+
 
 const ORIGIN_LABELS: Record<DeviationOrigin, string> = {
   document: "Documento", process: "Processo", product: "Produto", ncr: "NCR", other: "Outro",
@@ -82,9 +84,20 @@ export default function Deviations() {
                     <Badge variant="outline">{ORIGIN_LABELS[d.origin_type]}</Badge>
                     <Badge variant={STATUS_VARIANT[d.status]}>{STATUS_LABELS[d.status]}</Badge>
                   </CardTitle>
-                  <Button size="icon" variant="ghost" onClick={() => remove.mutate(d.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1">
+                    <CreateImprovementFromButton
+                      originType="deviation"
+                      originId={d.id}
+                      defaultTitle={`Melhoria — Desvio: ${d.title}`}
+                      defaultDescription={d.description ?? ""}
+                      iconOnly
+                      variant="ghost"
+                    />
+                    <Button size="icon" variant="ghost" onClick={() => remove.mutate(d.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+
                 </div>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
