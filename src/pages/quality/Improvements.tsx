@@ -310,7 +310,9 @@ const Improvements = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Prazo</TableHead>
                   <TableHead>Plano</TableHead>
+                  <TableHead>Eficácia</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
+
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -354,6 +356,33 @@ const Improvements = () => {
                           </Button>
                         )}
                       </TableCell>
+                      <TableCell>
+                        {row.source === "manual" ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setEffDialog({
+                                row,
+                                status: (row.effectiveness_status && row.effectiveness_status !== "pendente"
+                                  ? row.effectiveness_status
+                                  : "eficaz") as ImprovementEffectiveness,
+                                notes: "",
+                              })
+                            }
+                            className="cursor-pointer"
+                            title="Avaliar eficácia"
+                          >
+                            <Badge
+                              variant="outline"
+                              className={EFFECTIVENESS_VARIANT[(row.effectiveness_status ?? "pendente") as ImprovementEffectiveness]}
+                            >
+                              {EFFECTIVENESS_LABELS[(row.effectiveness_status ?? "pendente") as ImprovementEffectiveness]}
+                            </Badge>
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <Button asChild size="sm" variant="ghost">
                           <Link to={row.source_url}>
@@ -361,6 +390,7 @@ const Improvements = () => {
                           </Link>
                         </Button>
                       </TableCell>
+
                     </TableRow>
                   );
                 })}
