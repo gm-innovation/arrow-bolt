@@ -41,7 +41,7 @@ const STATUS: Record<string, string> = {
 const dt = (s?: string | null) => (s ? format(new Date(s), "dd/MM/yyyy") : "—");
 
 export interface NcrFormalPdfProps {
-  meta: Omit<ControlledDocMeta, "code" | "title" | "revisionLabel" | "subtitle" | "subtitleBlock" | "issuedAt">;
+  meta: Omit<ControlledDocMeta, "code" | "title" | "revisionLabel" | "subtitleBlock" | "issuedAt">;
   ncr: NcrFormalPdfData;
 }
 
