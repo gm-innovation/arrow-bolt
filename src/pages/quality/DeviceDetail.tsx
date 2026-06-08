@@ -223,13 +223,16 @@ const DeviceDetailPage = () => {
                         <td className="p-3 text-xs">{c.valid_until ? format(parseISO(c.valid_until), "dd/MM/yyyy") : "—"}</td>
                         <td className="p-3 text-xs">{c.measurement_uncertainty ?? "—"}</td>
                         <td className="p-3 text-right">
-                          {c.certificate_file_url && (
-                            <Button size="sm" variant="ghost" asChild>
-                              <a href={c.certificate_file_url} target="_blank" rel="noreferrer">
-                                <ExternalLink className="h-4 w-4" />
-                              </a>
-                            </Button>
-                          )}
+                          <div className="flex items-center justify-end gap-1">
+                            <CalibrationCertificateButton calibrationId={c.id} device={device} iconOnly />
+                            {c.certificate_file_url && (
+                              <Button size="sm" variant="ghost" asChild>
+                                <a href={c.certificate_file_url} target="_blank" rel="noreferrer">
+                                  <ExternalLink className="h-4 w-4" />
+                                </a>
+                              </Button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
