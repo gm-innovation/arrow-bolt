@@ -56,16 +56,21 @@ export default function SatisfactionResponse() {
   }, [token]);
 
   const submit = async () => {
-    if (nps == null || csat == null) {
-      setError("Por favor, responda NPS e CSAT.");
+    const missing: string[] = [];
+    if (invite?.collects_nps && nps == null) missing.push("NPS");
+    if (invite?.collects_csat && csat == null) missing.push("CSAT");
+    if (invite?.collects_ces && ces == null) missing.push("CES");
+    if (missing.length) {
+      setError(`Por favor, responda: ${missing.join(", ")}.`);
       return;
     }
     setError("");
     setState("submitting");
     const { error } = await supabase.rpc("quality_submit_satisfaction_response" as any, {
       p_token: token,
-      p_nps: nps,
-      p_csat: csat,
+      p_nps: invite?.collects_nps ? nps : null,
+      p_csat: invite?.collects_csat ? csat : null,
+      p_ces: invite?.collects_ces ? ces : null,
       p_comment: comment || null,
       p_responder_name: name || null,
       p_responder_email: email || null,
