@@ -48,6 +48,29 @@ const DeviceDetailPage = () => {
 
   const overdue = device.next_calibration_due && new Date(device.next_calibration_due) < new Date();
 
+  // §7.1.5 — calibração reprovada nos últimos 180 dias gera alerta crítico
+  const reprovedRecent = calibrations.find((c) => {
+    if (c.result !== "reproved") return false;
+    const date = new Date(c.calibration_date);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 180);
+    return date >= cutoff;
+  });
+
+  const openNcrFromCalibration = () => {
+    if (!reprovedRecent) return;
+    const params = new URLSearchParams({
+      origin: "calibration",
+      device_id: device.id,
+      device_code: device.code,
+      device_name: device.name,
+      calibration_id: reprovedRecent.id,
+      title: `Calibração reprovada — ${device.code} ${device.name}`,
+      severity: "high",
+    });
+    navigate(`/quality/ncrs?tab=ncrs&new=1&${params.toString()}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
