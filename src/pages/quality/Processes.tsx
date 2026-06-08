@@ -10,11 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Workflow, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, Workflow, FileText, History as HistoryIcon, AlertTriangle } from "lucide-react";
 import { useQualityProcesses, useProcessSIPOC, useProcessActivities, type QualityProcess } from "@/hooks/useQualityProcesses";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useCentralApproval } from "@/hooks/useCentralApproval";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
+import { useQualityProcessDocumentHistory } from "@/hooks/useQualityProcessDocumentHistory";
+import { format, parseISO } from "date-fns";
 
 const TYPE_LABELS: Record<QualityProcess["type"], string> = {
   strategic: "Estratégico", tactical: "Tático", operational: "Operacional", support: "Suporte",
