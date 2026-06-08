@@ -84,12 +84,37 @@ const NewAuditDialog = ({ open, onOpenChange }: Props) => {
             <Input id="standard_reference" {...register("standard_reference")} placeholder="Ex: ISO 9001:2015 - Cláusula 7.1" />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Periodicidade</Label>
+              <Select defaultValue="ad_hoc" onValueChange={(v) => setValue("recurrence", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Mensal</SelectItem>
+                  <SelectItem value="quarterly">Trimestral</SelectItem>
+                  <SelectItem value="semiannual">Semestral</SelectItem>
+                  <SelectItem value="annual">Anual</SelectItem>
+                  <SelectItem value="ad_hoc">Pontual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="next_due_at">Próxima prevista</Label>
+              <Input id="next_due_at" type="date" {...register("next_due_at")} />
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="scope">Escopo</Label>
             <Textarea id="scope" {...register("scope")} placeholder="Defina o escopo da auditoria..." />
           </div>
 
           <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+            <Button type="submit" disabled={createAudit.isPending}>
+              {createAudit.isPending ? "Agendando..." : "Agendar Auditoria"}
+            </Button>
+          </DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
             <Button type="submit" disabled={createAudit.isPending}>
               {createAudit.isPending ? "Agendando..." : "Agendar Auditoria"}
