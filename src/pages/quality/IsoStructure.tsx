@@ -249,28 +249,45 @@ const NormsTab = () => {
               <TableRow>
                 <TableHead>Código</TableHead>
                 <TableHead>Título</TableHead>
+                <TableHead>Rev.</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Emissor</TableHead>
                 <TableHead>Vigência</TableHead>
+                <TableHead>Anexo</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {norms.map((n) => (
-                <TableRow key={n.id}>
-                  <TableCell className="font-mono">{n.code}</TableCell>
-                  <TableCell>{n.title}</TableCell>
-                  <TableCell>{n.issuer || "—"}</TableCell>
-                  <TableCell className="text-xs">
-                    {n.valid_from ? format(parseISO(n.valid_from), "dd/MM/yyyy") : "—"} —{" "}
-                    {n.valid_until ? format(parseISO(n.valid_until), "dd/MM/yyyy") : "vigente"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button size="icon" variant="ghost" onClick={() => remove.mutate(n.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {norms.map((n: any) => {
+                const st = NORM_STATUS_LABELS[n.status || "vigente"];
+                return (
+                  <TableRow key={n.id}>
+                    <TableCell className="font-mono">{n.code}</TableCell>
+                    <TableCell>{n.title}</TableCell>
+                    <TableCell className="text-xs">{n.revision || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={st?.tone}>{st?.label || n.status}</Badge>
+                    </TableCell>
+                    <TableCell>{n.issuer || "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {n.valid_from ? format(parseISO(n.valid_from), "dd/MM/yyyy") : "—"} —{" "}
+                      {n.valid_until ? format(parseISO(n.valid_until), "dd/MM/yyyy") : "vigente"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {n.attachment_url ? (
+                        <a href={n.attachment_url} target="_blank" rel="noopener noreferrer" className="underline">
+                          {n.attachment_name || "abrir"}
+                        </a>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button size="icon" variant="ghost" onClick={() => remove.mutate(n.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
@@ -280,11 +297,20 @@ const NormsTab = () => {
 };
 
 // =============== Termos ===============
+const TERM_STATUS_LABELS: Record<string, { label: string; tone: string }> = {
+  rascunho: { label: "Rascunho", tone: "border-yellow-500 text-yellow-700" },
+  vigente: { label: "Vigente", tone: "border-green-500 text-green-700" },
+  obsoleto: { label: "Obsoleto", tone: "border-muted-foreground text-muted-foreground" },
+};
+
 const TermsTab = () => {
   const { terms, create, remove } = useQualityTerms();
   const { norms } = useQualityReferenceNorms();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ term: "", definition: "", source_norm_id: "" });
+  const [form, setForm] = useState({
+    term: "", definition: "", source_norm_id: "",
+    version: "1", status: "vigente", review_frequency_months: "",
+  });
 
   const submit = async () => {
     if (!form.term || !form.definition) return;
