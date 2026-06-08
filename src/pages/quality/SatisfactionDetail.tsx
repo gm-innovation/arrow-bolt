@@ -60,6 +60,11 @@ export default function SatisfactionDetail() {
             </Link>
           </Button>
           <h1 className="text-2xl font-bold">{campaign.name}</h1>
+          <div className="flex flex-wrap gap-1">
+            {campaign.collects_nps && <Badge variant="outline" className="text-[10px]">NPS</Badge>}
+            {campaign.collects_csat && <Badge variant="outline" className="text-[10px]">CSAT</Badge>}
+            {campaign.collects_ces && <Badge variant="outline" className="text-[10px]">CES</Badge>}
+          </div>
           {campaign.description && (
             <p className="text-sm text-muted-foreground max-w-2xl">{campaign.description}</p>
           )}
