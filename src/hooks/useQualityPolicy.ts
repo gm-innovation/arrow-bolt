@@ -12,6 +12,15 @@ export interface PolicyAcknowledgement {
   acknowledged_at: string;
 }
 
+export interface PolicyVersion {
+  id: string;
+  company_id: string;
+  version: number;
+  text: string;
+  published_by: string | null;
+  published_at: string;
+}
+
 export const useQualityPolicy = () => {
   const { profile, user } = useAuth();
   const qc = useQueryClient();
@@ -33,6 +42,20 @@ export const useQualityPolicy = () => {
         .eq("policy_version", policyVersion);
       if (error) throw error;
       return (data ?? []) as unknown as PolicyAcknowledgement[];
+    },
+  });
+
+  const versions = useQuery({
+    queryKey: ["quality_policy_versions", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quality_policy_versions" as any)
+        .select("*")
+        .eq("company_id", companyId!)
+        .order("version", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as PolicyVersion[];
     },
   });
 
@@ -79,6 +102,7 @@ export const useQualityPolicy = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["quality_settings"] });
       qc.invalidateQueries({ queryKey: ["quality_policy_acks"] });
+      qc.invalidateQueries({ queryKey: ["quality_policy_versions"] });
       toast({ title: "Política publicada — versão atualizada e ciência zerada." });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
@@ -86,7 +110,9 @@ export const useQualityPolicy = () => {
 
   return {
     policyText, policyVersion, publishedAt,
-    acks: acks.data ?? [], myAck,
+    acks: acks.data ?? [],
+    versions: versions.data ?? [],
+    myAck,
     needsAcknowledgement: !!policyText && !myAck,
     isMaster,
     acknowledge, publish, upsert,

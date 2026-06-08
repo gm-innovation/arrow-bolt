@@ -26,7 +26,7 @@ const STATUS_VARIANT: Record<DeviationStatus, "default" | "secondary" | "destruc
 
 export default function Deviations() {
   const { deviations, isLoading, create, update, remove } = useQualityDeviations();
-  const { approvalScope, isMaster } = useQualitySettings();
+  const { approvalScope, canDecideCentral } = useQualitySettings();
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -104,7 +104,7 @@ export default function Deviations() {
                 <p>{d.description}</p>
                 {d.justification && <p className="text-muted-foreground"><b>Justificativa:</b> {d.justification}</p>}
                 {d.expires_at && <p className="text-muted-foreground"><b>Válido até:</b> {new Date(d.expires_at).toLocaleDateString("pt-BR")}</p>}
-                {requiresApproval && d.status === "open" && isMaster && (
+                {requiresApproval && d.status === "open" && canDecideCentral && (
                   <div className="flex gap-2 pt-2">
                     <Button size="sm" onClick={() => decide(d.id, "approved")}>Aprovar</Button>
                     <Button size="sm" variant="destructive" onClick={() => decide(d.id, "rejected")}>Rejeitar</Button>

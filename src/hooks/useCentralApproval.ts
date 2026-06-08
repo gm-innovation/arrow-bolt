@@ -20,6 +20,34 @@ export interface CentralApproval {
   created_at: string;
 }
 
+export interface CentralApprovalEvent {
+  id: string;
+  approval_id: string;
+  company_id: string;
+  event_type: "requested" | "approved" | "rejected" | "commented" | "reassigned";
+  actor_user_id: string | null;
+  comment: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+const logEvent = async (
+  approval: Pick<CentralApproval, "id" | "company_id">,
+  event_type: CentralApprovalEvent["event_type"],
+  actor: string,
+  comment?: string | null,
+  metadata?: Record<string, unknown>,
+) => {
+  await supabase.from("quality_central_approval_events" as any).insert({
+    approval_id: approval.id,
+    company_id: approval.company_id,
+    event_type,
+    actor_user_id: actor,
+    comment: comment ?? null,
+    metadata: metadata ?? {},
+  });
+};
+
 export const useCentralApproval = (entity_type?: ApprovalEntityType, entity_id?: string) => {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
@@ -54,11 +82,13 @@ export const useCentralApproval = (entity_type?: ApprovalEntityType, entity_id?:
           notes,
         } as any).select().maybeSingle();
       if (error) throw error;
+      if (data) await logEvent(data as any, "requested", user!.id, notes);
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["central_approval"] });
       qc.invalidateQueries({ queryKey: ["central_approvals_queue"] });
+      qc.invalidateQueries({ queryKey: ["central_approval_events"] });
       toast({ title: "Solicitação enviada ao Master" });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
@@ -88,7 +118,7 @@ export const useCentralApprovalsQueue = () => {
 
   const decide = useMutation({
     mutationFn: async ({ id, status, notes }: { id: string; status: "approved" | "rejected"; notes?: string }) => {
-      const { error } = await supabase
+      const { data: updated, error } = await supabase
         .from("quality_central_approvals" as any)
         .update({
           status,
@@ -96,16 +126,49 @@ export const useCentralApprovalsQueue = () => {
           approved_at: new Date().toISOString(),
           notes: notes ?? null,
         } as any)
-        .eq("id", id);
+        .eq("id", id)
+        .select()
+        .maybeSingle();
       if (error) throw error;
+      if (updated) await logEvent(updated as any, status, user!.id, notes);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["central_approvals_queue"] });
       qc.invalidateQueries({ queryKey: ["central_approval"] });
+      qc.invalidateQueries({ queryKey: ["central_approval_events"] });
       toast({ title: "Decisão registrada" });
     },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  return { pending, isLoading, decide };
+  const comment = useMutation({
+    mutationFn: async ({ approval, text }: { approval: CentralApproval; text: string }) => {
+      if (!text.trim()) return;
+      await logEvent(approval, "commented", user!.id, text.trim());
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["central_approval_events"] });
+      toast({ title: "Comentário registrado" });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  return { pending, isLoading, decide, comment };
+};
+
+export const useCentralApprovalEvents = (approvalId?: string) => {
+  const { data, isLoading } = useQuery({
+    queryKey: ["central_approval_events", approvalId],
+    enabled: !!approvalId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quality_central_approval_events" as any)
+        .select("*")
+        .eq("approval_id", approvalId!)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return (data as unknown) as CentralApprovalEvent[];
+    },
+  });
+  return { events: data ?? [], isLoading };
 };
