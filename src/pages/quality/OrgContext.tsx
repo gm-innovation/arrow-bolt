@@ -145,6 +145,8 @@ const OrgContext = () => {
               </Button>
             </CardContent>
           </Card>
+
+          <ExcludedClausesCard />
         </TabsContent>
 
         <TabsContent value="swot" className="mt-4">
