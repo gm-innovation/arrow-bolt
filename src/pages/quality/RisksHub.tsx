@@ -1,8 +1,8 @@
 import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import QualityRisks from "./Risks";
 import QualityInterestedParties from "./InterestedParties";
+import OrgContext from "./OrgContext";
 
 const RisksHub = () => {
   const [sp, setSp] = useSearchParams();
@@ -21,15 +21,7 @@ const RisksHub = () => {
       </TabsList>
       <TabsContent value="risks"><QualityRisks /></TabsContent>
       <TabsContent value="parties"><QualityInterestedParties /></TabsContent>
-      <TabsContent value="context">
-        <Card>
-          <CardContent className="p-8 text-sm text-muted-foreground space-y-2">
-            <p className="font-medium text-foreground">Contexto da Organização (ISO 9001 — 4.1)</p>
-            <p>Documente aqui as questões internas e externas relevantes ao SGQ.</p>
-            <p className="text-xs">Em breve: editor estruturado por categoria (SWOT, PESTAL, Stakeholders).</p>
-          </CardContent>
-        </Card>
-      </TabsContent>
+      <TabsContent value="context"><OrgContext /></TabsContent>
     </Tabs>
   );
 };
