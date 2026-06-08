@@ -189,53 +189,83 @@ export default function SatisfactionResponse() {
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="space-y-2">
-            <Label>Em uma escala de 0 a 10, quanto você nos recomendaria?</Label>
-            <div className="grid grid-cols-11 gap-1">
-              {Array.from({ length: 11 }).map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setNps(i)}
-                  className={`h-10 rounded-md border text-sm font-medium transition-colors ${
-                    nps === i
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background hover:bg-muted"
-                  }`}
-                >
-                  {i}
-                </button>
-              ))}
+          {invite?.collects_nps && (
+            <div className="space-y-2">
+              <Label>Em uma escala de 0 a 10, quanto você nos recomendaria?</Label>
+              <div className="grid grid-cols-11 gap-1">
+                {Array.from({ length: 11 }).map((_, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setNps(i)}
+                    className={`h-10 rounded-md border text-sm font-medium transition-colors ${
+                      nps === i
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background hover:bg-muted"
+                    }`}
+                  >
+                    {i}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Nada provável</span>
+                <span>Muito provável</span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Nada provável</span>
-              <span>Muito provável</span>
-            </div>
-          </div>
+          )}
 
-          <div className="space-y-2">
-            <Label>Como você avalia sua satisfação geral?</Label>
-            <div className="grid grid-cols-5 gap-2">
-              {[1, 2, 3, 4, 5].map((v) => (
-                <button
-                  key={v}
-                  type="button"
-                  onClick={() => setCsat(v)}
-                  className={`h-12 rounded-md border text-base font-semibold transition-colors ${
-                    csat === v
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-background hover:bg-muted"
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
+          {invite?.collects_csat && (
+            <div className="space-y-2">
+              <Label>Como você avalia sua satisfação geral?</Label>
+              <div className="grid grid-cols-5 gap-2">
+                {[1, 2, 3, 4, 5].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setCsat(v)}
+                    className={`h-12 rounded-md border text-base font-semibold transition-colors ${
+                      csat === v
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background hover:bg-muted"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Muito insatisfeito</span>
+                <span>Muito satisfeito</span>
+              </div>
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Muito insatisfeito</span>
-              <span>Muito satisfeito</span>
+          )}
+
+          {invite?.collects_ces && (
+            <div className="space-y-2">
+              <Label>Quão fácil foi obter o que você precisava? (1 a 7)</Label>
+              <div className="grid grid-cols-7 gap-2">
+                {[1, 2, 3, 4, 5, 6, 7].map((v) => (
+                  <button
+                    key={v}
+                    type="button"
+                    onClick={() => setCes(v)}
+                    className={`h-12 rounded-md border text-base font-semibold transition-colors ${
+                      ces === v
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background hover:bg-muted"
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Muito difícil</span>
+                <span>Muito fácil</span>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-2">
             <Label>Comentário (opcional)</Label>
