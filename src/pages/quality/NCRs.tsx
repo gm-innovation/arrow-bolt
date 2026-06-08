@@ -9,6 +9,7 @@ import { Plus, Search, AlertTriangle } from "lucide-react";
 import { useQualityNCRs } from "@/hooks/useQualityNCRs";
 import NewNCRDialog from "@/components/quality/NewNCRDialog";
 import CreateImprovementFromButton from "@/components/quality/CreateImprovementFromButton";
+import NcrFormalPdfButton from "@/components/quality/pdf/NcrFormalPdfButton";
 import { format } from "date-fns";
 
 
