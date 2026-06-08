@@ -22,6 +22,8 @@ export interface QualityAudit {
   created_at: string;
   updated_at: string;
   lead_auditor?: { full_name: string } | null;
+  recurrence?: string | null;
+  next_due_at?: string | null;
 }
 
 export interface QualityAuditFinding {
