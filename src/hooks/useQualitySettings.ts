@@ -136,6 +136,7 @@ export const useQualitySettings = () => {
     cycles: (settings?.review_cycles as QualityReviewCycles) ?? DEFAULTS,
     approvalScope: (settings?.approval_scope as ApprovalScope) ?? SCOPE_DEFAULTS,
     requireActiveProcessDocument: settings?.require_active_process_document ?? true,
+    enablePushNotifications: settings?.enable_push_notifications ?? false,
     slaHours: settings?.central_approval_sla_hours ?? 48,
     delegateActive,
     isMaster,
