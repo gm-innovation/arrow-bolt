@@ -21,7 +21,7 @@ const blankForm = {
 
 const QualitySettings = () => {
   const { types, create, update, remove, isLoading } = useQualityDocumentTypes();
-  const { cycles, upsert: upsertSettings, requireActiveProcessDocument } = useQualitySettings();
+  const { cycles, upsert: upsertSettings, requireActiveProcessDocument, enablePushNotifications } = useQualitySettings();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ ...blankForm });
 
