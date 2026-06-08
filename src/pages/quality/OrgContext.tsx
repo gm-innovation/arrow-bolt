@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,18 +27,14 @@ const OrgContext = () => {
   const [external, setExternal] = useState<string>("");
   const [freq, setFreq] = useState<number>(12);
 
-  // sync local state when context loads
-  useState(() => {
+  useEffect(() => {
     if (context) {
       setScope(context.applicable_scope ?? "");
       setInternal(context.internal_issues ?? "");
       setExternal(context.external_issues ?? "");
       setFreq(context.review_frequency_months ?? 12);
     }
-  });
-
-  // populate when context arrives
-  if (context && scope === "" && context.applicable_scope) setScope(context.applicable_scope);
+  }, [context?.id]);
 
   const [dialogCat, setDialogCat] = useState<ContextCategory | null>(null);
   const [editing, setEditing] = useState<ContextItem | null>(null);
