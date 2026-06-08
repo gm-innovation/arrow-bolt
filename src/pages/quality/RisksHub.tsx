@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QualityRisks from "./Risks";
 import QualityInterestedParties from "./InterestedParties";
 import OrgContext from "./OrgContext";
+import Processes from "./Processes";
 
 const RisksHub = () => {
   const [sp, setSp] = useSearchParams();
@@ -18,10 +19,12 @@ const RisksHub = () => {
         <TabsTrigger value="risks">Riscos & Oportunidades</TabsTrigger>
         <TabsTrigger value="parties">Partes Interessadas</TabsTrigger>
         <TabsTrigger value="context">Contexto</TabsTrigger>
+        <TabsTrigger value="processes">Processos</TabsTrigger>
       </TabsList>
       <TabsContent value="risks"><QualityRisks /></TabsContent>
       <TabsContent value="parties"><QualityInterestedParties /></TabsContent>
       <TabsContent value="context"><OrgContext /></TabsContent>
+      <TabsContent value="processes"><Processes /></TabsContent>
     </Tabs>
   );
 };
