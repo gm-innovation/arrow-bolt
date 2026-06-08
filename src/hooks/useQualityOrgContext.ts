@@ -212,11 +212,35 @@ export const useQualityOrgContext = () => {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  const saveExclusions = useMutation({
+    mutationFn: async (excluded: ExcludedClause[]) => {
+      if (!context.data?.id && !companyId) throw new Error("Sem empresa");
+      if (context.data?.id) {
+        const { error } = await supabase
+          .from("quality_org_context" as any)
+          .update({ excluded_clauses: excluded } as any)
+          .eq("id", context.data.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("quality_org_context" as any)
+          .insert({ company_id: companyId, excluded_clauses: excluded } as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["quality_org_context"] });
+      toast({ title: "Exclusões atualizadas" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
   return {
     context: context.data ?? null,
     items: items.data ?? [],
     versions: versions.data ?? [],
     isLoading: context.isLoading || items.isLoading,
-    saveContext, upsertItem, removeItem, linkItemRisk, createSnapshot,
+    saveContext, upsertItem, removeItem, linkItemRisk, createSnapshot, saveExclusions,
   };
 };
