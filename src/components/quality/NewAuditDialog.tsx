@@ -14,7 +14,7 @@ interface Props {
 
 const NewAuditDialog = ({ open, onOpenChange }: Props) => {
   const { createAudit } = useQualityAudits();
-  const { register, handleSubmit, reset, setValue } = useForm({
+  const { register, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: {
       title: "",
       scope: "",
@@ -22,6 +22,8 @@ const NewAuditDialog = ({ open, onOpenChange }: Props) => {
       planned_date: "",
       department: "",
       standard_reference: "",
+      recurrence: "ad_hoc",
+      next_due_at: "",
     },
   });
 
@@ -33,6 +35,8 @@ const NewAuditDialog = ({ open, onOpenChange }: Props) => {
       planned_date: data.planned_date,
       department: data.department,
       standard_reference: data.standard_reference,
+      recurrence: data.recurrence,
+      next_due_at: data.next_due_at || undefined,
     });
     reset();
     onOpenChange(false);
