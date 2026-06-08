@@ -45,11 +45,11 @@ export const QualityPdfPreviewButton = ({
             <DialogDescription className="flex items-center justify-between">
               <span>Pré-visualização do documento controlado.</span>
               <PDFDownloadLink document={document} fileName={fileName}>
-                {({ loading }) => (
+                {(({ loading }: { loading: boolean }) => (
                   <Button size="sm" disabled={loading}>
                     {loading ? "Gerando…" : "Baixar PDF"}
                   </Button>
-                )}
+                )) as any}
               </PDFDownloadLink>
             </DialogDescription>
           </DialogHeader>
