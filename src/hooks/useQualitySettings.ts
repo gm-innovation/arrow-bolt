@@ -83,6 +83,7 @@ export const useQualitySettings = () => {
       central_approval_sla_hours?: number;
       approval_scope?: Partial<ApprovalScope>;
       require_active_process_document?: boolean;
+      enable_push_notifications?: boolean;
     }) => {
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
       const merged: any = {
