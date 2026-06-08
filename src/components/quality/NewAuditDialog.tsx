@@ -115,11 +115,6 @@ const NewAuditDialog = ({ open, onOpenChange }: Props) => {
               {createAudit.isPending ? "Agendando..." : "Agendar Auditoria"}
             </Button>
           </DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={createAudit.isPending}>
-              {createAudit.isPending ? "Agendando..." : "Agendar Auditoria"}
-            </Button>
-          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
