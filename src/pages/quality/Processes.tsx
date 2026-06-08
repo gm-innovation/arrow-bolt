@@ -93,6 +93,17 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
                 <div className="text-xs text-muted-foreground">Status: {doc.status} {doc.next_review_date && `· Próx. revisão: ${doc.next_review_date}`}</div>
               </CardContent></Card>
             )}
+            {docInvalid && (
+              <div className="flex items-start gap-2 border border-destructive/40 bg-destructive/5 rounded p-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-medium text-destructive">Documento vinculado inválido</div>
+                  <div className="text-xs text-muted-foreground">
+                    {docInvalidReason}. O processo não poderá ficar com status <span className="font-mono">active</span> enquanto a regra "Processo só fica ativo com documento válido" estiver ligada em Configurações.
+                  </div>
+                </div>
+              </div>
+            )}
             <ProcessApproval documentId={process.current_document_id} />
           </TabsContent>
           <TabsContent value="sipoc" className="space-y-3">
@@ -121,6 +132,35 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
                 ))}
               </TableBody>
             </Table>
+          </TabsContent>
+          <TabsContent value="history" className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Histórico imutável de trocas do documento controlado vinculado a este processo.
+            </p>
+            {history.length === 0 ? (
+              <p className="text-center py-6 text-sm text-muted-foreground">Sem registros de troca de documento.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Documento anterior</TableHead>
+                    <TableHead>Novo documento</TableHead>
+                    <TableHead>Motivo</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {history.map(h => (
+                    <TableRow key={h.id}>
+                      <TableCell className="text-xs">{format(parseISO(h.changed_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                      <TableCell className="text-xs">{docCode(h.previous_document_id)}</TableCell>
+                      <TableCell className="text-xs">{docCode(h.new_document_id)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{h.reason || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </TabsContent>
         </Tabs>
       </SheetContent>
