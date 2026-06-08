@@ -16,6 +16,7 @@ import {
 import DeviceStatusBadge from "@/components/quality/DeviceStatusBadge";
 import DeviceFormDialog from "@/components/quality/DeviceFormDialog";
 import CalibrationDrawer from "@/components/quality/CalibrationDrawer";
+import CalibrationCertificateButton from "@/components/quality/pdf/CalibrationCertificateButton";
 
 const resultLabel: Record<string, string> = {
   approved: "Aprovado",
