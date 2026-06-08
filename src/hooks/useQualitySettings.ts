@@ -26,8 +26,14 @@ export interface QualitySettings {
   review_cycles: QualityReviewCycles;
   critical_review_required_topics: { key: string; label: string }[];
   quality_master_user_id: string | null;
+  master_delegate_user_id: string | null;
+  master_delegate_until: string | null;
+  central_approval_sla_hours: number;
   approval_scope: ApprovalScope;
   require_active_process_document: boolean;
+  quality_policy_text?: string | null;
+  quality_policy_version?: number;
+  quality_policy_published_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -43,6 +49,7 @@ const SCOPE_DEFAULTS: ApprovalScope = {
   document: true, company_document: true, process: true, policy: true,
   context_official: true, ncr: false, deviation: false,
 };
+
 
 export const useQualitySettings = () => {
   const { user, profile } = useAuth();
@@ -67,6 +74,9 @@ export const useQualitySettings = () => {
       review_cycles?: Partial<QualityReviewCycles>;
       critical_review_required_topics?: { key: string; label: string }[];
       quality_master_user_id?: string | null;
+      master_delegate_user_id?: string | null;
+      master_delegate_until?: string | null;
+      central_approval_sla_hours?: number;
       approval_scope?: Partial<ApprovalScope>;
       require_active_process_document?: boolean;
     }) => {
@@ -78,6 +88,9 @@ export const useQualitySettings = () => {
           patch.critical_review_required_topics ?? settings?.critical_review_required_topics ?? [],
       };
       if (patch.quality_master_user_id !== undefined) merged.quality_master_user_id = patch.quality_master_user_id;
+      if (patch.master_delegate_user_id !== undefined) merged.master_delegate_user_id = patch.master_delegate_user_id;
+      if (patch.master_delegate_until !== undefined) merged.master_delegate_until = patch.master_delegate_until;
+      if (patch.central_approval_sla_hours !== undefined) merged.central_approval_sla_hours = patch.central_approval_sla_hours;
       if (patch.approval_scope !== undefined) {
         merged.approval_scope = { ...SCOPE_DEFAULTS, ...(settings?.approval_scope ?? {}), ...patch.approval_scope };
       }
@@ -100,7 +113,14 @@ export const useQualitySettings = () => {
       toast({ title: "Erro ao atualizar configurações", description: e.message, variant: "destructive" }),
   });
 
+  const now = new Date();
+  const delegateActive =
+    !!settings?.master_delegate_user_id &&
+    (!settings?.master_delegate_until || new Date(settings.master_delegate_until) > now);
+
   const isMaster = !!user && settings?.quality_master_user_id === user.id;
+  const isDelegate = !!user && delegateActive && settings?.master_delegate_user_id === user.id;
+  const canDecideCentral = isMaster || isDelegate;
 
   return {
     settings,
@@ -108,7 +128,12 @@ export const useQualitySettings = () => {
     cycles: (settings?.review_cycles as QualityReviewCycles) ?? DEFAULTS,
     approvalScope: (settings?.approval_scope as ApprovalScope) ?? SCOPE_DEFAULTS,
     requireActiveProcessDocument: settings?.require_active_process_document ?? true,
+    slaHours: settings?.central_approval_sla_hours ?? 48,
+    delegateActive,
     isMaster,
+    isDelegate,
+    canDecideCentral,
     upsert,
   };
 };
+
