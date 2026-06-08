@@ -54,7 +54,7 @@ export const useQualityProcesses = () => {
   });
 
   const upsertProcess = useMutation({
-    mutationFn: async (p: Partial<QualityProcess> & { name: string }) => {
+    mutationFn: async (p: Partial<QualityProcess>) => {
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
       const payload: any = { ...p, company_id: profile.company_id };
       if (!p.id) payload.created_by = user!.id;
