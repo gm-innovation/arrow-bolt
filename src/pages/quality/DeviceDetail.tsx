@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Pencil, Plus, ExternalLink } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, ExternalLink, AlertTriangle, FileWarning } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import {
   useQualityDevice,
