@@ -28,7 +28,13 @@ import { useQualityMatrix } from "@/hooks/useQualityMatrix";
 import { useQualityRisks } from "@/hooks/useQualityRisks";
 import { format, parseISO, differenceInDays } from "date-fns";
 import QualityAlertsPanel from "@/components/quality/QualityAlertsPanel";
-import { GraduationCap, Target, ShieldAlert } from "lucide-react";
+import { GraduationCap, Target, ShieldAlert, CalendarClock } from "lucide-react";
+import {
+  useQualityReviewStatus,
+  ENTITY_LABEL,
+  ENTITY_LINK,
+} from "@/hooks/useQualityReviewStatus";
+
 
 const QualityDashboard = () => {
   const { ncrs } = useQualityNCRs();
@@ -63,6 +69,8 @@ const QualityDashboard = () => {
       && (d.status === "active" || d.status === "in_calibration" || d.status === "overdue"),
   ).length;
   const devicesOutOfService = devices.filter((d) => d.status === "out_of_service").length;
+  const { overdue: reviewOverdue, dueSoon: reviewDueSoon } = useQualityReviewStatus();
+
 
   const openNCRs = ncrs.filter((n) => !["closed", "cancelled"].includes(n.status));
   const activePlans = plans.filter((p) => !["closed", "effective", "ineffective"].includes(p.status));
