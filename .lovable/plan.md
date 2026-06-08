@@ -28,5 +28,14 @@
   - `src/lib/textDiff.ts` implementa LCS de linhas (sem nova dependência).
 
 ## Próximas ondas
-- **Onda 4B** — submódulo Planejamento dentro de Riscos & Oportunidades (objetivos, indicadores, mudanças planejadas).
+
+- **Onda 4B** ✅ entregue:
+  - Novas tabelas `quality_objectives`, `quality_indicators`, `quality_indicator_measurements`, `quality_planned_changes` (RLS por company_id, gestão para qualidade/director/super_admin).
+  - Coluna opcional `objective_id` em `quality_action_plans` e `quality_risk_actions` para fechar o ciclo análise → ação → objetivo.
+  - Hook `useQualityPlanning` expõe `useQualityObjectives`, `useQualityIndicators`, `useQualityIndicatorMeasurements`, `useQualityPlannedChanges`.
+  - Nova página `src/pages/quality/Planning.tsx` com 3 abas (Objetivos · Indicadores · Mudanças planejadas), diálogos de CRUD, registro periódico de medições com badge "Atingiu/Abaixo" vs meta e workflow de decisão (Aprovar · Rejeitar · Implementar) em mudanças.
+  - Submódulo adicionado como **nova aba "Planejamento"** em `RisksHub.tsx` (URL: `/quality/risks?tab=planning`) — sem novo item na sidebar, conforme decidido em homologação.
+  - `ApprovalScope` estendido com `objective` e `planned_change` (ligado a `CentralApproval`).
+  - Objetivos vinculam-se à versão vigente da Política via `policy_version_id`.
+
 - **Onda 5** — bloqueada até decisões de negócio (RH/Recursos, Documentos do colaborador, Calibração, Satisfação do Cliente, Saúde e Segurança).
