@@ -169,6 +169,8 @@ const QualityNCRsHub = lazy(() => import("./pages/quality/NCRsHub"));
 const QualityRisksHub = lazy(() => import("./pages/quality/RisksHub"));
 const QualityCompetenciesHub = lazy(() => import("./pages/quality/CompetenciesHub"));
 const QualitySettingsHub = lazy(() => import("./pages/quality/SettingsHub"));
+const QualityKnowledge = lazy(() => import("./pages/quality/Knowledge"));
+const QualityCommunication = lazy(() => import("./pages/quality/Communication"));
 const PublicSatisfactionResponse = lazy(() => import("./pages/public/SatisfactionResponse"));
 
 const FinanceDashboard = lazy(() => import("./pages/finance/Dashboard"));
