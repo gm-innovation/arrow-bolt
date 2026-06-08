@@ -39,6 +39,8 @@ const ENTITY_LABELS: Record<string, string> = {
   context_official: "Contexto (oficial)",
   ncr: "NC",
   deviation: "Desvio",
+  objective: "Objetivo",
+  planned_change: "Mudança planejada",
 };
 
 const EVENT_LABELS: Record<string, string> = {
