@@ -1,6 +1,6 @@
 # Plano final — Conformidade ISO (DOCX)
 
-> Onda 1 ✅ concluída · Onda 2 ✅ concluída · Onda 3 pendente
+> Onda 1 ✅ concluída · Onda 2 ✅ concluída · Onda 3 ✅ concluída
 
 Travas fechadas: (1) escopo da aprovação central restrito na Onda 1, (2) `quality_processes` aponta para `quality_documents` (Opção B).
 
