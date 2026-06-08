@@ -22,6 +22,8 @@ export interface QualityAudit {
   created_at: string;
   updated_at: string;
   lead_auditor?: { full_name: string } | null;
+  recurrence?: string | null;
+  next_due_at?: string | null;
 }
 
 export interface QualityAuditFinding {
@@ -66,6 +68,8 @@ export const useQualityAudits = () => {
       lead_auditor_id?: string;
       department?: string;
       standard_reference?: string;
+      recurrence?: string;
+      next_due_at?: string;
     }) => {
       const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user!.id).single();
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
@@ -79,9 +83,11 @@ export const useQualityAudits = () => {
         lead_auditor_id: values.lead_auditor_id || null,
         department: values.department || null,
         standard_reference: values.standard_reference || null,
+        recurrence: values.recurrence || "ad_hoc",
+        next_due_at: values.next_due_at || null,
         created_by: user!.id,
         status: "planned",
-      });
+      } as any);
 
       if (error) throw error;
     },

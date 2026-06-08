@@ -10,11 +10,23 @@ export interface QualityReviewCycles {
   alert_window_days: number;
 }
 
+export interface ApprovalScope {
+  document: boolean;
+  company_document: boolean;
+  process: boolean;
+  policy: boolean;
+  context_official: boolean;
+  ncr: boolean;
+  deviation: boolean;
+}
+
 export interface QualitySettings {
   id: string;
   company_id: string;
   review_cycles: QualityReviewCycles;
   critical_review_required_topics: { key: string; label: string }[];
+  quality_master_user_id: string | null;
+  approval_scope: ApprovalScope;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +36,11 @@ const DEFAULTS: QualityReviewCycles = {
   interested_parties_months: 12,
   critical_review_months: 12,
   alert_window_days: 30,
+};
+
+const SCOPE_DEFAULTS: ApprovalScope = {
+  document: true, company_document: true, process: true, policy: true,
+  context_official: true, ncr: false, deviation: false,
 };
 
 export const useQualitySettings = () => {
@@ -48,14 +65,20 @@ export const useQualitySettings = () => {
     mutationFn: async (patch: {
       review_cycles?: Partial<QualityReviewCycles>;
       critical_review_required_topics?: { key: string; label: string }[];
+      quality_master_user_id?: string | null;
+      approval_scope?: Partial<ApprovalScope>;
     }) => {
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
-      const merged = {
+      const merged: any = {
         company_id: profile.company_id,
         review_cycles: { ...DEFAULTS, ...(settings?.review_cycles ?? {}), ...(patch.review_cycles ?? {}) },
         critical_review_required_topics:
           patch.critical_review_required_topics ?? settings?.critical_review_required_topics ?? [],
       };
+      if (patch.quality_master_user_id !== undefined) merged.quality_master_user_id = patch.quality_master_user_id;
+      if (patch.approval_scope !== undefined) {
+        merged.approval_scope = { ...SCOPE_DEFAULTS, ...(settings?.approval_scope ?? {}), ...patch.approval_scope };
+      }
       const { data, error } = await supabase
         .from("quality_settings" as any)
         .upsert(merged, { onConflict: "company_id" })
@@ -72,10 +95,14 @@ export const useQualitySettings = () => {
       toast({ title: "Erro ao atualizar configurações", description: e.message, variant: "destructive" }),
   });
 
+  const isMaster = !!user && settings?.quality_master_user_id === user.id;
+
   return {
     settings,
     isLoading,
     cycles: (settings?.review_cycles as QualityReviewCycles) ?? DEFAULTS,
+    approvalScope: (settings?.approval_scope as ApprovalScope) ?? SCOPE_DEFAULTS,
+    isMaster,
     upsert,
   };
 };

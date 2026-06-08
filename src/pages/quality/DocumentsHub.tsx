@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QualityDocuments from "./Documents";
 import QualityControlledCopies from "./ControlledCopies";
+import CompanyDocuments from "./CompanyDocuments";
 
 const DocumentsHub = () => {
   const [sp, setSp] = useSearchParams();
@@ -16,9 +17,11 @@ const DocumentsHub = () => {
       <TabsList>
         <TabsTrigger value="documents">Documentos</TabsTrigger>
         <TabsTrigger value="copies">Cópias Controladas</TabsTrigger>
+        <TabsTrigger value="company">Documentos da Empresa</TabsTrigger>
       </TabsList>
       <TabsContent value="documents"><QualityDocuments /></TabsContent>
       <TabsContent value="copies"><QualityControlledCopies /></TabsContent>
+      <TabsContent value="company"><CompanyDocuments /></TabsContent>
     </Tabs>
   );
 };

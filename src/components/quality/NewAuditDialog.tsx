@@ -14,7 +14,7 @@ interface Props {
 
 const NewAuditDialog = ({ open, onOpenChange }: Props) => {
   const { createAudit } = useQualityAudits();
-  const { register, handleSubmit, reset, setValue } = useForm({
+  const { register, handleSubmit, reset, setValue, watch } = useForm({
     defaultValues: {
       title: "",
       scope: "",
@@ -22,6 +22,8 @@ const NewAuditDialog = ({ open, onOpenChange }: Props) => {
       planned_date: "",
       department: "",
       standard_reference: "",
+      recurrence: "ad_hoc",
+      next_due_at: "",
     },
   });
 
@@ -33,6 +35,8 @@ const NewAuditDialog = ({ open, onOpenChange }: Props) => {
       planned_date: data.planned_date,
       department: data.department,
       standard_reference: data.standard_reference,
+      recurrence: data.recurrence,
+      next_due_at: data.next_due_at || undefined,
     });
     reset();
     onOpenChange(false);
@@ -78,6 +82,26 @@ const NewAuditDialog = ({ open, onOpenChange }: Props) => {
           <div>
             <Label htmlFor="standard_reference">Referência da Norma</Label>
             <Input id="standard_reference" {...register("standard_reference")} placeholder="Ex: ISO 9001:2015 - Cláusula 7.1" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Periodicidade</Label>
+              <Select defaultValue="ad_hoc" onValueChange={(v) => setValue("recurrence", v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="monthly">Mensal</SelectItem>
+                  <SelectItem value="quarterly">Trimestral</SelectItem>
+                  <SelectItem value="semiannual">Semestral</SelectItem>
+                  <SelectItem value="annual">Anual</SelectItem>
+                  <SelectItem value="ad_hoc">Pontual</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="next_due_at">Próxima prevista</Label>
+              <Input id="next_due_at" type="date" {...register("next_due_at")} />
+            </div>
           </div>
 
           <div>
