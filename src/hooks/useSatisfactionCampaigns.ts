@@ -15,12 +15,16 @@ export interface CampaignRow {
   status: CampaignStatus;
   target_kind: "all_clients" | "selected";
   target_client_ids: string[];
+  collects_nps: boolean;
+  collects_csat: boolean;
+  collects_ces: boolean;
   created_at: string;
   updated_at: string;
   invites_count?: number;
   responses_count?: number;
   avg_nps?: number | null;
   avg_csat?: number | null;
+  avg_ces?: number | null;
 }
 
 export const useSatisfactionCampaigns = () => {
