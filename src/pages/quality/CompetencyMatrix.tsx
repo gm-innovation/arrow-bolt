@@ -11,6 +11,7 @@ import CompetencyMatrixHeatmap from "@/components/quality/CompetencyMatrixHeatma
 import RoleRequirementEditor from "@/components/quality/RoleRequirementEditor";
 import CompetencyMappingDialog from "@/components/quality/CompetencyMappingDialog";
 import DocumentPrerequisitesEditor from "@/components/quality/DocumentPrerequisitesEditor";
+import RhBridgeSummary from "@/components/quality/RhBridgeSummary";
 import { useQualityCompetencies, type CompetencyCategory } from "@/hooks/useQualityCompetencies";
 import { useQualityCompetencyMappings } from "@/hooks/useQualityCompetencyMappings";
 
@@ -46,7 +47,8 @@ const CompetencyMatrixPage = () => {
           <TabsTrigger value="prereqs">Documentos × Cursos</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="matrix" className="mt-4">
+        <TabsContent value="matrix" className="mt-4 space-y-4">
+          <RhBridgeSummary />
           <CompetencyMatrixHeatmap />
         </TabsContent>
 
