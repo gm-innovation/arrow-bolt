@@ -16,6 +16,9 @@ interface InvitePayload {
   campaign_name: string;
   campaign_status: string;
   already_responded: boolean;
+  collects_nps: boolean;
+  collects_csat: boolean;
+  collects_ces: boolean;
 }
 
 export default function SatisfactionResponse() {
@@ -26,6 +29,7 @@ export default function SatisfactionResponse() {
 
   const [nps, setNps] = useState<number | null>(null);
   const [csat, setCsat] = useState<number | null>(null);
+  const [ces, setCes] = useState<number | null>(null);
   const [comment, setComment] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
