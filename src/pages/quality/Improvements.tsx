@@ -25,6 +25,7 @@ import {
   ImprovementRow,
   ImprovementSource,
   ImprovementPriority,
+  ImprovementEffectiveness,
 } from "@/hooks/useQualityImprovements";
 import { differenceInDays, parseISO } from "date-fns";
 
@@ -34,6 +35,9 @@ const SOURCE_LABELS: Record<ImprovementSource, string> = {
   review_output: "Análise Crítica",
   complaint: "Reclamação",
   manual: "Manual",
+  risk: "Risco",
+  supplier: "Fornecedor",
+  device: "Instrumento",
 };
 
 const SOURCE_VARIANTS: Record<ImprovementSource, string> = {
@@ -42,6 +46,9 @@ const SOURCE_VARIANTS: Record<ImprovementSource, string> = {
   review_output: "bg-blue-500/10 text-blue-700 border-blue-500/30",
   complaint: "bg-orange-500/10 text-orange-700 border-orange-500/30",
   manual: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+  risk: "bg-rose-500/10 text-rose-700 border-rose-500/30",
+  supplier: "bg-sky-500/10 text-sky-700 border-sky-500/30",
+  device: "bg-violet-500/10 text-violet-700 border-violet-500/30",
 };
 
 const PRIORITY_LABELS: Record<ImprovementPriority, string> = {
@@ -56,6 +63,21 @@ const STATUS_LABELS: Record<string, string> = {
   done: "Concluído",
   cancelled: "Cancelado",
 };
+
+const EFFECTIVENESS_LABELS: Record<ImprovementEffectiveness, string> = {
+  pendente: "Pendente",
+  eficaz: "Eficaz",
+  ineficaz: "Ineficaz",
+  nao_aplicavel: "N/A",
+};
+
+const EFFECTIVENESS_VARIANT: Record<ImprovementEffectiveness, string> = {
+  pendente: "bg-muted text-muted-foreground",
+  eficaz: "bg-emerald-500/10 text-emerald-700 border-emerald-500/30",
+  ineficaz: "bg-destructive/10 text-destructive border-destructive/30",
+  nao_aplicavel: "bg-muted text-muted-foreground",
+};
+
 
 const Improvements = () => {
   const { items, isLoading, createManual, generateActionPlan } = useQualityImprovements();

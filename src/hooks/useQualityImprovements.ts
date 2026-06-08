@@ -8,7 +8,11 @@ export type ImprovementSource =
   | "audit_finding"
   | "review_output"
   | "complaint"
-  | "manual";
+  | "manual"
+  | "risk"
+  | "supplier"
+  | "device";
+
 
 export type ImprovementPriority = "high" | "medium" | "low";
 export type ImprovementStatus = "open" | "in_progress" | "done" | "cancelled";
