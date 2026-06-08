@@ -83,8 +83,22 @@ export const useSatisfactionCampaigns = () => {
   });
 
   const create = useMutation({
-    mutationFn: async (input: { name: string; description?: string; starts_at: string; ends_at: string }) => {
+    mutationFn: async (input: {
+      name: string;
+      description?: string;
+      starts_at: string;
+      ends_at: string;
+      collects_nps?: boolean;
+      collects_csat?: boolean;
+      collects_ces?: boolean;
+    }) => {
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
+      const collects_nps = input.collects_nps ?? true;
+      const collects_csat = input.collects_csat ?? true;
+      const collects_ces = input.collects_ces ?? false;
+      if (!collects_nps && !collects_csat && !collects_ces) {
+        throw new Error("Selecione ao menos um tipo de campanha (NPS, CSAT ou CES).");
+      }
       const { data, error } = await supabase
         .from("quality_satisfaction_campaigns" as any)
         .insert({
@@ -95,6 +109,9 @@ export const useSatisfactionCampaigns = () => {
           ends_at: input.ends_at,
           target_kind: "all_clients",
           target_client_ids: [],
+          collects_nps,
+          collects_csat,
+          collects_ces,
           created_by: user!.id,
           status: "draft",
         })
