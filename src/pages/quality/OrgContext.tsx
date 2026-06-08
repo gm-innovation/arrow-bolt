@@ -15,6 +15,7 @@ import CategoryColumn from "@/components/quality/context/CategoryColumn";
 import ContextItemDialog from "@/components/quality/context/ContextItemDialog";
 import ReviewContextDialog from "@/components/quality/context/ReviewContextDialog";
 import VersionViewerDialog from "@/components/quality/context/VersionViewerDialog";
+import LastManagementReviewCard from "@/components/quality/context/LastManagementReviewCard";
 import type { ContextVersion } from "@/hooks/useQualityOrgContext";
 import { toast } from "@/hooks/use-toast";
 
