@@ -27,6 +27,7 @@ export interface QualitySettings {
   critical_review_required_topics: { key: string; label: string }[];
   quality_master_user_id: string | null;
   approval_scope: ApprovalScope;
+  require_active_process_document: boolean;
   created_at: string;
   updated_at: string;
 }
