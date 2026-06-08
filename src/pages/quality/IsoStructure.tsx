@@ -194,6 +194,40 @@ const NormsTab = () => {
                   <Input type="date" value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} />
                 </div>
               </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>Revisão</Label>
+                  <Input placeholder="Rev. 03" value={form.revision} onChange={(e) => setForm({ ...form, revision: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(NORM_STATUS_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Ciclo de revisão (meses)</Label>
+                  <Input type="number" min={1} value={form.review_frequency_months}
+                    onChange={(e) => setForm({ ...form, review_frequency_months: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>URL do anexo</Label>
+                  <Input placeholder="https://..." value={form.attachment_url}
+                    onChange={(e) => setForm({ ...form, attachment_url: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Nome do anexo</Label>
+                  <Input value={form.attachment_name}
+                    onChange={(e) => setForm({ ...form, attachment_name: e.target.value })} />
+                </div>
+              </div>
               <div className="space-y-1">
                 <Label>Observações</Label>
                 <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
