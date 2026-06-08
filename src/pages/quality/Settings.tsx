@@ -21,7 +21,7 @@ const blankForm = {
 
 const QualitySettings = () => {
   const { types, create, update, remove, isLoading } = useQualityDocumentTypes();
-  const { cycles, upsert: upsertSettings, requireActiveProcessDocument } = useQualitySettings();
+  const { cycles, upsert: upsertSettings, requireActiveProcessDocument, enablePushNotifications } = useQualitySettings();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ ...blankForm });
 
@@ -267,6 +267,22 @@ const QualitySettings = () => {
                 <Switch
                   checked={requireActiveProcessDocument}
                   onCheckedChange={(v) => upsertSettings.mutate({ require_active_process_document: v })}
+                />
+              </div>
+
+              <div className="flex items-start justify-between gap-4 border rounded p-3 mt-3">
+                <div>
+                  <Label className="text-sm">Habilitar notificações push de alertas SGQ</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Quando ativado, alertas críticos (calibração vencendo, documentos para revisar,
+                    eficácia de melhorias atrasada etc.) são enviados como notificação push para
+                    os celulares. <strong>Pode gerar ruído.</strong> Recomendamos manter desligado
+                    e usar o dashboard + notificações internas.
+                  </p>
+                </div>
+                <Switch
+                  checked={enablePushNotifications}
+                  onCheckedChange={(v) => upsertSettings.mutate({ enable_push_notifications: v })}
                 />
               </div>
             </CardContent>

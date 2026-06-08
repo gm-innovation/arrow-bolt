@@ -34,6 +34,8 @@ export interface ImprovementRow {
   action_plan_id: string | null;
   source_url: string;
   effectiveness_status: ImprovementEffectiveness | null;
+  effectiveness_review_due_at?: string | null;
+  effectiveness_review_period_days?: number | null;
 }
 
 
@@ -166,6 +168,30 @@ export const useQualityImprovements = () => {
       toast({ title: "Erro ao registrar eficácia", description: e.message, variant: "destructive" }),
   });
 
-  return { items: items ?? [], isLoading, createManual, generateActionPlan, verifyEffectiveness };
+  const scheduleEffectivenessReview = useMutation({
+    mutationFn: async (input: { id: string; periodDays: number }) => {
+      const due = new Date();
+      due.setDate(due.getDate() + input.periodDays);
+      const dueDate = due.toISOString().slice(0, 10);
+      const { error } = await supabase
+        .from("quality_improvements_manual" as any)
+        .update({
+          status: "done",
+          effectiveness_review_due_at: dueDate,
+          effectiveness_review_period_days: input.periodDays,
+          effectiveness_status: "pendente",
+        } as any)
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["quality_improvements"] });
+      toast({ title: "Avaliação de eficácia agendada" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  return { items: items ?? [], isLoading, createManual, generateActionPlan, verifyEffectiveness, scheduleEffectivenessReview };
 };
 

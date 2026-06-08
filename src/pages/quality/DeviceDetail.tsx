@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Pencil, Plus, ExternalLink } from "lucide-react";
+import { ArrowLeft, Pencil, Plus, ExternalLink, AlertTriangle, FileWarning } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import {
   useQualityDevice,
@@ -48,6 +48,29 @@ const DeviceDetailPage = () => {
 
   const overdue = device.next_calibration_due && new Date(device.next_calibration_due) < new Date();
 
+  // §7.1.5 — calibração reprovada nos últimos 180 dias gera alerta crítico
+  const reprovedRecent = calibrations.find((c) => {
+    if (c.result !== "reproved") return false;
+    const date = new Date(c.calibration_date);
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 180);
+    return date >= cutoff;
+  });
+
+  const openNcrFromCalibration = () => {
+    if (!reprovedRecent) return;
+    const params = new URLSearchParams({
+      origin: "calibration",
+      device_id: device.id,
+      device_code: device.code,
+      device_name: device.name,
+      calibration_id: reprovedRecent.id,
+      title: `Calibração reprovada — ${device.code} ${device.name}`,
+      severity: "high",
+    });
+    navigate(`/quality/ncrs?tab=ncrs&new=1&${params.toString()}`);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -86,6 +109,27 @@ const DeviceDetailPage = () => {
           </Button>
         </div>
       </div>
+
+      {reprovedRecent && (
+        <Card className="border-destructive bg-destructive/5">
+          <CardContent className="p-4 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="font-semibold text-destructive">
+                Calibração REPROVADA em {format(parseISO(reprovedRecent.calibration_date), "dd/MM/yyyy")}
+              </div>
+              <p className="text-sm text-muted-foreground mt-1">
+                Este instrumento foi reprovado em calibração recente. Avalie segregar o dispositivo,
+                investigar medições realizadas no período e abrir uma Não Conformidade.
+              </p>
+            </div>
+            <Button variant="destructive" size="sm" onClick={openNcrFromCalibration}>
+              <FileWarning className="h-4 w-4 mr-1" />
+              Abrir NCR
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card>

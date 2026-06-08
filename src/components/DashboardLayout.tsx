@@ -48,6 +48,7 @@ import {
   Sparkles,
   HardHat,
   BadgeCheck,
+  Megaphone,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -233,6 +234,8 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Voz do Cliente", icon: MessagesSquare, path: "/quality/voice-of-customer" },
     { title: "Competências & Treinamentos", icon: GraduationCap, path: "/quality/competencies" },
     { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
+    { title: "Conhecimento", icon: BookOpen, path: "/quality/knowledge" },
+    { title: "Comunicação", icon: Megaphone, path: "/quality/communication" },
     { title: "Configurações", icon: Settings, path: "/quality/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },

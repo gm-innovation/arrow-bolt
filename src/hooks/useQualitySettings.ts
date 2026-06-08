@@ -33,6 +33,7 @@ export interface QualitySettings {
   central_approval_sla_hours: number;
   approval_scope: ApprovalScope;
   require_active_process_document: boolean;
+  enable_push_notifications: boolean;
   quality_policy_text?: string | null;
   quality_policy_version?: number;
   quality_policy_published_at?: string | null;
@@ -82,6 +83,7 @@ export const useQualitySettings = () => {
       central_approval_sla_hours?: number;
       approval_scope?: Partial<ApprovalScope>;
       require_active_process_document?: boolean;
+      enable_push_notifications?: boolean;
     }) => {
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
       const merged: any = {
@@ -99,6 +101,9 @@ export const useQualitySettings = () => {
       }
       if (patch.require_active_process_document !== undefined) {
         merged.require_active_process_document = patch.require_active_process_document;
+      }
+      if (patch.enable_push_notifications !== undefined) {
+        merged.enable_push_notifications = patch.enable_push_notifications;
       }
       const { data, error } = await supabase
         .from("quality_settings" as any)
@@ -131,6 +136,7 @@ export const useQualitySettings = () => {
     cycles: (settings?.review_cycles as QualityReviewCycles) ?? DEFAULTS,
     approvalScope: (settings?.approval_scope as ApprovalScope) ?? SCOPE_DEFAULTS,
     requireActiveProcessDocument: settings?.require_active_process_document ?? true,
+    enablePushNotifications: settings?.enable_push_notifications ?? false,
     slaHours: settings?.central_approval_sla_hours ?? 48,
     delegateActive,
     isMaster,
