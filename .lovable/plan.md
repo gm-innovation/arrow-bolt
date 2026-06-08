@@ -2,40 +2,32 @@
 
 **Etapa 0** ✅ Homologação dos 10 temas em `docs/sgq-homologacao-onda4.md`.
 
-**Onda 4A + Extensão 4A + R1 + R3** ✅ entregues nas iterações anteriores.
+**Ondas 4A + Extensão 4A + R1/R3 + R2/R4/R5 + 4B** ✅ entregues.
 
-**Refinos R2, R4 e R5** ✅ entregues nesta iteração:
+## Onda 5 — Consolidação (entregue)
 
-- **R2 — Master · SLA · delegação · trilha:**
-  - `quality_settings` ganhou `master_delegate_user_id`, `master_delegate_until` e `central_approval_sla_hours`.
-  - Nova tabela `quality_central_approval_events` (RLS por company_id) com eventos `requested · approved · rejected · commented · reassigned`.
-  - Hook `useCentralApproval` grava evento em request/decide e expõe `comment`; novo `useCentralApprovalEvents` carrega trilha por aprovação.
-  - `useQualitySettings` calcula `delegateActive`, `isDelegate`, `canDecideCentral` e `slaHours`.
-  - `CentralApproval.tsx` reescrito: cards de Master · Delegação (com vigência) · SLA · Escopo · Fila com badge de SLA (no prazo · atenção · vencido) e expansão de Trilha com comentários.
-  - `Deviations.tsx` passou a usar `canDecideCentral` para liberar Aprovar/Rejeitar.
+Escopo definido em homologação (sem novas tabelas, sem subduplicação):
 
-- **R4 — Lista Mestre filtros + XLSX:**
-  - Filtros novos: status (dinâmico) e janela de revisão (Atrasada · ≤ 30d · Em dia · Sem ciclo).
-  - Contadores no topo (atrasada · próxima · total).
-  - Realce visual da coluna "Próxima revisão".
-  - Exportação **XLSX** via biblioteca `xlsx` (planilha "Lista Mestre" com largura de colunas) e CSV com BOM utf-8 mantida.
+- **§7.1.2 Pessoas / Competências — Camada SGQ leve sobre RH:**
+  - Novo componente `RhBridgeSummary` agrega `quality_competency_matrix_v` por cargo (proxy de departamento) com conformidade %, gaps e cobertura de colaboradores.
+  - Embutido no topo da aba **Matriz** em `/quality/competencies?tab=matrix`.
+  - Sem novas tabelas. Reaproveita competências, mapeamentos e Universidade existentes.
 
-- **R5 — Política da Qualidade diff + ciência por departamento:**
-  - Nova tabela `quality_policy_versions` (id, version, text, published_by, published_at) com RLS por company_id.
-  - Trigger `quality_snapshot_policy_on_change` arquiva a versão anterior ao publicar a nova.
-  - `useQualityPolicy` retorna `versions` e `useQualityPolicyDeptAcks` agrega ciência por departamento.
-  - `QualityPolicy.tsx` reescrito com Tabs: **Editor** · **Histórico & diff** (line diff inline com seletor de versão para comparação) · **Adesão por departamento** (cobertura por dept + barra de progresso).
-  - `src/lib/textDiff.ts` implementa LCS de linhas (sem nova dependência).
+- **§7.1.5 Calibração:**
+  - Página dedicada já existente em `/quality/devices` (inventário, calibrações, certificados, checkpoints, status overdue automático via `quality_device_status_refresh`).
+  - Alias `/quality/calibration` → `/quality/devices` adicionado para padronização semântica.
+  - Dashboard de vencimentos já presente (cards "Calibrações vencidas" / "Fora de serviço").
 
-## Próximas ondas
+- **§9.1.2 Satisfação do Cliente:**
+  - `VoiceOfCustomer.tsx` já consolida NPS/CSAT médios, taxa de resposta e reclamações abertas, integrado com `quality_satisfaction_responses` e `quality_complaints`.
+  - Sem novas campanhas/disparos — adiado conforme decisão.
 
-- **Onda 4B** ✅ entregue:
-  - Novas tabelas `quality_objectives`, `quality_indicators`, `quality_indicator_measurements`, `quality_planned_changes` (RLS por company_id, gestão para qualidade/director/super_admin).
-  - Coluna opcional `objective_id` em `quality_action_plans` e `quality_risk_actions` para fechar o ciclo análise → ação → objetivo.
-  - Hook `useQualityPlanning` expõe `useQualityObjectives`, `useQualityIndicators`, `useQualityIndicatorMeasurements`, `useQualityPlannedChanges`.
-  - Nova página `src/pages/quality/Planning.tsx` com 3 abas (Objetivos · Indicadores · Mudanças planejadas), diálogos de CRUD, registro periódico de medições com badge "Atingiu/Abaixo" vs meta e workflow de decisão (Aprovar · Rejeitar · Implementar) em mudanças.
-  - Submódulo adicionado como **nova aba "Planejamento"** em `RisksHub.tsx` (URL: `/quality/risks?tab=planning`) — sem novo item na sidebar, conforme decidido em homologação.
-  - `ApprovalScope` estendido com `objective` e `planned_change` (ligado a `CentralApproval`).
-  - Objetivos vinculam-se à versão vigente da Política via `policy_version_id`.
+- **Saúde & Segurança / Documentos do Colaborador:**
+  - Submódulo `/quality/safety` já existente com prefixos PCMSO/PGR/LTCAT/NR01/FICHA_EPI/ASO/LAUDO_SST e badges de vencimento.
+  - Alertas consolidados em `useQualityAlerts` (`safety`) e cards do Dashboard.
 
-- **Onda 5** — bloqueada até decisões de negócio (RH/Recursos, Documentos do colaborador, Calibração, Satisfação do Cliente, Saúde e Segurança).
+## Pós-Onda 5 (opcional, depende de decisão)
+
+- Campanhas automáticas de satisfação (e-mail/WhatsApp pós-OS).
+- Verificações intermediárias de calibração + abertura automática de NCR em desvio.
+- Submódulo próprio de competências/treinamentos no SGQ (descartado em homologação; manter Universidade como fonte).

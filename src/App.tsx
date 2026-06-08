@@ -431,6 +431,7 @@ const App = () => {
                     <Route path="/quality/suppliers/:id" element={<QualitySupplierDetail />} />
                     <Route path="/quality/devices" element={<QualityDevices />} />
                     <Route path="/quality/devices/:id" element={<QualityDeviceDetail />} />
+                    <Route path="/quality/calibration" element={<Navigate to="/quality/devices" replace />} />
                     <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>
 
