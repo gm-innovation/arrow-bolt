@@ -18,6 +18,8 @@ export interface ApprovalScope {
   context_official: boolean;
   ncr: boolean;
   deviation: boolean;
+  objective: boolean;
+  planned_change: boolean;
 }
 
 export interface QualitySettings {
@@ -48,6 +50,7 @@ const DEFAULTS: QualityReviewCycles = {
 const SCOPE_DEFAULTS: ApprovalScope = {
   document: true, company_document: true, process: true, policy: true,
   context_official: true, ncr: false, deviation: false,
+  objective: true, planned_change: true,
 };
 
 
