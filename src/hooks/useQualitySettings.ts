@@ -102,6 +102,9 @@ export const useQualitySettings = () => {
       if (patch.require_active_process_document !== undefined) {
         merged.require_active_process_document = patch.require_active_process_document;
       }
+      if (patch.enable_push_notifications !== undefined) {
+        merged.enable_push_notifications = patch.enable_push_notifications;
+      }
       const { data, error } = await supabase
         .from("quality_settings" as any)
         .upsert(merged, { onConflict: "company_id" })
