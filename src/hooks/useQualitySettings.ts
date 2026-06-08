@@ -33,6 +33,7 @@ export interface QualitySettings {
   central_approval_sla_hours: number;
   approval_scope: ApprovalScope;
   require_active_process_document: boolean;
+  enable_push_notifications: boolean;
   quality_policy_text?: string | null;
   quality_policy_version?: number;
   quality_policy_published_at?: string | null;
