@@ -34,6 +34,8 @@ export interface ImprovementRow {
   action_plan_id: string | null;
   source_url: string;
   effectiveness_status: ImprovementEffectiveness | null;
+  effectiveness_review_due_at?: string | null;
+  effectiveness_review_period_days?: number | null;
 }
 
 
