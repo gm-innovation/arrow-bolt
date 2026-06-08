@@ -399,9 +399,69 @@ const Improvements = () => {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={!!effDialog.row} onOpenChange={(o) => !o && setEffDialog({ row: null, status: "eficaz", notes: "" })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Verificar eficácia</DialogTitle>
+          </DialogHeader>
+          {effDialog.row && (
+            <div className="space-y-3">
+              <div className="rounded-md border bg-muted/40 p-3 text-sm">
+                <p className="font-medium">{effDialog.row.title}</p>
+                <p className="text-xs text-muted-foreground">{effDialog.row.source_label}</p>
+              </div>
+              <div>
+                <Label>Resultado</Label>
+                <Select
+                  value={effDialog.status}
+                  onValueChange={(v) => setEffDialog({ ...effDialog, status: v as ImprovementEffectiveness })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="eficaz">Eficaz</SelectItem>
+                    <SelectItem value="ineficaz">Ineficaz</SelectItem>
+                    <SelectItem value="nao_aplicavel">Não aplicável</SelectItem>
+                    <SelectItem value="pendente">Voltar para pendente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Notas da verificação</Label>
+                <Textarea
+                  rows={4}
+                  value={effDialog.notes}
+                  onChange={(e) => setEffDialog({ ...effDialog, notes: e.target.value })}
+                  placeholder="Evidências consideradas, indicadores comparados, conclusão…"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEffDialog({ row: null, status: "eficaz", notes: "" })}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!effDialog.row) return;
+                await verifyEffectiveness.mutateAsync({
+                  id: effDialog.row.id,
+                  status: effDialog.status,
+                  notes: effDialog.notes || null,
+                });
+                setEffDialog({ row: null, status: "eficaz", notes: "" });
+              }}
+              disabled={verifyEffectiveness.isPending}
+            >
+              {verifyEffectiveness.isPending ? "Salvando…" : "Registrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
 
 const KpiCard = ({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) => (
   <Card>
