@@ -21,7 +21,7 @@ const blankForm = {
 
 const QualitySettings = () => {
   const { types, create, update, remove, isLoading } = useQualityDocumentTypes();
-  const { cycles, upsert: upsertSettings } = useQualitySettings();
+  const { cycles, upsert: upsertSettings, requireActiveProcessDocument } = useQualitySettings();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ ...blankForm });
 
@@ -243,6 +243,31 @@ const QualitySettings = () => {
               </div>
               <div className="flex justify-end">
                 <Button onClick={saveCycles}>Salvar ciclos</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="mt-4">
+            <CardHeader>
+              <CardTitle>Regras estruturais</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Regras de governança que protegem a coerência entre processo e documento controlado.
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-start justify-between gap-4 border rounded p-3">
+                <div>
+                  <Label className="text-sm">Processo só fica ativo com documento válido</Label>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Quando ativado, um processo só pode receber status <span className="font-mono">active</span> se{" "}
+                    <code>current_document_id</code> apontar para um documento publicado/aprovado e dentro da
+                    validade. Recomendado.
+                  </p>
+                </div>
+                <Switch
+                  checked={requireActiveProcessDocument}
+                  onCheckedChange={(v) => upsertSettings.mutate({ require_active_process_document: v })}
+                />
               </div>
             </CardContent>
           </Card>

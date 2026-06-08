@@ -33,8 +33,15 @@ const RELEVANCES = [
   { value: "baixa", label: "Baixa" },
 ];
 
+const TREATMENT_LABELS: Record<string, { label: string; tone: string }> = {
+  pendente: { label: "Pendente", tone: "border-yellow-500 text-yellow-700" },
+  em_andamento: { label: "Em andamento", tone: "border-blue-500 text-blue-700" },
+  atendida: { label: "Atendida", tone: "border-green-500 text-green-700" },
+  nao_aplicavel: { label: "Não aplicável", tone: "border-muted-foreground text-muted-foreground" },
+};
+
 const InterestedParties = () => {
-  const { parties, latestEvidences, isLoading, create, remove } = useQualityInterestedParties();
+  const { parties, latestEvidences, isLoading, create, update, remove } = useQualityInterestedParties();
   const { cycles } = useQualitySettings();
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -174,6 +181,7 @@ const InterestedParties = () => {
                   <TableHead>Nome</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Relevância</TableHead>
+                  <TableHead>Tratativa</TableHead>
                   <TableHead>Última evidência</TableHead>
                   <TableHead>Próxima revisão</TableHead>
                   <TableHead></TableHead>
@@ -196,6 +204,21 @@ const InterestedParties = () => {
                       </TableCell>
                       <TableCell className="capitalize">{CATEGORIES.find((c) => c.value === p.category)?.label ?? p.category}</TableCell>
                       <TableCell className="capitalize">{p.relevance}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          value={(p as any).treatment_status || "pendente"}
+                          onValueChange={(v) => update.mutate({ id: p.id, treatment_status: v } as any)}
+                        >
+                          <SelectTrigger className="h-7 w-[140px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(TREATMENT_LABELS).map(([k, v]) => (
+                              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
                       <TableCell>
                         {last ? (
                           <div className="text-sm">

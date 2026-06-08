@@ -10,11 +10,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Workflow, FileText } from "lucide-react";
+import { Plus, Edit, Trash2, Workflow, FileText, History as HistoryIcon, AlertTriangle } from "lucide-react";
 import { useQualityProcesses, useProcessSIPOC, useProcessActivities, type QualityProcess } from "@/hooks/useQualityProcesses";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useCentralApproval } from "@/hooks/useCentralApproval";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
+import { useQualityProcessDocumentHistory } from "@/hooks/useQualityProcessDocumentHistory";
+import { format, parseISO } from "date-fns";
 
 const TYPE_LABELS: Record<QualityProcess["type"], string> = {
   strategic: "Estratégico", tactical: "Tático", operational: "Operacional", support: "Suporte",
@@ -36,6 +38,7 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
   const { activities, upsert: upsertAct, remove: removeAct } = useProcessActivities(process?.id || null);
   const { documents } = useQualityDocuments();
   const { upsertProcess } = useQualityProcesses();
+  const { data: history = [] } = useQualityProcessDocumentHistory(process?.id || null);
   const [s, setS] = useState({
     suppliers: sipoc?.suppliers || "", inputs: sipoc?.inputs || "",
     activities: sipoc?.activities || "", outputs: sipoc?.outputs || "", customers: sipoc?.customers || "",
@@ -46,15 +49,35 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
 
   const linkDoc = (id: string) => upsertProcess.mutate({ id: process.id, current_document_id: id === "none" ? null : id });
   const doc = documents.find(d => d.id === process.current_document_id);
+  const docInvalid = doc && (
+    (doc.status !== "published" && (doc.status as any) !== "approved")
+    || (doc.expires_at && new Date(doc.expires_at) < new Date())
+  );
+  const docInvalidReason = !doc
+    ? null
+    : doc.status !== "published" && (doc.status as any) !== "approved"
+      ? `Documento está com status "${doc.status}"`
+      : (doc.expires_at && new Date(doc.expires_at) < new Date())
+        ? `Documento vencido em ${doc.expires_at}`
+        : null;
+
+  const docCode = (id: string | null) => {
+    if (!id) return "—";
+    const d = documents.find(x => x.id === id);
+    return d ? `${d.code} — ${d.title}` : id.slice(0, 8);
+  };
 
   return (
     <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader><SheetTitle>{process.name}</SheetTitle></SheetHeader>
         <Tabs defaultValue="doc" className="mt-4">
-          <TabsList><TabsTrigger value="doc">Documento Controlado</TabsTrigger>
+          <TabsList>
+            <TabsTrigger value="doc">Documento Controlado</TabsTrigger>
             <TabsTrigger value="sipoc">SIPOC</TabsTrigger>
-            <TabsTrigger value="acts">Atividades</TabsTrigger></TabsList>
+            <TabsTrigger value="acts">Atividades</TabsTrigger>
+            <TabsTrigger value="history"><HistoryIcon className="h-3.5 w-3.5 mr-1" />Histórico</TabsTrigger>
+          </TabsList>
           <TabsContent value="doc" className="space-y-3">
             <Label>Vincular documento controlado</Label>
             <Select value={process.current_document_id || "none"} onValueChange={linkDoc}>
@@ -69,6 +92,17 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
                 <div className="flex items-center gap-2"><FileText className="h-4 w-4" /><span className="font-medium">{doc.code} — {doc.title}</span></div>
                 <div className="text-xs text-muted-foreground">Status: {doc.status} {doc.next_review_date && `· Próx. revisão: ${doc.next_review_date}`}</div>
               </CardContent></Card>
+            )}
+            {docInvalid && (
+              <div className="flex items-start gap-2 border border-destructive/40 bg-destructive/5 rounded p-3 text-sm">
+                <AlertTriangle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-medium text-destructive">Documento vinculado inválido</div>
+                  <div className="text-xs text-muted-foreground">
+                    {docInvalidReason}. O processo não poderá ficar com status <span className="font-mono">active</span> enquanto a regra "Processo só fica ativo com documento válido" estiver ligada em Configurações.
+                  </div>
+                </div>
+              </div>
             )}
             <ProcessApproval documentId={process.current_document_id} />
           </TabsContent>
@@ -98,6 +132,35 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
                 ))}
               </TableBody>
             </Table>
+          </TabsContent>
+          <TabsContent value="history" className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Histórico imutável de trocas do documento controlado vinculado a este processo.
+            </p>
+            {history.length === 0 ? (
+              <p className="text-center py-6 text-sm text-muted-foreground">Sem registros de troca de documento.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Documento anterior</TableHead>
+                    <TableHead>Novo documento</TableHead>
+                    <TableHead>Motivo</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {history.map(h => (
+                    <TableRow key={h.id}>
+                      <TableCell className="text-xs">{format(parseISO(h.changed_at), "dd/MM/yyyy HH:mm")}</TableCell>
+                      <TableCell className="text-xs">{docCode(h.previous_document_id)}</TableCell>
+                      <TableCell className="text-xs">{docCode(h.new_document_id)}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground">{h.reason || "—"}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </TabsContent>
         </Tabs>
       </SheetContent>

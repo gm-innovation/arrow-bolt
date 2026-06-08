@@ -27,6 +27,7 @@ export interface QualitySettings {
   critical_review_required_topics: { key: string; label: string }[];
   quality_master_user_id: string | null;
   approval_scope: ApprovalScope;
+  require_active_process_document: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -67,6 +68,7 @@ export const useQualitySettings = () => {
       critical_review_required_topics?: { key: string; label: string }[];
       quality_master_user_id?: string | null;
       approval_scope?: Partial<ApprovalScope>;
+      require_active_process_document?: boolean;
     }) => {
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
       const merged: any = {
@@ -78,6 +80,9 @@ export const useQualitySettings = () => {
       if (patch.quality_master_user_id !== undefined) merged.quality_master_user_id = patch.quality_master_user_id;
       if (patch.approval_scope !== undefined) {
         merged.approval_scope = { ...SCOPE_DEFAULTS, ...(settings?.approval_scope ?? {}), ...patch.approval_scope };
+      }
+      if (patch.require_active_process_document !== undefined) {
+        merged.require_active_process_document = patch.require_active_process_document;
       }
       const { data, error } = await supabase
         .from("quality_settings" as any)
@@ -102,6 +107,7 @@ export const useQualitySettings = () => {
     isLoading,
     cycles: (settings?.review_cycles as QualityReviewCycles) ?? DEFAULTS,
     approvalScope: (settings?.approval_scope as ApprovalScope) ?? SCOPE_DEFAULTS,
+    requireActiveProcessDocument: settings?.require_active_process_document ?? true,
     isMaster,
     upsert,
   };

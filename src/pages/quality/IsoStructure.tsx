@@ -120,10 +120,21 @@ const ScopeTab = () => {
 };
 
 // =============== Normas ===============
+const NORM_STATUS_LABELS: Record<string, { label: string; tone: string }> = {
+  vigente: { label: "Vigente", tone: "border-green-500 text-green-700" },
+  substituida: { label: "Substituída", tone: "border-blue-500 text-blue-700" },
+  cancelada: { label: "Cancelada", tone: "border-destructive text-destructive" },
+  rascunho: { label: "Rascunho", tone: "border-yellow-500 text-yellow-700" },
+};
+
 const NormsTab = () => {
-  const { norms, create, remove } = useQualityReferenceNorms();
+  const { norms, create, update, remove } = useQualityReferenceNorms();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ code: "", title: "", issuer: "", valid_from: "", valid_until: "", notes: "" });
+  const [form, setForm] = useState({
+    code: "", title: "", issuer: "", revision: "", status: "vigente",
+    valid_from: "", valid_until: "", attachment_url: "", attachment_name: "",
+    review_frequency_months: "", notes: "",
+  });
 
   const submit = async () => {
     if (!form.code || !form.title) return;
@@ -131,11 +142,20 @@ const NormsTab = () => {
       code: form.code,
       title: form.title,
       issuer: form.issuer || null,
+      revision: form.revision || null,
+      status: form.status,
       valid_from: form.valid_from || null,
       valid_until: form.valid_until || null,
+      attachment_url: form.attachment_url || null,
+      attachment_name: form.attachment_name || null,
+      review_frequency_months: form.review_frequency_months ? Number(form.review_frequency_months) : null,
       notes: form.notes || null,
+    } as any);
+    setForm({
+      code: "", title: "", issuer: "", revision: "", status: "vigente",
+      valid_from: "", valid_until: "", attachment_url: "", attachment_name: "",
+      review_frequency_months: "", notes: "",
     });
-    setForm({ code: "", title: "", issuer: "", valid_from: "", valid_until: "", notes: "" });
     setOpen(false);
   };
 
@@ -174,6 +194,40 @@ const NormsTab = () => {
                   <Input type="date" value={form.valid_until} onChange={(e) => setForm({ ...form, valid_until: e.target.value })} />
                 </div>
               </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>Revisão</Label>
+                  <Input placeholder="Rev. 03" value={form.revision} onChange={(e) => setForm({ ...form, revision: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(NORM_STATUS_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Ciclo de revisão (meses)</Label>
+                  <Input type="number" min={1} value={form.review_frequency_months}
+                    onChange={(e) => setForm({ ...form, review_frequency_months: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>URL do anexo</Label>
+                  <Input placeholder="https://..." value={form.attachment_url}
+                    onChange={(e) => setForm({ ...form, attachment_url: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Nome do anexo</Label>
+                  <Input value={form.attachment_name}
+                    onChange={(e) => setForm({ ...form, attachment_name: e.target.value })} />
+                </div>
+              </div>
               <div className="space-y-1">
                 <Label>Observações</Label>
                 <Textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
@@ -195,28 +249,45 @@ const NormsTab = () => {
               <TableRow>
                 <TableHead>Código</TableHead>
                 <TableHead>Título</TableHead>
+                <TableHead>Rev.</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead>Emissor</TableHead>
                 <TableHead>Vigência</TableHead>
+                <TableHead>Anexo</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {norms.map((n) => (
-                <TableRow key={n.id}>
-                  <TableCell className="font-mono">{n.code}</TableCell>
-                  <TableCell>{n.title}</TableCell>
-                  <TableCell>{n.issuer || "—"}</TableCell>
-                  <TableCell className="text-xs">
-                    {n.valid_from ? format(parseISO(n.valid_from), "dd/MM/yyyy") : "—"} —{" "}
-                    {n.valid_until ? format(parseISO(n.valid_until), "dd/MM/yyyy") : "vigente"}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button size="icon" variant="ghost" onClick={() => remove.mutate(n.id)}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {norms.map((n: any) => {
+                const st = NORM_STATUS_LABELS[n.status || "vigente"];
+                return (
+                  <TableRow key={n.id}>
+                    <TableCell className="font-mono">{n.code}</TableCell>
+                    <TableCell>{n.title}</TableCell>
+                    <TableCell className="text-xs">{n.revision || "—"}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={st?.tone}>{st?.label || n.status}</Badge>
+                    </TableCell>
+                    <TableCell>{n.issuer || "—"}</TableCell>
+                    <TableCell className="text-xs">
+                      {n.valid_from ? format(parseISO(n.valid_from), "dd/MM/yyyy") : "—"} —{" "}
+                      {n.valid_until ? format(parseISO(n.valid_until), "dd/MM/yyyy") : "vigente"}
+                    </TableCell>
+                    <TableCell className="text-xs">
+                      {n.attachment_url ? (
+                        <a href={n.attachment_url} target="_blank" rel="noopener noreferrer" className="underline">
+                          {n.attachment_name || "abrir"}
+                        </a>
+                      ) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button size="icon" variant="ghost" onClick={() => remove.mutate(n.id)}>
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         )}
@@ -226,11 +297,20 @@ const NormsTab = () => {
 };
 
 // =============== Termos ===============
+const TERM_STATUS_LABELS: Record<string, { label: string; tone: string }> = {
+  rascunho: { label: "Rascunho", tone: "border-yellow-500 text-yellow-700" },
+  vigente: { label: "Vigente", tone: "border-green-500 text-green-700" },
+  obsoleto: { label: "Obsoleto", tone: "border-muted-foreground text-muted-foreground" },
+};
+
 const TermsTab = () => {
   const { terms, create, remove } = useQualityTerms();
   const { norms } = useQualityReferenceNorms();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ term: "", definition: "", source_norm_id: "" });
+  const [form, setForm] = useState({
+    term: "", definition: "", source_norm_id: "",
+    version: "1", status: "vigente", review_frequency_months: "",
+  });
 
   const submit = async () => {
     if (!form.term || !form.definition) return;
@@ -238,8 +318,11 @@ const TermsTab = () => {
       term: form.term,
       definition: form.definition,
       source_norm_id: form.source_norm_id || null,
-    });
-    setForm({ term: "", definition: "", source_norm_id: "" });
+      version: Number(form.version) || 1,
+      status: form.status,
+      review_frequency_months: form.review_frequency_months ? Number(form.review_frequency_months) : null,
+    } as any);
+    setForm({ term: "", definition: "", source_norm_id: "", version: "1", status: "vigente", review_frequency_months: "" });
     setOpen(false);
   };
 
@@ -261,6 +344,29 @@ const TermsTab = () => {
               <div className="space-y-1">
                 <Label>Definição *</Label>
                 <Textarea rows={4} value={form.definition} onChange={(e) => setForm({ ...form, definition: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>Versão</Label>
+                  <Input type="number" min={1} value={form.version}
+                    onChange={(e) => setForm({ ...form, version: e.target.value })} />
+                </div>
+                <div className="space-y-1">
+                  <Label>Status</Label>
+                  <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(TERM_STATUS_LABELS).map(([k, v]) => (
+                        <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Revisão (meses)</Label>
+                  <Input type="number" min={1} value={form.review_frequency_months}
+                    onChange={(e) => setForm({ ...form, review_frequency_months: e.target.value })} />
+                </div>
               </div>
               <div className="space-y-1">
                 <Label>Norma de origem</Label>
@@ -286,13 +392,18 @@ const TermsTab = () => {
           <p className="text-center py-6 text-muted-foreground text-sm">Nenhum termo cadastrado.</p>
         ) : (
           <div className="space-y-3">
-            {terms.map((t) => {
+            {terms.map((t: any) => {
               const norm = norms.find((n) => n.id === t.source_norm_id);
+              const st = TERM_STATUS_LABELS[t.status || "vigente"];
               return (
                 <div key={t.id} className="border rounded-lg p-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="font-semibold">{t.term}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="font-semibold">{t.term}</p>
+                        <Badge variant="outline" className={st?.tone}>{st?.label || t.status}</Badge>
+                        <Badge variant="outline" className="text-xs">v{t.version || 1}</Badge>
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1">{t.definition}</p>
                       {norm && <Badge variant="outline" className="mt-2 text-xs">{norm.code}</Badge>}
                     </div>
