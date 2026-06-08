@@ -91,28 +91,7 @@ const DeviceDetailPage = () => {
             {device.manufacturer && (
               <span className="text-sm text-muted-foreground">{device.manufacturer} {device.model}</span>
             )}
-      </div>
-
-      {reprovedRecent && (
-        <Card className="border-destructive bg-destructive/5">
-          <CardContent className="p-4 flex items-start gap-3">
-            <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <div className="font-semibold text-destructive">
-                Calibração REPROVADA em {format(parseISO(reprovedRecent.calibration_date), "dd/MM/yyyy")}
-              </div>
-              <p className="text-sm text-muted-foreground mt-1">
-                Este instrumento foi reprovado em calibração recente. Avalie segregar o dispositivo,
-                investigar medições realizadas no período e abrir uma Não Conformidade.
-              </p>
-            </div>
-            <Button variant="destructive" size="sm" onClick={openNcrFromCalibration}>
-              <FileWarning className="h-4 w-4 mr-1" />
-              Abrir NCR
-            </Button>
-          </CardContent>
-        </Card>
-      )}
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <Select value={device.status} onValueChange={handleStatusChange}>
