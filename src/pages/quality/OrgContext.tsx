@@ -12,6 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { useQualityOrgContext, type ContextCategory, type ContextItem } from "@/hooks/useQualityOrgContext";
 import { useQualityRisks } from "@/hooks/useQualityRisks";
 import CategoryColumn from "@/components/quality/context/CategoryColumn";
+import ExcludedClausesCard from "@/components/quality/context/ExcludedClausesCard";
 import ContextItemDialog from "@/components/quality/context/ContextItemDialog";
 import ReviewContextDialog from "@/components/quality/context/ReviewContextDialog";
 import VersionViewerDialog from "@/components/quality/context/VersionViewerDialog";
