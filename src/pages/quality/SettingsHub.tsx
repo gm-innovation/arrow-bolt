@@ -2,6 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QualitySettings from "./Settings";
 import QualityIsoStructure from "./IsoStructure";
+import CentralApproval from "./CentralApproval";
 
 const SettingsHub = () => {
   const [sp, setSp] = useSearchParams();
@@ -16,9 +17,11 @@ const SettingsHub = () => {
       <TabsList>
         <TabsTrigger value="params">Parâmetros SGQ</TabsTrigger>
         <TabsTrigger value="iso">Estrutura ISO</TabsTrigger>
+        <TabsTrigger value="approval">Aprovação central / workflow</TabsTrigger>
       </TabsList>
       <TabsContent value="params"><QualitySettings /></TabsContent>
       <TabsContent value="iso"><QualityIsoStructure /></TabsContent>
+      <TabsContent value="approval"><CentralApproval /></TabsContent>
     </Tabs>
   );
 };
