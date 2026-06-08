@@ -181,6 +181,7 @@ const InterestedParties = () => {
                   <TableHead>Nome</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Relevância</TableHead>
+                  <TableHead>Tratativa</TableHead>
                   <TableHead>Última evidência</TableHead>
                   <TableHead>Próxima revisão</TableHead>
                   <TableHead></TableHead>
