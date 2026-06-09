@@ -292,7 +292,6 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
             { title: "Riscos & Oportunidades", icon: Target, path: "/quality/risks-hub?tab=risks" },
             { title: "Contexto Organizacional", icon: ClipboardList, path: "/quality/risks-hub?tab=context" },
             { title: "Processos", icon: RefreshCw, path: "/quality/risks-hub?tab=processes" },
-            { title: "SWOT / Cenário", icon: Sparkles, path: "/quality/risks-hub?tab=scenario" },
           ],
         },
         {
