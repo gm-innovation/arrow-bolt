@@ -105,6 +105,7 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
               <TabsList>
                 <TabsTrigger value="data">Dados</TabsTrigger>
                 <TabsTrigger value="evidences">Evidências</TabsTrigger>
+                <TabsTrigger value="treatments"><Clock className="h-3 w-3 mr-1" /> Tratativas</TabsTrigger>
                 <TabsTrigger value="review">Revisão</TabsTrigger>
               </TabsList>
 
