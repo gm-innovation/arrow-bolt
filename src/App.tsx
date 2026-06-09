@@ -427,9 +427,10 @@ const App = () => {
                     <Route path="/quality/documents/:id" element={<QualityDocumentDetail />} />
                     <Route path="/quality/controlled-copies" element={<Navigate to="/quality/documents/copies" replace />} />
                     <Route path="/quality/master-list" element={<Navigate to="/quality/documents/master-list" replace />} />
-                    <Route path="/quality/ncrs" element={<QualityNCRsHub />} />
+                    <Route path="/quality/ncrs" element={<QualityNCRs />} />
                     <Route path="/quality/improvements" element={<QualityImprovements />} />
-                    <Route path="/quality/action-plans" element={<Navigate to="/quality/ncrs?tab=action-plans" replace />} />
+                    <Route path="/quality/action-plans" element={<QualityActionPlans />} />
+                    <Route path="/quality/deviations" element={<QualityDeviations />} />
                     <Route path="/quality/audits" element={<QualityAudits />} />
                     <Route path="/quality/risks" element={<QualityRisks />} />
                     <Route path="/quality/risks-hub" element={<QualityRisksHub />} />
