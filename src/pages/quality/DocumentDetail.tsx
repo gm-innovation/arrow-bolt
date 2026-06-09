@@ -380,13 +380,18 @@ const QualityDocumentDetail = () => {
         </Card>
 
         <Tabs defaultValue="content">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="content">
               <FileText className="h-4 w-4 mr-1" /> Conteúdo
             </TabsTrigger>
+            <TabsTrigger value="norms">
+              <BookMarked className="h-4 w-4 mr-1" /> Normas
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              <History className="h-4 w-4 mr-1" /> Histórico
+            </TabsTrigger>
             <TabsTrigger value="versions">
               <History className="h-4 w-4 mr-1" /> Versões
-            </TabsTrigger>
             <TabsTrigger value="permissions">
               <Lock className="h-4 w-4 mr-1" /> Permissões
             </TabsTrigger>
