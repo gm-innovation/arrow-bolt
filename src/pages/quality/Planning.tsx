@@ -142,6 +142,9 @@ const ObjectiveDialog = ({
             <Label>Descrição</Label>
             <Textarea rows={3} value={form.description ?? ""} onChange={(e) => set({ description: e.target.value || null })} />
           </div>
+          <div className="sm:col-span-2 border-t pt-3">
+            <ObjectiveTraceabilityPanel objectiveId={initial?.id ?? null} />
+          </div>
           <div className="sm:col-span-2 text-xs text-muted-foreground">
             Vinculado à Política da Qualidade vigente
             {settings?.quality_policy_version ? ` (versão ${settings.quality_policy_version})` : ""}.
