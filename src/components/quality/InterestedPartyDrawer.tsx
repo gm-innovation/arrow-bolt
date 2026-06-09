@@ -11,9 +11,10 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { useQualityInterestedParties, usePartyEvidences, QIPCategory } from "@/hooks/useQualityInterestedParties";
-import { CheckCircle2, FileText, Plus, Trash2, Download } from "lucide-react";
+import { CheckCircle2, FileText, Plus, Trash2, Download, Clock } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import PartyTreatmentHistoryTab from "@/components/quality/PartyTreatmentHistoryTab";
 
 interface Props {
   partyId: string | null;
@@ -104,6 +105,7 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
               <TabsList>
                 <TabsTrigger value="data">Dados</TabsTrigger>
                 <TabsTrigger value="evidences">Evidências</TabsTrigger>
+                <TabsTrigger value="treatments"><Clock className="h-3 w-3 mr-1" /> Tratativas</TabsTrigger>
                 <TabsTrigger value="review">Revisão</TabsTrigger>
               </TabsList>
 
@@ -261,6 +263,12 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
                   )}
                 </div>
               </TabsContent>
+
+              <TabsContent value="treatments" className="space-y-3 mt-4">
+                <PartyTreatmentHistoryTab partyId={party.id} />
+              </TabsContent>
+
+
 
               <TabsContent value="review" className="space-y-3 mt-4">
                 <div className="text-sm space-y-2">

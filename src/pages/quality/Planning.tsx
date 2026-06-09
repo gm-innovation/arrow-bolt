@@ -16,7 +16,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Target, Gauge, GitBranch, Plus, Trash2, LineChart, CheckCircle2, XCircle, Rocket,
+  Target, Gauge, GitBranch, Plus, Trash2, LineChart, CheckCircle2, XCircle, Rocket, ShieldCheck,
 } from "lucide-react";
 import {
   useQualityObjectives,
@@ -34,6 +34,11 @@ import {
 } from "@/hooks/useQualityPlanning";
 import { useQualityPolicy } from "@/hooks/useQualityPolicy";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
+import IndicatorStatusBadge, { computeIndicatorTrend } from "@/components/quality/IndicatorStatusBadge";
+import EvaluateChangeEffectivenessDialog from "@/components/quality/EvaluateChangeEffectivenessDialog";
+import ObjectiveTraceabilityPanel from "@/components/quality/ObjectiveTraceabilityPanel";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 
 const OBJ_STATUS_LABEL: Record<ObjectiveStatus, { label: string; tone: string }> = {
@@ -136,6 +141,9 @@ const ObjectiveDialog = ({
           <div className="sm:col-span-2">
             <Label>Descrição</Label>
             <Textarea rows={3} value={form.description ?? ""} onChange={(e) => set({ description: e.target.value || null })} />
+          </div>
+          <div className="sm:col-span-2 border-t pt-3">
+            <ObjectiveTraceabilityPanel objectiveId={initial?.id ?? null} />
           </div>
           <div className="sm:col-span-2 text-xs text-muted-foreground">
             Vinculado à Política da Qualidade vigente
@@ -432,6 +440,24 @@ const IndicatorDialog = ({
   );
 };
 
+const IndicatorTrendCell = ({ indicator }: { indicator: QualityIndicator }) => {
+  const { data: ms = [] } = useQuery({
+    queryKey: ["quality_indicator_measurements_trend", indicator.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quality_indicator_measurements" as any)
+        .select("value, period_end")
+        .eq("indicator_id", indicator.id)
+        .order("period_end", { ascending: false })
+        .limit(6);
+      if (error) throw error;
+      return (data ?? []) as unknown as { value: number; period_end: string }[];
+    },
+  });
+  const trend = computeIndicatorTrend(indicator, ms);
+  return <IndicatorStatusBadge trend={trend} />;
+};
+
 const IndicatorsTab = () => {
   const { indicators, upsert, remove } = useQualityIndicators();
   const { objectives } = useQualityObjectives();
@@ -466,13 +492,14 @@ const IndicatorsTab = () => {
                 <TableHead>Frequência</TableHead>
                 <TableHead>Meta</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Farol</TableHead>
                 <TableHead className="w-32"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {indicators.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">
                     Nenhum indicador cadastrado.
                   </TableCell>
                 </TableRow>
@@ -493,6 +520,7 @@ const IndicatorsTab = () => {
                       {IND_STATUS_LABEL[i.status].label}
                     </Badge>
                   </TableCell>
+                  <TableCell><IndicatorTrendCell indicator={i} /></TableCell>
                   <TableCell>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <Button size="sm" variant="ghost" onClick={() => { setMeasFor(i); setMeasOpen(true); }}>
@@ -601,10 +629,19 @@ const ChangeDialog = ({
   );
 };
 
+const EFFECT_LABELS: Record<string, { label: string; tone: string }> = {
+  pendente: { label: "Pendente", tone: "border-muted-foreground text-muted-foreground" },
+  eficaz: { label: "Eficaz", tone: "border-emerald-600 text-emerald-700" },
+  parcial: { label: "Parcial", tone: "border-amber-500 text-amber-700" },
+  nao_eficaz: { label: "Não eficaz", tone: "border-red-500 text-red-700" },
+};
+
 const ChangesTab = () => {
   const { changes, upsert, decide, remove } = useQualityPlannedChanges();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<QualityPlannedChange | null>(null);
+  const [evalOpen, setEvalOpen] = useState(false);
+  const [evalFor, setEvalFor] = useState<QualityPlannedChange | null>(null);
 
   return (
     <div className="space-y-4">
@@ -612,7 +649,7 @@ const ChangesTab = () => {
         <div>
           <h3 className="text-sm font-semibold">Mudanças planejadas</h3>
           <p className="text-xs text-muted-foreground">
-            Avaliação prévia de mudanças no SGQ conforme ISO 9001 §6.3.
+            Avaliação prévia e eficácia de mudanças no SGQ conforme ISO 9001 §6.3.
           </p>
         </div>
         <Button size="sm" onClick={() => { setEditing(null); setOpen(true); }}>
@@ -630,54 +667,72 @@ const ChangesTab = () => {
                 <TableHead>Tipo</TableHead>
                 <TableHead>Prazo</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Eficácia</TableHead>
                 <TableHead className="w-56"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {changes.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                  <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">
                     Nenhuma mudança registrada.
                   </TableCell>
                 </TableRow>
               )}
-              {changes.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer" onClick={() => { setEditing(c); setOpen(true); }}>
-                  <TableCell className="font-mono text-xs">{c.code ?? "—"}</TableCell>
-                  <TableCell>{c.title}</TableCell>
-                  <TableCell className="text-xs">{CHANGE_TYPES.find((t) => t.value === c.change_type)?.label}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
-                    {c.planned_for ? format(parseISO(c.planned_for), "dd/MM/yyyy") : "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={PCHG_STATUS_LABEL[c.status].tone}>
-                      {PCHG_STATUS_LABEL[c.status].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                      {(c.status === "em_analise" || c.status === "rascunho") && (
-                        <>
-                          <Button size="sm" variant="ghost" onClick={() => decide.mutate({ id: c.id, decision: "aprovada" })}>
-                            <CheckCircle2 className="h-4 w-4 mr-1 text-emerald-600" /> Aprovar
-                          </Button>
-                          <Button size="sm" variant="ghost" onClick={() => decide.mutate({ id: c.id, decision: "rejeitada" })}>
-                            <XCircle className="h-4 w-4 mr-1 text-red-600" /> Rejeitar
-                          </Button>
-                        </>
+              {changes.map((c) => {
+                const ef = (c as any).effectiveness_status as string | null;
+                return (
+                  <TableRow key={c.id} className="cursor-pointer" onClick={() => { setEditing(c); setOpen(true); }}>
+                    <TableCell className="font-mono text-xs">{c.code ?? "—"}</TableCell>
+                    <TableCell>{c.title}</TableCell>
+                    <TableCell className="text-xs">{CHANGE_TYPES.find((t) => t.value === c.change_type)?.label}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {c.planned_for ? format(parseISO(c.planned_for), "dd/MM/yyyy") : "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={PCHG_STATUS_LABEL[c.status].tone}>
+                        {PCHG_STATUS_LABEL[c.status].label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {c.status === "implementada" ? (
+                        <Badge variant="outline" className={EFFECT_LABELS[ef ?? "pendente"].tone}>
+                          {EFFECT_LABELS[ef ?? "pendente"].label}
+                        </Badge>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
                       )}
-                      {c.status === "aprovada" && (
-                        <Button size="sm" variant="ghost" onClick={() => decide.mutate({ id: c.id, decision: "implementada" })}>
-                          <Rocket className="h-4 w-4 mr-1 text-blue-600" /> Implementar
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+                        {(c.status === "em_analise" || c.status === "rascunho") && (
+                          <>
+                            <Button size="sm" variant="ghost" onClick={() => decide.mutate({ id: c.id, decision: "aprovada" })}>
+                              <CheckCircle2 className="h-4 w-4 mr-1 text-emerald-600" /> Aprovar
+                            </Button>
+                            <Button size="sm" variant="ghost" onClick={() => decide.mutate({ id: c.id, decision: "rejeitada" })}>
+                              <XCircle className="h-4 w-4 mr-1 text-red-600" /> Rejeitar
+                            </Button>
+                          </>
+                        )}
+                        {c.status === "aprovada" && (
+                          <Button size="sm" variant="ghost" onClick={() => decide.mutate({ id: c.id, decision: "implementada" })}>
+                            <Rocket className="h-4 w-4 mr-1 text-blue-600" /> Implementar
+                          </Button>
+                        )}
+                        {c.status === "implementada" && (
+                          <Button size="sm" variant="ghost" onClick={() => { setEvalFor(c); setEvalOpen(true); }}>
+                            <ShieldCheck className="h-4 w-4 mr-1 text-emerald-600" /> Avaliar eficácia
+                          </Button>
+                        )}
+                        <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover mudança?")) remove.mutate(c.id); }}>
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      )}
-                      <Button size="icon" variant="ghost" onClick={() => { if (confirm("Remover mudança?")) remove.mutate(c.id); }}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </CardContent>
@@ -688,6 +743,12 @@ const ChangesTab = () => {
         onOpenChange={setOpen}
         initial={editing ?? undefined}
         onSave={(p) => upsert.mutate({ ...editing, ...p })}
+      />
+      <EvaluateChangeEffectivenessDialog
+        open={evalOpen}
+        onOpenChange={setEvalOpen}
+        changeId={evalFor?.id ?? null}
+        initial={evalFor as any}
       />
     </div>
   );
