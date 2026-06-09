@@ -365,13 +365,47 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     financeiro: financeiroMenuItems,
   }[userType] as MenuEntry[];
 
+  // Rotas onde o sub-item do menu identifica pelo ?tab=...
+  const PATHS_WITH_TABS = [
+    "/quality/risks-hub",
+    "/quality/competencies-hub",
+    "/quality/dashboard",
+    "/quality/settings",
+  ];
+
+  const isActivePath = (path: string): boolean => {
+    const [menuPath, menuQuery = ""] = path.split("?");
+    const menuTab = new URLSearchParams(menuQuery).get("tab");
+    const currentTab = new URLSearchParams(location.search).get("tab");
+
+    const pathMatches =
+      location.pathname === menuPath ||
+      (menuPath !== "/" && location.pathname.startsWith(menuPath + "/")) ||
+      (path === "/corp/dashboard" &&
+        location.pathname.startsWith("/corp/") &&
+        !location.pathname.startsWith("/corp/feed") &&
+        !location.pathname.startsWith("/corp/profile") &&
+        !location.pathname.startsWith("/corp/university")) ||
+      (path === "/corp/feed" && location.pathname.startsWith("/corp/profile"));
+
+    if (!pathMatches) return false;
+
+    // Item do menu aponta para uma aba específica: tab da URL precisa bater.
+    if (menuTab) return currentTab === menuTab;
+
+    // Item do menu é a "raiz" de uma rota com abas: só ativa quando NÃO há tab na URL.
+    if (PATHS_WITH_TABS.includes(menuPath) && currentTab) return false;
+
+    return true;
+  };
+
   // auto-open the group whose children contain the current route
   useEffect(() => {
     const toOpen: Record<string, boolean> = {};
     const walk = (entries: MenuEntry[]) => {
       for (const e of entries) {
         if (isGroup(e)) {
-          if (collectPaths(e).some((p) => location.pathname === p || location.pathname.startsWith(p + "/"))) {
+          if (collectPaths(e).some(isActivePath)) {
             toOpen[e.key] = true;
           }
           walk(e.children);
@@ -383,12 +417,8 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       setOpenGroups((s) => ({ ...s, ...toOpen }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [location.pathname, location.search]);
 
-  const isActivePath = (path: string) =>
-    location.pathname === path ||
-    (path === "/corp/dashboard" && location.pathname.startsWith("/corp/") && !location.pathname.startsWith("/corp/feed") && !location.pathname.startsWith("/corp/profile") && !location.pathname.startsWith("/corp/university")) ||
-    (path === "/corp/feed" && location.pathname.startsWith("/corp/profile"));
 
   const renderEntries = (
     entries: MenuEntry[],
