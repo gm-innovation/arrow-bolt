@@ -514,28 +514,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         
         <div className="px-2 py-4">
           <nav className="space-y-2">
-            {menuItems.map((item) => (
-              <Button
-                key={item.path}
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-3 h-10",
-                (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/') && !location.pathname.startsWith('/corp/feed') && !location.pathname.startsWith('/corp/profile') && !location.pathname.startsWith('/corp/university')) || (item.path === '/corp/feed' && location.pathname.startsWith('/corp/profile')))
-                    ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
-                    : "text-gray-600 hover:bg-gray-100"
-                )}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileMenuOpen(false);
-                }}
-              >
-                <item.icon className={cn(
-                  "h-5 w-5",
-                  location.pathname === item.path ? "text-blue-600" : "text-gray-500"
-                )} />
-                <span>{item.title}</span>
-              </Button>
-            ))}
+            {renderEntries(menuItems, { mobile: true })}
           </nav>
         </div>
         
@@ -585,27 +564,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
             <div className="p-2">
               {!collapsed && <div className="px-2 py-2 text-xs font-medium text-gray-600 uppercase tracking-wider">Menu</div>}
               <nav className="space-y-1">
-                {menuItems.map((item) => (
-                  <Button
-                    key={item.path}
-                    variant="ghost"
-                    className={cn(
-                      "w-full transition-all duration-200",
-                      collapsed ? "h-10 px-2 justify-center" : "h-10 justify-start gap-3",
-                    (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/') && !location.pathname.startsWith('/corp/feed') && !location.pathname.startsWith('/corp/profile') && !location.pathname.startsWith('/corp/university')) || (item.path === '/corp/feed' && location.pathname.startsWith('/corp/profile')))
-                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
-                        : "text-gray-600 hover:bg-gray-100"
-                    )}
-                    onClick={() => navigate(item.path)}
-                    title={collapsed ? item.title : undefined}
-                  >
-                    <item.icon className={cn(
-                      "h-5 w-5 flex-shrink-0",
-                      location.pathname === item.path ? "text-blue-600" : "text-gray-500"
-                    )} />
-                    {!collapsed && <span className="truncate">{item.title}</span>}
-                  </Button>
-                ))}
+                {renderEntries(menuItems)}
               </nav>
             </div>
           </div>
