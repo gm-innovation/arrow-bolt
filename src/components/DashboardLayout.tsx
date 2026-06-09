@@ -284,7 +284,17 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       icon: Target,
       key: "q-strategy",
       children: [
-        { title: "Riscos & Oportunidades", icon: Target, path: "/quality/risks" },
+        {
+          title: "Riscos & Oportunidades",
+          icon: Target,
+          key: "q-risks",
+          children: [
+            { title: "Riscos & Oportunidades", icon: Target, path: "/quality/risks-hub?tab=risks" },
+            { title: "Contexto Organizacional", icon: ClipboardList, path: "/quality/risks-hub?tab=context" },
+            { title: "Processos", icon: RefreshCw, path: "/quality/risks-hub?tab=processes" },
+            { title: "SWOT / Cenário", icon: Sparkles, path: "/quality/risks-hub?tab=scenario" },
+          ],
+        },
         {
           title: "Planejamento",
           icon: Gauge,
@@ -319,6 +329,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         { title: "Matriz de Competências", icon: BadgeCheck, path: "/quality/competencies/matrix" },
         { title: "Programa Anual", icon: ClipboardCheck, path: "/quality/competencies/program" },
         { title: "Conscientização", icon: Megaphone, path: "/quality/competencies/awareness" },
+        { title: "Organograma / Responsabilidades", icon: Users, path: "/quality/competencies-hub?tab=org" },
         { title: "Conhecimento", icon: BookOpen, path: "/quality/knowledge" },
       ],
     },
