@@ -18,8 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Copy, Plus } from "lucide-react";
+import { ArrowLeft, Copy, Plus, AlertTriangle } from "lucide-react";
 import { useCampaignDetail, useSatisfactionCampaigns, CampaignStatus } from "@/hooks/useSatisfactionCampaigns";
+import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 
 const npsBadge = (d?: string | null) => {
@@ -38,8 +39,21 @@ const csatBadge = (d?: string | null) => {
 
 export default function SatisfactionDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { campaign, invites, responses, createInvite, loadingCampaign } = useCampaignDetail(id);
   const { setStatus } = useSatisfactionCampaigns();
+
+  const openNcrFromResponse = (r: any) => {
+    const desc = `Resposta da pesquisa "${campaign?.name}" — ${r.responder_name || "Anônimo"}${r.responder_email ? ` <${r.responder_email}>` : ""}\n\nComentário: ${r.comment || "(sem comentário)"}\nNPS: ${r.nps_score ?? "—"} · CSAT: ${r.csat_score ?? "—"}`;
+    const params = new URLSearchParams({
+      new: "1",
+      source: "satisfaction",
+      response_id: r.id,
+      title: `Insatisfação cliente — ${campaign?.name ?? ""}`.slice(0, 120),
+      description: desc,
+    });
+    navigate(`/quality/ncrs?${params.toString()}`);
+  };
 
   if (loadingCampaign) return <p className="text-sm text-muted-foreground">Carregando...</p>;
   if (!campaign) return <p className="text-sm text-muted-foreground">Campanha não encontrada.</p>;
@@ -184,6 +198,7 @@ export default function SatisfactionDetail() {
                       {campaign.collects_ces && <TableHead>CES</TableHead>}
                       <TableHead>Comentário</TableHead>
                       <TableHead>Data</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -220,6 +235,11 @@ export default function SatisfactionDetail() {
                           {r.comment || <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>{new Date(r.responded_at).toLocaleString("pt-BR")}</TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="outline" onClick={() => openNcrFromResponse(r)}>
+                            <AlertTriangle className="h-3 w-3 mr-1" /> Abrir NCR
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

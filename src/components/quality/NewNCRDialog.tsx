@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,22 +11,45 @@ import { useQualityNCRs } from "@/hooks/useQualityNCRs";
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  defaults?: Partial<{
+    title: string;
+    description: string;
+    ncr_type: string;
+    severity: string;
+    source: string;
+    affected_area: string;
+  }>;
 }
 
-const NewNCRDialog = ({ open, onOpenChange }: Props) => {
+const NewNCRDialog = ({ open, onOpenChange, defaults }: Props) => {
   const { createNCR } = useQualityNCRs();
   const { register, handleSubmit, reset, setValue } = useForm({
     defaultValues: {
-      title: "",
-      description: "",
-      ncr_type: "internal",
-      severity: "minor",
-      source: "",
-      affected_area: "",
+      title: defaults?.title ?? "",
+      description: defaults?.description ?? "",
+      ncr_type: defaults?.ncr_type ?? "internal",
+      severity: defaults?.severity ?? "minor",
+      source: defaults?.source ?? "",
+      affected_area: defaults?.affected_area ?? "",
       immediate_action: "",
       deadline: "",
     },
   });
+
+  useEffect(() => {
+    if (open && defaults) {
+      reset({
+        title: defaults.title ?? "",
+        description: defaults.description ?? "",
+        ncr_type: defaults.ncr_type ?? "internal",
+        severity: defaults.severity ?? "minor",
+        source: defaults.source ?? "",
+        affected_area: defaults.affected_area ?? "",
+        immediate_action: "",
+        deadline: "",
+      });
+    }
+  }, [open, defaults?.title, defaults?.description]);
 
   const onSubmit = async (data: Record<string, string>) => {
     await createNCR.mutateAsync({

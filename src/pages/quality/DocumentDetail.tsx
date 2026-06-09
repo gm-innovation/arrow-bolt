@@ -19,9 +19,14 @@ import {
   Download,
   Eye,
   BadgeCheck,
+  AlertTriangle,
+  BookMarked,
 } from "lucide-react";
 import { useQualityDocument } from "@/hooks/useQualityDocuments";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
+import { useQualityDocumentNorms } from "@/hooks/useQualityDocumentNorms";
+import DocumentNormsPanel from "@/components/quality/documents/DocumentNormsPanel";
+import DocumentHistoryTimeline from "@/components/quality/documents/DocumentHistoryTimeline";
 import { RichTextEditor } from "@/components/quality/RichTextEditor";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,6 +60,7 @@ const QualityDocumentDetail = () => {
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete } =
     useQualityDocument(id);
   const { signature, registerSignatureEvent } = useQualitySignature();
+  const { expiredNorms } = useQualityDocumentNorms(id);
 
   const [richContent, setRichContent] = useState<any>(null);
   const [changeSummary, setChangeSummary] = useState("");
@@ -264,10 +270,27 @@ const QualityDocumentDetail = () => {
           <CardHeader>
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <Badge variant="outline" className="font-mono">{document.code}</Badge>
                   <Badge>{statusLabel[document.status]}</Badge>
                   {document.widely_visible && <Badge variant="secondary">Visibilidade ampliada</Badge>}
+                  {expiredNorms.length > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Norma Referenciada Vencida
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-xs space-y-0.5">
+                          {expiredNorms.map((n: any) => (
+                            <div key={n.id}><b>{n.code}</b> — {n.title}</div>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
                 <CardTitle className="text-2xl">{document.title}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -357,9 +380,15 @@ const QualityDocumentDetail = () => {
         </Card>
 
         <Tabs defaultValue="content">
-          <TabsList>
+          <TabsList className="flex flex-wrap h-auto">
             <TabsTrigger value="content">
               <FileText className="h-4 w-4 mr-1" /> Conteúdo
+            </TabsTrigger>
+            <TabsTrigger value="norms">
+              <BookMarked className="h-4 w-4 mr-1" /> Normas
+            </TabsTrigger>
+            <TabsTrigger value="history">
+              <History className="h-4 w-4 mr-1" /> Histórico
             </TabsTrigger>
             <TabsTrigger value="versions">
               <History className="h-4 w-4 mr-1" /> Versões
@@ -434,6 +463,16 @@ const QualityDocumentDetail = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="norms">
+            <DocumentNormsPanel documentId={document.id} />
+          </TabsContent>
+
+          <TabsContent value="history">
+            <DocumentHistoryTimeline versions={versions} />
+          </TabsContent>
+
+
 
           <TabsContent value="versions">
             <Card>

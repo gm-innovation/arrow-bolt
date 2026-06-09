@@ -23,6 +23,14 @@ export interface TrainingPlan {
   auto_generated: boolean;
   generated_at: string;
   completed_at: string | null;
+  type?: "internal" | "external_mandatory" | "external_optional";
+  origin_type?: "competency_gap" | "audit" | "ncr" | "legal_requirement" | "customer_requirement" | "iso_requirement" | null;
+  institution?: string | null;
+  instructor?: string | null;
+  certificate_url?: string | null;
+  program_year?: number | null;
+  planned_date?: string | null;
+  executed_date?: string | null;
 }
 
 export const useMyTrainingPlans = () => {

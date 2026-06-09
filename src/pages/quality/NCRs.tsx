@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -31,9 +32,35 @@ const severityLabels: Record<string, string> = { minor: "Menor", major: "Maior",
 
 const QualityNCRs = () => {
   const { ncrs, isLoading, updateNCR } = useQualityNCRs();
+  const [sp, setSp] = useSearchParams();
   const [showNew, setShowNew] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+
+  const prefill = useMemo(() => {
+    if (sp.get("new") !== "1") return undefined;
+    return {
+      title: sp.get("title") || "",
+      description: sp.get("description") || "",
+      source: sp.get("source") || "",
+      ncr_type: sp.get("source") === "satisfaction" ? "external" : "internal",
+    };
+  }, [sp]);
+
+  useEffect(() => {
+    if (sp.get("new") === "1") {
+      setShowNew(true);
+    }
+  }, [sp]);
+
+  const handleNewChange = (open: boolean) => {
+    setShowNew(open);
+    if (!open && sp.get("new")) {
+      const next = new URLSearchParams(sp);
+      ["new", "title", "description", "source", "response_id"].forEach((k) => next.delete(k));
+      setSp(next, { replace: true });
+    }
+  };
 
   const filtered = ncrs.filter((n) => {
     const matchSearch = n.title.toLowerCase().includes(search.toLowerCase());
@@ -143,7 +170,7 @@ const QualityNCRs = () => {
         </CardContent>
       </Card>
 
-      <NewNCRDialog open={showNew} onOpenChange={setShowNew} />
+      <NewNCRDialog open={showNew} onOpenChange={handleNewChange} defaults={prefill} />
     </div>
   );
 };
