@@ -92,7 +92,7 @@ export const useAwarenessAttendees = (eventId?: string | null) => {
         .select("user_id, acknowledged_at")
         .eq("event_id", eventId!);
       if (error) throw error;
-      return (data ?? []) as { user_id: string; acknowledged_at: string }[];
+      return (data ?? []) as unknown as { user_id: string; acknowledged_at: string }[];
     },
   });
 };
