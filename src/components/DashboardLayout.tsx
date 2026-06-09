@@ -223,18 +223,70 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
-  const qualidadeMenuItems = [
+  const qualidadeMenuItems: MenuEntry[] = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/quality/dashboard" },
-    { title: "Documentos", icon: FolderOpen, path: "/quality/documents" },
-    { title: "Não-Conformidades", icon: AlertTriangle, path: "/quality/ncrs" },
-    { title: "Auditorias", icon: Search, path: "/quality/audits" },
-    { title: "Riscos & Oportunidades", icon: Target, path: "/quality/risks" },
-    { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
-    { title: "Calibração", icon: Gauge, path: "/quality/devices" },
-    { title: "Voz do Cliente", icon: MessagesSquare, path: "/quality/voice-of-customer" },
-    { title: "Competências & Treinamentos", icon: GraduationCap, path: "/quality/competencies" },
-    { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
-    { title: "Conhecimento", icon: BookOpen, path: "/quality/knowledge" },
+    {
+      title: "Documentação",
+      icon: FolderOpen,
+      key: "q-docs",
+      children: [
+        { title: "Documentos", icon: FileText, path: "/quality/documents" },
+        { title: "Normas", icon: BookOpen, path: "/quality/documents/norms" },
+        { title: "Termos", icon: PenLine, path: "/quality/documents/terms" },
+        { title: "Lista Mestra", icon: ClipboardList, path: "/quality/documents/master-list" },
+      ],
+    },
+    {
+      title: "Melhoria e Conformidade",
+      icon: AlertTriangle,
+      key: "q-ncrs",
+      children: [
+        { title: "Não-Conformidades", icon: AlertTriangle, path: "/quality/ncrs" },
+        { title: "Auditorias", icon: Search, path: "/quality/audits" },
+        { title: "Melhorias", icon: Sparkles, path: "/quality/improvements" },
+      ],
+    },
+    {
+      title: "Estratégia e Gestão",
+      icon: Target,
+      key: "q-strategy",
+      children: [
+        { title: "Riscos & Oportunidades", icon: Target, path: "/quality/risks" },
+        {
+          title: "Planejamento",
+          icon: Gauge,
+          key: "q-planning",
+          children: [
+            { title: "Objetivos", icon: Target, path: "/quality/planning/objectives" },
+            { title: "Indicadores", icon: Gauge, path: "/quality/planning/indicators" },
+            { title: "Mudanças", icon: RefreshCw, path: "/quality/planning/changes" },
+          ],
+        },
+        { title: "Partes Interessadas", icon: Users, path: "/quality/interested-parties" },
+        { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
+      ],
+    },
+    {
+      title: "Operação da Qualidade",
+      icon: ShieldCheck,
+      key: "q-ops",
+      children: [
+        { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
+        { title: "Calibração", icon: Gauge, path: "/quality/devices" },
+        { title: "Voz do Cliente", icon: MessagesSquare, path: "/quality/voice-of-customer" },
+      ],
+    },
+    {
+      title: "Competências e Pessoas",
+      icon: GraduationCap,
+      key: "q-people",
+      children: [
+        { title: "Matriz de Competências", icon: BadgeCheck, path: "/quality/competencies/matrix" },
+        { title: "Programa Anual", icon: ClipboardCheck, path: "/quality/competencies/program" },
+        { title: "Conscientização", icon: Megaphone, path: "/quality/competencies/awareness" },
+        { title: "Conhecimento", icon: BookOpen, path: "/quality/knowledge" },
+      ],
+    },
     { title: "Comunicação", icon: Megaphone, path: "/quality/communication" },
     { title: "Homologação", icon: ClipboardCheck, path: "/quality/homologation" },
     { title: "Configurações", icon: Settings, path: "/quality/settings" },
