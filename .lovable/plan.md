@@ -1,152 +1,148 @@
-# Fechamento dos 2 gaps pendentes — v2 (com ajustes)
+# Geração de 2 artefatos PDF — v2 (com ajustes do revisor)
 
-Ajustes incorporados: default permissivo, pg_cron confirmado disponível, índice obrigatório.
-
----
-
-## ⚠️ Validação necessária com a Rayane ANTES de aplicar
-
-Pergunta única e bloqueante para o Ponto 1:
-
-> **"Documentos sem regra configurada em `quality_document_permissions` devem permitir impressão/download por padrão, ou devem bloquear até que alguém configure?"**
->
-> - **Opção A (recomendada — alinhada ao comportamento atual)**: liberar por padrão. Bloqueio só entra quando há regra explícita restritiva (por role ou usuário). Documentos marcados como "cópia controlada" continuam controlados pelo fluxo de `quality_controlled_copies` (já existe).
-> - **Opção B (mais restritiva)**: bloquear por padrão. Todo documento precisa ter regra configurada antes de ser impresso/baixado — pode quebrar fluxo atual em massa.
-
-O plano abaixo assume **Opção A**. Se ela responder B, ajustar só a função `quality_doc_user_perms`.
+Ambos serão escritos em `/mnt/documents/` e entregues via `<presentation-artifact>`.
+Linguagem: **executiva/técnica** no relatório, **operacional passo-a-passo** no manual.
 
 ---
 
-## Parte 1 — Regras de impressão/download por perfil em GED
+## Princípio transversal
 
-### Estado atual confirmado
-- Tabela `quality_document_permissions` com `role` + `user_id` (opcional) + `can_view`/`can_print`/`can_download`. **Já existe.**
-- `DocumentPermissionsPanel` (UI de configuração). **Já existe.**
-- **Falta enforcement**: 3 botões em `src/pages/quality/DocumentDetail.tsx` não consultam as regras.
-
-### O que será feito
-
-1. **RPC `public.quality_doc_user_perms(_document_id uuid)`** — SECURITY DEFINER, STABLE
-   - Retorna `{ can_view, can_print, can_download }` (boolean).
-   - `director` / `super_admin` da empresa do documento → sempre `true/true/true`.
-   - Demais usuários:
-     - Se houver regra com `user_id = auth.uid()` → usar essa (override individual).
-     - Senão, se houver regra com `user_id IS NULL` e `role` ∈ roles do usuário → consolidar via **OR** (qualquer role que conceda libera).
-     - **Senão (sem registro algum) → `can_view=true, can_print=true, can_download=true`** (Opção A — não-restritivo, preserva fluxo atual).
-
-2. **Hook `useDocumentPerms(documentId)`** — `src/hooks/useDocumentPerms.ts`
-   - React Query consumindo o RPC.
-
-3. **`DocumentDetail.tsx`** — gate nos 3 botões:
-   - `downloadGeneratedPDF(null)` (Baixar PDF) → exige `can_download`.
-   - `downloadGeneratedPDF("uncontrolled")` (Cópia não controlada) → exige `can_print`.
-   - `downloadFile(activeVersion.file_path)` (Arquivo original) → exige `can_download`.
-   - Quando `false`: botão `disabled` + tooltip "Sem permissão configurada para este documento". `onClick` também valida (defesa em profundidade) e dispara toast em violação.
-   - Botão "Visualizar" continua livre quando `can_view = true`.
-
-4. **Auditoria de tentativas negadas**
-   - Inserir em `quality_document_access_log` com `action = 'denied_print'` ou `'denied_download'` (já existe a tabela).
+> **Cada item documentado (rota, aba, fluxo, status de cláusula) só entra no PDF se houver evidência direta no código/UI.** Durante a fase de exploração, qualquer fluxo do manual ou linha do mapa de telas que não puder ser confirmado lendo arquivos reais será omitido ou marcado como "não evidenciado".
 
 ---
 
-## Parte 2 — Expiração automática de anexos normativos
+## Artefato 1 — `relatorio-comparativo-sgq-onda4.pdf`
 
-### Estado atual confirmado
-- `quality_reference_norms` tem `valid_from`, `valid_until`, `is_active`, `next_review_due_at`.
-- Badge "Ativa/Inativa" usa só `is_active` (manual).
-- **`pg_cron` e `pg_net` já habilitados** no projeto (confirmado).
-- **Não há índice em `valid_until`** (confirmado — só PK e UNIQUE em code).
+Construído com **reportlab** (Platypus), paleta Arrow (azul/cinza, sem cores genéricas).
 
-### O que será feito
+### Capa
+- Título
+- Subtítulo: "Onda 4 — fechamento de gaps de GED e Normas"
+- Data, versão, autor
 
-1. **Índice obrigatório** (não opcional):
-   ```sql
-   CREATE INDEX IF NOT EXISTS idx_quality_reference_norms_valid_until
-     ON public.quality_reference_norms (valid_until)
-     WHERE valid_until IS NOT NULL;
-   ```
+### Quadro de Premissas (logo após a capa, antes da Seção A)
+Caixa destacada explicitando:
 
-2. **VIEW `quality_reference_norms_status`**
-   - Mesmas colunas da tabela + coluna calculada `effective_status`:
-     - `is_active = false` → `'inativa'`
-     - `valid_until IS NOT NULL AND valid_until < CURRENT_DATE` → `'vencida'`
-     - `valid_until IS NOT NULL AND valid_until <= CURRENT_DATE + INTERVAL '30 days'` → `'vence_em_breve'`
-     - senão → `'vigente'`
-   - `GRANT SELECT ... TO authenticated`.
-   - `security_invoker = on` para herdar RLS da tabela base.
-   - **Não usar `GENERATED STORED`** (incompatível com `CURRENT_DATE`, que é STABLE).
+> **Premissa adotada neste relatório:** para documentos sem regra em `quality_document_permissions`, foi considerada a **Opção A — padrão permissivo**, preservando o comportamento histórico. A Opção B (restritiva) é citada como alternativa, não como pendência.
 
-3. **Coluna `expiry_warning_sent_at TIMESTAMPTZ NULL`** em `quality_reference_norms`
-   - Idempotência do aviso de "vence em breve".
+> **Escopo deste relatório:** mapeamento de cobertura funcional do módulo SGQ Arrow. **Não constitui auditoria de conformidade nem certificação.**
 
-4. **Função `public.quality_norms_expire_tick()`** — SECURITY DEFINER
-   - Para normas com `valid_until < CURRENT_DATE AND is_active = true`:
-     - `UPDATE quality_reference_norms SET is_active = false WHERE ...`.
-     - Inserir notificação em `notifications` para `director` + `coordinator` da empresa: "Norma {code} venceu em {valid_until}".
-   - Para normas `vence_em_breve` (≤30 dias) com `expiry_warning_sent_at IS NULL`:
-     - Inserir notificação "Norma {code} vence em {N} dias".
-     - `UPDATE ... SET expiry_warning_sent_at = now()`.
+### Seção A — Antes vs Depois (mudanças desta onda)
+Tabela:
 
-5. **Agendamento — usar `pg_cron` (disponível)**
-   - **Sem fallback de trigger on-read** (rejeitado: causaria notificações duplicadas, timing inconsistente e mutação em SELECT).
-   - SQL via tool `supabase--insert` (não migração, contém URL+anon key específicos do projeto):
-     ```sql
-     SELECT cron.schedule(
-       'quality-norms-expire-tick',
-       '0 3 * * *',
-       $$ SELECT net.http_post(
-            url := 'https://iyuypkfksxfsutubcpay.supabase.co/functions/v1/quality-norms-expire-tick',
-            headers := '{"Content-Type":"application/json","apikey":"<ANON>"}'::jsonb,
-            body := '{}'::jsonb
-          ); $$
-     );
-     ```
-   - **Edge Function `quality-norms-expire-tick`** (`verify_jwt = true`, registrada em `config.toml`) — apenas chama o RPC `quality_norms_expire_tick()` via service role.
-   - Se preferirmos manter tudo dentro do Postgres (sem Edge Function), o cron pode chamar diretamente `SELECT public.quality_norms_expire_tick();` — mais simples; vou adotar essa variante por default.
+| Item | Antes | Depois | Impacto | Risco mitigado |
+|------|-------|--------|---------|----------------|
+| Menu lateral | "SWOT/Cenário" como link próprio | Apenas aba interna em Contexto da Organização | Reduz duplicidade de navegação | Confusão entre dois pontos de acesso ao mesmo conteúdo |
+| GED — botões Download/Imprimir/Cópia não controlada | Sempre habilitados | Gate via RPC `quality_doc_user_perms` + log `denied_*`; Director/Super Admin sempre liberados | Permissão configurada passa a ter efeito real | Vazamento de documentos restritos por download não controlado |
+| Normas — status | Badge manual "Ativa/Inativa"; vencidas selecionáveis | VIEW com `effective_status` + cron diário desativando vencidas + selects usam `activeNorms` | Vigência reflete a data real; impede uso de norma fora de validade | Cadastro de RNC/Auditoria contra norma vencida |
 
-6. **`NormsTab.tsx` — UI**
-   - Consumir a VIEW `quality_reference_norms_status` (via hook `useQualityReferenceNorms`).
-   - Substituir badge "Ativa/Inativa" por `effective_status`:
-     - `vigente` → Badge verde "Vigente".
-     - `vence_em_breve` → Badge amarelo + ícone alerta + "vence em N dias".
-     - `vencida` → Badge vermelho "VENCIDA desde DD/MM/AAAA".
-     - `inativa` → Badge cinza "Inativa".
-   - Linha com `opacity-70` quando `vencida` ou `inativa`.
+### Seção B — Cobertura funcional do módulo SGQ frente à ISO 9001:2015
+Subtítulo no PDF: *"Mapeamento de aderência sistêmica — não é auditoria de conformidade."*
 
-7. **Bloqueio funcional em selects**
-   - Novo seletor `activeNorms` no hook = filtra `effective_status IN ('vigente','vence_em_breve')`.
-   - Selects de "Norma aplicável" em RNCs / Auditorias / Documentos passam a usar `activeNorms` — normas vencidas não aparecem em novos cadastros.
+Status usados: **Coberto no sistema** · **Parcialmente coberto** · **Não evidenciado no sistema**.
 
----
+Colunas: Cláusula | Requisito (resumo) | Módulo/Tela no Arrow | Status | Observação.
 
-## Arquivos tocados
+Linhas (a confirmar 1 a 1 durante exploração, antes de classificar status):
 
-**Migração SQL (uma):**
-- RPC `quality_doc_user_perms`
-- Índice `idx_quality_reference_norms_valid_until`
-- VIEW `quality_reference_norms_status` + GRANT
-- Coluna `expiry_warning_sent_at`
-- Função `quality_norms_expire_tick()`
+- 4.1 Contexto da organização
+- 4.2 Partes interessadas
+- 4.3 Escopo do SGQ
+- 4.4 SGQ e seus processos (SIPOC)
+- 5.1 Liderança e compromisso
+- 5.2 Política da qualidade
+- 5.3 Papéis, responsabilidades e autoridades
+- 6.1 Riscos e oportunidades
+- 6.2 Objetivos da qualidade
+- 6.3 Mudanças planejadas
+- 7.1.5 Recursos de monitoramento e medição (calibração)
+- 7.1.6 Conhecimento organizacional
+- 7.2 Competência
+- 7.3 Conscientização
+- 7.4 Comunicação
+- 7.5 Informação documentada (GED)
+- **8.4 Controle de processos/produtos/serviços providos externamente** (fornecedores)
+- **8.5.1 Controle da produção/prestação de serviço**
+- **8.5.6 Controle de mudanças**
+- **8.7 Controle de saídas não conformes**
+- 9.1.1 Monitoramento, medição, análise e avaliação (indicadores)
+- 9.1.2 Satisfação do cliente
+- 9.1.3 Análise e avaliação
+- 9.2 Auditoria interna
+- 9.3 Análise crítica pela direção
+- 10.2 Não conformidade e ação corretiva (RNC)
+- 10.3 Melhoria contínua
 
-**`supabase--insert` (separado, não migração — contém URL/anon):**
-- `cron.schedule('quality-norms-expire-tick', '0 3 * * *', ...)`
+(Cláusula 8 quebrada em 8.4 / 8.5.1 / 8.5.6 / 8.7 — sem agregar como "8.x".)
 
-**Frontend:**
-- `src/hooks/useDocumentPerms.ts` (novo)
-- `src/pages/quality/DocumentDetail.tsx` (gate nos 3 botões + log de negação)
-- `src/hooks/useQualityIsoStructure.ts` (consumir VIEW; expor `activeNorms`)
-- `src/components/quality/norms/NormsTab.tsx` (badge por `effective_status`)
+### Seção C — Mapa de Telas V5 (módulo Qualidade)
+Colunas: **Rota/Acesso | Título | Tipo de acesso | Abas internas | Perfil com acesso à rota | Observações**.
 
-**Sem mudanças em:** RLS atual, storage, sidemenu, Edge Functions.
+Valores de "Tipo de acesso": `Rota` · `Aba interna` · `Rota pessoal` · `Redirect/legado`.
+
+Coluna "Perfil com acesso à rota" usa exatamente o `allowedRoles` de `<ProtectedRoute>` em `App.tsx`, com nota de pé de página:
+
+> *"Perfil com acesso à rota" reflete a permissão de roteamento via ProtectedRoute. Permissões funcionais dentro da tela (botões, abas, ações) podem depender de regras adicionais de RLS, role secundária ou estado de negócio.*
+
+Linha específica para SWOT marcada como `Redirect/legado` ou simplesmente nota: "Antiga rota SWOT consolidada como aba em Contexto da Organização".
+
+### Seção D — Conclusão executiva
+- Principais ganhos da onda
+- Riscos mitigados
+- Pendências remanescentes (técnicas, sem ambiguidades de aprovação)
+- Recomendação para a próxima onda
 
 ---
 
-## Validações pós-implementação
+## Artefato 2 — `manual-uso-sgq-arrow.pdf`
 
-- Coordinator com regra `can_download=false` em doc X → botão desabilitado, tooltip ok, log `denied_download` registrado.
-- Director em qualquer doc → todos os botões habilitados.
-- Documento sem regras → todos os botões habilitados (Opção A).
-- Norma com `valid_until = ontem` → aparece "VENCIDA" imediatamente (via VIEW) e some dos selects.
-- Após cron rodar: norma vencida tem `is_active = false` e notificação criada para director/coordinator.
-- Norma com `valid_until = hoje + 15` → "vence em 15 dias", notificação criada uma única vez (idempotência via `expiry_warning_sent_at`).
+Linguagem operacional, frases curtas, passo a passo. Cada fluxo só entra se confirmado por leitura de código/UI durante a exploração.
 
+### Estrutura
+1. **Capa + sumário**
+2. **Visão geral** — login, navegação, perfis, conceitos básicos
+3. **Capítulo por perfil** (Coordenador da Qualidade · Diretoria · Líderes/Coordenadores operacionais · Usuário final)
+
+### Template fixo de cada fluxo no manual
+Cada fluxo é apresentado com os 5 blocos:
+
+- **Quem pode executar**
+- **Pré-requisitos**
+- **Passos** (numerados)
+- **Resultado esperado**
+- **Erros comuns**
+
+### Fluxos candidatos (todos sujeitos a confirmação no código antes de virar texto)
+- Cadastrar/aprovar documento na GED
+- Configurar permissões de download/impressão por perfil ou usuário
+- Cadastrar norma de referência com vigência
+- Abrir RNC
+- Criar auditoria interna
+- Registrar risco e plano de ação
+- Conduzir análise crítica pela direção
+- Manter contexto da organização e partes interessadas
+- Aprovações centrais (Diretoria)
+- Consulta de documento vigente (usuário final)
+- Reconhecimento de política (se existir como ação no UI)
+- Pesquisa de satisfação (se houver fluxo de resposta interno)
+
+Fluxos que não forem evidenciados na UI **não** entrarão — em vez de descrever especulativamente, o manual diz: "não documentado nesta versão".
+
+---
+
+## Passos de execução (após aprovação)
+
+1. **Exploração de evidências** — em paralelo:
+   - Ler `src/App.tsx` para rotas `/quality/*` + `allowedRoles`.
+   - Listar `src/pages/quality/` e `src/components/quality/` para confirmar telas, abas e ações.
+   - Para cada cláusula ISO da Seção B, identificar a tela/tabela correspondente; sem evidência clara → `Não evidenciado no sistema`.
+   - Para cada fluxo do manual, abrir o componente e confirmar passos reais.
+2. **Geração** — script Python único em `/tmp/build_docs.py` (reportlab) produzindo os 2 PDFs.
+3. **QA visual obrigatório** — `pdftoppm` em cada PDF, inspeção página a página, correções, re-render.
+4. Entrega via duas tags `<presentation-artifact>`.
+
+## Fora do escopo
+- Sem alterações de código da aplicação.
+- Sem comparação com sistemas de mercado.
+- Sem versão DOCX editável (formato escolhido: PDF).
+- Sem reivindicação de conformidade ISO — apenas cobertura funcional.
