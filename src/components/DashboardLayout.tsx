@@ -273,8 +273,10 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       key: "q-ncrs",
       children: [
         { title: "Não-Conformidades", icon: AlertTriangle, path: "/quality/ncrs" },
-        { title: "Auditorias", icon: Search, path: "/quality/audits" },
         { title: "Melhorias", icon: Sparkles, path: "/quality/improvements" },
+        { title: "Planos de Ação", icon: ClipboardList, path: "/quality/action-plans" },
+        { title: "Desvios", icon: AlertTriangle, path: "/quality/deviations" },
+        { title: "Auditorias", icon: Search, path: "/quality/audits" },
       ],
     },
     {
