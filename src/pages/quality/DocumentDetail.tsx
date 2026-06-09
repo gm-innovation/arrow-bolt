@@ -348,16 +348,43 @@ const QualityDocumentDetail = () => {
                       </TooltipTrigger>
                       <TooltipContent>Visualização integrada (não conta como impressão)</TooltipContent>
                     </Tooltip>
-                    <Button variant="outline" size="sm" onClick={() => downloadGeneratedPDF(null)}>
-                      <Download className="h-4 w-4 mr-1" /> Baixar PDF
-                    </Button>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={() => downloadGeneratedPDF("uncontrolled")}>
-                          <Printer className="h-4 w-4 mr-1" /> Cópia não controlada
-                        </Button>
+                        <span tabIndex={0}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadGeneratedPDF(null)}
+                            disabled={!perms.can_download}
+                          >
+                            <Download className="h-4 w-4 mr-1" /> Baixar PDF
+                          </Button>
+                        </span>
                       </TooltipTrigger>
-                      <TooltipContent>Gera o PDF com marca d'água "CÓPIA NÃO CONTROLADA"</TooltipContent>
+                      <TooltipContent>
+                        {perms.can_download
+                          ? "Baixa o PDF controlado e registra no log"
+                          : "Sem permissão para baixar este documento"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => downloadGeneratedPDF("uncontrolled")}
+                            disabled={!perms.can_print}
+                          >
+                            <Printer className="h-4 w-4 mr-1" /> Cópia não controlada
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {perms.can_print
+                          ? 'Gera o PDF com marca d\'água "CÓPIA NÃO CONTROLADA"'
+                          : "Sem permissão para imprimir este documento"}
+                      </TooltipContent>
                     </Tooltip>
                   </>
                 )}
@@ -366,13 +393,23 @@ const QualityDocumentDetail = () => {
                     <Button variant="outline" size="sm" onClick={openIntegratedViewer}>
                       <Eye className="h-4 w-4 mr-1" /> Visualizar arquivo
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadFile(activeVersion.file_path!, activeVersion.file_name!)}
-                    >
-                      <Download className="h-4 w-4 mr-1" /> Baixar
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadFile(activeVersion.file_path!, activeVersion.file_name!)}
+                            disabled={!perms.can_download}
+                          >
+                            <Download className="h-4 w-4 mr-1" /> Baixar
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {perms.can_download ? "Baixa o arquivo original" : "Sem permissão para baixar este documento"}
+                      </TooltipContent>
+                    </Tooltip>
                   </>
                 )}
                 {activeVersion?.status === "draft" && (
