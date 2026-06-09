@@ -31,5 +31,3 @@ const RisksHub = () => {
 
 export default RisksHub;
 
-
-export default RisksHub;
