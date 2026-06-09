@@ -1,10 +1,11 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QualityCompetencyMatrix from "./CompetencyMatrix";
 import QualityMyCompetencies from "./MyCompetencies";
 import QualityMyAcknowledgements from "./MyAcknowledgements";
 import OrgChart from "./OrgChart";
+import TrainingProgram from "./TrainingProgram";
+import Awareness from "./Awareness";
 
 const CompetenciesHub = () => {
   const [sp, setSp] = useSearchParams();
@@ -21,15 +22,19 @@ const CompetenciesHub = () => {
   };
   return (
     <Tabs value={tab} onValueChange={onChange} className="space-y-4">
-      <TabsList>
+      <TabsList className="flex flex-wrap h-auto">
         <TabsTrigger value="matrix">Matriz de Competência</TabsTrigger>
         <TabsTrigger value="me">Meu Desenvolvimento</TabsTrigger>
+        <TabsTrigger value="program">Programa de Treinamentos</TabsTrigger>
+        <TabsTrigger value="awareness">Conscientização</TabsTrigger>
         <TabsTrigger value="acknowledgements">Minha Ciência</TabsTrigger>
-        <TabsTrigger value="training">Treinamentos</TabsTrigger>
+        <TabsTrigger value="training">Universidade</TabsTrigger>
         <TabsTrigger value="org">Estrutura / Responsabilidades</TabsTrigger>
       </TabsList>
       <TabsContent value="matrix"><QualityCompetencyMatrix /></TabsContent>
       <TabsContent value="me"><QualityMyCompetencies /></TabsContent>
+      <TabsContent value="program"><TrainingProgram /></TabsContent>
+      <TabsContent value="awareness"><Awareness /></TabsContent>
       <TabsContent value="acknowledgements"><QualityMyAcknowledgements /></TabsContent>
       <TabsContent value="org"><OrgChart /></TabsContent>
     </Tabs>
