@@ -67,10 +67,10 @@ export default function MasterList() {
         reviewBucketOf(r) === "overdue"
           ? "Atrasada"
           : reviewBucketOf(r) === "soon"
-          ? "≤ 30 dias"
-          : reviewBucketOf(r) === "ok"
-          ? "Em dia"
-          : "Sem ciclo",
+            ? "≤ 30 dias"
+            : reviewBucketOf(r) === "ok"
+              ? "Em dia"
+              : "Sem ciclo",
     }));
 
   const exportCsv = () => {
@@ -78,9 +78,7 @@ export default function MasterList() {
     const header = Object.keys(data[0] ?? { Código: "" });
     const csv = [
       header.join(","),
-      ...data.map((row) =>
-        header.map((h) => `"${String((row as any)[h] ?? "").replace(/"/g, '""')}"`).join(","),
-      ),
+      ...data.map((row) => header.map((h) => `"${String((row as any)[h] ?? "").replace(/"/g, '""')}"`).join(",")),
     ].join("\n");
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -95,8 +93,15 @@ export default function MasterList() {
     const data = exportRows();
     const ws = XLSX.utils.json_to_sheet(data);
     ws["!cols"] = [
-      { wch: 14 }, { wch: 48 }, { wch: 12 }, { wch: 18 },
-      { wch: 10 }, { wch: 14 }, { wch: 14 }, { wch: 14 }, { wch: 16 },
+      { wch: 14 },
+      { wch: 48 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 14 },
+      { wch: 16 },
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Lista Mestre");
@@ -107,17 +112,19 @@ export default function MasterList() {
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-2xl font-semibold">Lista Mestre</h2>
+          <h2 className="text-2xl font-semibold">Lista Mestra</h2>
           <p className="text-sm text-muted-foreground">
             Informação documentada controlada do SGQ (documentos + processos).
           </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={exportCsv} disabled={filtered.length === 0}>
-            <Download className="h-4 w-4 mr-2" />Exportar CSV
+            <Download className="h-4 w-4 mr-2" />
+            Exportar CSV
           </Button>
           <Button onClick={exportXlsx} disabled={filtered.length === 0}>
-            <FileSpreadsheet className="h-4 w-4 mr-2" />Exportar XLSX
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Exportar XLSX
           </Button>
         </div>
       </div>
@@ -130,7 +137,9 @@ export default function MasterList() {
           className="max-w-sm"
         />
         <Select value={kind} onValueChange={(v) => setKind(v as any)}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os tipos</SelectItem>
             <SelectItem value="document">Documentos</SelectItem>
@@ -138,16 +147,22 @@ export default function MasterList() {
           </SelectContent>
         </Select>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-44">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos os status</SelectItem>
             {statusOptions.map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
+              <SelectItem key={s} value={s}>
+                {s}
+              </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={reviewBucket} onValueChange={(v) => setReviewBucket(v as ReviewBucket)}>
-          <SelectTrigger className="w-52"><SelectValue placeholder="Revisão" /></SelectTrigger>
+          <SelectTrigger className="w-52">
+            <SelectValue placeholder="Revisão" />
+          </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Qualquer ciclo de revisão</SelectItem>
             <SelectItem value="overdue">Atrasadas</SelectItem>
@@ -196,7 +211,9 @@ export default function MasterList() {
                         </td>
                         <td className="px-3 py-2 text-muted-foreground">{r.type ?? "—"}</td>
                         <td className="px-3 py-2">{r.version_label ?? "—"}</td>
-                        <td className="px-3 py-2"><Badge variant="outline">{r.status}</Badge></td>
+                        <td className="px-3 py-2">
+                          <Badge variant="outline">{r.status}</Badge>
+                        </td>
                         <td className="px-3 py-2">{fmt(r.last_review_at)}</td>
                         <td className="px-3 py-2">
                           <span
@@ -204,8 +221,8 @@ export default function MasterList() {
                               bucket === "overdue"
                                 ? "text-destructive font-medium"
                                 : bucket === "soon"
-                                ? "text-amber-700 font-medium"
-                                : ""
+                                  ? "text-amber-700 font-medium"
+                                  : ""
                             }
                           >
                             {fmt(r.next_review_at)}
