@@ -392,6 +392,7 @@ const QualityDocumentDetail = () => {
             </TabsTrigger>
             <TabsTrigger value="versions">
               <History className="h-4 w-4 mr-1" /> Versões
+            </TabsTrigger>
             <TabsTrigger value="permissions">
               <Lock className="h-4 w-4 mr-1" /> Permissões
             </TabsTrigger>
