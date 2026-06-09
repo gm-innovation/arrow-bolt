@@ -171,6 +171,7 @@ const QualityCompetenciesHub = lazy(() => import("./pages/quality/CompetenciesHu
 const QualitySettingsHub = lazy(() => import("./pages/quality/SettingsHub"));
 const QualityKnowledge = lazy(() => import("./pages/quality/Knowledge"));
 const QualityCommunication = lazy(() => import("./pages/quality/Communication"));
+const QualityHomologation = lazy(() => import("./pages/quality/Homologation"));
 const PublicSatisfactionResponse = lazy(() => import("./pages/public/SatisfactionResponse"));
 
 const FinanceDashboard = lazy(() => import("./pages/finance/Dashboard"));
@@ -436,6 +437,7 @@ const App = () => {
                     <Route path="/quality/calibration" element={<Navigate to="/quality/devices" replace />} />
                     <Route path="/quality/knowledge" element={<QualityKnowledge />} />
                     <Route path="/quality/communication" element={<QualityCommunication />} />
+                    <Route path="/quality/homologation" element={<QualityHomologation />} />
                     <Route path="/quality/profile" element={<CorpUserProfile />} />
                   </Route>
 
