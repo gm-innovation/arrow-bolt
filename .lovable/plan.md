@@ -1,85 +1,152 @@
-Verificado no código — os dois pontos que você levantou são reais:
+# Fechamento dos 2 gaps pendentes — v2 (com ajustes)
 
-1. **`RisksHub.tsx` já lê `?tab=` via `useSearchParams`** ✅ (linha 11-12: `const [sp, setSp] = useSearchParams(); const tab = sp.get("tab") || "risks";`). Idem `CompetenciesHub.tsx`. Deep-links vão funcionar sem ajuste no hub.
-2. **Sidebar NÃO destaca corretamente** ❌. Em `DashboardLayout.tsx` linha 377-380, `isActivePath` compara só `location.pathname`. Itens com mesmo pathname (`/quality/risks-hub?tab=context` e `?tab=processes`) ficariam **todos destacados ao mesmo tempo**. Tem que consertar.
+Ajustes incorporados: default permissivo, pg_cron confirmado disponível, índice obrigatório.
 
-## Correções no `src/components/DashboardLayout.tsx`
+---
 
-### 1. Reestruturar o grupo "Estratégia e Gestão"
+## ⚠️ Validação necessária com a Rayane ANTES de aplicar
 
-Trocar o item único `Riscos & Oportunidades → /quality/risks` por um sub-grupo com 4 itens:
+Pergunta única e bloqueante para o Ponto 1:
 
-```
-Riscos & Oportunidades (grupo expansível)
-├─ Riscos & Oportunidades  → /quality/risks-hub?tab=risks
-├─ Contexto Organizacional → /quality/risks-hub?tab=context
-├─ Processos               → /quality/risks-hub?tab=processes
-└─ SWOT / Cenário          → /quality/risks-hub?tab=scenario
-```
+> **"Documentos sem regra configurada em `quality_document_permissions` devem permitir impressão/download por padrão, ou devem bloquear até que alguém configure?"**
+>
+> - **Opção A (recomendada — alinhada ao comportamento atual)**: liberar por padrão. Bloqueio só entra quando há regra explícita restritiva (por role ou usuário). Documentos marcados como "cópia controlada" continuam controlados pelo fluxo de `quality_controlled_copies` (já existe).
+> - **Opção B (mais restritiva)**: bloquear por padrão. Todo documento precisa ter regra configurada antes de ser impresso/baixado — pode quebrar fluxo atual em massa.
 
-Manter intactos no mesmo grupo: Planejamento (Objetivos/Indicadores/Mudanças), Partes Interessadas, Análise Crítica, Homologação.
+O plano abaixo assume **Opção A**. Se ela responder B, ajustar só a função `quality_doc_user_perms`.
 
-### 2. Adicionar Organograma no grupo "Competências e Pessoas"
+---
 
-Novo item:
-- **Organograma / Responsabilidades** → `/quality/competencies-hub?tab=org`
+## Parte 1 — Regras de impressão/download por perfil em GED
 
-### 3. Corrigir `isActivePath` para considerar `?tab=`
+### Estado atual confirmado
+- Tabela `quality_document_permissions` com `role` + `user_id` (opcional) + `can_view`/`can_print`/`can_download`. **Já existe.**
+- `DocumentPermissionsPanel` (UI de configuração). **Já existe.**
+- **Falta enforcement**: 3 botões em `src/pages/quality/DocumentDetail.tsx` não consultam as regras.
 
-Reescrever a função (linhas 377-380) para comparar pathname + tab:
+### O que será feito
 
-```ts
-const isActivePath = (path: string) => {
-  // Separa pathname e query do path do menu
-  const [menuPath, menuQuery = ""] = path.split("?");
-  const menuTab = new URLSearchParams(menuQuery).get("tab");
-  const currentTab = new URLSearchParams(location.search).get("tab");
+1. **RPC `public.quality_doc_user_perms(_document_id uuid)`** — SECURITY DEFINER, STABLE
+   - Retorna `{ can_view, can_print, can_download }` (boolean).
+   - `director` / `super_admin` da empresa do documento → sempre `true/true/true`.
+   - Demais usuários:
+     - Se houver regra com `user_id = auth.uid()` → usar essa (override individual).
+     - Senão, se houver regra com `user_id IS NULL` e `role` ∈ roles do usuário → consolidar via **OR** (qualquer role que conceda libera).
+     - **Senão (sem registro algum) → `can_view=true, can_print=true, can_download=true`** (Opção A — não-restritivo, preserva fluxo atual).
 
-  // Pathname tem que bater
-  if (location.pathname !== menuPath
-      && !(menuPath !== "/" && location.pathname.startsWith(menuPath + "/"))) {
-    // Mantém as exceções de /corp/ que já existem
-    if (!(path === "/corp/dashboard" && location.pathname.startsWith("/corp/") && !location.pathname.startsWith("/corp/feed") && !location.pathname.startsWith("/corp/profile") && !location.pathname.startsWith("/corp/university"))
-        && !(path === "/corp/feed" && location.pathname.startsWith("/corp/profile"))) {
-      return false;
-    }
-  }
+2. **Hook `useDocumentPerms(documentId)`** — `src/hooks/useDocumentPerms.ts`
+   - React Query consumindo o RPC.
 
-  // Se o item do menu tem ?tab=, o tab da URL atual tem que casar exatamente
-  if (menuTab) return currentTab === menuTab;
+3. **`DocumentDetail.tsx`** — gate nos 3 botões:
+   - `downloadGeneratedPDF(null)` (Baixar PDF) → exige `can_download`.
+   - `downloadGeneratedPDF("uncontrolled")` (Cópia não controlada) → exige `can_print`.
+   - `downloadFile(activeVersion.file_path)` (Arquivo original) → exige `can_download`.
+   - Quando `false`: botão `disabled` + tooltip "Sem permissão configurada para este documento". `onClick` também valida (defesa em profundidade) e dispara toast em violação.
+   - Botão "Visualizar" continua livre quando `can_view = true`.
 
-  // Se o item do menu NÃO tem ?tab=, só é ativo quando a URL também não tem tab
-  // (evita "Riscos-hub raiz" ficar ativo quando estamos numa aba específica)
-  // — mas só aplicamos essa regra para rotas que sabemos que têm versão com abas;
-  // para o resto do app mantemos comportamento atual (qualquer tab conta como ativo).
-  const pathsWithTabs = ["/quality/risks-hub", "/quality/competencies-hub", "/quality/dashboard", "/quality/settings"];
-  if (pathsWithTabs.includes(menuPath) && currentTab) return false;
+4. **Auditoria de tentativas negadas**
+   - Inserir em `quality_document_access_log` com `action = 'denied_print'` ou `'denied_download'` (já existe a tabela).
 
-  return true;
-};
+---
 
-```
+## Parte 2 — Expiração automática de anexos normativos
 
-Também atualizar o `useEffect` (linha 363) que abre o grupo do item ativo — usar a nova `isActivePath` no `.some(...)` em vez de comparação direta de `pathname`, para que o grupo "Riscos & Oportunidades" abra automaticamente quando entrar em qualquer um dos 4 sub-itens.
+### Estado atual confirmado
+- `quality_reference_norms` tem `valid_from`, `valid_until`, `is_active`, `next_review_due_at`.
+- Badge "Ativa/Inativa" usa só `is_active` (manual).
+- **`pg_cron` e `pg_net` já habilitados** no projeto (confirmado).
+- **Não há índice em `valid_until`** (confirmado — só PK e UNIQUE em code).
 
-### 4. Garantir que o `<NavLink to={...}>` aceita query string
+### O que será feito
 
-`react-router-dom` aceita `to="/quality/risks-hub?tab=context"` nativamente — não precisa mudar a renderização do item.
+1. **Índice obrigatório** (não opcional):
+   ```sql
+   CREATE INDEX IF NOT EXISTS idx_quality_reference_norms_valid_until
+     ON public.quality_reference_norms (valid_until)
+     WHERE valid_until IS NOT NULL;
+   ```
 
-## Arquivos alterados
+2. **VIEW `quality_reference_norms_status`**
+   - Mesmas colunas da tabela + coluna calculada `effective_status`:
+     - `is_active = false` → `'inativa'`
+     - `valid_until IS NOT NULL AND valid_until < CURRENT_DATE` → `'vencida'`
+     - `valid_until IS NOT NULL AND valid_until <= CURRENT_DATE + INTERVAL '30 days'` → `'vence_em_breve'`
+     - senão → `'vigente'`
+   - `GRANT SELECT ... TO authenticated`.
+   - `security_invoker = on` para herdar RLS da tabela base.
+   - **Não usar `GENERATED STORED`** (incompatível com `CURRENT_DATE`, que é STABLE).
 
-- `src/components/DashboardLayout.tsx` — reestrutura `qualidadeMenuItems` (grupo Estratégia + grupo Competências) e corrige `isActivePath` + `useEffect` de abertura de grupo.
+3. **Coluna `expiry_warning_sent_at TIMESTAMPTZ NULL`** em `quality_reference_norms`
+   - Idempotência do aviso de "vence em breve".
 
-(Não toco em `RisksHub.tsx` nem em `CompetenciesHub.tsx` — já leem `?tab=` corretamente.)
+4. **Função `public.quality_norms_expire_tick()`** — SECURITY DEFINER
+   - Para normas com `valid_until < CURRENT_DATE AND is_active = true`:
+     - `UPDATE quality_reference_norms SET is_active = false WHERE ...`.
+     - Inserir notificação em `notifications` para `director` + `coordinator` da empresa: "Norma {code} venceu em {valid_until}".
+   - Para normas `vence_em_breve` (≤30 dias) com `expiry_warning_sent_at IS NULL`:
+     - Inserir notificação "Norma {code} vence em {N} dias".
+     - `UPDATE ... SET expiry_warning_sent_at = now()`.
 
-## Validação
+5. **Agendamento — usar `pg_cron` (disponível)**
+   - **Sem fallback de trigger on-read** (rejeitado: causaria notificações duplicadas, timing inconsistente e mutação em SELECT).
+   - SQL via tool `supabase--insert` (não migração, contém URL+anon key específicos do projeto):
+     ```sql
+     SELECT cron.schedule(
+       'quality-norms-expire-tick',
+       '0 3 * * *',
+       $$ SELECT net.http_post(
+            url := 'https://iyuypkfksxfsutubcpay.supabase.co/functions/v1/quality-norms-expire-tick',
+            headers := '{"Content-Type":"application/json","apikey":"<ANON>"}'::jsonb,
+            body := '{}'::jsonb
+          ); $$
+     );
+     ```
+   - **Edge Function `quality-norms-expire-tick`** (`verify_jwt = true`, registrada em `config.toml`) — apenas chama o RPC `quality_norms_expire_tick()` via service role.
+   - Se preferirmos manter tudo dentro do Postgres (sem Edge Function), o cron pode chamar diretamente `SELECT public.quality_norms_expire_tick();` — mais simples; vou adotar essa variante por default.
 
-- Navegar manualmente para cada link novo no preview e confirmar:
-  - A aba certa abre.
-  - Só **um** sub-item fica destacado no sidebar de cada vez.
-  - O grupo "Riscos & Oportunidades" abre sozinho ao entrar em qualquer sub-item.
-- Confirmar que itens antigos sem `?tab=` continuam funcionando normalmente (Documentos, NCRs etc.).
+6. **`NormsTab.tsx` — UI**
+   - Consumir a VIEW `quality_reference_norms_status` (via hook `useQualityReferenceNorms`).
+   - Substituir badge "Ativa/Inativa" por `effective_status`:
+     - `vigente` → Badge verde "Vigente".
+     - `vence_em_breve` → Badge amarelo + ícone alerta + "vence em N dias".
+     - `vencida` → Badge vermelho "VENCIDA desde DD/MM/AAAA".
+     - `inativa` → Badge cinza "Inativa".
+   - Linha com `opacity-70` quando `vencida` ou `inativa`.
 
-## Fora de escopo
+7. **Bloqueio funcional em selects**
+   - Novo seletor `activeNorms` no hook = filtra `effective_status IN ('vigente','vence_em_breve')`.
+   - Selects de "Norma aplicável" em RNCs / Auditorias / Documentos passam a usar `activeNorms` — normas vencidas não aparecem em novos cadastros.
 
-- Não regero os PDFs (mapa/relatório) agora. Depois que o menu estiver consertado, refazemos os artefatos se você pedir.
+---
+
+## Arquivos tocados
+
+**Migração SQL (uma):**
+- RPC `quality_doc_user_perms`
+- Índice `idx_quality_reference_norms_valid_until`
+- VIEW `quality_reference_norms_status` + GRANT
+- Coluna `expiry_warning_sent_at`
+- Função `quality_norms_expire_tick()`
+
+**`supabase--insert` (separado, não migração — contém URL/anon):**
+- `cron.schedule('quality-norms-expire-tick', '0 3 * * *', ...)`
+
+**Frontend:**
+- `src/hooks/useDocumentPerms.ts` (novo)
+- `src/pages/quality/DocumentDetail.tsx` (gate nos 3 botões + log de negação)
+- `src/hooks/useQualityIsoStructure.ts` (consumir VIEW; expor `activeNorms`)
+- `src/components/quality/norms/NormsTab.tsx` (badge por `effective_status`)
+
+**Sem mudanças em:** RLS atual, storage, sidemenu, Edge Functions.
+
+---
+
+## Validações pós-implementação
+
+- Coordinator com regra `can_download=false` em doc X → botão desabilitado, tooltip ok, log `denied_download` registrado.
+- Director em qualquer doc → todos os botões habilitados.
+- Documento sem regras → todos os botões habilitados (Opção A).
+- Norma com `valid_until = ontem` → aparece "VENCIDA" imediatamente (via VIEW) e some dos selects.
+- Após cron rodar: norma vencida tem `is_active = false` e notificação criada para director/coordinator.
+- Norma com `valid_until = hoje + 15` → "vence em 15 dias", notificação criada uma única vez (idempotência via `expiry_warning_sent_at`).
+
