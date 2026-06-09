@@ -40,6 +40,8 @@ import { pdf } from "@react-pdf/renderer";
 import { QualityDocumentPDF } from "@/components/quality/QualityDocumentPDF";
 import { useAuth } from "@/contexts/AuthContext";
 import { logQualityDocumentAccess } from "@/lib/qualityAccessLog";
+import { useDocumentPerms } from "@/hooks/useDocumentPerms";
+import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const statusLabel: Record<string, string> = {
