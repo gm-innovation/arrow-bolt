@@ -1,130 +1,189 @@
+# Sprint de Fechamento — Planejamento · Melhorias · Partes Interessadas (v2)
 
-# Sprint Final — Encerramento do SGQ Arrow (v2)
-
-Ajustes incorporados: tipos de treinamento ampliados, `origin_type` no programa anual, timeline sem PDF, regra de norma vencida mantida.
+Ajuste aplicado: **P3.1 agora usa tabelas relacionais** (`quality_objective_risks` e `quality_objective_parties`) em vez de arrays. Demais itens inalterados.
 
 ---
 
-## 1. GED — Vínculo Norma↔Documento, Badge de Validade e Timeline
+## Prioridade P0 — Alertas e Eficácia (Dia 1–2)
 
-### 1.1 Vínculo Norma↔Documento (N:N)
-- Criar `quality_document_norms(document_id, norm_id, created_at)` com PK composta, FKs com ON DELETE CASCADE, RLS + GRANTs (master CUD; leitura para autenticados da empresa via join).
-- Hook `useQualityDocumentNorms(documentId)` (list/add/remove).
-- No `NewDocumentDialog` e no `DocumentDetail`, adicionar **Combobox multi-select** de normas (mantendo o campo livre `normative_reference` como texto auxiliar).
+### P0.1 — Alertas de evidências e eficácia vencidas
+Estender `useQualityAlerts.ts` com 2 novos kinds:
+- `party_evidence_expired` — `quality_interested_party_evidences.valid_until < CURRENT_DATE`
+- `improvement_effectiveness_overdue` — `quality_improvements_manual.effectiveness_review_due_at < CURRENT_DATE AND effectiveness_status='pendente'`
 
-### 1.2 Badge "Norma Referenciada Vencida"
-Regra (mantida conforme orientação):
+Renderizar na sidebar/banner de alertas existente.
+
+### P0.2 — Farol de Indicador (vermelho/amarelo/verde)
+Função utilitária `computeIndicatorTrend(indicator, measurements)`:
 ```text
-status != 'vigente'
-OR valid_until < hoje
-OR next_review_due_at < hoje
+verde:    último valor >= target
+amarelo:  último valor entre 80%–100% do target
+vermelho: último valor < 80% do target  OU  sem medição no período da frequência
 ```
-- No `DocumentDetail.tsx`, exibir `<Badge variant="destructive">Norma Referenciada Vencida</Badge>` no header com tooltip listando os códigos das normas em atraso.
+Badge no `Planning.tsx` (aba Indicadores) + KPI no `DashboardHub`.
 
-### 1.3 Timeline de Revisões (sem PDF)
-- Em `DocumentDetail.tsx`, aba **"Histórico de Alterações"** consumindo `quality_document_versions` ordenado desc por `revision_number`.
-- Colunas:
-  - `revision_label`
-  - `revision_date` (= `approved_at` ou fallback `created_at`)
-  - `change_summary`
-  - `approved_by` (resolvido para nome via `profiles`)
-- Sem exportação em PDF nesta sprint.
+### P0.3 — Eficácia de Mudança Planejada
+**Migração** ALTER `quality_planned_changes`:
+- `effectiveness_status text CHECK in ('pendente','eficaz','parcial','nao_eficaz')` default `'pendente'`
+- `effectiveness_reviewed_at timestamptz`
+- `effectiveness_reviewed_by uuid`
+- `effectiveness_notes text`
+- `resources_assessment text` (§6.3 d)
+
+Botão **"Avaliar Eficácia"** quando `status='implementada'`, reutilizando o `EvaluateEffectivenessDialog` de Treinamentos.
 
 ---
 
-## 2. Pessoas e Treinamentos (§7.2 / §7.3)
+## Prioridade P1 — Consolidação de Melhorias (Dia 2–3)
 
-### 2.1 Campos novos em `quality_training_plans`
-Migração ALTER TABLE:
-- `type text` ∈ (`internal`, `external_mandatory`, `external_optional`), default `internal`
-- `origin_type text` ∈ (`competency_gap`, `audit`, `ncr`, `legal_requirement`, `customer_requirement`, `iso_requirement`)
-- `institution text`
-- `instructor text`
-- `certificate_url text`
-- `program_year int`
-- `planned_date date`
-- `executed_date date`
-
-Atualizar `TrainingPlanCard` e form para mostrar instituição/instrutor/certificado quando `type` começar com `external_`, e Combobox de `origin_type` em todos os casos.
-
-### 2.2 Programa Anual de Treinamentos
-- Página `/quality/training-program` (rota + entrada no menu Competências).
-- Tabela filtrada por `program_year` (default = ano atual):
-  - Colaborador · Competência/Tema · Tipo · Origem (`origin_type`) · Instituição · Data planejada · Status · Eficácia
-- Indicador no topo: **% de Execução = completed / total**.
-- Filtros adicionais: tipo, origem, status.
-
-### 2.3 Avaliação de Eficácia
-Nova tabela:
+### P1.1 — Triggers de origem automática
+**Migração:** 2 triggers AFTER INSERT:
 ```text
-quality_training_effectiveness(
-  id, company_id,
-  training_id → quality_training_plans (ON DELETE CASCADE),
-  evaluator_id → auth.users,
-  evaluation_date date,
-  result text CHECK in ('eficaz','parcial','nao_eficaz'),
+quality_supplier_incidents → INSERT em quality_improvements_manual
+  (origin_type='supplier_incident', priority='high')
+
+quality_calibrations (result='reprovada')
+  → INSERT em quality_improvements_manual
+  (origin_type='device_failure', priority='high')
+```
+Ampliar enum/constraint `origin_type` com `supplier_incident` e `device_failure`.
+
+### P1.2 — Retro-vínculo Plano ↔ Origem
+Na mutation `generateActionPlan`, após criar o plano:
+```text
+origem = ncr              → UPDATE quality_ncrs SET action_plan_id
+origem = audit_finding    → UPDATE quality_audit_findings SET action_plan_id
+(manual já faz)
+```
+Adicionar `action_plan_id` em `quality_audit_findings` se ainda não existir.
+
+### P1.3 — Eficácia unificada na view consolidada
+Recriar `quality_improvements_v` com `effectiveness_status` via COALESCE das 4 origens (`quality_ncrs`, `quality_audit_findings`, `quality_complaints`, `quality_improvements_manual`). Coluna **Eficácia** passa a estar sempre populada em `Improvements.tsx`.
+
+---
+
+## Prioridade P2 — Partes Interessadas (Dia 3–4)
+
+### P2.1 — Histórico de tratativa
+```text
+CREATE TABLE quality_party_treatments (
+  id uuid PK,
+  party_id uuid → quality_interested_parties (CASCADE),
+  status text CHECK in ('pendente','em_andamento','atendida','nao_aplicavel'),
   notes text,
-  created_at, updated_at
-)
+  decided_by uuid,
+  decided_at timestamptz default now(),
+  created_at timestamptz default now()
+) + GRANTs + RLS
 ```
-- RLS: master CUD; leitura para a empresa.
-- Botão **"Avaliar Eficácia"** no card/linha do treinamento, habilitado apenas quando `status='completed'`.
-- Badge com o último resultado de eficácia na listagem e no programa anual.
+Trigger AFTER UPDATE OF `treatment_status` em `quality_interested_parties` insere linha automaticamente.
 
-### 2.4 Conscientização (Awareness)
+Aba **"Histórico de Tratativas"** no `InterestedPartyDrawer.tsx`.
+
+### P2.2 — Vínculo Evidência ↔ Documento Controlado
+Coluna `document_id` já existe. Adicionar Combobox opcional de `quality_documents` no upload de evidência.
+
+### P2.3 — Cards KPI no Dashboard
+3 KPIs novos no `DashboardHub`:
+- Partes pendentes de tratativa (`treatment_status='pendente'`)
+- Evidências vencidas (`valid_until < hoje`)
+- Partes nunca revisadas (`last_reviewed_at IS NULL`)
+
+---
+
+## Prioridade P3 — Planejamento: Rastreabilidade (Dia 4–5)
+
+### P3.1 — Vínculo Objetivo ↔ Risco/Parte (tabelas relacionais)
+
+**Migração — 2 tabelas associativas:**
 ```text
-quality_awareness_events(
-  id, company_id, topic, description,
-  event_date date, conducted_by uuid, evidence_url,
-  created_at, updated_at
+CREATE TABLE quality_objective_risks (
+  objective_id uuid → quality_objectives (CASCADE),
+  risk_id      uuid → quality_risks      (CASCADE),
+  created_at   timestamptz default now(),
+  created_by   uuid,
+  PRIMARY KEY (objective_id, risk_id)
 )
-quality_awareness_attendees(
-  event_id, user_id, acknowledged_at,
-  PK(event_id, user_id)
+
+CREATE TABLE quality_objective_parties (
+  objective_id uuid → quality_objectives          (CASCADE),
+  party_id     uuid → quality_interested_parties  (CASCADE),
+  created_at   timestamptz default now(),
+  created_by   uuid,
+  PRIMARY KEY (objective_id, party_id)
 )
 ```
-- Página `/quality/awareness` (subitem de Competências): registrar evento + multi-select de participantes.
+GRANTs + RLS herdando a política da empresa via join com `quality_objectives.company_id`. Índices em `risk_id` e `party_id` para consulta reversa.
+
+**Hooks novos:**
+- `useObjectiveRisks(objectiveId)` — list/add/remove
+- `useObjectiveParties(objectiveId)` — list/add/remove
+- Hook reverso (opcional, já no dashboard): `useRiskObjectives(riskId)`, `usePartyObjectives(partyId)`
+
+**Frontend:**
+- No dialog de Objetivo: 2 multi-selects (Combobox) — riscos e partes.
+- Painel **"Rastreabilidade"** no detalhe do objetivo listando vínculos com link cruzado.
+- No detalhe de Risco e de Parte Interessada: nova seção "Objetivos vinculados" (consulta reversa).
+
+**Por quê tabelas e não arrays:** consultas reversas (quais objetivos cobrem este risco?), filtros, joins em relatórios e análise crítica ficam triviais; arrays exigem `ANY()`/`unnest()` em toda query.
+
+### P3.2 — Export PDF do Plano Anual da Qualidade
+Componente `QualityPlanPdf.tsx` reaproveitando `QualityDocumentPDF`:
+- Capa: ano, empresa, política vinculada
+- Seção 1: Objetivos (indicadores filhos + farol + vínculos com risco/parte)
+- Seção 2: Mudanças Planejadas (status + eficácia)
+- Assinaturas: responsável da qualidade + direção
+
+Botão **"Gerar Plano Anual"** no header de `Planning.tsx`.
 
 ---
 
-## 3. UX e Navegação
+## Cronograma
 
-### 3.1 Sidebar
-- **Documentos** → subitens **Normas** e **Termos** (`/quality/documents?tab=norms|terms`).
-- **Competências** → subitens **Programa de Treinamentos** (`/quality/training-program`) e **Conscientização** (`/quality/awareness`).
-
-### 3.2 "Abrir NCR" em Satisfação
-- Em `SatisfactionDetail.tsx`, botão **"Abrir NCR"** por resposta crítica.
-- Deep-link para `/quality/ncrs?new=1&source=satisfaction&response_id=...&description=<encoded>`; `NCRs.tsx` abre o dialog pré-preenchido.
-
----
-
-## Critérios de aceite
-1. PDFs de NC, Calibração e layout ISO continuam gerando com assinaturas.
-2. Rayane cria plano `external_mandatory` com `origin_type='customer_requirement'`, conclui e registra avaliação de eficácia.
-3. Auditor vê a aba **Histórico de Alterações** com revisão, data, motivo e autor.
-4. Documento com norma vencida exibe badge vermelho conforme regra acima.
-5. Sidebar reflete o novo agrupamento; botão "Abrir NCR" funciona a partir de uma resposta de satisfação.
-
----
+```text
+Dia 1  P0.1 alertas       + P0.2 farol indicador
+Dia 2  P0.3 eficácia mudança + P1.1 triggers origem
+Dia 3  P1.2 retro-vínculo + P1.3 view consolidada
+Dia 4  P2.1 histórico tratativa + P2.2 vínculo doc + P2.3 KPIs
+Dia 5  P3.1 tabelas associativas + UI rastreabilidade + P3.2 PDF
+Dia 6  Regressão: alertas, PDFs, RLS, fluxos completos
+Dia 7  Homologação com Rayane
+```
 
 ## Resumo técnico
 
-**Migration única:**
-- `quality_document_norms` (+ grants + RLS)
-- `ALTER quality_training_plans` (type ampliado, origin_type, institution, instructor, certificate_url, program_year, planned_date, executed_date)
-- `quality_training_effectiveness` (+ grants + RLS)
-- `quality_awareness_events`, `quality_awareness_attendees` (+ grants + RLS)
+**Migrações (4 arquivos):**
+1. `alter_planned_changes_effectiveness.sql` — P0.3
+2. `triggers_improvements_origin.sql` — P1.1 (+ ampliação enum)
+3. `recreate_improvements_v_effectiveness.sql` — P1.3
+4. `party_treatments_and_objective_links.sql` — P2.1 + **P3.1 (2 tabelas N:N)**
 
-**Hooks novos:** `useQualityDocumentNorms`, `useQualityTrainingProgram`, `useQualityTrainingEffectiveness`, `useQualityAwarenessEvents`.
+**Hooks alterados/novos:**
+- `useQualityAlerts.ts` — +2 fontes
+- `useQualityImprovements.ts` — retro-vínculo + eficácia unificada
+- `useQualityPlanning.ts` — eficácia mudança
+- `useQualityInterestedParties.ts` — `usePartyTreatmentHistory`
+- **`useObjectiveRisks.ts`** (novo) — N:N objetivo↔risco
+- **`useObjectiveParties.ts`** (novo) — N:N objetivo↔parte
 
-**Componentes/Páginas:**
-- `DocumentDetail.tsx` (aba Histórico + badge norma vencida + multi-select normas)
-- `NewDocumentDialog.tsx` (multi-select normas)
-- `TrainingPlanCard.tsx` + form (type/origin_type + campos externos + Avaliar Eficácia)
-- `pages/quality/TrainingProgram.tsx` (novo)
-- `pages/quality/Awareness.tsx` + `AwarenessFormDialog.tsx` (novos)
-- Sidebar Qualidade: subitens
-- `SatisfactionDetail.tsx` + `NCRs.tsx`: deep-link
+**Componentes novos:**
+- `EvaluateChangeEffectivenessDialog.tsx`
+- `IndicatorStatusBadge.tsx`
+- `PartyTreatmentHistoryTab.tsx`
+- `ObjectiveTraceabilityPanel.tsx` (vínculos do objetivo)
+- `QualityPlanPdf.tsx`
 
-**Ordem:** migrations → hooks → GED (1.1–1.3) → Treinamentos (2.1–2.3) → Conscientização (2.4) → UX (3) → regressão dos PDFs.
+**Páginas alteradas:** `Planning.tsx`, `Improvements.tsx`, `InterestedParties.tsx`, `DashboardHub.tsx`, `Risks.tsx` (seção "Objetivos vinculados"), `InterestedPartyDrawer.tsx`.
+
+## Critérios de aceite
+
+1. Alerta vermelho quando evidência vence amanhã.
+2. Mudança implementada exibe "Avaliar Eficácia"; resultado "ineficaz" entra na view de melhorias.
+3. Incidente de fornecedor cria automaticamente linha em Melhorias.
+4. Origem NCR em Melhorias mostra eficácia preenchida (não mais "—").
+5. Drawer de Parte exibe histórico cronológico de tratativas.
+6. Dashboard mostra 3 KPIs de Partes.
+7. Objetivo permite vincular múltiplos riscos e partes; **abrindo um risco, vejo a lista de objetivos que o cobrem** (consulta reversa via tabela associativa).
+8. Botão "Gerar Plano Anual da Qualidade" produz PDF assinado.
+
+Pronto para aprovar?
