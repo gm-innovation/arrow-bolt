@@ -1,44 +1,18 @@
-## Problema
+## Objetivo
+Corrigir o PDF `sgq-mapa-de-telas.pdf` cujas 3 primeiras páginas têm tabelas estouradando a margem direita / sendo cortadas na impressão.
 
-`/quality/ncrs` renderiza `NCRsHub.tsx`, que exibe 4 abas internas (Não-Conformidades, Melhorias, Planos de Ação, Desvios). Isso causa:
+## Diagnóstico
+O script atual de geração (Python + reportlab) monta a Tabela Mestra com larguras de coluna fixas que somam mais que a área útil da página A4, e usa células de texto puro (sem wrap), o que faz colunas longas (Rota, Arquivo, Função) sangrarem para fora da página.
 
-1. **Duplicidade**: "Melhorias" aparece como aba no Hub e como sublink no SideMenu.
-2. **Aba redundante**: "Não-Conformidades" é uma aba dentro da página "Não-Conformidades".
-3. **Inconsistência**: "Planos de Ação" e "Desvios" só existem como aba — não viraram sublinks como o resto do refactor.
+## Mudanças no script de geração do PDF
+1. **Página A4 paisagem** (`landscape(A4)`) só para as seções de tabela larga (Tabela Mestra), mantendo retrato para as demais.
+2. **Recalcular larguras de coluna** com base em `doc.width` (somando exatamente 100% da área útil), em vez de valores fixos em cm.
+3. **Envolver o conteúdo das células em `Paragraph`** com estilo `wordWrap='CJK'` para quebrar linha automaticamente em rotas/arquivos longos.
+4. **Reduzir fonte da tabela** para 8pt e padding para 3pt, garantindo respiro.
+5. **Margens** uniformes de 1,5 cm em todos os lados.
+6. **`repeatRows=1`** na Table para o cabeçalho se repetir nas quebras de página automáticas (sem precisar de `KeepTogether`, que poderia explodir tabelas muito longas).
+7. Reexecutar o script, salvar em `/mnt/documents/sgq-mapa-de-telas.pdf` e fazer QA visual com `pdftoppm` nas 3 primeiras páginas para confirmar que nada está cortado.
 
-## Solução
-
-Eliminar o `NCRsHub` (tabs) e promover todas as 4 telas a sublinks diretos do grupo "Melhoria e Conformidade".
-
-### 1. SideMenu (`DashboardLayout.tsx`)
-
-Grupo **Melhoria e Conformidade** passa de 3 para 5 sublinks:
-
-```
-Melhoria e Conformidade
- ├─ Não-Conformidades   → /quality/ncrs
- ├─ Melhorias           → /quality/improvements
- ├─ Planos de Ação      → /quality/action-plans
- ├─ Desvios             → /quality/deviations
- └─ Auditorias          → /quality/audits
-```
-
-### 2. Rotas (`App.tsx`)
-
-- `/quality/ncrs` → renderizar `NCRs` direto (não mais `NCRsHub`).
-- `/quality/action-plans` → renderizar `ActionPlans` (hoje redireciona p/ `?tab=`).
-- `/quality/deviations` → renderizar `Deviations` (novo).
-- Manter `/quality/improvements` como está.
-- Redirects de retrocompatibilidade: `/quality/ncrs?tab=…` → rota direta correspondente (via componente leve ou simplesmente ignorar o query param, já que ninguém deve ter bookmark).
-
-### 3. Limpeza
-
-- Deletar `src/pages/quality/NCRsHub.tsx` (não mais usado).
-- Remover import/lazy de `QualityNCRsHub` em `App.tsx`.
-
-## Critérios de aceitação
-
-- Sublink "Não-Conformidades" abre direto a lista (sem tabs no topo).
-- "Planos de Ação" e "Desvios" acessíveis pelo SideMenu como sublinks.
-- Nenhuma aba "Melhorias / Planos de Ação / Desvios" aparece dentro de `/quality/ncrs`.
-- Build passa.
+## Sem mudanças
+- Conteúdo textual, estrutura de seções e ordem permanecem idênticos ao PDF atual.
+- Nenhum arquivo do app (`src/`) é alterado — é só regeneração do artefato em `/mnt/documents/`.
