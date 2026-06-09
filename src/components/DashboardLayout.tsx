@@ -349,7 +349,109 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     compras: comprasMenuItems,
     qualidade: qualidadeMenuItems,
     financeiro: financeiroMenuItems,
-  }[userType];
+  }[userType] as MenuEntry[];
+
+  // auto-open the group whose children contain the current route
+  useEffect(() => {
+    const toOpen: Record<string, boolean> = {};
+    const walk = (entries: MenuEntry[]) => {
+      for (const e of entries) {
+        if (isGroup(e)) {
+          if (collectPaths(e).some((p) => location.pathname === p || location.pathname.startsWith(p + "/"))) {
+            toOpen[e.key] = true;
+          }
+          walk(e.children);
+        }
+      }
+    };
+    walk(menuItems);
+    if (Object.keys(toOpen).length > 0) {
+      setOpenGroups((s) => ({ ...s, ...toOpen }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  const isActivePath = (path: string) =>
+    location.pathname === path ||
+    (path === "/corp/dashboard" && location.pathname.startsWith("/corp/") && !location.pathname.startsWith("/corp/feed") && !location.pathname.startsWith("/corp/profile") && !location.pathname.startsWith("/corp/university")) ||
+    (path === "/corp/feed" && location.pathname.startsWith("/corp/profile"));
+
+  const renderEntries = (
+    entries: MenuEntry[],
+    opts: { mobile?: boolean; depth?: number } = {},
+  ): ReactNode => {
+    const { mobile = false, depth = 0 } = opts;
+    return entries.map((entry) => {
+      if (isGroup(entry)) {
+        const open = !!openGroups[entry.key];
+        const groupActive = collectPaths(entry).some(isActivePath);
+        if (collapsed && !mobile) {
+          // collapsed sidebar: clicking expands sidebar and opens the group
+          return (
+            <Button
+              key={entry.key}
+              variant="ghost"
+              className={cn(
+                "w-full transition-all duration-200 h-10 px-2 justify-center",
+                groupActive ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" : "text-gray-600 hover:bg-gray-100",
+              )}
+              onClick={() => {
+                setCollapsed(false);
+                setOpenGroups((s) => ({ ...s, [entry.key]: true }));
+              }}
+              title={entry.title}
+            >
+              <entry.icon className={cn("h-5 w-5 flex-shrink-0", groupActive ? "text-blue-600" : "text-gray-500")} />
+            </Button>
+          );
+        }
+        return (
+          <div key={entry.key}>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full transition-all duration-200 h-10 justify-start gap-3",
+                groupActive ? "text-blue-700" : "text-gray-700 hover:bg-gray-100",
+              )}
+              style={{ paddingLeft: `${0.75 + depth * 0.75}rem` }}
+              onClick={() => toggleGroup(entry.key)}
+            >
+              <entry.icon className={cn("h-5 w-5 flex-shrink-0", groupActive ? "text-blue-600" : "text-gray-500")} />
+              <span className="truncate flex-1 text-left font-medium">{entry.title}</span>
+              {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+            {open && (
+              <div className="space-y-1 mt-1">
+                {renderEntries(entry.children, { mobile, depth: depth + 1 })}
+              </div>
+            )}
+          </div>
+        );
+      }
+      const active = isActivePath(entry.path);
+      return (
+        <Button
+          key={entry.path}
+          variant="ghost"
+          className={cn(
+            "w-full transition-all duration-200",
+            collapsed && !mobile ? "h-10 px-2 justify-center" : "h-10 justify-start gap-3",
+            active ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" : "text-gray-600 hover:bg-gray-100",
+          )}
+          style={!collapsed || mobile ? { paddingLeft: `${0.75 + depth * 0.75}rem` } : undefined}
+          onClick={() => {
+            navigate(entry.path);
+            if (mobile) setMobileMenuOpen(false);
+          }}
+          title={collapsed && !mobile ? entry.title : undefined}
+        >
+          <entry.icon className={cn("h-5 w-5 flex-shrink-0", active ? "text-blue-600" : "text-gray-500")} />
+          {(!collapsed || mobile) && <span className="truncate">{entry.title}</span>}
+        </Button>
+      );
+    });
+  };
+
 
   const handleLogout = async () => {
     await signOut();
