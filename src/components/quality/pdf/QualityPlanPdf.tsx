@@ -141,7 +141,7 @@ export const QualityPlanPdf = ({
                   <Text style={[docStyles.td, { width: "38%" }]}>{c.title}</Text>
                   <Text style={[docStyles.td, { width: "14%" }]}>{c.change_type}</Text>
                   <Text style={[docStyles.td, { width: "16%" }]}>{CHG_STATUS[c.status] ?? c.status}</Text>
-                  <Text style={[docStyles.td, { width: "16%" }]}>{fmt((c as any).implementation_date)}</Text>
+                  <Text style={[docStyles.td, { width: "16%" }]}>{fmt((c as any).implemented_at)}</Text>
                   <Text style={[docStyles.td, { width: "16%" }]}>
                     {EFF_STATUS[(c as any).effectiveness_status] ?? "—"}
                   </Text>
