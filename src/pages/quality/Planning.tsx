@@ -440,6 +440,24 @@ const IndicatorDialog = ({
   );
 };
 
+const IndicatorTrendCell = ({ indicator }: { indicator: QualityIndicator }) => {
+  const { data: ms = [] } = useQuery({
+    queryKey: ["quality_indicator_measurements_trend", indicator.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quality_indicator_measurements" as any)
+        .select("value, period_end")
+        .eq("indicator_id", indicator.id)
+        .order("period_end", { ascending: false })
+        .limit(6);
+      if (error) throw error;
+      return (data ?? []) as unknown as { value: number; period_end: string }[];
+    },
+  });
+  const trend = computeIndicatorTrend(indicator, ms);
+  return <IndicatorStatusBadge trend={trend} />;
+};
+
 const IndicatorsTab = () => {
   const { indicators, upsert, remove } = useQualityIndicators();
   const { objectives } = useQualityObjectives();
