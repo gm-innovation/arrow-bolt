@@ -63,6 +63,7 @@ const QualityDocumentDetail = () => {
     useQualityDocument(id);
   const { signature, registerSignatureEvent } = useQualitySignature();
   const { expiredNorms } = useQualityDocumentNorms(id);
+  const { perms } = useDocumentPerms(id);
 
   const [richContent, setRichContent] = useState<any>(null);
   const [changeSummary, setChangeSummary] = useState("");
@@ -150,6 +151,23 @@ const QualityDocumentDetail = () => {
   };
 
   const downloadFile = async (path: string, filename: string) => {
+    if (!perms.can_download) {
+      toast({
+        title: "Sem permissão para baixar",
+        description: "Sua conta não tem permissão para baixar este documento.",
+        variant: "destructive",
+      });
+      if (user) {
+        logQualityDocumentAccess({
+          document_id: document.id,
+          version_id: activeVersion?.id ?? null,
+          user_id: user.id,
+          action: "denied_download",
+          context: { filename },
+        });
+      }
+      return;
+    }
     const { data } = await supabase.storage.from("quality-documents").createSignedUrl(path, 300, {
       download: filename,
     });
@@ -229,6 +247,24 @@ const QualityDocumentDetail = () => {
   };
 
   const downloadGeneratedPDF = async (watermark: "uncontrolled" | null = null) => {
+    const requiredPerm = watermark === "uncontrolled" ? perms.can_print : perms.can_download;
+    if (!requiredPerm) {
+      toast({
+        title: watermark === "uncontrolled" ? "Sem permissão para imprimir" : "Sem permissão para baixar",
+        description: "Sua conta não tem permissão para esta ação neste documento.",
+        variant: "destructive",
+      });
+      if (user) {
+        logQualityDocumentAccess({
+          document_id: document.id,
+          version_id: activeVersion?.id ?? null,
+          user_id: user.id,
+          action: watermark === "uncontrolled" ? "denied_print" : "denied_download",
+          context: { watermark },
+        });
+      }
+      return;
+    }
     const v = publishedVersion || activeVersion;
     if (!v) return;
     if (v.content_kind !== "rich_text") {
@@ -248,7 +284,7 @@ const QualityDocumentDetail = () => {
         document_id: document.id,
         version_id: v.id,
         user_id: user.id,
-        action: watermark === "uncontrolled" ? "download" : "print",
+        action: watermark === "uncontrolled" ? "print" : "download",
         context: { watermark },
       });
     }
