@@ -1,26 +1,19 @@
-## Regenerar mapa de telas, funções e caminhos (PDF v2)
+## Corrigir tabela mestra — manter tudo em A4 retrato
 
-Refazer `/mnt/documents/sgq-mapa-de-telas.pdf` para refletir a nova hierarquia do sidemenu do SGQ aprovada na rodada anterior.
+O usuário vê as páginas da tabela mestra mais largas que as demais porque estão em A4 paisagem enquanto o resto está em A4 retrato. Ao imprimir/visualizar no leitor, o paisagem aparece "estourando" o A4 portrait. Solução: deixar a tabela mestra também em **A4 retrato**, com colunas que cabem e quebram texto automaticamente.
 
-### Mudanças em relação à versão anterior
+### Mudanças no script `/tmp/gen_map_pdf.py`
 
-1. **Árvore do sidemenu (Seção 1)** atualizada:
-   - "Segurança" agora aparece como sub-item de **Operação da Qualidade** (junto com Provedores Externos, Calibração, Voz do Cliente).
-   - "Homologação" agora aparece como sub-item de **Estratégia e Gestão** (junto com Análise Crítica), não mais no nível raiz.
-2. **Tabela mestra (Seção 2)** — linhas de Segurança e Homologação remarcadas com o novo "pai" no menu; demais colunas (rota, arquivo, função) inalteradas.
-3. **Seção "Estratégia e Gestão"** — incluir bullet de Homologação.
-4. **Seção "Operação da Qualidade"** — incluir bullet de Segurança.
-5. Rodapé com versão `v2` e data atual.
-
-### Execução
-
-- Reusar o script `/tmp/gen_map_pdf.py` (layout A4 retrato + páginas A4 paisagem para a tabela mestra, `repeatRows=1`, larguras proporcionais ao `doc.width`, margens 1,5 cm) — já validado contra o problema de corte.
-- Atualizar apenas os arrays de dados (árvore + linhas da tabela + bullets dos grupos).
-- Salvar como `/mnt/documents/sgq-mapa-de-telas_v2.pdf` (preservar a v1 conforme regra de versionamento).
-- QA: rasterizar todas as páginas com `pdftoppm` e inspecionar visualmente para confirmar que nenhuma tabela vaza margem.
+1. Remover o `PageTemplate` paisagem e os `NextPageTemplate('landscape'/'portrait')` em volta da tabela mestra — usar somente o frame retrato.
+2. Recalcular larguras com base em `PORT_WIDTH` (≈ 18 cm úteis com margem 1,5 cm):
+   - Grupo 15% · Tela 17% · Rota 22% · Arquivo 21% · Função 25%
+3. Reduzir fonte das células para 7,5 pt (cabeçalho 8 pt em bold) e padding 2 pt; já usamos `Paragraph` com `wordWrap='CJK'` para quebrar rotas/arquivos longos.
+4. Manter `repeatRows=1` para repetir o cabeçalho a cada quebra de página.
+5. Salvar como `/mnt/documents/sgq-mapa-de-telas_v3.pdf` (preservar v1 e v2).
+6. QA: rasterizar todas as páginas com `pdftoppm` e inspecionar visualmente — todas as páginas devem ter exatamente a mesma largura A4 retrato e nenhuma coluna deve transbordar.
 
 ### Critério de aceite
 
-- PDF gerado mostra Segurança dentro de Operação da Qualidade e Homologação dentro de Estratégia e Gestão, em todas as seções (árvore, tabela mestra, detalhes de grupo).
-- Sem cortes de tabela em nenhuma página.
-- Artifact entregue via `<presentation-artifact>`.
+- Todas as páginas do PDF têm o mesmo tamanho (A4 retrato).
+- Tabela mestra ocupa a largura útil sem cortar texto, com células que quebram em múltiplas linhas se necessário.
+- Cabeçalho da tabela se repete em cada página da tabela.
