@@ -13,6 +13,7 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Menu,
   X,
   Wrench,
@@ -86,6 +87,17 @@ interface DashboardLayoutProps {
   pageTitle?: string;
 }
 
+type IconType = React.ComponentType<{ className?: string }>;
+type MenuLeaf = { title: string; icon: IconType; path: string };
+type MenuGroup = { title: string; icon: IconType; key: string; children: MenuEntry[] };
+type MenuEntry = MenuLeaf | MenuGroup;
+
+const isGroup = (e: MenuEntry): e is MenuGroup => "children" in e;
+
+const collectPaths = (e: MenuEntry): string[] =>
+  isGroup(e) ? e.children.flatMap(collectPaths) : [e.path];
+
+
 const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -100,6 +112,25 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
   });
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  const groupsStorageKey = `dashboard-sidebar:groups:${userType}`;
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(groupsStorageKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(groupsStorageKey, JSON.stringify(openGroups));
+    } catch { /* ignore */ }
+  }, [openGroups, groupsStorageKey]);
+  const toggleGroup = (key: string) =>
+    setOpenGroups((s) => ({ ...s, [key]: !s[key] }));
+
 
   // Hook para enviar WhatsApp automaticamente quando notificações são criadas
   useWhatsAppAutoNotifier();
@@ -223,18 +254,70 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
-  const qualidadeMenuItems = [
+  const qualidadeMenuItems: MenuEntry[] = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/quality/dashboard" },
-    { title: "Documentos", icon: FolderOpen, path: "/quality/documents" },
-    { title: "Não-Conformidades", icon: AlertTriangle, path: "/quality/ncrs" },
-    { title: "Auditorias", icon: Search, path: "/quality/audits" },
-    { title: "Riscos & Oportunidades", icon: Target, path: "/quality/risks" },
-    { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
-    { title: "Calibração", icon: Gauge, path: "/quality/devices" },
-    { title: "Voz do Cliente", icon: MessagesSquare, path: "/quality/voice-of-customer" },
-    { title: "Competências & Treinamentos", icon: GraduationCap, path: "/quality/competencies" },
-    { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
-    { title: "Conhecimento", icon: BookOpen, path: "/quality/knowledge" },
+    {
+      title: "Documentação",
+      icon: FolderOpen,
+      key: "q-docs",
+      children: [
+        { title: "Documentos", icon: FileText, path: "/quality/documents" },
+        { title: "Normas", icon: BookOpen, path: "/quality/documents/norms" },
+        { title: "Termos", icon: PenLine, path: "/quality/documents/terms" },
+        { title: "Lista Mestra", icon: ClipboardList, path: "/quality/documents/master-list" },
+      ],
+    },
+    {
+      title: "Melhoria e Conformidade",
+      icon: AlertTriangle,
+      key: "q-ncrs",
+      children: [
+        { title: "Não-Conformidades", icon: AlertTriangle, path: "/quality/ncrs" },
+        { title: "Auditorias", icon: Search, path: "/quality/audits" },
+        { title: "Melhorias", icon: Sparkles, path: "/quality/improvements" },
+      ],
+    },
+    {
+      title: "Estratégia e Gestão",
+      icon: Target,
+      key: "q-strategy",
+      children: [
+        { title: "Riscos & Oportunidades", icon: Target, path: "/quality/risks" },
+        {
+          title: "Planejamento",
+          icon: Gauge,
+          key: "q-planning",
+          children: [
+            { title: "Objetivos", icon: Target, path: "/quality/planning/objectives" },
+            { title: "Indicadores", icon: Gauge, path: "/quality/planning/indicators" },
+            { title: "Mudanças", icon: RefreshCw, path: "/quality/planning/changes" },
+          ],
+        },
+        { title: "Partes Interessadas", icon: Users, path: "/quality/interested-parties" },
+        { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
+      ],
+    },
+    {
+      title: "Operação da Qualidade",
+      icon: ShieldCheck,
+      key: "q-ops",
+      children: [
+        { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
+        { title: "Calibração", icon: Gauge, path: "/quality/devices" },
+        { title: "Voz do Cliente", icon: MessagesSquare, path: "/quality/voice-of-customer" },
+      ],
+    },
+    {
+      title: "Competências e Pessoas",
+      icon: GraduationCap,
+      key: "q-people",
+      children: [
+        { title: "Matriz de Competências", icon: BadgeCheck, path: "/quality/competencies/matrix" },
+        { title: "Programa Anual", icon: ClipboardCheck, path: "/quality/competencies/program" },
+        { title: "Conscientização", icon: Megaphone, path: "/quality/competencies/awareness" },
+        { title: "Conhecimento", icon: BookOpen, path: "/quality/knowledge" },
+      ],
+    },
     { title: "Comunicação", icon: Megaphone, path: "/quality/communication" },
     { title: "Homologação", icon: ClipboardCheck, path: "/quality/homologation" },
     { title: "Configurações", icon: Settings, path: "/quality/settings" },
@@ -266,7 +349,109 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     compras: comprasMenuItems,
     qualidade: qualidadeMenuItems,
     financeiro: financeiroMenuItems,
-  }[userType];
+  }[userType] as MenuEntry[];
+
+  // auto-open the group whose children contain the current route
+  useEffect(() => {
+    const toOpen: Record<string, boolean> = {};
+    const walk = (entries: MenuEntry[]) => {
+      for (const e of entries) {
+        if (isGroup(e)) {
+          if (collectPaths(e).some((p) => location.pathname === p || location.pathname.startsWith(p + "/"))) {
+            toOpen[e.key] = true;
+          }
+          walk(e.children);
+        }
+      }
+    };
+    walk(menuItems);
+    if (Object.keys(toOpen).length > 0) {
+      setOpenGroups((s) => ({ ...s, ...toOpen }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  const isActivePath = (path: string) =>
+    location.pathname === path ||
+    (path === "/corp/dashboard" && location.pathname.startsWith("/corp/") && !location.pathname.startsWith("/corp/feed") && !location.pathname.startsWith("/corp/profile") && !location.pathname.startsWith("/corp/university")) ||
+    (path === "/corp/feed" && location.pathname.startsWith("/corp/profile"));
+
+  const renderEntries = (
+    entries: MenuEntry[],
+    opts: { mobile?: boolean; depth?: number } = {},
+  ): ReactNode => {
+    const { mobile = false, depth = 0 } = opts;
+    return entries.map((entry) => {
+      if (isGroup(entry)) {
+        const open = !!openGroups[entry.key];
+        const groupActive = collectPaths(entry).some(isActivePath);
+        if (collapsed && !mobile) {
+          // collapsed sidebar: clicking expands sidebar and opens the group
+          return (
+            <Button
+              key={entry.key}
+              variant="ghost"
+              className={cn(
+                "w-full transition-all duration-200 h-10 px-2 justify-center",
+                groupActive ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" : "text-gray-600 hover:bg-gray-100",
+              )}
+              onClick={() => {
+                setCollapsed(false);
+                setOpenGroups((s) => ({ ...s, [entry.key]: true }));
+              }}
+              title={entry.title}
+            >
+              <entry.icon className={cn("h-5 w-5 flex-shrink-0", groupActive ? "text-blue-600" : "text-gray-500")} />
+            </Button>
+          );
+        }
+        return (
+          <div key={entry.key}>
+            <Button
+              variant="ghost"
+              className={cn(
+                "w-full transition-all duration-200 h-10 justify-start gap-3",
+                groupActive ? "text-blue-700" : "text-gray-700 hover:bg-gray-100",
+              )}
+              style={{ paddingLeft: `${0.75 + depth * 0.75}rem` }}
+              onClick={() => toggleGroup(entry.key)}
+            >
+              <entry.icon className={cn("h-5 w-5 flex-shrink-0", groupActive ? "text-blue-600" : "text-gray-500")} />
+              <span className="truncate flex-1 text-left font-medium">{entry.title}</span>
+              {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+            </Button>
+            {open && (
+              <div className="space-y-1 mt-1">
+                {renderEntries(entry.children, { mobile, depth: depth + 1 })}
+              </div>
+            )}
+          </div>
+        );
+      }
+      const active = isActivePath(entry.path);
+      return (
+        <Button
+          key={entry.path}
+          variant="ghost"
+          className={cn(
+            "w-full transition-all duration-200",
+            collapsed && !mobile ? "h-10 px-2 justify-center" : "h-10 justify-start gap-3",
+            active ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" : "text-gray-600 hover:bg-gray-100",
+          )}
+          style={!collapsed || mobile ? { paddingLeft: `${0.75 + depth * 0.75}rem` } : undefined}
+          onClick={() => {
+            navigate(entry.path);
+            if (mobile) setMobileMenuOpen(false);
+          }}
+          title={collapsed && !mobile ? entry.title : undefined}
+        >
+          <entry.icon className={cn("h-5 w-5 flex-shrink-0", active ? "text-blue-600" : "text-gray-500")} />
+          {(!collapsed || mobile) && <span className="truncate">{entry.title}</span>}
+        </Button>
+      );
+    });
+  };
+
 
   const handleLogout = async () => {
     await signOut();
@@ -329,28 +514,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         
         <div className="px-2 py-4">
           <nav className="space-y-2">
-            {menuItems.map((item) => (
-              <Button
-                key={item.path}
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start gap-3 h-10",
-                (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/') && !location.pathname.startsWith('/corp/feed') && !location.pathname.startsWith('/corp/profile') && !location.pathname.startsWith('/corp/university')) || (item.path === '/corp/feed' && location.pathname.startsWith('/corp/profile')))
-                    ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
-                    : "text-gray-600 hover:bg-gray-100"
-                )}
-                onClick={() => {
-                  navigate(item.path);
-                  setMobileMenuOpen(false);
-                }}
-              >
-                <item.icon className={cn(
-                  "h-5 w-5",
-                  location.pathname === item.path ? "text-blue-600" : "text-gray-500"
-                )} />
-                <span>{item.title}</span>
-              </Button>
-            ))}
+            {renderEntries(menuItems, { mobile: true })}
           </nav>
         </div>
         
@@ -400,27 +564,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
             <div className="p-2">
               {!collapsed && <div className="px-2 py-2 text-xs font-medium text-gray-600 uppercase tracking-wider">Menu</div>}
               <nav className="space-y-1">
-                {menuItems.map((item) => (
-                  <Button
-                    key={item.path}
-                    variant="ghost"
-                    className={cn(
-                      "w-full transition-all duration-200",
-                      collapsed ? "h-10 px-2 justify-center" : "h-10 justify-start gap-3",
-                    (location.pathname === item.path || (item.path === '/corp/dashboard' && location.pathname.startsWith('/corp/') && !location.pathname.startsWith('/corp/feed') && !location.pathname.startsWith('/corp/profile') && !location.pathname.startsWith('/corp/university')) || (item.path === '/corp/feed' && location.pathname.startsWith('/corp/profile')))
-                        ? "bg-blue-50 text-blue-600 border-l-4 border-blue-600" 
-                        : "text-gray-600 hover:bg-gray-100"
-                    )}
-                    onClick={() => navigate(item.path)}
-                    title={collapsed ? item.title : undefined}
-                  >
-                    <item.icon className={cn(
-                      "h-5 w-5 flex-shrink-0",
-                      location.pathname === item.path ? "text-blue-600" : "text-gray-500"
-                    )} />
-                    {!collapsed && <span className="truncate">{item.title}</span>}
-                  </Button>
-                ))}
+                {renderEntries(menuItems)}
               </nav>
             </div>
           </div>

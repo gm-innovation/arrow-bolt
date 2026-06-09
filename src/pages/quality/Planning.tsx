@@ -164,7 +164,7 @@ const ObjectiveDialog = ({
   );
 };
 
-const ObjectivesTab = () => {
+export const ObjectivesTab = () => {
   const { objectives, upsert, remove } = useQualityObjectives();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<QualityObjective | null>(null);
@@ -461,7 +461,7 @@ const IndicatorTrendCell = ({ indicator }: { indicator: QualityIndicator }) => {
   return <IndicatorStatusBadge trend={trend} />;
 };
 
-const IndicatorsTab = () => {
+export const IndicatorsTab = () => {
   const { indicators, upsert, remove } = useQualityIndicators();
   const { objectives } = useQualityObjectives();
   const [open, setOpen] = useState(false);
@@ -639,7 +639,7 @@ const EFFECT_LABELS: Record<string, { label: string; tone: string }> = {
   nao_eficaz: { label: "Não eficaz", tone: "border-red-500 text-red-700" },
 };
 
-const ChangesTab = () => {
+export const ChangesTab = () => {
   const { changes, upsert, decide, remove } = useQualityPlannedChanges();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<QualityPlannedChange | null>(null);
