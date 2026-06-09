@@ -126,22 +126,14 @@ const QualityDocuments = () => {
           <FolderOpen className="h-6 w-6" /> Documentos da Qualidade
         </h2>
         <p className="text-muted-foreground">
-          Lista mestra, referências normativas e glossário de termos do SGQ
+          Documentos controlados do SGQ. Normas, termos e lista mestra estão disponíveis no menu lateral.
         </p>
       </div>
 
-      <Tabs defaultValue="master" storageKey="quality-documents">
-        <TabsList>
-          <TabsTrigger value="master">Lista Mestra</TabsTrigger>
-          <TabsTrigger value="norms">Normas</TabsTrigger>
-          <TabsTrigger value="terms">Termos</TabsTrigger>
-        </TabsList>
-        <TabsContent value="master" className="mt-4"><MasterListSection /></TabsContent>
-        <TabsContent value="norms" className="mt-4"><NormsTab /></TabsContent>
-        <TabsContent value="terms" className="mt-4"><TermsTab /></TabsContent>
-      </Tabs>
+      <MasterListSection />
     </div>
   );
 };
 
 export default QualityDocuments;
+
