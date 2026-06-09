@@ -60,6 +60,7 @@ const QualityDocumentDetail = () => {
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete } =
     useQualityDocument(id);
   const { signature, registerSignatureEvent } = useQualitySignature();
+  const { expiredNorms } = useQualityDocumentNorms(id);
 
   const [richContent, setRichContent] = useState<any>(null);
   const [changeSummary, setChangeSummary] = useState("");
