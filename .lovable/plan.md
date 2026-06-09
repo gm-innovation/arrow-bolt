@@ -1,171 +1,130 @@
-# Onda 7 — Revisada (fundação documental primeiro)
 
-Reordenação aplicada: PDFs antes de telas. Layout vira fundação; Normas/Termos herdam dele. Navegação consolidada em itens existentes. Relacionais em vez de arrays/jsonb onde houver consulta/auditoria.
+# Sprint Final — Encerramento do SGQ Arrow (v2)
 
----
-
-## 7A.1 — Padronização Documental (PRIMEIRO)
-
-Fundação. Sem isso, qualquer PDF feito depois precisa ser refeito.
-
-### 1. ControlledDocPdfFrame (base)
-- Componente compartilhado `src/components/quality/pdf/ControlledDocPdfFrame.tsx`
-- Estende o que já existe em `QualityDocumentPDF.tsx`, generalizando:
-  - Cabeçalho: logo, código, título, revisão, data, página x/y
-  - Rodapé: elaborado/verificado/aprovado, cópia controlada
-  - Watermark configurável (CÓPIA NÃO CONTROLADA / OBSOLETO / RASCUNHO)
-  - Capa opcional com escopo + referência normativa
-- Consome `quality_settings.document_layout` (já existe via `LayoutGlobal.tsx`)
-- Props padronizadas para reutilização em NC, Calibração, Atas, Procedimentos
-
-### 2. Registro Formal de NC PDF (LECSOR)
-- Botão "Imprimir registro" em `NcrDetail`
-- Usa `ControlledDocPdfFrame`
-- Conteúdo: identificação, descrição, causa raiz, ações corretivas, eficácia, assinaturas
-- Marca d'água "Cópia controlada"
-
-### 3. Certificado de Aferição PDF (Googlemarine)
-- Botão "Emitir certificado" em `DeviceDetail`
-- Usa `ControlledDocPdfFrame` com layout Googlemarine (logo + cores definidas em settings)
-- Conteúdo: dados do equipamento, padrões usados, checkpoints, resultados, validade, responsável técnico
-- Persiste URL em `quality_calibrations.certificate_pdf_url`
+Ajustes incorporados: tipos de treinamento ampliados, `origin_type` no programa anual, timeline sem PDF, regra de norma vencida mantida.
 
 ---
 
-## 7A.2 — Estrutura Documental ISO (DEPOIS)
+## 1. GED — Vínculo Norma↔Documento, Badge de Validade e Timeline
 
-Já herdam o `ControlledDocPdfFrame`.
+### 1.1 Vínculo Norma↔Documento (N:N)
+- Criar `quality_document_norms(document_id, norm_id, created_at)` com PK composta, FKs com ON DELETE CASCADE, RLS + GRANTs (master CUD; leitura para autenticados da empresa via join).
+- Hook `useQualityDocumentNorms(documentId)` (list/add/remove).
+- No `NewDocumentDialog` e no `DocumentDetail`, adicionar **Combobox multi-select** de normas (mantendo o campo livre `normative_reference` como texto auxiliar).
 
-### 4. Referências Normativas — UI
-- Página dentro de **Documentos** (não cria item novo na sidebar)
-- Tab nova em `DocumentsHub.tsx`: `?tab=norms`
-- Tabela `quality_reference_norms` (já existe — 22 colunas)
-- CRUD: código, título, edição, escopo, link externo, anexo PDF, status (vigente/obsoleta), próxima revisão
-- Vínculo via tabela relacional `quality_document_norms (document_id, norm_id)` — NÃO array
-- Badge "Norma vencida" quando `next_review_at < now()`
-
-### 5. Termos e Definições — UI
-- Tab nova em `DocumentsHub.tsx`: `?tab=terms`
-- Tabela `quality_terms` (já existe — 14 colunas)
-- CRUD: termo, definição, fonte (norma), sinônimos, abreviação
-- Busca por termo/sinônimo
-- Tooltip reutilizável `<TermTooltip term="..." />`
-
-**Sidebar resultante (sem novos itens):**
+### 1.2 Badge "Norma Referenciada Vencida"
+Regra (mantida conforme orientação):
+```text
+status != 'vigente'
+OR valid_until < hoje
+OR next_review_due_at < hoje
 ```
-Documentos
- ├─ Documentos
- ├─ Cópias Controladas
- ├─ Lista Mestre
- ├─ Documentos da Empresa
- ├─ Normas               ← novo (tab)
- └─ Termos               ← novo (tab)
+- No `DocumentDetail.tsx`, exibir `<Badge variant="destructive">Norma Referenciada Vencida</Badge>` no header com tooltip listando os códigos das normas em atraso.
+
+### 1.3 Timeline de Revisões (sem PDF)
+- Em `DocumentDetail.tsx`, aba **"Histórico de Alterações"** consumindo `quality_document_versions` ordenado desc por `revision_number`.
+- Colunas:
+  - `revision_label`
+  - `revision_date` (= `approved_at` ou fallback `created_at`)
+  - `change_summary`
+  - `approved_by` (resolvido para nome via `profiles`)
+- Sem exportação em PDF nesta sprint.
+
+---
+
+## 2. Pessoas e Treinamentos (§7.2 / §7.3)
+
+### 2.1 Campos novos em `quality_training_plans`
+Migração ALTER TABLE:
+- `type text` ∈ (`internal`, `external_mandatory`, `external_optional`), default `internal`
+- `origin_type text` ∈ (`competency_gap`, `audit`, `ncr`, `legal_requirement`, `customer_requirement`, `iso_requirement`)
+- `institution text`
+- `instructor text`
+- `certificate_url text`
+- `program_year int`
+- `planned_date date`
+- `executed_date date`
+
+Atualizar `TrainingPlanCard` e form para mostrar instituição/instrutor/certificado quando `type` começar com `external_`, e Combobox de `origin_type` em todos os casos.
+
+### 2.2 Programa Anual de Treinamentos
+- Página `/quality/training-program` (rota + entrada no menu Competências).
+- Tabela filtrada por `program_year` (default = ano atual):
+  - Colaborador · Competência/Tema · Tipo · Origem (`origin_type`) · Instituição · Data planejada · Status · Eficácia
+- Indicador no topo: **% de Execução = completed / total**.
+- Filtros adicionais: tipo, origem, status.
+
+### 2.3 Avaliação de Eficácia
+Nova tabela:
+```text
+quality_training_effectiveness(
+  id, company_id,
+  training_id → quality_training_plans (ON DELETE CASCADE),
+  evaluator_id → auth.users,
+  evaluation_date date,
+  result text CHECK in ('eficaz','parcial','nao_eficaz'),
+  notes text,
+  created_at, updated_at
+)
 ```
+- RLS: master CUD; leitura para a empresa.
+- Botão **"Avaliar Eficácia"** no card/linha do treinamento, habilitado apenas quando `status='completed'`.
+- Badge com o último resultado de eficácia na listagem e no programa anual.
 
----
-
-## 7B — Pessoas e Treinamentos
-
-### 6. Programa Anual de Treinamentos
-- Tab nova em **Competências** (consolidar, não criar item solto)
-- Tabela `quality_training_plans` já existe (19 col); estender com:
-  - `origin_type` enum: `competencia | auditoria | ncr | exigencia_legal | cliente | iso`
-  - `program_year int` para visão anual
-- Calendário anual + visão por colaborador / competência / departamento
-- Geração automática a partir da Matriz (lacunas de competência)
-- Indicador: % executado no ano
-
-### 7. Treinamento Externo (formal)
-- Estender `quality_training_plans`:
-  - `training_type` enum: `interno | externo`
-  - `mandatory boolean` (externo obrigatório vs facultativo)
-  - `institution`, `instructor`, `hours`, `cost`
-  - `certificate_url`, `certificate_number`
-  - `approval_status` enum: `solicitado | aprovado | realizado | reprovado`
-- Formulário externo separado em `ExternalTrainingForm.tsx`
-- Workflow: solicitado → aprovado → realizado → eficácia
-
-### 8. Avaliação de Eficácia de Treinamento
-- Nova tabela `quality_training_effectiveness`:
-  - `training_plan_id`, `evaluator_id`, `evaluation_date`
-  - `result` enum: `pendente | eficaz | nao_eficaz`
-  - `evidence`, `notes`
-  - `due_at` (30/60/90 dias após realização)
-- Alerta `training_effectiveness_due` em `quality_alerts_v`
-- Se não eficaz → botão "Abrir ação" (gera improvement)
-
-### 9. Conscientização Estruturada (§7.3)
-- Nova tabela `quality_awareness_events`:
-  - `title`, `topic` enum (politica | objetivos | contribuicao | consequencias)
-  - `related_policy_version_id`, `event_date`
-- Tabela relacional `quality_awareness_event_attendees (event_id, user_id, acknowledged_at)` — NÃO jsonb
-- Lista de presença digital com aceite por usuário
-- Vínculo opcional com `quality_communication_log`
-
-**Sidebar Competências resultante:**
+### 2.4 Conscientização (Awareness)
+```text
+quality_awareness_events(
+  id, company_id, topic, description,
+  event_date date, conducted_by uuid, evidence_url,
+  created_at, updated_at
+)
+quality_awareness_attendees(
+  event_id, user_id, acknowledged_at,
+  PK(event_id, user_id)
+)
 ```
-Competências
- ├─ Matriz
- ├─ Treinamentos
- ├─ Programa Anual       ← novo
- └─ Conscientização      ← novo
-```
+- Página `/quality/awareness` (subitem de Competências): registrar evento + multi-select de participantes.
 
 ---
 
-## 7C — Timeline visual de revisões (pequena, antecipada)
+## 3. UX e Navegação
 
-Originalmente na Onda 8. Antecipada porque auditor pede.
+### 3.1 Sidebar
+- **Documentos** → subitens **Normas** e **Termos** (`/quality/documents?tab=norms|terms`).
+- **Competências** → subitens **Programa de Treinamentos** (`/quality/training-program`) e **Conscientização** (`/quality/awareness`).
 
-- Componente `<DocumentRevisionTimeline documentId={...} />`
-- Lê de `quality_document_versions` (já existe — 18 col)
-- Visual: linha do tempo com revisão (00, 01, 02…), data, autor, motivo da alteração
-- Embutida em `DocumentDetail` (tab "Histórico")
-- Sem nova tabela; só leitura + UI
-
----
-
-## Onda 8 (fora deste escopo, registrado)
-
-- Auditoria recorrente (scheduler mensal)
-- Integração Satisfação → Melhoria/NCR (botão "Abrir NCR" em `SatisfactionDetail`)
-- Política pública externa (`/politica-qualidade`)
-- Perspectivas BSC em objetivos (se DOCX exigir)
-- Download counter avançado em normas
-- Embeddings em conhecimento
-- `ai-proactive-check` consumindo flag de push
+### 3.2 "Abrir NCR" em Satisfação
+- Em `SatisfactionDetail.tsx`, botão **"Abrir NCR"** por resposta crítica.
+- Deep-link para `/quality/ncrs?new=1&source=satisfaction&response_id=...&description=<encoded>`; `NCRs.tsx` abre o dialog pré-preenchido.
 
 ---
 
-## Detalhes técnicos
+## Critérios de aceite
+1. PDFs de NC, Calibração e layout ISO continuam gerando com assinaturas.
+2. Rayane cria plano `external_mandatory` com `origin_type='customer_requirement'`, conclui e registra avaliação de eficácia.
+3. Auditor vê a aba **Histórico de Alterações** com revisão, data, motivo e autor.
+4. Documento com norma vencida exibe badge vermelho conforme regra acima.
+5. Sidebar reflete o novo agrupamento; botão "Abrir NCR" funciona a partir de uma resposta de satisfação.
 
-### Migration 7A.1 (mínima — só PDFs/layout)
-- `ALTER quality_calibrations ADD certificate_pdf_url text`
-- (Layout já configurável via `quality_settings.document_layout` existente)
+---
 
-### Migration 7A.2
-- Já existem `quality_reference_norms` e `quality_terms`. Só:
-  - `CREATE TABLE quality_document_norms (document_id uuid, norm_id uuid, PRIMARY KEY(document_id, norm_id))` + GRANTs + RLS por company
-  - Eventual `next_review_at`, `status` em `quality_reference_norms` se faltarem
+## Resumo técnico
 
-### Migration 7B
-- Enum `quality_training_origin` e `quality_training_type`
-- ALTER `quality_training_plans`: + `origin_type`, `training_type`, `mandatory`, `program_year`, `institution`, `instructor`, `hours`, `cost`, `certificate_url`, `certificate_number`, `approval_status`
-- `CREATE TABLE quality_training_effectiveness` + GRANTs + RLS
-- `CREATE TABLE quality_awareness_events` + `quality_awareness_event_attendees` + GRANTs + RLS
-- Atualizar `quality_alerts_v` com `training_effectiveness_due`
+**Migration única:**
+- `quality_document_norms` (+ grants + RLS)
+- `ALTER quality_training_plans` (type ampliado, origin_type, institution, instructor, certificate_url, program_year, planned_date, executed_date)
+- `quality_training_effectiveness` (+ grants + RLS)
+- `quality_awareness_events`, `quality_awareness_attendees` (+ grants + RLS)
 
-### Componentes/Hooks
-- `ControlledDocPdfFrame`, `CalibrationCertificatePdf`, `NcrFormalPdf`
-- `useQualityNorms`, `useQualityTerms`, `useQualityDocumentNorms`
-- Estender `useQualityTrainingPlans` (já existe)
-- `useQualityTrainingEffectiveness`, `useQualityAwareness`
-- `DocumentRevisionTimeline`
+**Hooks novos:** `useQualityDocumentNorms`, `useQualityTrainingProgram`, `useQualityTrainingEffectiveness`, `useQualityAwarenessEvents`.
 
-### Sequência de entrega
-1. **7A.1** — Layout + NC PDF + Calibração PDF (1 ciclo curto)
-2. **7A.2** — Normas + Termos como tabs em Documentos (1 ciclo)
-3. **7B** — Programa + Externo + Eficácia + Conscientização (1 ciclo maior)
-4. **7C** — Timeline visual (pequeno; pode entrar junto com 7B se sobrar tempo)
+**Componentes/Páginas:**
+- `DocumentDetail.tsx` (aba Histórico + badge norma vencida + multi-select normas)
+- `NewDocumentDialog.tsx` (multi-select normas)
+- `TrainingPlanCard.tsx` + form (type/origin_type + campos externos + Avaliar Eficácia)
+- `pages/quality/TrainingProgram.tsx` (novo)
+- `pages/quality/Awareness.tsx` + `AwarenessFormDialog.tsx` (novos)
+- Sidebar Qualidade: subitens
+- `SatisfactionDetail.tsx` + `NCRs.tsx`: deep-link
 
-Confirma essa ordem? Começo por **7A.1 (ControlledDocPdfFrame + NC PDF + Certificado de Calibração)**?
+**Ordem:** migrations → hooks → GED (1.1–1.3) → Treinamentos (2.1–2.3) → Conscientização (2.4) → UX (3) → regressão dos PDFs.
