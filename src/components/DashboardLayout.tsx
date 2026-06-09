@@ -113,6 +113,25 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
 
+  const groupsStorageKey = `dashboard-sidebar:groups:${userType}`;
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      const raw = window.localStorage.getItem(groupsStorageKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(groupsStorageKey, JSON.stringify(openGroups));
+    } catch { /* ignore */ }
+  }, [openGroups, groupsStorageKey]);
+  const toggleGroup = (key: string) =>
+    setOpenGroups((s) => ({ ...s, [key]: !s[key] }));
+
+
   // Hook para enviar WhatsApp automaticamente quando notificações são criadas
   useWhatsAppAutoNotifier();
 
