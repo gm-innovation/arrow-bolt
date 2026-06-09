@@ -19,9 +19,14 @@ import {
   Download,
   Eye,
   BadgeCheck,
+  AlertTriangle,
+  BookMarked,
 } from "lucide-react";
 import { useQualityDocument } from "@/hooks/useQualityDocuments";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
+import { useQualityDocumentNorms } from "@/hooks/useQualityDocumentNorms";
+import DocumentNormsPanel from "@/components/quality/documents/DocumentNormsPanel";
+import DocumentHistoryTimeline from "@/components/quality/documents/DocumentHistoryTimeline";
 import { RichTextEditor } from "@/components/quality/RichTextEditor";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
