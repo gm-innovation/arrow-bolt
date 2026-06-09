@@ -75,8 +75,40 @@ export const NormsTab = () => {
               {filtered.map((n) => {
                 const due = (n as any).next_review_due_at as string | null;
                 const days = due ? differenceInDays(parseISO(due), new Date()) : null;
+                const status = (n as any).effective_status as
+                  | "vigente"
+                  | "vence_em_breve"
+                  | "vencida"
+                  | "inativa"
+                  | undefined;
+                const daysToExpire = n.valid_until
+                  ? differenceInDays(parseISO(n.valid_until), new Date())
+                  : null;
+                const rowDim = status === "vencida" || status === "inativa" ? "opacity-70" : "";
+                const renderStatusBadge = () => {
+                  if (status === "vencida") {
+                    return (
+                      <Badge variant="destructive" className="gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        VENCIDA{n.valid_until ? ` desde ${fmt(n.valid_until)}` : ""}
+                      </Badge>
+                    );
+                  }
+                  if (status === "vence_em_breve") {
+                    return (
+                      <Badge className="gap-1 bg-yellow-500 hover:bg-yellow-600 text-white border-transparent">
+                        <AlertTriangle className="h-3 w-3" />
+                        {daysToExpire != null ? `vence em ${daysToExpire} dia(s)` : "vence em breve"}
+                      </Badge>
+                    );
+                  }
+                  if (status === "inativa" || !n.is_active) {
+                    return <Badge variant="secondary">Inativa</Badge>;
+                  }
+                  return <Badge className="bg-emerald-600 hover:bg-emerald-700 text-white border-transparent">Vigente</Badge>;
+                };
                 return (
-                  <TableRow key={n.id}>
+                  <TableRow key={n.id} className={rowDim}>
                     <TableCell className="font-mono">{n.code}</TableCell>
                     <TableCell className="font-medium">{n.title}</TableCell>
                     <TableCell>{n.issuer || "—"}</TableCell>
@@ -90,9 +122,7 @@ export const NormsTab = () => {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell>
-                      {n.is_active ? <Badge>Ativa</Badge> : <Badge variant="secondary">Inativa</Badge>}
-                    </TableCell>
+                    <TableCell>{renderStatusBadge()}</TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon" onClick={() => { setEditing(n); setOpen(true); }}>
                         <Pencil className="h-4 w-4" />

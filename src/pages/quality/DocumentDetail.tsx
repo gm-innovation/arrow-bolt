@@ -40,6 +40,8 @@ import { pdf } from "@react-pdf/renderer";
 import { QualityDocumentPDF } from "@/components/quality/QualityDocumentPDF";
 import { useAuth } from "@/contexts/AuthContext";
 import { logQualityDocumentAccess } from "@/lib/qualityAccessLog";
+import { useDocumentPerms } from "@/hooks/useDocumentPerms";
+import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const statusLabel: Record<string, string> = {
@@ -61,6 +63,7 @@ const QualityDocumentDetail = () => {
     useQualityDocument(id);
   const { signature, registerSignatureEvent } = useQualitySignature();
   const { expiredNorms } = useQualityDocumentNorms(id);
+  const { perms } = useDocumentPerms(id);
 
   const [richContent, setRichContent] = useState<any>(null);
   const [changeSummary, setChangeSummary] = useState("");
@@ -148,6 +151,23 @@ const QualityDocumentDetail = () => {
   };
 
   const downloadFile = async (path: string, filename: string) => {
+    if (!perms.can_download) {
+      toast({
+        title: "Sem permissão para baixar",
+        description: "Sua conta não tem permissão para baixar este documento.",
+        variant: "destructive",
+      });
+      if (user) {
+        logQualityDocumentAccess({
+          document_id: document.id,
+          version_id: activeVersion?.id ?? null,
+          user_id: user.id,
+          action: "denied_download",
+          context: { filename },
+        });
+      }
+      return;
+    }
     const { data } = await supabase.storage.from("quality-documents").createSignedUrl(path, 300, {
       download: filename,
     });
@@ -227,6 +247,24 @@ const QualityDocumentDetail = () => {
   };
 
   const downloadGeneratedPDF = async (watermark: "uncontrolled" | null = null) => {
+    const requiredPerm = watermark === "uncontrolled" ? perms.can_print : perms.can_download;
+    if (!requiredPerm) {
+      toast({
+        title: watermark === "uncontrolled" ? "Sem permissão para imprimir" : "Sem permissão para baixar",
+        description: "Sua conta não tem permissão para esta ação neste documento.",
+        variant: "destructive",
+      });
+      if (user) {
+        logQualityDocumentAccess({
+          document_id: document.id,
+          version_id: activeVersion?.id ?? null,
+          user_id: user.id,
+          action: watermark === "uncontrolled" ? "denied_print" : "denied_download",
+          context: { watermark },
+        });
+      }
+      return;
+    }
     const v = publishedVersion || activeVersion;
     if (!v) return;
     if (v.content_kind !== "rich_text") {
@@ -246,7 +284,7 @@ const QualityDocumentDetail = () => {
         document_id: document.id,
         version_id: v.id,
         user_id: user.id,
-        action: watermark === "uncontrolled" ? "download" : "print",
+        action: watermark === "uncontrolled" ? "print" : "download",
         context: { watermark },
       });
     }
@@ -310,16 +348,43 @@ const QualityDocumentDetail = () => {
                       </TooltipTrigger>
                       <TooltipContent>Visualização integrada (não conta como impressão)</TooltipContent>
                     </Tooltip>
-                    <Button variant="outline" size="sm" onClick={() => downloadGeneratedPDF(null)}>
-                      <Download className="h-4 w-4 mr-1" /> Baixar PDF
-                    </Button>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button variant="ghost" size="sm" onClick={() => downloadGeneratedPDF("uncontrolled")}>
-                          <Printer className="h-4 w-4 mr-1" /> Cópia não controlada
-                        </Button>
+                        <span tabIndex={0}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadGeneratedPDF(null)}
+                            disabled={!perms.can_download}
+                          >
+                            <Download className="h-4 w-4 mr-1" /> Baixar PDF
+                          </Button>
+                        </span>
                       </TooltipTrigger>
-                      <TooltipContent>Gera o PDF com marca d'água "CÓPIA NÃO CONTROLADA"</TooltipContent>
+                      <TooltipContent>
+                        {perms.can_download
+                          ? "Baixa o PDF controlado e registra no log"
+                          : "Sem permissão para baixar este documento"}
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => downloadGeneratedPDF("uncontrolled")}
+                            disabled={!perms.can_print}
+                          >
+                            <Printer className="h-4 w-4 mr-1" /> Cópia não controlada
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {perms.can_print
+                          ? 'Gera o PDF com marca d\'água "CÓPIA NÃO CONTROLADA"'
+                          : "Sem permissão para imprimir este documento"}
+                      </TooltipContent>
                     </Tooltip>
                   </>
                 )}
@@ -328,13 +393,23 @@ const QualityDocumentDetail = () => {
                     <Button variant="outline" size="sm" onClick={openIntegratedViewer}>
                       <Eye className="h-4 w-4 mr-1" /> Visualizar arquivo
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => downloadFile(activeVersion.file_path!, activeVersion.file_name!)}
-                    >
-                      <Download className="h-4 w-4 mr-1" /> Baixar
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => downloadFile(activeVersion.file_path!, activeVersion.file_name!)}
+                            disabled={!perms.can_download}
+                          >
+                            <Download className="h-4 w-4 mr-1" /> Baixar
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {perms.can_download ? "Baixa o arquivo original" : "Sem permissão para baixar este documento"}
+                      </TooltipContent>
+                    </Tooltip>
                   </>
                 )}
                 {activeVersion?.status === "draft" && (

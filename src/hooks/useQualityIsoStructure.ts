@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
+export type QualityNormEffectiveStatus = "vigente" | "vence_em_breve" | "vencida" | "inativa";
+
 export interface QualityReferenceNorm {
   id: string;
   company_id: string;
@@ -14,6 +16,8 @@ export interface QualityReferenceNorm {
   document_id: string | null;
   notes: string | null;
   is_active: boolean;
+  expiry_warning_sent_at: string | null;
+  effective_status: QualityNormEffectiveStatus;
   created_at: string;
   updated_at: string;
 }
@@ -53,14 +57,21 @@ export const useQualityReferenceNorms = () => {
     queryKey: key,
     enabled: !!user && !!profile?.company_id,
     queryFn: async () => {
+      // Consome a VIEW que adiciona effective_status calculado.
       const { data, error } = await supabase
-        .from("quality_reference_norms" as any)
+        .from("quality_reference_norms_status" as any)
         .select("*")
         .order("code");
       if (error) throw error;
       return (data as unknown as QualityReferenceNorm[]) ?? [];
     },
   });
+
+  // Normas utilizáveis em novos cadastros (RNC/Auditoria/Documentos):
+  // só vigentes ou vencendo em ≤30 dias — vencidas e inativas ficam fora.
+  const activeNorms = norms.filter(
+    (n) => n.effective_status === "vigente" || n.effective_status === "vence_em_breve"
+  );
 
   const create = useMutation({
     mutationFn: async (input: Partial<QualityReferenceNorm>) => {
@@ -110,7 +121,7 @@ export const useQualityReferenceNorms = () => {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  return { norms, isLoading, create, update, remove };
+  return { norms, activeNorms, isLoading, create, update, remove };
 };
 
 // ============== Termos ==============

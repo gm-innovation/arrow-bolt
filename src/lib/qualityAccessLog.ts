@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type QualityAccessAction = "view" | "print" | "download";
+export type QualityAccessAction = "view" | "print" | "download" | "denied_print" | "denied_download";
 
 export async function logQualityDocumentAccess(params: {
   document_id: string;
