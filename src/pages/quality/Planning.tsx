@@ -492,6 +492,7 @@ const IndicatorsTab = () => {
                 <TableHead>Frequência</TableHead>
                 <TableHead>Meta</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Farol</TableHead>
                 <TableHead className="w-32"></TableHead>
               </TableRow>
             </TableHeader>
