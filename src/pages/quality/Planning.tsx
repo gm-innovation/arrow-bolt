@@ -520,6 +520,7 @@ const IndicatorsTab = () => {
                       {IND_STATUS_LABEL[i.status].label}
                     </Badge>
                   </TableCell>
+                  <TableCell><IndicatorTrendCell indicator={i} /></TableCell>
                   <TableCell>
                     <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                       <Button size="sm" variant="ghost" onClick={() => { setMeasFor(i); setMeasOpen(true); }}>
