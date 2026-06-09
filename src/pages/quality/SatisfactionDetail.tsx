@@ -198,6 +198,7 @@ export default function SatisfactionDetail() {
                       {campaign.collects_ces && <TableHead>CES</TableHead>}
                       <TableHead>Comentário</TableHead>
                       <TableHead>Data</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -234,6 +235,11 @@ export default function SatisfactionDetail() {
                           {r.comment || <span className="text-muted-foreground">—</span>}
                         </TableCell>
                         <TableCell>{new Date(r.responded_at).toLocaleString("pt-BR")}</TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="outline" onClick={() => openNcrFromResponse(r)}>
+                            <AlertTriangle className="h-3 w-3 mr-1" /> Abrir NCR
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
