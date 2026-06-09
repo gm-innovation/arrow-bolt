@@ -86,6 +86,17 @@ interface DashboardLayoutProps {
   pageTitle?: string;
 }
 
+type IconType = React.ComponentType<{ className?: string }>;
+type MenuLeaf = { title: string; icon: IconType; path: string };
+type MenuGroup = { title: string; icon: IconType; key: string; children: MenuEntry[] };
+type MenuEntry = MenuLeaf | MenuGroup;
+
+const isGroup = (e: MenuEntry): e is MenuGroup => "children" in e;
+
+const collectPaths = (e: MenuEntry): string[] =>
+  isGroup(e) ? e.children.flatMap(collectPaths) : [e.path];
+
+
 const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
