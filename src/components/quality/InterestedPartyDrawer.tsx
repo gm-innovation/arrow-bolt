@@ -264,6 +264,12 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
                 </div>
               </TabsContent>
 
+              <TabsContent value="treatments" className="space-y-3 mt-4">
+                <PartyTreatmentHistoryTab partyId={party.id} />
+              </TabsContent>
+
+
+
               <TabsContent value="review" className="space-y-3 mt-4">
                 <div className="text-sm space-y-2">
                   <div><span className="text-muted-foreground">Última revisão:</span> {party.last_reviewed_at ? format(parseISO(party.last_reviewed_at), "dd/MM/yyyy") : "—"}</div>
