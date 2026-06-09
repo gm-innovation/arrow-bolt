@@ -270,10 +270,27 @@ const QualityDocumentDetail = () => {
           <CardHeader>
             <div className="flex items-start justify-between gap-3 flex-wrap">
               <div>
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
                   <Badge variant="outline" className="font-mono">{document.code}</Badge>
                   <Badge>{statusLabel[document.status]}</Badge>
                   {document.widely_visible && <Badge variant="secondary">Visibilidade ampliada</Badge>}
+                  {expiredNorms.length > 0 && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="destructive" className="gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Norma Referenciada Vencida
+                        </Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-xs space-y-0.5">
+                          {expiredNorms.map((n: any) => (
+                            <div key={n.id}><b>{n.code}</b> — {n.title}</div>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
                 <CardTitle className="text-2xl">{document.title}</CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
