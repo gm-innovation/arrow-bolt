@@ -464,6 +464,16 @@ const QualityDocumentDetail = () => {
             </Card>
           </TabsContent>
 
+          <TabsContent value="norms">
+            <DocumentNormsPanel documentId={document.id} />
+          </TabsContent>
+
+          <TabsContent value="history">
+            <DocumentHistoryTimeline versions={versions} />
+          </TabsContent>
+
+
+
           <TabsContent value="versions">
             <Card>
               <CardContent className="pt-6">
