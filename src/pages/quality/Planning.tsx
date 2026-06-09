@@ -16,7 +16,7 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Target, Gauge, GitBranch, Plus, Trash2, LineChart, CheckCircle2, XCircle, Rocket,
+  Target, Gauge, GitBranch, Plus, Trash2, LineChart, CheckCircle2, XCircle, Rocket, ShieldCheck,
 } from "lucide-react";
 import {
   useQualityObjectives,
@@ -34,6 +34,11 @@ import {
 } from "@/hooks/useQualityPlanning";
 import { useQualityPolicy } from "@/hooks/useQualityPolicy";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
+import IndicatorStatusBadge, { computeIndicatorTrend } from "@/components/quality/IndicatorStatusBadge";
+import EvaluateChangeEffectivenessDialog from "@/components/quality/EvaluateChangeEffectivenessDialog";
+import ObjectiveTraceabilityPanel from "@/components/quality/ObjectiveTraceabilityPanel";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
 
 const OBJ_STATUS_LABEL: Record<ObjectiveStatus, { label: string; tone: string }> = {
