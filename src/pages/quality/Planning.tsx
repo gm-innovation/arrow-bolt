@@ -34,9 +34,12 @@ import {
 } from "@/hooks/useQualityPlanning";
 import { useQualityPolicy } from "@/hooks/useQualityPolicy";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
+import { useControlledDocMeta } from "@/hooks/useControlledDocMeta";
 import IndicatorStatusBadge, { computeIndicatorTrend } from "@/components/quality/IndicatorStatusBadge";
 import EvaluateChangeEffectivenessDialog from "@/components/quality/EvaluateChangeEffectivenessDialog";
 import ObjectiveTraceabilityPanel from "@/components/quality/ObjectiveTraceabilityPanel";
+import QualityPdfPreviewButton from "@/components/quality/pdf/QualityPdfPreviewButton";
+import QualityPlanPdf from "@/components/quality/pdf/QualityPlanPdf";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
