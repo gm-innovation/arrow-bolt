@@ -236,6 +236,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
     { title: "Conhecimento", icon: BookOpen, path: "/quality/knowledge" },
     { title: "Comunicação", icon: Megaphone, path: "/quality/communication" },
+    { title: "Homologação", icon: ClipboardCheck, path: "/quality/homologation" },
     { title: "Configurações", icon: Settings, path: "/quality/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
