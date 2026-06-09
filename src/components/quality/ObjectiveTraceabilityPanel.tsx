@@ -17,7 +17,7 @@ interface Props {
 const ObjectiveTraceabilityPanel = ({ objectiveId }: Props) => {
   const { linkedRiskIds, set: setRisks } = useObjectiveRisks(objectiveId);
   const { linkedPartyIds, set: setParties } = useObjectiveParties(objectiveId);
-  const { risks } = useQualityRisks();
+  const { items: risks } = useQualityRisks();
   const { parties } = useQualityInterestedParties();
 
   const availableRisks = useMemo(() => risks.filter((r) => !linkedRiskIds.includes(r.id)), [risks, linkedRiskIds]);
