@@ -120,12 +120,15 @@ export const useQualityImprovements = () => {
         .single();
       if (error) throw error;
 
-      // Best-effort back-link for manual improvements
-      if (row.source === "manual" && (plan as any)?.id) {
-        await supabase
-          .from("quality_improvements_manual" as any)
-          .update({ action_plan_id: (plan as any).id })
-          .eq("id", row.id);
+      // Retro-vínculo por origem
+      const planId = (plan as any)?.id;
+      if (planId) {
+        if (row.source === "manual") {
+          await supabase.from("quality_improvements_manual" as any).update({ action_plan_id: planId }).eq("id", row.id);
+        } else if (row.source === "audit_finding") {
+          await supabase.from("quality_audit_findings" as any).update({ action_plan_id: planId }).eq("id", row.id);
+        }
+        // NCR já é referenciada via ncr_id no próprio plano (consultada pela view)
       }
       return plan;
     },
