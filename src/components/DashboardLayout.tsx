@@ -297,6 +297,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         },
         { title: "Partes Interessadas", icon: Users, path: "/quality/interested-parties" },
         { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
+        { title: "Homologação", icon: ClipboardCheck, path: "/quality/homologation" },
       ],
     },
     {
@@ -307,6 +308,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
         { title: "Calibração", icon: Gauge, path: "/quality/devices" },
         { title: "Voz do Cliente", icon: MessagesSquare, path: "/quality/voice-of-customer" },
+        { title: "Segurança", icon: HardHat, path: "/quality/safety" },
       ],
     },
     {
@@ -321,7 +323,6 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       ],
     },
     { title: "Comunicação", icon: Megaphone, path: "/quality/communication" },
-    { title: "Homologação", icon: ClipboardCheck, path: "/quality/homologation" },
     { title: "Configurações", icon: Settings, path: "/quality/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },

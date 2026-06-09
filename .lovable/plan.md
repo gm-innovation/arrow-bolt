@@ -1,18 +1,62 @@
-## Objetivo
-Corrigir o PDF `sgq-mapa-de-telas.pdf` cujas 3 primeiras páginas têm tabelas estouradando a margem direita / sendo cortadas na impressão.
+## Ajustes no sidemenu do SGQ
 
-## Diagnóstico
-O script atual de geração (Python + reportlab) monta a Tabela Mestra com larguras de coluna fixas que somam mais que a área útil da página A4, e usa células de texto puro (sem wrap), o que faz colunas longas (Rota, Arquivo, Função) sangrarem para fora da página.
+Dois pequenos ajustes no menu lateral do módulo Qualidade em `src/components/DashboardLayout.tsx` (sem mudança de rotas, telas ou lógica — apenas reorganização da navegação).
 
-## Mudanças no script de geração do PDF
-1. **Página A4 paisagem** (`landscape(A4)`) só para as seções de tabela larga (Tabela Mestra), mantendo retrato para as demais.
-2. **Recalcular larguras de coluna** com base em `doc.width` (somando exatamente 100% da área útil), em vez de valores fixos em cm.
-3. **Envolver o conteúdo das células em `Paragraph`** com estilo `wordWrap='CJK'` para quebrar linha automaticamente em rotas/arquivos longos.
-4. **Reduzir fonte da tabela** para 8pt e padding para 3pt, garantindo respiro.
-5. **Margens** uniformes de 1,5 cm em todos os lados.
-6. **`repeatRows=1`** na Table para o cabeçalho se repetir nas quebras de página automáticas (sem precisar de `KeepTogether`, que poderia explodir tabelas muito longas).
-7. Reexecutar o script, salvar em `/mnt/documents/sgq-mapa-de-telas.pdf` e fazer QA visual com `pdftoppm` nas 3 primeiras páginas para confirmar que nada está cortado.
+### 1. Expor "Segurança" dentro de "Operação da Qualidade"
 
-## Sem mudanças
-- Conteúdo textual, estrutura de seções e ordem permanecem idênticos ao PDF atual.
-- Nenhum arquivo do app (`src/`) é alterado — é só regeneração do artefato em `/mnt/documents/`.
+A rota `/quality/safety` já existe e renderiza `pages/quality/Safety.tsx` (documentos e registros de S&S: PCMSO, PGR, LTCAT, NR01, FICHA_EPI, ASO, LAUDO_SST). Ela só não está visível no menu.
+
+Adicionar como sub-item do grupo `q-ops`:
+
+```text
+Operação da Qualidade
+├── Provedores Externos
+├── Calibração
+├── Voz do Cliente
+└── Segurança (novo)   →  /quality/safety
+```
+
+### 2. Mover "Homologação" para dentro de "Estratégia e Gestão"
+
+A página `/quality/homologation` é o registro formal de aprovação do ciclo do SGQ pela Direção (status, responsável, PDF assinado, data de assinatura). Faz mais sentido ao lado de Análise Crítica, que é o passo anterior do ciclo.
+
+```text
+Estratégia e Gestão
+├── Riscos & Oportunidades
+├── Planejamento ▸
+├── Partes Interessadas
+├── Análise Crítica
+└── Homologação (movido)   →  /quality/homologation
+```
+
+O item "Homologação" deixa de aparecer no nível raiz do SGQ.
+
+### Resultado final do menu raiz do SGQ
+
+```text
+Dashboard
+Documentação ▸
+Melhoria ▸
+Auditorias
+Estratégia e Gestão ▸     (agora inclui Homologação)
+Operação da Qualidade ▸   (agora inclui Segurança)
+Competências e Pessoas ▸
+Comunicação
+Configurações
+Feed
+Solicitações Corp
+Treinamentos
+```
+
+### Detalhes técnicos
+
+- Arquivo único: `src/components/DashboardLayout.tsx`, array `qualityMenuItems` (linhas ~282–328).
+- Ícone sugerido para Segurança: `HardHat` (ou reaproveitar `ShieldCheck`).
+- Nenhuma alteração em rotas (`App.tsx`), páginas, hooks, RLS ou banco.
+- Atualizar `/mnt/documents/sgq-mapa-de-telas.pdf` ao final para refletir a nova hierarquia.
+
+### Critérios de aceite
+
+- "Segurança" aparece como sub-item de "Operação da Qualidade" e abre `/quality/safety`.
+- "Homologação" aparece como sub-item de "Estratégia e Gestão" e abre `/quality/homologation`; não aparece mais no nível raiz.
+- Demais itens inalterados.
