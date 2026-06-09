@@ -3,11 +3,21 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 export type QAlertStatus = "due_soon" | "overdue" | "up_to_date";
-export type QAlertSource = "org_context" | "interested_party" | "party_evidence" | "document" | "management_review" | "risk" | "supplier" | "device";
+export type QAlertSource =
+  | "org_context"
+  | "interested_party"
+  | "party_evidence"
+  | "document"
+  | "management_review"
+  | "risk"
+  | "supplier"
+  | "device"
+  | "improvement"
+  | "knowledge";
 
 export interface QualityAlert {
   source: QAlertSource;
-  category: string; // for documents, equals origin; for others, same as source
+  category: string;
   entity_id: string;
   company_id: string;
   title: string;
@@ -50,7 +60,10 @@ export const useQualityAlerts = () => {
     supplier_requalification: countBy((a) => a.source === "supplier" && a.category === "requalification"),
     supplier_pending: countBy((a) => a.source === "supplier" && a.category === "pending_qualification"),
     device_calibration: countBy((a) => a.source === "device" && a.category === "calibration"),
+    improvement_effectiveness: countBy((a) => a.source === "improvement" && a.category === "effectiveness_due"),
+    knowledge_review: countBy((a) => a.source === "knowledge" && a.category === "knowledge_review"),
   };
+
 
   return { alerts, active, counters, isLoading };
 };
@@ -69,4 +82,6 @@ export const CATEGORY_LABELS: Record<string, string> = {
   supplier_requalification: "Reavaliação de Fornecedor",
   supplier_pending: "Qualificação Pendente",
   device_calibration: "Calibração de Instrumentos",
+  improvement_effectiveness: "Eficácia de Melhoria",
+  knowledge_review: "Revisão de Conhecimento",
 };

@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QualityDashboard from "./Dashboard";
 import QualityReports from "./Reports";
 import PolicyAwarenessBanner from "@/components/quality/PolicyAwarenessBanner";
+import ClosureKpiStrip from "@/components/quality/ClosureKpiStrip";
 
 const DashboardHub = () => {
   const [sp, setSp] = useSearchParams();
@@ -15,6 +16,7 @@ const DashboardHub = () => {
   return (
     <div className="space-y-4">
       <PolicyAwarenessBanner />
+      <ClosureKpiStrip />
       <Tabs value={tab} onValueChange={onChange} className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>

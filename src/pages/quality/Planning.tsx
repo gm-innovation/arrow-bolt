@@ -34,9 +34,12 @@ import {
 } from "@/hooks/useQualityPlanning";
 import { useQualityPolicy } from "@/hooks/useQualityPolicy";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
+import { useControlledDocMeta } from "@/hooks/useControlledDocMeta";
 import IndicatorStatusBadge, { computeIndicatorTrend } from "@/components/quality/IndicatorStatusBadge";
 import EvaluateChangeEffectivenessDialog from "@/components/quality/EvaluateChangeEffectivenessDialog";
 import ObjectiveTraceabilityPanel from "@/components/quality/ObjectiveTraceabilityPanel";
+import QualityPdfPreviewButton from "@/components/quality/pdf/QualityPdfPreviewButton";
+import QualityPlanPdf from "@/components/quality/pdf/QualityPlanPdf";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
@@ -759,20 +762,42 @@ const ChangesTab = () => {
 const Planning = () => {
   const [tab, setTab] = useState<"objectives" | "indicators" | "changes">("objectives");
 
+  const { objectives } = useQualityObjectives();
+  const { indicators } = useQualityIndicators();
+  const { changes } = useQualityPlannedChanges();
+  const { settings } = useQualitySettings();
+  const { baseMeta } = useControlledDocMeta();
+
   return (
     <div className="space-y-4">
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <Target className="h-4 w-4" /> Planejamento da Qualidade
-          </CardTitle>
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Target className="h-4 w-4" /> Planejamento da Qualidade
+            </CardTitle>
+            <p className="text-sm text-muted-foreground mt-1">
+              Objetivos, indicadores e mudanças planejadas (ISO 9001 §6). Vincule objetivos à
+              Política da Qualidade e relacione indicadores e medições periódicas.
+            </p>
+          </div>
+          {baseMeta?.companyName && (
+            <QualityPdfPreviewButton
+              buttonLabel="Plano Anual (PDF)"
+              dialogTitle="Plano Anual da Qualidade"
+              fileName={`plano-qualidade-${format(new Date(), "yyyy")}.pdf`}
+              document={
+                <QualityPlanPdf
+                  meta={baseMeta as any}
+                  objectives={objectives}
+                  indicators={indicators}
+                  changes={changes}
+                  policyVersion={settings?.quality_policy_version ?? null}
+                />
+              }
+            />
+          )}
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Objetivos do SGQ, indicadores e mudanças planejadas (ISO 9001 §6). Vincule objetivos à Política da
-            Qualidade e relacione indicadores e medições periódicas.
-          </p>
-        </CardContent>
       </Card>
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
