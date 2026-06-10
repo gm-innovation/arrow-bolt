@@ -16,7 +16,7 @@ interface UserData {
 }
 
 export const useAllUsers = () => {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading, error } = useQuery({
