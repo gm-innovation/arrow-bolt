@@ -88,7 +88,9 @@ const ReviewSheet = ({
 
             <div className="rounded-md border bg-muted/30 p-2 min-h-[300px]">
               {!url && <div className="text-center text-sm text-muted-foreground py-12">Carregando arquivo...</div>}
-              {url && isPdf(row.file_name) && <PDFCanvasViewer fileUrl={url} />}
+              {url && isPdf(row.file_name) && (
+                <iframe src={url} title={row.file_name} className="w-full h-[60vh] rounded" />
+              )}
               {url && isImage(row.file_name) && (
                 <img src={url} alt={row.file_name} className="mx-auto max-h-[60vh] object-contain" />
               )}
