@@ -169,6 +169,26 @@ interface ManagerPickerProps {
   onChange: (managerId: string | null) => void;
 }
 
+const PositionEditor = ({ value, onSave }: { value: string | null; onSave: (v: string | null) => void }) => {
+  const [draft, setDraft] = useState(value ?? "");
+  const commit = () => {
+    const next = draft.trim() || null;
+    if ((value ?? null) !== next) onSave(next);
+  };
+  return (
+    <Input
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+      }}
+      placeholder="Ex: Eletricista"
+      className="h-8"
+    />
+  );
+};
+
 const ManagerPicker = ({ currentId, currentLabel, excludeId, options, onChange }: ManagerPickerProps) => {
   const [open, setOpen] = useState(false);
   const list = options.filter((o) => o.id !== excludeId);
