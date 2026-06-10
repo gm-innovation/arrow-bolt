@@ -91,7 +91,8 @@ export const HierarchySettings = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Colaborador</TableHead>
-                <TableHead>Cargo</TableHead>
+                <TableHead>Função</TableHead>
+                <TableHead className="w-[200px]">Cargo</TableHead>
                 <TableHead>Departamento</TableHead>
                 <TableHead className="w-[280px]">Gestor direto</TableHead>
               </TableRow>
