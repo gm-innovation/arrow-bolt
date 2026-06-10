@@ -22,9 +22,9 @@ export const useEmployeeHierarchy = () => {
     queryKey: ["employee-hierarchy", profile?.company_id],
     enabled: !!profile?.company_id,
     queryFn: async (): Promise<HierarchyRow[]> => {
-      const { data: profiles, error } = await supabase
+      const { data: profiles, error } = await (supabase as any)
         .from("profiles")
-        .select("id, full_name, email, direct_manager_id")
+        .select("id, full_name, email, direct_manager_id, position")
         .eq("company_id", profile!.company_id)
         .order("full_name");
       if (error) throw error;
