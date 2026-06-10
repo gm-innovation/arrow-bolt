@@ -5,9 +5,10 @@ import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, FileText, Palette, Network } from "lucide-react";
+import { Bell, FileText, Palette, Network, BookCheck } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HierarchySettings } from "@/components/hr/HierarchySettings";
+import { DocumentCatalog } from "@/components/hr/DocumentCatalog";
 
 const HRSettings = () => {
   const { toast } = useToast();
