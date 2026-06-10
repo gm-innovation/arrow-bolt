@@ -5,8 +5,9 @@ import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, FileText, Palette } from "lucide-react";
+import { Bell, FileText, Palette, Network } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HierarchySettings } from "@/components/hr/HierarchySettings";
 
 const HRSettings = () => {
   const { toast } = useToast();
@@ -43,10 +44,14 @@ const HRSettings = () => {
       </div>
 
       <Tabs defaultValue="notifications" storageKey="hr-settings" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             Notificações
+          </TabsTrigger>
+          <TabsTrigger value="hierarchy" className="flex items-center gap-2">
+            <Network className="h-4 w-4" />
+            Hierarquia
           </TabsTrigger>
           <TabsTrigger value="reports" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -57,6 +62,10 @@ const HRSettings = () => {
             Aparência
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="hierarchy" className="space-y-6">
+          <HierarchySettings />
+        </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6">
           <Card>
