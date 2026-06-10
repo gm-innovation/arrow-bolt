@@ -188,3 +188,112 @@ export const statusVariant = (s: ComplianceStatus): "default" | "secondary" | "d
       return "destructive";
   }
 };
+
+// ===== Onda 2: revisão (aprovar/rejeitar) =====
+
+export interface PendingReviewRow {
+  document_id: string;
+  employee_id: string;
+  employee_name: string;
+  employee_position: string | null;
+  catalog_id: string;
+  catalog_name: string;
+  catalog_category: string;
+  file_name: string;
+  file_path: string;
+  uploaded_at: string;
+  uploaded_by: string | null;
+  uploader_name: string | null;
+  issue_date: string | null;
+  notes: string | null;
+}
+
+export const usePendingReviews = () => {
+  const { profile } = useAuth();
+  const companyId = profile?.company_id;
+  return useQuery({
+    queryKey: ["hr-pending-reviews", companyId],
+    enabled: !!companyId,
+    queryFn: async (): Promise<PendingReviewRow[]> => {
+      const { data, error } = await (supabase as any).rpc("hr_pending_reviews", {
+        _company_id: companyId,
+      });
+      if (error) throw error;
+      return (data ?? []) as PendingReviewRow[];
+    },
+  });
+};
+
+export const useReviewDocument = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      document_id: string;
+      decision: "approve" | "reject";
+      rejection_reason?: string | null;
+    }) => {
+      const payload: any =
+        input.decision === "approve"
+          ? { review_status: "approved", rejection_reason: null }
+          : { review_status: "rejected", rejection_reason: input.rejection_reason ?? null };
+      const { error } = await (supabase as any)
+        .from("hr_employee_documents")
+        .update(payload)
+        .eq("id", input.document_id);
+      if (error) throw error;
+    },
+    onSuccess: (_d, vars) => {
+      toast.success(vars.decision === "approve" ? "Documento aprovado" : "Documento rejeitado");
+      qc.invalidateQueries({ queryKey: ["hr-pending-reviews"] });
+      qc.invalidateQueries({ queryKey: ["hr-compliance-overview"] });
+      qc.invalidateQueries({ queryKey: ["hr-employee-documents"] });
+      qc.invalidateQueries({ queryKey: ["hr-my-documents"] });
+    },
+    onError: (err: any) =>
+      toast.error("Erro ao registrar revisão", { description: err.message }),
+  });
+};
+
+export const useDocumentFileUrl = (filePath?: string | null) => {
+  return useQuery({
+    queryKey: ["hr-doc-signed-url", filePath],
+    enabled: !!filePath,
+    staleTime: 60 * 1000 * 4,
+    queryFn: async (): Promise<string | null> => {
+      if (!filePath) return null;
+      const { data, error } = await supabase.storage
+        .from("corp-documents")
+        .createSignedUrl(filePath, 60 * 10);
+      if (error) throw error;
+      return data?.signedUrl ?? null;
+    },
+  });
+};
+
+export const useMyDocuments = () => {
+  const { user, profile } = useAuth();
+  const companyId = profile?.company_id;
+  const userId = user?.id;
+  return useQuery({
+    queryKey: ["hr-my-documents", userId, companyId],
+    enabled: !!userId && !!companyId,
+    queryFn: async (): Promise<{ rows: ComplianceRow[]; history: any[] }> => {
+      const { data: status, error: e1 } = await (supabase as any).rpc(
+        "hr_employee_document_status",
+        { _company_id: companyId },
+      );
+      if (e1) throw e1;
+      const rows = ((status ?? []) as ComplianceRow[]).filter((r) => r.employee_id === userId);
+
+      const { data: history, error: e2 } = await (supabase as any)
+        .from("hr_employee_documents")
+        .select("*")
+        .eq("employee_id", userId)
+        .order("uploaded_at", { ascending: false });
+      if (e2) throw e2;
+
+      return { rows, history: history ?? [] };
+    },
+  });
+};
+

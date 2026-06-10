@@ -17,6 +17,7 @@ import { useMyOnboarding, useOnboardingDocuments, useOnboardingDocumentTypes } f
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { MyHRDocumentsPanel } from '@/components/hr/MyHRDocumentsPanel';
 
 const docTypeLabels: Record<string, string> = {
   payslip: 'Holerite', benefits: 'Benefícios', declaration: 'Declaração',
@@ -77,11 +78,16 @@ const CorpMyDocuments = () => {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Meus Documentos</h2>
 
-        <Tabs defaultValue="received" storageKey="corp-my-documents">
+        <Tabs defaultValue="required" storageKey="corp-my-documents">
           <TabsList className="w-full justify-start border-b rounded-none h-auto p-1">
+            <TabsTrigger value="required">Documentos Obrigatórios</TabsTrigger>
             <TabsTrigger value="received">Recebidos do RH</TabsTrigger>
             {myOnboarding && <TabsTrigger value="onboarding">Admissão</TabsTrigger>}
           </TabsList>
+
+          <TabsContent value="required" className="mt-4">
+            <MyHRDocumentsPanel />
+          </TabsContent>
 
           <TabsContent value="received" className="mt-4">
             <Card>
