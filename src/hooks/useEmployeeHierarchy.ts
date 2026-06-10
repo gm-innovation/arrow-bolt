@@ -49,11 +49,12 @@ export const useEmployeeHierarchy = () => {
         if (m.department) deptMap.set(m.user_id, m.department);
       });
 
-      return (profiles ?? []).map((p) => ({
+      return (profiles ?? []).map((p: any) => ({
         id: p.id,
         full_name: p.full_name ?? "",
         email: p.email ?? "",
-        direct_manager_id: (p as any).direct_manager_id ?? null,
+        direct_manager_id: p.direct_manager_id ?? null,
+        position: p.position ?? null,
         role: roleMap.get(p.id) ?? null,
         department_id: deptMap.get(p.id)?.id ?? null,
         department_name: deptMap.get(p.id)?.name ?? null,
