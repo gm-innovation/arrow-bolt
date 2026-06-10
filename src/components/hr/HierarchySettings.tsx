@@ -101,14 +101,14 @@ export const HierarchySettings = () => {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={4}>
+                    <TableCell colSpan={5}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
                   </TableRow>
                 ))
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     Nenhum colaborador encontrado.
                   </TableCell>
                 </TableRow>
@@ -125,6 +125,14 @@ export const HierarchySettings = () => {
                       ) : (
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <PositionEditor
+                        value={emp.position}
+                        onSave={(position) =>
+                          updatePosition.mutate({ employeeId: emp.id, position })
+                        }
+                      />
                     </TableCell>
                     <TableCell className="text-sm">
                       {emp.department_name ?? <span className="text-muted-foreground">—</span>}
