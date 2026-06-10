@@ -17,6 +17,7 @@ import { useMyOnboarding, useOnboardingDocuments, useOnboardingDocumentTypes } f
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { MyHRDocumentsPanel } from '@/components/hr/MyHRDocumentsPanel';
 
 const docTypeLabels: Record<string, string> = {
   payslip: 'Holerite', benefits: 'Benefícios', declaration: 'Declaração',
