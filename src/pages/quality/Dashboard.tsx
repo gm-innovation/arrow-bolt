@@ -34,6 +34,7 @@ import {
   ENTITY_LABEL,
   ENTITY_LINK,
 } from "@/hooks/useQualityReviewStatus";
+import QualityAnalyticsSection from "@/components/quality/charts/QualityAnalyticsSection";
 
 
 const QualityDashboard = () => {
