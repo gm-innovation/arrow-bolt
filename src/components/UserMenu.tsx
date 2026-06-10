@@ -17,9 +17,11 @@ interface UserMenuProps {
 }
 
 export const UserMenu = ({ userType }: UserMenuProps) => {
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { avatarUrl } = useUserAvatar();
+
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || "Usuário";
 
   const handleLogout = async () => {
     await signOut();
@@ -27,8 +29,8 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
   };
 
   const getUserInitials = () => {
-    if (user?.user_metadata?.full_name) {
-      const names = user.user_metadata.full_name.split(" ");
+    if (displayName && displayName !== "Usuário") {
+      const names = displayName.split(" ");
       if (names.length >= 2) {
         return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
       }
@@ -88,7 +90,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user?.user_metadata?.full_name || "Usuário"}
+              {displayName}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {getUserTitle()}

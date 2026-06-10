@@ -16,7 +16,7 @@ interface UserData {
 }
 
 export const useAllUsers = () => {
-  const { user } = useAuth();
+  const { user, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading, error } = useQuery({
@@ -119,6 +119,9 @@ export const useAllUsers = () => {
 
       toast.success('Usuário atualizado com sucesso!');
       queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      if (userId === user?.id) {
+        await refreshProfile();
+      }
       return { success: true };
     } catch (error: any) {
       toast.error(error.message || 'Erro ao atualizar usuário');

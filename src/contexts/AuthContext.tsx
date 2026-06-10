@@ -20,6 +20,7 @@ export interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -195,6 +196,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return { error };
   }, []);
 
+  const refreshProfile = useCallback(async () => {
+    const uid = currentUserIdRef.current;
+    if (!uid) return;
+    fetchingForUserIdRef.current = null;
+    await fetchUserRole(uid);
+  }, [fetchUserRole]);
+
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(() => ({
     user,
@@ -207,7 +215,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     signOut,
     resetPassword,
     updatePassword,
-  }), [user, session, userRole, profile, loading, signIn, signUp, signOut, resetPassword, updatePassword]);
+    refreshProfile,
+  }), [user, session, userRole, profile, loading, signIn, signUp, signOut, resetPassword, updatePassword, refreshProfile]);
 
   return (
     <AuthContext.Provider value={contextValue}>
