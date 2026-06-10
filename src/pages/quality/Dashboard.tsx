@@ -34,6 +34,7 @@ import {
   ENTITY_LABEL,
   ENTITY_LINK,
 } from "@/hooks/useQualityReviewStatus";
+import QualityAnalyticsSection from "@/components/quality/charts/QualityAnalyticsSection";
 
 
 const QualityDashboard = () => {
@@ -318,6 +319,8 @@ const QualityDashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <QualityAnalyticsSection />
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0">
