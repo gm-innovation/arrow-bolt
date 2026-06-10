@@ -1,92 +1,104 @@
-# Onda 1 — Passo 2: Catálogo de Documentos Obrigatórios por Cargo (v2)
 
-## Ajustes em relação à v1
-Incorpora as duas observações:
-1. **Fonte única de cargos** = `profiles.position` (campo texto). Hoje essa coluna não existe — vamos criá-la nesta migração para eliminar a ambiguidade.
-2. **`applies_to_all` explícito** na tabela principal, em vez de inferir "todos" pela ausência de linhas na junção.
+# Onda 1 — Passo 3 (v2): Geração automática de pendências de documentos por colaborador
+
+Incorpora as três observações:
+1. **Histórico de renovações** preservado via `is_current` + índice parcial único.
+2. **`profiles.direct_manager_id`** — verificado: a coluna já existe no banco (`uuid`, nullable). Não precisa migration. A Edge Function trata `direct_manager_id IS NULL` como "notificar só o RH".
+3. **Status `pending_review`** intermediário entre `missing` e `valid`, mesmo sem UI de aprovação nesta entrega.
 
 ## Objetivo
-Catálogo central de tipos de documento que o RH define uma única vez:
-- quais são exigidos (RG, CPF, ASO, NR-10, CNH, etc.),
-- para **quais cargos** se aplicam (ou para todos),
-- validade e periodicidade de renovação,
-- quem é responsável pelo alerta de vencimento (RH ou gestor direto).
+A partir do catálogo do Passo 2 e do cargo de cada colaborador (`profiles.position`), calcular automaticamente:
+- documentos **faltando**, **aguardando revisão**, **válidos**, **a vencer**, **vencidos**;
+- disparar **notificações in-app** ao colaborador, ao gestor direto e/ou ao RH conforme `responsible_role` do catálogo.
 
-## Mudanças no banco
+## Banco
 
-### 1. Campo de cargo formal em `profiles`
+### 1. Tabela `hr_employee_documents`
 ```text
-ALTER TABLE profiles ADD COLUMN position TEXT;
-```
-Texto livre (sem enum), preenchido pelo RH no perfil do colaborador. Será a **única fonte de verdade** para listar cargos.
-
-### 2. Catálogo
-```text
-hr_document_catalog
-  - company_id, name, code, description
-  - category (identificacao | saude | seguranca | habilitacao | fiscal | contrato | outro)
-  - is_required (bool, default true)
-  - has_expiry (bool, default false)
-  - default_validity_months (int, nullable)
-  - renewal_warning_days (int, default 30)
-  - responsible_role (hr | direct_manager | both)
-  - applies_to_all (bool, default false)   -- explícito (Observação 2)
-  - is_active (bool, default true)
+- id, company_id, employee_id (FK profiles.id), catalog_id (FK hr_document_catalog.id)
+- file_name, file_path, uploaded_at, uploaded_by
+- issue_date (date, nullable)
+- expiry_date (date, nullable) -- preenchido por trigger quando catálogo tem has_expiry e default_validity_months
+- review_status (text: 'pending_review' | 'approved' | 'rejected')  default 'pending_review'
+- reviewed_at (timestamptz, nullable), reviewed_by (uuid, nullable), rejection_reason (text, nullable)
+- is_current (boolean, default true)
+- notes (text, nullable)
+- created_at, updated_at
 ```
 
-### 3. Junção catálogo × cargos
-```text
-hr_document_catalog_positions
-  - catalog_id (FK cascade)
-  - position (text)         -- valor que casa com profiles.position
-  - UNIQUE (catalog_id, position)
+Índice parcial único (preserva histórico):
+```sql
+CREATE UNIQUE INDEX hr_employee_documents_current_uq
+  ON hr_employee_documents (employee_id, catalog_id)
+  WHERE is_current = true;
 ```
 
-### Regra de aplicabilidade (documentada no banco via comment)
-- `applies_to_all = true` → exigido de todos os colaboradores; tabela de junção é ignorada.
-- `applies_to_all = false` e há linhas em `hr_document_catalog_positions` → exigido somente de colaboradores cujo `profiles.position` está na lista.
-- `applies_to_all = false` e **sem** linhas → catálogo ainda **não configurado**; nenhuma pendência é gerada.
+Trigger `before insert`: se já existe linha com `(employee_id, catalog_id, is_current = true)`, marca a antiga como `is_current = false` antes de inserir a nova (sem violar o índice parcial).
 
-Trigger leve garante: se `applies_to_all = true`, apaga linhas órfãs na junção (evita estado inconsistente).
+Trigger `before insert/update`: calcula `expiry_date` quando o catálogo tem `has_expiry` e `default_validity_months`, baseado em `issue_date` ou `uploaded_at::date`.
 
-### RLS / GRANTs
-- `SELECT` para `authenticated` da mesma empresa.
-- `INSERT/UPDATE/DELETE` restritos a `hr`, `director`, `super_admin` via `has_role`.
-- GRANTs padrão para `authenticated` e `service_role`.
+### 2. Função `hr_employee_document_status(_company_id uuid)`
+`SECURITY DEFINER`. Retorna por (colaborador, catálogo aplicável) o status derivado, usando **apenas** as linhas `is_current = true`:
+
+| Situação                                              | `status`         |
+|-------------------------------------------------------|------------------|
+| Sem linha em `hr_employee_documents`                  | `missing`        |
+| Linha com `review_status = 'rejected'`                | `missing`        |
+| `review_status = 'pending_review'`                    | `pending_review` |
+| `approved` + sem `expiry_date`                        | `valid`          |
+| `approved` + `expiry_date < hoje`                     | `expired`        |
+| `approved` + `expiry_date` dentro de `renewal_warning_days` | `expiring_soon` |
+| `approved` + `expiry_date` no futuro fora da janela   | `valid`          |
+
+Também devolve `due_in_days` e `responsible_role`.
+
+Regra de aplicabilidade (igual ao Passo 2): `applies_to_all = true` → todos ativos; senão, casamento por `profiles.position` em `hr_document_catalog_positions`.
+
+### 3. Auto-aprovação nesta entrega
+Como ainda não há UI de revisão, um trigger marca `review_status = 'approved'` automaticamente quando uma linha é inserida **pelo RH/director/super_admin** (`uploaded_by` com essas roles via `has_role`). Quando o próprio colaborador envia, fica `pending_review` — Onda 2 adiciona a UI da Rayane para aprovar/rejeitar. Assim o status já reflete a realidade desde o dia 1 sem precisar alterar a tabela depois.
+
+### 4. RLS
+- `SELECT`: próprio colaborador, gestor direto, `hr`, `director`, `super_admin`.
+- `INSERT/UPDATE/DELETE`: `hr`, `director`, `super_admin`, e o próprio colaborador (autoupload).
+- GRANTs padrão para `authenticated` e `service_role` (sem `anon`).
+
+### 5. Cron + Edge Function
+- Edge Function `hr-document-compliance-check` (`verify_jwt = true` em `supabase/config.toml`).
+- Cron diário via `pg_cron` registrado com `supabase--insert` (carrega anon key).
+- Para cada empresa:
+  - Roda `hr_employee_document_status`.
+  - Para cada pendência (`missing | pending_review | expiring_soon | expired`), insere `notifications`:
+    - **Colaborador**: sempre, sobre seu próprio documento.
+    - **Gestor direto** (`profiles.direct_manager_id`): quando `responsible_role` ∈ `direct_manager | both` **e** `direct_manager_id IS NOT NULL`.
+    - **RH** (usuários com role `hr`): quando `responsible_role` ∈ `hr | both`, **ou** quando `responsible_role = direct_manager` e o colaborador não tem gestor direto (fallback explícito para não perder o aviso).
+  - Deduplica: não cria nova notificação se já existe uma não lida com mesmo `reference_id = hr_employee_documents.id || catalog_id` nas últimas 24h.
 
 ## Front-end
 
-1. **Hook** `src/hooks/useHRDocumentCatalog.ts`
-   - `list`, `create`, `update`, `delete`.
-   - `usePositions()` → `SELECT DISTINCT position FROM profiles WHERE position IS NOT NULL AND company_id = ... ORDER BY position` (única fonte).
+1. **Hook `useHRDocumentCompliance.ts`**
+   - `useComplianceOverview()` — RPC `hr_employee_document_status`, agregada por colaborador.
+   - `useEmployeeDocuments(employeeId)` — lista `is_current = true` + status calculado; opção de incluir histórico (`is_current = false`).
+   - `useUploadEmployeeDocument()` — upload no bucket `corp-documents`, path `{company_id}/employees/{employee_id}/{catalog_code}/{ts}_{safe_name}`, insere em `hr_employee_documents` (trigger cuida do `is_current` antigo).
 
-2. **Componente** `src/components/hr/DocumentCatalog.tsx`
-   - Tabela: Nome, Categoria, Aplicável a (`"Todos"` quando `applies_to_all`, senão badges dos cargos), Obrigatório, Validade, Alerta (dias), Responsável, Ações.
-   - Filtros: busca, categoria, cargo.
-   - Dialog de criação/edição:
-     - Campos básicos (nome, código, descrição, categoria).
-     - Switch **"Aplicar a todos os cargos"** (mapeia `applies_to_all`); quando ligado, esconde o multi-select de cargos.
-     - Multi-select (Combobox com chips) de cargos vindos do hook `usePositions()`; obrigatório quando `applies_to_all = false`.
-     - Switches `Obrigatório` e `Tem validade`; campo `Validade (meses)` condicional a `has_validade`.
-     - Campo numérico `Alertar (dias antes)`.
-     - Select `Responsável` (RH / Gestor direto / Ambos).
+2. **Página `src/pages/hr/DocumentCompliance.tsx`** (rota nova `/hr/document-compliance`)
+   - Cards: total colaboradores, % conforme, # faltantes, # aguardando revisão, # a vencer, # vencidos.
+   - Tabela de colaboradores com filtros (cargo, status, responsável).
+   - Drawer ao clicar: lista dos requisitos aplicáveis com status e ações **Enviar/Substituir** ou **Visualizar**; aba "Histórico" mostra versões antigas (`is_current = false`).
 
-3. **Página de Configurações de RH** (`src/pages/hr/Settings.tsx`)
-   - Nova aba **"Catálogo de Documentos"** ao lado de "Hierarquia".
+3. **Menu lateral RH** (`DashboardLayout.tsx`): item **"Conformidade Documental"** abaixo de "Configurações".
 
-4. **Cadastro de colaborador** (escopo mínimo desta entrega)
-   - Adicionar input "Cargo" (`profiles.position`) no formulário de edição de colaborador em RH, para que o catálogo tenha cargos para listar.
+4. **Sino de notificações**: sem mudança de UI; passa a receber as novas entradas.
 
 ## Fora do escopo
-- Atribuir/gerar pendências automaticamente para colaboradores (Passo 3).
-- Migração dos `onboarding_document_types` legados para o catálogo (depois que o RH validar).
-- Job de alertas de vencimento (vai junto com a infraestrutura de notificações).
+- UI de aprovação/rejeição pelo RH (Onda 2) — o status `pending_review` já existe.
+- E-mail e WhatsApp (Passo 4).
+- Preferências de canal/silenciar por usuário.
+- Migração de `technician_documents` legados.
 
 ## Ordem de execução
-1. Migração: `profiles.position` + 2 tabelas + RLS + grants + trigger.
-2. Hook `useHRDocumentCatalog` + `usePositions`.
-3. Componente `DocumentCatalog` + dialog.
-4. Nova aba em `pages/hr/Settings.tsx`.
-5. Input `position` no formulário de edição de colaborador.
+1. Migração: `hr_employee_documents` + índice parcial único + triggers (`is_current`, `expiry_date`, auto-approve por role) + RLS + função `hr_employee_document_status` + GRANTs.
+2. Edge Function `hr-document-compliance-check` + bloco no `config.toml`.
+3. Cron diário via `supabase--insert`.
+4. Hook + página `DocumentCompliance` + item de menu.
 
 Posso seguir?
