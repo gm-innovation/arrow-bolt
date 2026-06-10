@@ -36,7 +36,7 @@ const ROLE_LABELS: Record<string, string> = {
 };
 
 export const HierarchySettings = () => {
-  const { data: employees, isLoading, updateManager } = useEmployeeHierarchy();
+  const { data: employees, isLoading, updateManager, updatePosition } = useEmployeeHierarchy();
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(() => {
@@ -47,6 +47,7 @@ export const HierarchySettings = () => {
       (e) =>
         e.full_name.toLowerCase().includes(q) ||
         e.email.toLowerCase().includes(q) ||
+        (e.position ?? "").toLowerCase().includes(q) ||
         (e.department_name ?? "").toLowerCase().includes(q),
     );
   }, [employees, search]);
