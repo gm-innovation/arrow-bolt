@@ -1,148 +1,126 @@
-# Geração de 2 artefatos PDF — v2 (com ajustes do revisor)
 
-Ambos serão escritos em `/mnt/documents/` e entregues via `<presentation-artifact>`.
-Linguagem: **executiva/técnica** no relatório, **operacional passo-a-passo** no manual.
+# Reestruturação completa da documentação SGQ Arrow (v2 do plano)
 
----
+Refazendo a entrega como **3 PDFs independentes**, cada um com capa Lecsor, sumário, cabeçalho/rodapé, paginação e linguagem operacional (sem termos internos como "onda", "Opção A/B", "permissivo", "fallback", "cron", "RPC").
 
-## Princípio transversal
-
-> **Cada item documentado (rota, aba, fluxo, status de cláusula) só entra no PDF se houver evidência direta no código/UI.** Durante a fase de exploração, qualquer fluxo do manual ou linha do mapa de telas que não puder ser confirmado lendo arquivos reais será omitido ou marcado como "não evidenciado".
+Observações do revisor incorporadas: glossário prévio no Artefato 1, próximos passos em linguagem de negócio, diagrama do mapa de telas como tabela hierárquica (não ASCII), bloco de controle de versão visível no manual, e nome da empresa padronizado.
 
 ---
 
-## Artefato 1 — `relatorio-comparativo-sgq-onda4.pdf`
+## Padronização de marca (aplicada aos 3 PDFs)
 
-Construído com **reportlab** (Platypus), paleta Arrow (azul/cinza, sem cores genéricas).
+- **Nome curto:** Lecsor
+- **Nome completo / oficial:** **Lecsor Technology** (igual ao que aparece na logo enviada)
+- **Uso:** capa e rodapé sempre "Lecsor Technology"; corpo do texto pode usar "Lecsor" quando já contextualizado
+- **Sistema:** sempre "Arrow" (nunca "sistema Arrow da Lecsor" misturado)
+- **Capa:** logo preta + "Arrow" como nome do produto + "Lecsor Technology" como responsável
+- **Rodapé:** logo Lecsor Technology cinza pequena à esquerda + número de página à direita
+- **Cabeçalho:** nome do documento à esquerda + "Arrow · Lecsor Technology" à direita
 
-### Capa
-- Título
-- Subtítulo: "Onda 4 — fechamento de gaps de GED e Normas"
-- Data, versão, autor
-
-### Quadro de Premissas (logo após a capa, antes da Seção A)
-Caixa destacada explicitando:
-
-> **Premissa adotada neste relatório:** para documentos sem regra em `quality_document_permissions`, foi considerada a **Opção A — padrão permissivo**, preservando o comportamento histórico. A Opção B (restritiva) é citada como alternativa, não como pendência.
-
-> **Escopo deste relatório:** mapeamento de cobertura funcional do módulo SGQ Arrow. **Não constitui auditoria de conformidade nem certificação.**
-
-### Seção A — Antes vs Depois (mudanças desta onda)
-Tabela:
-
-| Item | Antes | Depois | Impacto | Risco mitigado |
-|------|-------|--------|---------|----------------|
-| Menu lateral | "SWOT/Cenário" como link próprio | Apenas aba interna em Contexto da Organização | Reduz duplicidade de navegação | Confusão entre dois pontos de acesso ao mesmo conteúdo |
-| GED — botões Download/Imprimir/Cópia não controlada | Sempre habilitados | Gate via RPC `quality_doc_user_perms` + log `denied_*`; Director/Super Admin sempre liberados | Permissão configurada passa a ter efeito real | Vazamento de documentos restritos por download não controlado |
-| Normas — status | Badge manual "Ativa/Inativa"; vencidas selecionáveis | VIEW com `effective_status` + cron diário desativando vencidas + selects usam `activeNorms` | Vigência reflete a data real; impede uso de norma fora de validade | Cadastro de RNC/Auditoria contra norma vencida |
-
-### Seção B — Cobertura funcional do módulo SGQ frente à ISO 9001:2015
-Subtítulo no PDF: *"Mapeamento de aderência sistêmica — não é auditoria de conformidade."*
-
-Status usados: **Coberto no sistema** · **Parcialmente coberto** · **Não evidenciado no sistema**.
-
-Colunas: Cláusula | Requisito (resumo) | Módulo/Tela no Arrow | Status | Observação.
-
-Linhas (a confirmar 1 a 1 durante exploração, antes de classificar status):
-
-- 4.1 Contexto da organização
-- 4.2 Partes interessadas
-- 4.3 Escopo do SGQ
-- 4.4 SGQ e seus processos (SIPOC)
-- 5.1 Liderança e compromisso
-- 5.2 Política da qualidade
-- 5.3 Papéis, responsabilidades e autoridades
-- 6.1 Riscos e oportunidades
-- 6.2 Objetivos da qualidade
-- 6.3 Mudanças planejadas
-- 7.1.5 Recursos de monitoramento e medição (calibração)
-- 7.1.6 Conhecimento organizacional
-- 7.2 Competência
-- 7.3 Conscientização
-- 7.4 Comunicação
-- 7.5 Informação documentada (GED)
-- **8.4 Controle de processos/produtos/serviços providos externamente** (fornecedores)
-- **8.5.1 Controle da produção/prestação de serviço**
-- **8.5.6 Controle de mudanças**
-- **8.7 Controle de saídas não conformes**
-- 9.1.1 Monitoramento, medição, análise e avaliação (indicadores)
-- 9.1.2 Satisfação do cliente
-- 9.1.3 Análise e avaliação
-- 9.2 Auditoria interna
-- 9.3 Análise crítica pela direção
-- 10.2 Não conformidade e ação corretiva (RNC)
-- 10.3 Melhoria contínua
-
-(Cláusula 8 quebrada em 8.4 / 8.5.1 / 8.5.6 / 8.7 — sem agregar como "8.x".)
-
-### Seção C — Mapa de Telas V5 (módulo Qualidade)
-Colunas: **Rota/Acesso | Título | Tipo de acesso | Abas internas | Perfil com acesso à rota | Observações**.
-
-Valores de "Tipo de acesso": `Rota` · `Aba interna` · `Rota pessoal` · `Redirect/legado`.
-
-Coluna "Perfil com acesso à rota" usa exatamente o `allowedRoles` de `<ProtectedRoute>` em `App.tsx`, com nota de pé de página:
-
-> *"Perfil com acesso à rota" reflete a permissão de roteamento via ProtectedRoute. Permissões funcionais dentro da tela (botões, abas, ações) podem depender de regras adicionais de RLS, role secundária ou estado de negócio.*
-
-Linha específica para SWOT marcada como `Redirect/legado` ou simplesmente nota: "Antiga rota SWOT consolidada como aba em Contexto da Organização".
-
-### Seção D — Conclusão executiva
-- Principais ganhos da onda
-- Riscos mitigados
-- Pendências remanescentes (técnicas, sem ambiguidades de aprovação)
-- Recomendação para a próxima onda
+> Se o nome oficial registrado for outro (ex.: "Lecsor Technology Ltda" ou apenas "Lecsor"), basta avisar antes da execução — o ajuste é trivial.
 
 ---
 
-## Artefato 2 — `manual-uso-sgq-arrow.pdf`
+## Artefato 1 — `relatorio-comparativo-sgq-arrow.pdf`
 
-Linguagem operacional, frases curtas, passo a passo. Cada fluxo só entra se confirmado por leitura de código/UI durante a exploração.
+Comparativo **completo** entre o documento "Mapeamento do Portal ISO" (Rayane) e o que existe hoje no módulo de Qualidade do Arrow. Sem recorte por "onda".
 
 ### Estrutura
-1. **Capa + sumário**
-2. **Visão geral** — login, navegação, perfis, conceitos básicos
-3. **Capítulo por perfil** (Coordenador da Qualidade · Diretoria · Líderes/Coordenadores operacionais · Usuário final)
+1. **Capa** — logo Lecsor Technology, título "Relatório Comparativo — Módulo de Qualidade", subtítulo "Sistema Arrow", data, versão 1.0
+2. **Sumário**
+3. **Introdução**
+   - O que é o Arrow e a quem pertence
+   - Finalidade do documento
+   - **Glossário rápido** (antes da tabela, para o leitor não precisar consultar outro documento):
+     - **SGQ** — Sistema de Gestão da Qualidade
+     - **GED** — Gestão Eletrônica de Documentos (módulo onde ficam procedimentos, normas e formulários controlados)
+     - **Lista Mestre** — registro centralizado de todos os documentos controlados do SGQ, com código, revisão vigente, responsável e status
+     - **Cópia Controlada** — versão de um documento cuja distribuição é rastreada pelo sistema; só usuários autorizados podem baixar ou imprimir
+     - **RNC** — Registro de Não Conformidade
+     - **SIPOC** — mapeamento de processos (Fornecedor, Entrada, Processo, Saída, Cliente)
+     - **Análise Crítica pela Direção** — reunião formal periódica de avaliação do SGQ
+4. **Legenda de status**
+   - **Atendido** — funcionalidade existe e está disponível
+   - **Parcialmente atendido** — existe, mas com limitações descritas na linha
+   - **Não atendido** — ainda não existe no sistema
+5. **Comparativo item a item** — uma seção por capítulo do documento original:
+   - Escopo (controle de revisão, expiração, código, permissão de impressão/download)
+   - Referência Normativa (anexos de norma, mudanças climáticas)
+   - Termos e Definições
+   - Contexto da Organização (Análise Competitiva, Análises Críticas, Partes Interessadas, Missão/Visão/Valores, Objetivos Estratégicos, Política da Qualidade)
+   - Análise SWOT (4 cenários e cruzamento estratégico)
+   - Mapeamento de Processos / SIPOC
+   - Padronização de layout dos documentos
+   - Documentos do Cliente (CNPJ, Alvará, IE — com expiração)
+   - Planejamento (riscos, oportunidades, mudanças, indicadores)
+   - Treinamento e Avaliação de Eficácia
+   - Calibração / Aferição de Instrumentos
+   - Não Conformidade (RNC) com Plano de Ação
+   - Auditoria Periódica
+   - Análise Crítica pela Direção (com geração de ATA)
+   - Melhoria (visualização única)
+   - Lista Mestre
+   - Acesso Master (modificar, aprovar, controlar todo o sistema)
+   - Controle de Cópias Controlada / Não Controlada (registro de entrega e recolhimento)
+6. **Formato de cada linha:** O que foi solicitado | O que existe hoje no Arrow | Onde encontrar (caminho da tela) | Status | Observação
+7. **Resumo executivo final** — quantitativo (X atendidos, Y parciais, Z não atendidos) e as principais lacunas em linguagem clara
+8. **Próximos passos sugeridos** — sempre em linguagem de negócio, nunca técnica. Exemplos do que entra:
+   - ✅ "Implementar controle de entrega e recolhimento de cópias controladas"
+   - ✅ "Adicionar avaliação de eficácia aos planos de treinamento"
+   - ✅ "Disponibilizar geração automática da ATA de Análise Crítica"
+   - ❌ Nunca: nomes de tabela, funções SQL, cron, RPC, edge functions
 
-### Template fixo de cada fluxo no manual
-Cada fluxo é apresentado com os 5 blocos:
-
-- **Quem pode executar**
-- **Pré-requisitos**
-- **Passos** (numerados)
-- **Resultado esperado**
-- **Erros comuns**
-
-### Fluxos candidatos (todos sujeitos a confirmação no código antes de virar texto)
-- Cadastrar/aprovar documento na GED
-- Configurar permissões de download/impressão por perfil ou usuário
-- Cadastrar norma de referência com vigência
-- Abrir RNC
-- Criar auditoria interna
-- Registrar risco e plano de ação
-- Conduzir análise crítica pela direção
-- Manter contexto da organização e partes interessadas
-- Aprovações centrais (Diretoria)
-- Consulta de documento vigente (usuário final)
-- Reconhecimento de política (se existir como ação no UI)
-- Pesquisa de satisfação (se houver fluxo de resposta interno)
-
-Fluxos que não forem evidenciados na UI **não** entrarão — em vez de descrever especulativamente, o manual diz: "não documentado nesta versão".
+### Princípio
+Cada linha confirmada por leitura real de `src/pages/quality/` e `src/components/quality/`. Onde não houver evidência, marcar como "Não atendido" — sem inventar.
 
 ---
 
-## Passos de execução (após aprovação)
+## Artefato 2 — `mapa-de-telas-sgq-arrow.pdf`
 
-1. **Exploração de evidências** — em paralelo:
-   - Ler `src/App.tsx` para rotas `/quality/*` + `allowedRoles`.
-   - Listar `src/pages/quality/` e `src/components/quality/` para confirmar telas, abas e ações.
-   - Para cada cláusula ISO da Seção B, identificar a tela/tabela correspondente; sem evidência clara → `Não evidenciado no sistema`.
-   - Para cada fluxo do manual, abrir o componente e confirmar passos reais.
-2. **Geração** — script Python único em `/tmp/build_docs.py` (reportlab) produzindo os 2 PDFs.
-3. **QA visual obrigatório** — `pdftoppm` em cada PDF, inspeção página a página, correções, re-render.
-4. Entrega via duas tags `<presentation-artifact>`.
+### Estrutura
+1. **Capa** — logo Lecsor Technology, título "Mapa de Telas — Módulo de Qualidade", subtítulo "Sistema Arrow"
+2. **Sumário**
+3. **Introdução** — como o módulo está organizado, perfis que enxergam o menu, observação de que telas internas podem ter restrições adicionais por papel ou estado de negócio
+4. **Tabela principal:** Caminho na tela | Nome da tela | Tipo (Tela / Aba / Atalho) | Abas internas | Quem pode acessar | O que faz
+5. **Hierarquia de navegação** — em vez de ASCII, **tabela de duas colunas** (Nível · Item) com indentação visual via espaços não-quebráveis e/ou cor de fonte por nível. Mais previsível no reportlab. Se ainda assim ficar torta no QA, será removida.
+
+---
+
+## Artefato 3 — `manual-uso-sgq-arrow_v4.pdf` (revisão do v3)
+
+Mantém a estrutura aprovada no v3, com:
+- Capa com **logo Lecsor Technology** + nome "Arrow"
+- **Bloco de controle de versão na capa**, ao estilo dos documentos da ISO:
+  - Versão: 4.0
+  - Data de revisão: [data de geração]
+  - Substitui: Manual de Uso SGQ Arrow v3
+  - Responsável pelo documento: Lecsor Technology
+- Rodapé em todas as páginas: "Versão 4.0 — [data]" + número da página + logo cinza
+- Varredura final removendo qualquer termo técnico residual ("Opção A/B", "permissivo", "fallback", "cron", "RPC") substituindo por descrição operacional
+- Mantém o callout "Acesso por Perfil" e o fluxo 5.2 já corrigidos
+
+---
+
+## Identidade visual
+
+- **Capa:** fundo branco, logo Lecsor Technology preta centralizada no topo, título grande, subtítulo, faixa inferior com bloco de versão/data
+- **Cabeçalho interno:** linha fina + nome do documento à esquerda + "Arrow · Lecsor Technology" à direita
+- **Rodapé:** logo Lecsor Technology cinza (pequena) à esquerda + "Versão X.X — dd/mm/aaaa" centralizado + número da página à direita
+- **Tipografia:** Helvetica (corpo), preto / cinza médio (#6B7280) / cinza-claro (#E5E7EB) para linhas de tabela. Sem azuis genéricos
+- **Para o bloco de hierarquia do Artefato 2:** se algum trecho exigir alinhamento fixo (raro), usar Courier explicitamente
+
+---
+
+## Execução (após aprovação)
+
+- Script único `/tmp/build_arrow_docs.py` (reportlab Platypus)
+- Logos copiadas dos uploads para `/tmp/`: `lecsor-black.png`, `lecsor-grey.png`
+- Helper `flow_block` para evitar títulos órfãos (já validado no v3)
+- **QA visual obrigatório**: `pdftoppm` em **todas** as páginas dos 3 PDFs, inspeção, correção, re-render. Atenção especial ao bloco de hierarquia do Artefato 2 — se ficar torto, remover
+- Entrega final via 3 tags `<presentation-artifact>`
+- O `relatorio-comparativo-sgq-onda4.pdf` antigo fica em `/mnt/documents` como histórico (não removido)
 
 ## Fora do escopo
-- Sem alterações de código da aplicação.
-- Sem comparação com sistemas de mercado.
-- Sem versão DOCX editável (formato escolhido: PDF).
-- Sem reivindicação de conformidade ISO — apenas cobertura funcional.
+- Sem alteração no código da aplicação
+- Sem versão DOCX
+- Sem reivindicação de certificação ISO
