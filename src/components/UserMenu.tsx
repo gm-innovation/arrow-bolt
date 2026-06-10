@@ -90,7 +90,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
-              {user?.user_metadata?.full_name || "Usuário"}
+              {displayName}
             </p>
             <p className="text-xs leading-none text-muted-foreground">
               {getUserTitle()}
