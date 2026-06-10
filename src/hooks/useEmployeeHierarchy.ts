@@ -8,6 +8,7 @@ export interface HierarchyRow {
   full_name: string;
   email: string;
   direct_manager_id: string | null;
+  position: string | null;
   role: string | null;
   department_id: string | null;
   department_name: string | null;
@@ -21,9 +22,9 @@ export const useEmployeeHierarchy = () => {
     queryKey: ["employee-hierarchy", profile?.company_id],
     enabled: !!profile?.company_id,
     queryFn: async (): Promise<HierarchyRow[]> => {
-      const { data: profiles, error } = await supabase
+      const { data: profiles, error } = await (supabase as any)
         .from("profiles")
-        .select("id, full_name, email, direct_manager_id")
+        .select("id, full_name, email, direct_manager_id, position")
         .eq("company_id", profile!.company_id)
         .order("full_name");
       if (error) throw error;
@@ -48,11 +49,12 @@ export const useEmployeeHierarchy = () => {
         if (m.department) deptMap.set(m.user_id, m.department);
       });
 
-      return (profiles ?? []).map((p) => ({
+      return (profiles ?? []).map((p: any) => ({
         id: p.id,
         full_name: p.full_name ?? "",
         email: p.email ?? "",
-        direct_manager_id: (p as any).direct_manager_id ?? null,
+        direct_manager_id: p.direct_manager_id ?? null,
+        position: p.position ?? null,
         role: roleMap.get(p.id) ?? null,
         department_id: deptMap.get(p.id)?.id ?? null,
         department_name: deptMap.get(p.id)?.name ?? null,
@@ -77,5 +79,23 @@ export const useEmployeeHierarchy = () => {
     },
   });
 
-  return { ...query, updateManager };
+  const updatePosition = useMutation({
+    mutationFn: async ({ employeeId, position }: { employeeId: string; position: string | null }) => {
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .update({ position })
+        .eq("id", employeeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Cargo atualizado");
+      qc.invalidateQueries({ queryKey: ["employee-hierarchy"] });
+      qc.invalidateQueries({ queryKey: ["hr-positions"] });
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao atualizar cargo", { description: err.message });
+    },
+  });
+
+  return { ...query, updateManager, updatePosition };
 };
