@@ -206,6 +206,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
     { title: "Documentos", icon: FileText, path: "/hr/documents" },
     { title: "Conformidade Documental", icon: ShieldCheck, path: "/hr/document-compliance" },
+    { title: "Revisão de Documentos", icon: FileCheck, path: "/hr/document-reviews" },
     { title: "Recrutamento", icon: Inbox, path: "/hr/recruitment" },
     { title: "Gestão de EPI", icon: ClipboardList, path: "/hr/epi" },
     { title: "Parcerias", icon: Inbox, path: "/hr/partnerships" },
