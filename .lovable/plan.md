@@ -1,78 +1,92 @@
+# Onda 1 — Passo 2: Catálogo de Documentos Obrigatórios por Cargo (v2)
 
-# Gráficos analíticos no módulo de Qualidade — Fase 1
+## Ajustes em relação à v1
+Incorpora as duas observações:
+1. **Fonte única de cargos** = `profiles.position` (campo texto). Hoje essa coluna não existe — vamos criá-la nesta migração para eliminar a ambiguidade.
+2. **`applies_to_all` explícito** na tabela principal, em vez de inferir "todos" pela ausência de linhas na junção.
 
-Objetivo: elevar o dashboard de Qualidade do nível "contador numérico" para análise de tendências, distribuição e planejamento, alinhado ao que SoftExpert, Qualyteam e Sênior entregam. Esta fase entrega 4 visualizações de alto impacto no Dashboard Principal.
+## Objetivo
+Catálogo central de tipos de documento que o RH define uma única vez:
+- quais são exigidos (RG, CPF, ASO, NR-10, CNH, etc.),
+- para **quais cargos** se aplicam (ou para todos),
+- validade e periodicidade de renovação,
+- quem é responsável pelo alerta de vencimento (RH ou gestor direto).
 
-## Onde os gráficos aparecem
+## Mudanças no banco
 
-Nova seção **"Análise visual"** na aba *Visão Geral* do `/quality/dashboard` (`src/pages/quality/Dashboard.tsx`), abaixo dos KPIs operacionais e antes do bloco de "Revisões em atraso". Layout em grid 2x2 no desktop, 1 coluna no mobile.
+### 1. Campo de cargo formal em `profiles`
+```text
+ALTER TABLE profiles ADD COLUMN position TEXT;
+```
+Texto livre (sem enum), preenchido pelo RH no perfil do colaborador. Será a **única fonte de verdade** para listar cargos.
 
-Cada gráfico vira um componente próprio em `src/components/quality/charts/` para reaproveitamento futuro em Relatórios e PDFs.
+### 2. Catálogo
+```text
+hr_document_catalog
+  - company_id, name, code, description
+  - category (identificacao | saude | seguranca | habilitacao | fiscal | contrato | outro)
+  - is_required (bool, default true)
+  - has_expiry (bool, default false)
+  - default_validity_months (int, nullable)
+  - renewal_warning_days (int, default 30)
+  - responsible_role (hr | direct_manager | both)
+  - applies_to_all (bool, default false)   -- explícito (Observação 2)
+  - is_active (bool, default true)
+```
 
-## Filtros de período — escopo definido
+### 3. Junção catálogo × cargos
+```text
+hr_document_catalog_positions
+  - catalog_id (FK cascade)
+  - position (text)         -- valor que casa com profiles.position
+  - UNIQUE (catalog_id, position)
+```
 
-| Gráfico | Período |
-|---|---|
-| Pareto de RNCs | **Seletor compartilhado** (90d / 6m / 12m / ano corrente) — padrão 12m |
-| Donut de Planos de Ação | **Seletor compartilhado** — padrão 12m |
-| Maturidade da Matriz | **Fixo: situação atual** (snapshot, sem filtro de período) |
-| Tendência de Vencimentos | **Fixo: próximos 12 meses** (olhar para frente, sem filtro) |
+### Regra de aplicabilidade (documentada no banco via comment)
+- `applies_to_all = true` → exigido de todos os colaboradores; tabela de junção é ignorada.
+- `applies_to_all = false` e há linhas em `hr_document_catalog_positions` → exigido somente de colaboradores cujo `profiles.position` está na lista.
+- `applies_to_all = false` e **sem** linhas → catálogo ainda **não configurado**; nenhuma pendência é gerada.
 
-O seletor compartilhado fica no header da seção "Análise visual" e afeta apenas Pareto e Donut.
+Trigger leve garante: se `applies_to_all = true`, apaga linhas órfãs na junção (evita estado inconsistente).
 
-## Os 4 gráficos
+### RLS / GRANTs
+- `SELECT` para `authenticated` da mesma empresa.
+- `INSERT/UPDATE/DELETE` restritos a `hr`, `director`, `super_admin` via `has_role`.
+- GRANTs padrão para `authenticated` e `service_role`.
 
-### 1. Pareto de RNCs por Processo/Origem
-- **Componente:** `NcrParetoChart.tsx`
-- **Tipo:** barras verticais ordenadas por frequência + linha de % acumulado (regra 80/20).
-- **Dados:** `useQualityNCRs()` agrupando por `process_id` (fallback `origin` quando processo não informado). Top 8 categorias, demais agregadas em "Outros".
-- **Interação:** clique numa barra navega para `/quality/ncrs?process=<id>`.
-- **Estado vazio:** "Nenhuma RNC registrada no período selecionado."
+## Front-end
 
-### 2. Status do Plano de Ação — Rosca
-- **Componente:** `ActionPlanStatusDonut.tsx`
-- **Tipo:** donut com 4 fatias: **Concluído / Em andamento / Atrasado / Não iniciado**.
-- **Dados:** `useQualityActionPlans()`. "Atrasado" = `due_date < hoje` e status não concluído. "Não iniciado" = `proposed`/`pending` sem ações iniciadas.
-- **Centro:** total de planos no período. Cores semânticas (verde/azul/vermelho/cinza).
-- **Estado vazio:** "Nenhum plano de ação criado no período selecionado."
+1. **Hook** `src/hooks/useHRDocumentCatalog.ts`
+   - `list`, `create`, `update`, `delete`.
+   - `usePositions()` → `SELECT DISTINCT position FROM profiles WHERE position IS NOT NULL AND company_id = ... ORDER BY position` (única fonte).
 
-### 3. Maturidade da Matriz de Competência
-- **Componente:** `CompetencyGapByDeptChart.tsx`
-- **Tipo:** barras horizontais empilhadas — para cada setor mostra % **Conforme / Gap leve (gap=1) / Gap crítico (gap≥2)**.
-- **Dados:** `useQualityMatrix()` cruzando com departamento do colaborador. **Apenas requisitos mandatórios** (`is_mandatory = true`).
-- **Ordenação:** maior gap crítico no topo.
-- **Estado vazio diferenciado (configuração pendente):**
-  - Quando `mandatoryRows.length === 0`: mensagem **"Nenhum requisito mandatório cadastrado na Matriz de Competências. Acesse Competências → Matriz para configurar."** com botão/link direto para `/quality/competencies/matrix`.
-  - Distinto do estado "sem dados" — é um estado de **setup pendente** com call-to-action.
+2. **Componente** `src/components/hr/DocumentCatalog.tsx`
+   - Tabela: Nome, Categoria, Aplicável a (`"Todos"` quando `applies_to_all`, senão badges dos cargos), Obrigatório, Validade, Alerta (dias), Responsável, Ações.
+   - Filtros: busca, categoria, cargo.
+   - Dialog de criação/edição:
+     - Campos básicos (nome, código, descrição, categoria).
+     - Switch **"Aplicar a todos os cargos"** (mapeia `applies_to_all`); quando ligado, esconde o multi-select de cargos.
+     - Multi-select (Combobox com chips) de cargos vindos do hook `usePositions()`; obrigatório quando `applies_to_all = false`.
+     - Switches `Obrigatório` e `Tem validade`; campo `Validade (meses)` condicional a `has_validade`.
+     - Campo numérico `Alertar (dias antes)`.
+     - Select `Responsável` (RH / Gestor direto / Ambos).
 
-### 4. Tendência de Vencimentos — próximos 12 meses
-- **Componente:** `UpcomingExpirationsTrendChart.tsx`
-- **Tipo:** barras empilhadas mensais (12 colunas), série por categoria:
-  - Revisões de documentos (`useQualityDocuments` → `next_review_date`)
-  - Calibrações de instrumentos (`useQualityDevices` → `next_calibration_due`)
-  - Auditorias planejadas (`useQualityAudits` → `planned_date`)
-  - Reavaliação de fornecedores (`useQualitySuppliers` → `next_evaluation_due`)
-- **Tratamento explícito de nulos:** registros com data nula são **excluídos** da série correspondente. O gráfico exibe apenas as séries que tenham **ao menos 1 registro** na janela de 12 meses. Se nenhuma série tiver dados, exibe estado vazio "Nenhum vencimento programado nos próximos 12 meses."
-- **Destaque visual:** mês com pico (≥ percentil 75 do total) ganha borda em destaque.
+3. **Página de Configurações de RH** (`src/pages/hr/Settings.tsx`)
+   - Nova aba **"Catálogo de Documentos"** ao lado de "Hierarquia".
 
-## Detalhes técnicos
+4. **Cadastro de colaborador** (escopo mínimo desta entrega)
+   - Adicionar input "Cargo" (`profiles.position`) no formulário de edição de colaborador em RH, para que o catálogo tenha cargos para listar.
 
-- **Biblioteca:** Recharts (já instalado), via `ChartContainer` de `src/components/ui/chart.tsx` para herdar tokens.
-- **Cores:** exclusivamente tokens semânticos (`--primary`, `--destructive`, `--warning`, `--success`, `--muted`). Nada hardcoded.
-- **Agregações:** funções puras em `src/lib/qualityChartAggregations.ts`, todas com guards para arrays/datas nulas. Testáveis isoladamente.
-- **Performance:** sem novas queries — reuso de hooks já carregados pela página. Agregações em `useMemo`.
-- **Loading:** skeleton com altura fixa para evitar layout shift.
-- **Acessibilidade:** títulos h3, descrição textual abaixo de cada gráfico (ex: "3 setores concentram 80% das RNCs"), tooltips com aria-label.
+## Fora do escopo
+- Atribuir/gerar pendências automaticamente para colaboradores (Passo 3).
+- Migração dos `onboarding_document_types` legados para o catálogo (depois que o RH validar).
+- Job de alertas de vencimento (vai junto com a infraestrutura de notificações).
 
-## Fora de escopo desta fase
+## Ordem de execução
+1. Migração: `profiles.position` + 2 tabelas + RLS + grants + trigger.
+2. Hook `useHRDocumentCatalog` + `usePositions`.
+3. Componente `DocumentCatalog` + dialog.
+4. Nova aba em `pages/hr/Settings.tsx`.
+5. Input `position` no formulário de edição de colaborador.
 
-- Exportação de gráficos para PNG/PDF (fase 2, junto com Relatórios).
-- Filtros por departamento/responsável.
-- Gráficos dentro das telas internas de Auditorias/RNCs/Indicadores.
-- Novas migrations, views ou RPCs.
-
-## Entregáveis
-
-1. 4 componentes em `src/components/quality/charts/`.
-2. Nova seção "Análise visual" em `Dashboard.tsx` com seletor de período (afeta apenas Pareto e Donut).
-3. Helper `src/lib/qualityChartAggregations.ts` com funções puras de agregação e tratamento explícito de nulos.
+Posso seguir?
