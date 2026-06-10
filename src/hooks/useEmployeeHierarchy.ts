@@ -8,6 +8,7 @@ export interface HierarchyRow {
   full_name: string;
   email: string;
   direct_manager_id: string | null;
+  position: string | null;
   role: string | null;
   department_id: string | null;
   department_name: string | null;
