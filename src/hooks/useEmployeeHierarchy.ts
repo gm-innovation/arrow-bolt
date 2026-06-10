@@ -79,5 +79,23 @@ export const useEmployeeHierarchy = () => {
     },
   });
 
-  return { ...query, updateManager };
+  const updatePosition = useMutation({
+    mutationFn: async ({ employeeId, position }: { employeeId: string; position: string | null }) => {
+      const { error } = await (supabase as any)
+        .from("profiles")
+        .update({ position })
+        .eq("id", employeeId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Cargo atualizado");
+      qc.invalidateQueries({ queryKey: ["employee-hierarchy"] });
+      qc.invalidateQueries({ queryKey: ["hr-positions"] });
+    },
+    onError: (err: any) => {
+      toast.error("Erro ao atualizar cargo", { description: err.message });
+    },
+  });
+
+  return { ...query, updateManager, updatePosition };
 };
