@@ -45,7 +45,7 @@ const HRSettings = () => {
       </div>
 
       <Tabs defaultValue="notifications" storageKey="hr-settings" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             Notificações
@@ -53,6 +53,10 @@ const HRSettings = () => {
           <TabsTrigger value="hierarchy" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Hierarquia
+          </TabsTrigger>
+          <TabsTrigger value="catalog" className="flex items-center gap-2">
+            <BookCheck className="h-4 w-4" />
+            Catálogo
           </TabsTrigger>
           <TabsTrigger value="reports" className="flex items-center gap-2">
             <FileText className="h-4 w-4" />
@@ -66,6 +70,10 @@ const HRSettings = () => {
 
         <TabsContent value="hierarchy" className="space-y-6">
           <HierarchySettings />
+        </TabsContent>
+
+        <TabsContent value="catalog" className="space-y-6">
+          <DocumentCatalog />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-6">
