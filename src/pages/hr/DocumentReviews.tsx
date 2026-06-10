@@ -25,7 +25,7 @@ import {
   usePendingReviews,
   useReviewDocument,
 } from "@/hooks/useHRDocumentCompliance";
-import PDFCanvasViewer from "@/components/ui/PDFCanvasViewer";
+
 
 const isPdf = (name: string) => /\.pdf$/i.test(name);
 const isImage = (name: string) => /\.(png|jpe?g|gif|webp|bmp)$/i.test(name);
