@@ -1,73 +1,54 @@
-# Diagnóstico — Permissões do usuário Qualidade
+# Correções no Módulo de Documentos da Qualidade
 
-Auditoria completa: guards de rota (frontend), itens de sidebar, policies RLS em ~50 tabelas `quality_*` + tabelas corp/profiles, hooks e edge functions.
+## Problemas identificados
 
-**Resumo executivo:** o role `qualidade` tem acesso correto às rotas `/quality/*` e às configurações base do SGQ, mas está **silenciosamente bloqueado por RLS em 4 dos módulos operacionais mais críticos do SGQ** — Homologação, Voz do Cliente (campanhas/convites/respostas/reclamações), Análise Crítica da Direção, e Melhorias. As páginas existem no menu e abrem normalmente, mas devolvem listas vazias ou erro ao gravar, porque as policies dessas tabelas listam `director`, `coordinator`, `super_admin` e esqueceram de incluir `qualidade` (foram criadas antes desse role virar perfil oficial do SGQ). Também faltam dois itens no menu da Qualidade: **Meus Documentos** e **Perfil**.
+1. **Próxima revisão não bate com a publicação** (ex.: publicado 25/06/2026, revisão "20/06/2026" — anterior à publicação). Hoje o campo `next_review_date` é preenchido apenas na criação do documento e nunca recalculado quando uma nova versão é publicada, nem permite edição posterior.
+2. **Documento marcado como "Obsoleto" indevidamente.** O botão "Marcar obsoleto" fica visível e acionável sem confirmação, sem checagem de validade e sem possibilidade de reverter — qualquer clique acidental tornou o documento obsoleto (caso da "Política da Qualidade", com 1 versão e já obsoleto).
+3. **Upload restrito** a `.pdf, .doc, .docx`. Faltam formatos comuns do dia a dia (planilhas, imagens, apresentações, texto).
+4. **Sem campo de edição** para corrigir metadados (próxima revisão, classificação, visibilidade) depois de criado.
 
----
+## O que será feito
 
-## A. Acesso de rota (frontend)
+### 1. Edição de metadados pós-criação
+Adicionar diálogo **"Editar metadados"** no cabeçalho da página de detalhe do documento, acessível para `qualidade`, `director` e `coordinator`. Campos editáveis:
+- Título
+- Classificação (interno/cliente/etc.)
+- **Próxima revisão** (date picker, com validação obrigatória > `published_at`)
+- Referência normativa
+- Visibilidade (restrita/ampliada)
 
-Tudo correto, **exceto um caso**:
+A edição grava em `quality_documents` via `update` do hook existente — sem mudanças de schema.
 
-| Rota | Status |
-|---|---|
-| `/quality/*` (30+ subrotas) | ✅ |
-| `/corp/feed`, `/corp/dashboard`, `/corp/documents`, `/corp/my-documents`, `/corp/university`, `/corp/profile`, `/corp/requests` | ✅ |
-| `/account/settings` | ✅ |
-| **`/corp/reports`** | ❌ Bloqueado por `CorpReportsLayoutRoute` (`['super_admin','hr','director']`) — `src/components/corp/CorpRoute.tsx:78` |
+### 2. Cálculo automático correto da próxima revisão
+- Adicionar setting **`document_review_months`** em `quality_settings.review_cycles` (default: **12 meses**), editável em `/quality/settings`.
+- No fluxo `approveAndPublish` (em `useQualityDocuments.ts`):
+  - Definir `published_at = now()`.
+  - Recalcular `next_review_date = published_at + document_review_months` **sempre**, sobrescrevendo o valor antigo (a menos que o usuário tenha editado manualmente na mesma sessão de publicação — nesse caso, manter o valor manual se for posterior a `published_at`).
+- Garantir uso de `date-fns` (`addMonths` + `format(..., 'yyyy-MM-dd')`) para evitar deslocamento de timezone.
 
-## B. Sidebar (menu lateral do role qualidade)
+### 3. Obsolescência protegida
+- Trocar o botão "Marcar obsoleto" por um `AlertDialog` de confirmação explicando: "Esta ação retira o documento de circulação e marca todas as versões publicadas como obsoletas. Não pode ser desfeita pela interface."
+- Adicionar ação **"Reativar documento"** (visível quando `status='obsolete'`) que volta o documento para `published` e restaura a última versão publicada — apenas para `qualidade`/`director`.
+- Não há job automático que marca obsoleto; o problema relatado veio do clique direto. A confirmação resolve o caso prático.
 
-`src/components/DashboardLayout.tsx:261-344` — itens **faltando** vs outros roles:
+### 4. Upload de arquivos ampliado
+Substituir o `accept=".pdf,.doc,.docx"` por lista que cobre os formatos usados no SGQ:
+- PDF: `.pdf`
+- Word: `.doc, .docx`
+- Excel: `.xls, .xlsx, .csv`
+- PowerPoint: `.ppt, .pptx`
+- Texto: `.txt, .rtf, .odt`
+- Imagens: `.png, .jpg, .jpeg, .webp`
 
-- **Meus Documentos** (link para `/corp/my-documents`) — rota funciona, mas não há item de menu. Colaborador qualidade fica sem acesso visível aos próprios documentos obrigatórios.
-- **Perfil** (link para `/quality/profile`) — a rota está declarada em `App.tsx:472` mas não há entrada no sidebar.
+Validar tamanho máximo (ex.: 50 MB) com toast amigável antes de enviar para o storage.
 
-## C. RLS — restrições indevidas por tabela
+## Arquivos afetados
 
-### 🔴 Críticas (módulo inacessível mesmo com a tela aberta)
+- `src/pages/quality/DocumentDetail.tsx` — botão de editar metadados, AlertDialog de obsoleto, ação de reativar, novo `accept` do input.
+- `src/components/quality/EditDocumentMetadataDialog.tsx` (novo).
+- `src/hooks/useQualityDocuments.ts` — `approveAndPublish` calcula `next_review_date`; novo mutation `reactivate`.
+- `src/hooks/useQualitySettings.ts` — incluir `document_review_months` nos defaults/tipos.
+- `src/pages/quality/Settings.tsx` (ou aba existente) — input para o ciclo de revisão de documentos.
 
-| Tabela | Policies que excluem `qualidade` | Operações afetadas |
-|---|---|---|
-| `quality_homologations` | `Quality leaders can view/insert/update`, `Directors can delete` | SELECT, INSERT, UPDATE, DELETE |
-| `quality_complaints` | `sgq read complaints`, `sgq manage complaints` | SELECT + ALL |
-| `quality_satisfaction_campaigns` | `sgq read campaigns`, `sgq manage campaigns` | SELECT + ALL |
-| `quality_satisfaction_invites` | `sgq manage invites` | ALL |
-| `quality_satisfaction_responses` | `sgq read responses`, `sgq manage responses` | SELECT + ALL |
-| `quality_management_reviews` | `mr_insert/update/delete_director` | INSERT, UPDATE, DELETE (SELECT é por company) |
-| `quality_management_review_participants` | `mrp_insert`, `mrp_delete` | INSERT, DELETE |
-| `quality_management_review_inputs` | `mri_all` | ALL |
-| `quality_management_review_outputs` | `mro_all` | ALL |
-| `quality_improvements_manual` | `qim_select_own_or_privileged`, `qim_update_privileged`, `qim_delete_privileged` | SELECT agregado, UPDATE, DELETE |
-
-Em todas: `director`, `coordinator` e/ou `super_admin` estão listados — `qualidade` foi esquecido.
-
-### 🟡 Possivelmente indevida
-
-- `profiles` — policy `"Privileged roles can view company profiles"` (`super_admin`, `hr`, `admin`, `director`) não inclui `qualidade`. Qualidade depende da view `profiles_public` (id/nome/avatar). Suficiente para listar responsáveis, mas pode faltar email/cargo/departamento em telas como atribuição de auditorias e NCRs.
-
-### ✅ Sem problema (intencional)
-
-`university_*` (gestão = HR), `hr_employee_documents`, `finance_*`, `measurements/*`, `user_roles`, edge functions de gestão de usuários. `notifications.INSERT` já inclui qualidade. Todas as tabelas-base do SGQ (`quality_documents`, `_versions`, `_permissions`, `_settings`, `_org_context`, `_interested_parties`, `_terms`, `_reference_norms`, NCRs, auditorias, riscos, etc.) já incluem `qualidade` corretamente.
-
-## D. Hooks e Edge Functions
-
-Nenhuma checagem client-side de role bloqueando `qualidade`. Os hooks confiam 100% na RLS — por isso o sintoma percebido é "página vazia / botão Salvar dá erro silencioso", em vez de "Acesso negado".
-
----
-
-## E. Plano de correção sugerido (próximo passo, se você aprovar)
-
-Quando você aprovar este diagnóstico, eu preparo **uma única migration** que:
-
-1. Adiciona `has_role(auth.uid(), 'qualidade')` (em `OR` com os roles existentes) nas 17 policies listadas em C.🔴, mantendo todas as outras condições (company_id, etc.) intactas.
-2. Adiciona `'qualidade'` à policy `"Privileged roles can view company profiles"` em `profiles`.
-3. Inclui `'qualidade'` em `CorpReportsLayoutRoute` (frontend, `src/components/corp/CorpRoute.tsx:78`).
-4. Adiciona ao `qualidadeMenuItems` em `DashboardLayout.tsx`:
-   - "Meus Documentos" → `/corp/my-documents` (ícone `FileText`)
-   - "Perfil" → `/quality/profile` (ícone `User`)
-
-Sem mudar nenhuma policy onde `qualidade` já está, sem afetar outros roles, sem schema/migrations de dados.
-
-Quer que eu siga com essa correção, ou prefere recortar (ex: só o RLS, deixar sidebar pra depois)?
+## Fora de escopo (registrar para próxima rodada)
+O usuário mencionou "várias outras coisas". Após estas correções, levantar lista completa com a Qualidade (ex.: cópias controladas, watermarks, fluxo de aprovação multi-aprovador, exportação) e tratar em onda seguinte.

@@ -21,6 +21,8 @@ import {
   BadgeCheck,
   AlertTriangle,
   BookMarked,
+  Pencil,
+  RotateCcw,
 } from "lucide-react";
 import { useQualityDocument } from "@/hooks/useQualityDocuments";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
@@ -43,6 +45,17 @@ import { logQualityDocumentAccess } from "@/lib/qualityAccessLog";
 import { useDocumentPerms } from "@/hooks/useDocumentPerms";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import EditDocumentMetadataDialog from "@/components/quality/EditDocumentMetadataDialog";
 
 const statusLabel: Record<string, string> = {
   draft: "Rascunho",
@@ -59,7 +72,7 @@ const QualityDocumentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete } =
+  const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete, reactivate } =
     useQualityDocument(id);
   const { signature, registerSignatureEvent } = useQualitySignature();
   const { expiredNorms } = useQualityDocumentNorms(id);
@@ -71,6 +84,8 @@ const QualityDocumentDetail = () => {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [fileBlob, setFileBlob] = useState<Blob | null>(null);
   const [showViewer, setShowViewer] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
 
   const activeVersion = versions[0] || null;
   const publishedVersion = useMemo(
@@ -422,9 +437,17 @@ const QualityDocumentDetail = () => {
                     <CheckCircle2 className="h-4 w-4 mr-2" /> Aprovar e Publicar
                   </Button>
                 )}
+                <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+                  <Pencil className="h-4 w-4 mr-2" /> Editar metadados
+                </Button>
                 {document.status === "published" && (
-                  <Button variant="destructive" onClick={() => markObsolete.mutate()}>
+                  <Button variant="destructive" onClick={() => setShowObsoleteConfirm(true)}>
                     <Archive className="h-4 w-4 mr-2" /> Marcar obsoleto
+                  </Button>
+                )}
+                {document.status === "obsolete" && (
+                  <Button variant="outline" onClick={() => reactivate.mutate()} disabled={reactivate.isPending}>
+                    <RotateCcw className="h-4 w-4 mr-2" /> Reativar documento
                   </Button>
                 )}
               </div>
@@ -514,9 +537,9 @@ const QualityDocumentDetail = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Ou: anexar arquivo (Word/PDF)</CardTitle>
+                <CardTitle className="text-base">Ou: anexar arquivo</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Use o upload quando o documento já existir fora do sistema. O Arrow controla versão, expiração, permissões e cópias da mesma forma.
+                  Aceita PDF, Word, Excel, PowerPoint, imagens e texto. Tamanho máximo: 50&nbsp;MB.
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -527,9 +550,21 @@ const QualityDocumentDetail = () => {
                   </Button>
                   <input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.odt,.png,.jpg,.jpeg,.webp"
                     className="opacity-0 absolute inset-0 cursor-pointer"
-                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      if (f && f.size > 50 * 1024 * 1024) {
+                        toast({
+                          title: "Arquivo muito grande",
+                          description: "O tamanho máximo é 50 MB.",
+                          variant: "destructive",
+                        });
+                        e.target.value = "";
+                        return;
+                      }
+                      setUploadFile(f);
+                    }}
                   />
                 </div>
                 <Button onClick={() => createDraftVersion("file")} disabled={!uploadFile || createVersion.isPending}>
@@ -618,6 +653,31 @@ const QualityDocumentDetail = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        <EditDocumentMetadataDialog open={showEdit} onOpenChange={setShowEdit} document={document} />
+
+        <AlertDialog open={showObsoleteConfirm} onOpenChange={setShowObsoleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Marcar documento como obsoleto?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação retira o documento de circulação e marca todas as versões publicadas como obsoletas.
+                Você poderá reativá-lo depois usando o botão "Reativar documento".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  markObsolete.mutate();
+                  setShowObsoleteConfirm(false);
+                }}
+              >
+                Marcar obsoleto
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );

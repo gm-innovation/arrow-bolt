@@ -248,7 +248,8 @@ export const useQualityDocument = (id: string | undefined) => {
 
   const approveAndPublish = useMutation({
     mutationFn: async (input: { versionId: string; signatureEventId?: string | null }) => {
-      const now = new Date().toISOString();
+      const nowDate = new Date();
+      const now = nowDate.toISOString();
       // grava aprovação
       const { error: aErr } = await supabase.from("quality_document_approvals").insert({
         version_id: input.versionId,
@@ -273,10 +274,39 @@ export const useQualityDocument = (id: string | undefined) => {
         .eq("id", input.versionId);
       if (vErr) throw vErr;
 
+      // calcula próxima revisão a partir do ciclo configurado
+      let nextReviewDate: string | null = null;
+      try {
+        if (data?.company_id) {
+          const { data: settings } = await supabase
+            .from("quality_settings" as any)
+            .select("review_cycles")
+            .eq("company_id", data.company_id)
+            .maybeSingle();
+          const months =
+            Number((settings as any)?.review_cycles?.document_review_months) || 12;
+          const nxt = new Date(nowDate);
+          nxt.setMonth(nxt.getMonth() + months);
+          const yyyy = nxt.getFullYear();
+          const mm = String(nxt.getMonth() + 1).padStart(2, "0");
+          const dd = String(nxt.getDate()).padStart(2, "0");
+          nextReviewDate = `${yyyy}-${mm}-${dd}`;
+        }
+      } catch (e) {
+        console.warn("[quality] could not compute next_review_date", e);
+      }
+
       // documento publicado, current_version aponta
+      const updatePayload: any = {
+        status: "published",
+        current_version_id: input.versionId,
+        published_at: now,
+        obsolete_at: null,
+      };
+      if (nextReviewDate) updatePayload.next_review_date = nextReviewDate;
       const { error: dErr } = await supabase
         .from("quality_documents")
-        .update({ status: "published", current_version_id: input.versionId, published_at: now })
+        .update(updatePayload)
         .eq("id", id!);
       if (dErr) throw dErr;
 
@@ -329,5 +359,39 @@ export const useQualityDocument = (id: string | undefined) => {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  return { document: data, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete };
+  const reactivate = useMutation({
+    mutationFn: async () => {
+      // pega a versão mais recente para ser current
+      const { data: lastVersion } = await supabase
+        .from("quality_document_versions")
+        .select("id")
+        .eq("document_id", id!)
+        .order("revision_number", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!lastVersion) throw new Error("Documento não possui versões para reativar.");
+      // restaura a versão como publicada
+      await supabase
+        .from("quality_document_versions")
+        .update({ status: "published" })
+        .eq("id", lastVersion.id);
+      // restaura documento
+      await supabase
+        .from("quality_documents")
+        .update({
+          status: "published",
+          obsolete_at: null,
+          current_version_id: lastVersion.id,
+        })
+        .eq("id", id!);
+    },
+    onSuccess: () => {
+      invalidate();
+      toast({ title: "Documento reativado" });
+    },
+    onError: (e: any) => toast({ title: "Erro ao reativar", description: e.message, variant: "destructive" }),
+  });
+
+  return { document: data, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete, reactivate };
 };
+

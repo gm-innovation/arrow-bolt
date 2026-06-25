@@ -29,6 +29,7 @@ const QualitySettings = () => {
     org_context_months: 12,
     interested_parties_months: 12,
     critical_review_months: 12,
+    document_review_months: 12,
     alert_window_days: 30,
   });
 
@@ -228,6 +229,20 @@ const QualitySettings = () => {
                       setCyclesForm({ ...cyclesForm, critical_review_months: Number(e.target.value) || 0 })
                     }
                   />
+                </div>
+                <div className="space-y-1">
+                  <Label>Revisão de Documentos do GED (meses)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={cyclesForm.document_review_months}
+                    onChange={(e) =>
+                      setCyclesForm({ ...cyclesForm, document_review_months: Number(e.target.value) || 0 })
+                    }
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Usado para calcular a "Próxima revisão" automaticamente ao publicar uma nova versão.
+                  </p>
                 </div>
                 <div className="space-y-1">
                   <Label>Janela de alerta antes do vencimento (dias)</Label>
