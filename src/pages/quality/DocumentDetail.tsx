@@ -537,9 +537,9 @@ const QualityDocumentDetail = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Ou: anexar arquivo (Word/PDF)</CardTitle>
+                <CardTitle className="text-base">Ou: anexar arquivo</CardTitle>
                 <p className="text-sm text-muted-foreground">
-                  Use o upload quando o documento já existir fora do sistema. O Arrow controla versão, expiração, permissões e cópias da mesma forma.
+                  Aceita PDF, Word, Excel, PowerPoint, imagens e texto. Tamanho máximo: 50&nbsp;MB.
                 </p>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -550,9 +550,21 @@ const QualityDocumentDetail = () => {
                   </Button>
                   <input
                     type="file"
-                    accept=".pdf,.doc,.docx"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.ppt,.pptx,.txt,.rtf,.odt,.png,.jpg,.jpeg,.webp"
                     className="opacity-0 absolute inset-0 cursor-pointer"
-                    onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      if (f && f.size > 50 * 1024 * 1024) {
+                        toast({
+                          title: "Arquivo muito grande",
+                          description: "O tamanho máximo é 50 MB.",
+                          variant: "destructive",
+                        });
+                        e.target.value = "";
+                        return;
+                      }
+                      setUploadFile(f);
+                    }}
                   />
                 </div>
                 <Button onClick={() => createDraftVersion("file")} disabled={!uploadFile || createVersion.isPending}>
@@ -641,6 +653,31 @@ const QualityDocumentDetail = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        <EditDocumentMetadataDialog open={showEdit} onOpenChange={setShowEdit} document={document} />
+
+        <AlertDialog open={showObsoleteConfirm} onOpenChange={setShowObsoleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Marcar documento como obsoleto?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação retira o documento de circulação e marca todas as versões publicadas como obsoletas.
+                Você poderá reativá-lo depois usando o botão "Reativar documento".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  markObsolete.mutate();
+                  setShowObsoleteConfirm(false);
+                }}
+              >
+                Marcar obsoleto
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );
