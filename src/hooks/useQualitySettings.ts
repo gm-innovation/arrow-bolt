@@ -7,6 +7,7 @@ export interface QualityReviewCycles {
   org_context_months: number;
   interested_parties_months: number;
   critical_review_months: number;
+  document_review_months: number;
   alert_window_days: number;
 }
 
@@ -45,6 +46,7 @@ const DEFAULTS: QualityReviewCycles = {
   org_context_months: 12,
   interested_parties_months: 12,
   critical_review_months: 12,
+  document_review_months: 12,
   alert_window_days: 30,
 };
 
