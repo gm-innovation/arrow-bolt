@@ -21,6 +21,8 @@ import {
   BadgeCheck,
   AlertTriangle,
   BookMarked,
+  Pencil,
+  RotateCcw,
 } from "lucide-react";
 import { useQualityDocument } from "@/hooks/useQualityDocuments";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
