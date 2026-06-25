@@ -75,7 +75,7 @@ const ALL_CORP_ROLES = ['coordinator', 'super_admin', 'manager', 'technician', '
 
 export const CorpLayoutRoute = () => <CorpShell allowedRoles={ALL_CORP_ROLES} />;
 export const CorpAdminLayoutRoute = () => <CorpShell allowedRoles={['super_admin']} />;
-export const CorpReportsLayoutRoute = () => <CorpShell allowedRoles={['super_admin', 'hr', 'director']} />;
+export const CorpReportsLayoutRoute = () => <CorpShell allowedRoles={['super_admin', 'hr', 'director', 'qualidade']} />;
 
 // Back-compat wrappers (still used by lazy imports elsewhere). They render
 // the same shell but pass children directly, so existing routes keep working

@@ -51,6 +51,7 @@ import {
   BadgeCheck,
   Megaphone,
   FileCheck,
+  User,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -341,6 +342,8 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
+    { title: "Meus Documentos", icon: FileText, path: "/corp/my-documents" },
+    { title: "Perfil", icon: User, path: "/quality/profile" },
   ];
 
   const financeiroMenuItems = [
