@@ -437,9 +437,17 @@ const QualityDocumentDetail = () => {
                     <CheckCircle2 className="h-4 w-4 mr-2" /> Aprovar e Publicar
                   </Button>
                 )}
+                <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
+                  <Pencil className="h-4 w-4 mr-2" /> Editar metadados
+                </Button>
                 {document.status === "published" && (
-                  <Button variant="destructive" onClick={() => markObsolete.mutate()}>
+                  <Button variant="destructive" onClick={() => setShowObsoleteConfirm(true)}>
                     <Archive className="h-4 w-4 mr-2" /> Marcar obsoleto
+                  </Button>
+                )}
+                {document.status === "obsolete" && (
+                  <Button variant="outline" onClick={() => reactivate.mutate()} disabled={reactivate.isPending}>
+                    <RotateCcw className="h-4 w-4 mr-2" /> Reativar documento
                   </Button>
                 )}
               </div>
