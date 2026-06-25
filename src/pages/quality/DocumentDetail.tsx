@@ -45,6 +45,17 @@ import { logQualityDocumentAccess } from "@/lib/qualityAccessLog";
 import { useDocumentPerms } from "@/hooks/useDocumentPerms";
 import { toast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import EditDocumentMetadataDialog from "@/components/quality/EditDocumentMetadataDialog";
 
 const statusLabel: Record<string, string> = {
   draft: "Rascunho",
@@ -61,7 +72,7 @@ const QualityDocumentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete } =
+  const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete, reactivate } =
     useQualityDocument(id);
   const { signature, registerSignatureEvent } = useQualitySignature();
   const { expiredNorms } = useQualityDocumentNorms(id);
@@ -73,6 +84,8 @@ const QualityDocumentDetail = () => {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [fileBlob, setFileBlob] = useState<Blob | null>(null);
   const [showViewer, setShowViewer] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
 
   const activeVersion = versions[0] || null;
   const publishedVersion = useMemo(
