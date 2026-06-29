@@ -349,9 +349,22 @@ export const useQualityDocument = (id: string | undefined) => {
   });
 
   const markObsolete = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (input: { reason: string }) => {
+      const reason = (input?.reason ?? "").trim();
+      if (reason.length < 10) {
+        throw new Error("Informe um motivo com pelo menos 10 caracteres.");
+      }
       const now = new Date().toISOString();
-      await supabase.from("quality_documents").update({ status: "obsolete", obsolete_at: now }).eq("id", id!);
+      const { error: dErr } = await supabase
+        .from("quality_documents")
+        .update({
+          status: "obsolete",
+          obsolete_at: now,
+          obsolete_by: user!.id,
+          obsolete_reason: reason,
+        } as any)
+        .eq("id", id!);
+      if (dErr) throw dErr;
       await supabase
         .from("quality_document_versions")
         .update({ status: "obsolete" })

@@ -1,48 +1,52 @@
-# Correção da edição de metadados do GED
+## Contexto
 
-## Diagnóstico
+Investiguei o documento `001 – pr teste`. Ele está obsoleto porque alguém clicou em **"Marcar como obsoleto"** em 26/06/2026 12:53 — não há automação fazendo isso e a `next_review_date` (25/06/2027) ainda está válida. Hoje a ação é um clique simples, sem registro de quem fez, sem motivo e sem restrição de role.
 
-**1. "Não está salvando / não aplica as alterações"**
-O `update.mutateAsync` em `useQualityDocuments.ts` invalida apenas a query da lista (`["quality_documents"]`). A página `DocumentDetail.tsx` lê de `useQualityDocument(id)`, cuja chave é `["quality_document", id]` — essa query **nunca é invalidada**, então o React Query devolve o cache antigo e a UI continua mostrando a data anterior (mesmo com o toast "Metadados atualizados" — o banco foi atualizado, só a tela não recarregou).
+## O que vou implementar
 
-**2. "Não aplicou ao que já foi criado"**
-A correção do `approveAndPublish` calcula `next_review_date` somente em publicações novas. Documentos já publicados (como a "Política da Qualidade" com data 20/06/2026) mantêm o valor antigo. Hoje só dá para corrigir um a um pelo diálogo de edição — que está com o bug acima e por isso parece "não funcionar".
+### 1. Banco — log de auditoria + motivo
 
-## O que será feito
+Migration:
 
-### 1. Corrigir invalidação de cache no `update`
-Em `src/hooks/useQualityDocuments.ts`, ajustar o `onSuccess` da mutation `update` para invalidar também a query do detalhe:
+- Adicionar em `quality_documents`:
+  - `obsolete_by uuid` (referência ao usuário que marcou)
+  - `obsolete_reason text`
+- Nova tabela `quality_document_status_log` (histórico de transições):
+  - `document_id`, `from_status`, `to_status`, `reason`, `changed_by`, `created_at`
+  - GRANT `SELECT, INSERT` para `authenticated`, `ALL` para `service_role`
+  - RLS: leitura para quem já enxerga o documento (via `quality_doc_user_can_view`); inserção apenas pelo próprio usuário (`changed_by = auth.uid()`)
+- Trigger `AFTER UPDATE OF status` em `quality_documents` que insere automaticamente uma linha em `quality_document_status_log` sempre que o status muda, capturando `obsolete_reason` quando a transição vai para `obsolete`.
 
-```ts
-onSuccess: (data) => {
-  qc.invalidateQueries({ queryKey: ["quality_documents"] });
-  if (data?.id) qc.invalidateQueries({ queryKey: ["quality_document", data.id] });
-}
+### 2. Restrição de role (servidor)
+
+Na mesma migration, ajustar a policy de UPDATE de `quality_documents` para que transições para `obsolete` só sejam permitidas quando `has_role(auth.uid(),'qualidade')` OR `has_role(auth.uid(),'director')` OR `has_role(auth.uid(),'super_admin')`. Demais updates seguem a política atual. Isso garante a regra mesmo se a UI for contornada.
+
+### 3. Frontend — diálogo com motivo obrigatório
+
+- `src/pages/quality/DocumentDetail.tsx`: substituir o `AlertDialog` atual de confirmação por um `Dialog` com `Textarea` de **Motivo (obrigatório, mín. 10 caracteres)**. Botão desabilitado até preencher.
+- `src/hooks/useQualityDocuments.ts`: `markObsolete` passa a aceitar `{ reason: string }` e gravar `obsolete_reason` + `obsolete_by = user.id` na mesma update. Só exibir o botão "Marcar como obsoleto" se `role ∈ {qualidade, director, super_admin}`.
+- Aba **Histórico** (`DocumentHistoryTimeline.tsx`): exibir as entradas de `quality_document_status_log` (quem mudou, de/para, motivo, data) intercaladas com os eventos atuais.
+
+### 4. Este documento específico
+
+Não vou reativar automaticamente — você pediu para não reativar agora. O botão **"Reativar documento"** continua disponível na tela quando você quiser.
+
+## Detalhes técnicos
+
+```text
+quality_documents
+  + obsolete_by         uuid
+  + obsolete_reason     text
+
+quality_document_status_log
+  id, document_id, from_status, to_status,
+  reason, changed_by, created_at
 ```
 
-Mesmo tratamento para `markObsolete` e `reactivate` (já invalidam via `invalidate()` interno — confirmar). Resultado: ao salvar metadados, a página atualiza imediatamente.
+Roles permitidos para marcar obsoleto: `qualidade`, `director`, `super_admin` (alinhado com o padrão do SGQ — coordenadores e gestores deixam de ter essa capacidade).
 
-### 2. Botão "Recalcular próxima revisão" no detalhe
-Em `DocumentDetail.tsx`, ao lado do botão "Editar metadados", adicionar ação **"Recalcular próxima revisão"** (visível apenas para `qualidade`/`director`/`coordinator` e quando o documento estiver `published`). Comportamento:
+## Fora do escopo
 
-- Lê `document_review_months` de `quality_settings` (default 12).
-- Calcula `published_at + N meses` usando `addMonths` do `date-fns` e `format(..., 'yyyy-MM-dd')` (evita drift de timezone — regra do projeto).
-- Chama o `update` com o novo `next_review_date`.
-- Mostra confirmação no toast com a nova data.
-
-Isso destrava a correção retroativa dos documentos já publicados sem precisar editar manualmente.
-
-### 3. Pequenos ajustes no diálogo de edição
-- Usar `addMonths`/`date-fns` em vez de manipulação manual de `Date` (consistência com a regra de timezone).
-- Garantir `aria-describedby` no `DialogContent` (warning atual no console).
-- Após salvar, o diálogo já fecha; com a correção do cache, o card de "Próxima revisão" reflete o novo valor sem refresh.
-
-## Arquivos afetados
-
-- `src/hooks/useQualityDocuments.ts` — invalidação correta no `update` (e revisar `markObsolete`/`reactivate`).
-- `src/pages/quality/DocumentDetail.tsx` — botão "Recalcular próxima revisão".
-- `src/components/quality/EditDocumentMetadataDialog.tsx` — ajuste menor de acessibilidade.
-
-## Fora de escopo
-
-- Migração em massa recalculando `next_review_date` de todos os documentos publicados de uma vez. Pode ser feita depois se a Qualidade preferir um botão "Recalcular todos" em `/quality/settings` — me avise se quiser incluir.
+- Reativação automática do `pr teste`.
+- Notificações in-app/e-mail ao marcar obsoleto (posso adicionar depois se quiser).
+- Workflow de aprovação dupla para obsolescência.

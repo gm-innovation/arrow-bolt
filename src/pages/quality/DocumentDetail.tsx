@@ -42,6 +42,7 @@ import { PDFCanvasViewer } from "@/components/ui/PDFCanvasViewer";
 import { pdf } from "@react-pdf/renderer";
 import { QualityDocumentPDF } from "@/components/quality/QualityDocumentPDF";
 import { useAuth } from "@/contexts/AuthContext";
+import { Textarea } from "@/components/ui/textarea";
 import { logQualityDocumentAccess } from "@/lib/qualityAccessLog";
 import { useDocumentPerms } from "@/hooks/useDocumentPerms";
 import { toast } from "@/hooks/use-toast";
@@ -72,7 +73,8 @@ const sanitize = (n: string) =>
 const QualityDocumentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
+  const canMarkObsolete = userRole === "qualidade" || userRole === "super_admin";
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete, reactivate } =
     useQualityDocument(id);
   const { update } = useQualityDocuments();
@@ -88,6 +90,7 @@ const QualityDocumentDetail = () => {
   const [showViewer, setShowViewer] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
+  const [obsoleteReason, setObsoleteReason] = useState("");
 
   const activeVersion = versions[0] || null;
   const publishedVersion = useMemo(
@@ -478,7 +481,7 @@ const QualityDocumentDetail = () => {
                     <RotateCcw className="h-4 w-4 mr-2" /> Recalcular próxima revisão
                   </Button>
                 )}
-                {document.status === "published" && (
+                {document.status === "published" && canMarkObsolete && (
                   <Button variant="destructive" onClick={() => setShowObsoleteConfirm(true)}>
                     <Archive className="h-4 w-4 mr-2" /> Marcar obsoleto
                   </Button>
@@ -617,7 +620,7 @@ const QualityDocumentDetail = () => {
           </TabsContent>
 
           <TabsContent value="history">
-            <DocumentHistoryTimeline versions={versions} />
+            <DocumentHistoryTimeline versions={versions} documentId={document.id} />
           </TabsContent>
 
 
@@ -694,21 +697,37 @@ const QualityDocumentDetail = () => {
 
         <EditDocumentMetadataDialog open={showEdit} onOpenChange={setShowEdit} document={document} />
 
-        <AlertDialog open={showObsoleteConfirm} onOpenChange={setShowObsoleteConfirm}>
+        <AlertDialog open={showObsoleteConfirm} onOpenChange={(o) => { setShowObsoleteConfirm(o); if (!o) setObsoleteReason(""); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Marcar documento como obsoleto?</AlertDialogTitle>
               <AlertDialogDescription>
                 Esta ação retira o documento de circulação e marca todas as versões publicadas como obsoletas.
-                Você poderá reativá-lo depois usando o botão "Reativar documento".
+                A ação será registrada no histórico do documento com o motivo informado.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <div className="space-y-2 py-2">
+              <label className="text-sm font-medium">Motivo da obsolescência *</label>
+              <Textarea
+                value={obsoleteReason}
+                onChange={(e) => setObsoleteReason(e.target.value)}
+                placeholder="Ex.: substituído pela revisão 3.0, ajuste normativo, processo descontinuado..."
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">Mínimo de 10 caracteres.</p>
+            </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => {
-                  markObsolete.mutate();
+                disabled={obsoleteReason.trim().length < 10 || markObsolete.isPending}
+                onClick={(e) => {
+                  if (obsoleteReason.trim().length < 10) {
+                    e.preventDefault();
+                    return;
+                  }
+                  markObsolete.mutate({ reason: obsoleteReason.trim() });
                   setShowObsoleteConfirm(false);
+                  setObsoleteReason("");
                 }}
               >
                 Marcar obsoleto
