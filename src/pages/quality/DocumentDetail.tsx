@@ -24,7 +24,8 @@ import {
   Pencil,
   RotateCcw,
 } from "lucide-react";
-import { useQualityDocument } from "@/hooks/useQualityDocuments";
+import { useQualityDocument, useQualityDocuments } from "@/hooks/useQualityDocuments";
+import { addMonths } from "date-fns";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
 import { useQualityDocumentNorms } from "@/hooks/useQualityDocumentNorms";
 import DocumentNormsPanel from "@/components/quality/documents/DocumentNormsPanel";
