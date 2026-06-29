@@ -620,7 +620,7 @@ const QualityDocumentDetail = () => {
           </TabsContent>
 
           <TabsContent value="history">
-            <DocumentHistoryTimeline versions={versions} />
+            <DocumentHistoryTimeline versions={versions} documentId={document.id} />
           </TabsContent>
 
 
