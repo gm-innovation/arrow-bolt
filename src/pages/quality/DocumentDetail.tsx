@@ -697,21 +697,37 @@ const QualityDocumentDetail = () => {
 
         <EditDocumentMetadataDialog open={showEdit} onOpenChange={setShowEdit} document={document} />
 
-        <AlertDialog open={showObsoleteConfirm} onOpenChange={setShowObsoleteConfirm}>
+        <AlertDialog open={showObsoleteConfirm} onOpenChange={(o) => { setShowObsoleteConfirm(o); if (!o) setObsoleteReason(""); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Marcar documento como obsoleto?</AlertDialogTitle>
               <AlertDialogDescription>
                 Esta ação retira o documento de circulação e marca todas as versões publicadas como obsoletas.
-                Você poderá reativá-lo depois usando o botão "Reativar documento".
+                A ação será registrada no histórico do documento com o motivo informado.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <div className="space-y-2 py-2">
+              <label className="text-sm font-medium">Motivo da obsolescência *</label>
+              <Textarea
+                value={obsoleteReason}
+                onChange={(e) => setObsoleteReason(e.target.value)}
+                placeholder="Ex.: substituído pela revisão 3.0, ajuste normativo, processo descontinuado..."
+                rows={4}
+              />
+              <p className="text-xs text-muted-foreground">Mínimo de 10 caracteres.</p>
+            </div>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => {
-                  markObsolete.mutate();
+                disabled={obsoleteReason.trim().length < 10 || markObsolete.isPending}
+                onClick={(e) => {
+                  if (obsoleteReason.trim().length < 10) {
+                    e.preventDefault();
+                    return;
+                  }
+                  markObsolete.mutate({ reason: obsoleteReason.trim() });
                   setShowObsoleteConfirm(false);
+                  setObsoleteReason("");
                 }}
               >
                 Marcar obsoleto
