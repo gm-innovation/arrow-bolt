@@ -70,6 +70,9 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar metadados do documento</DialogTitle>
+          <DialogDescription>
+            Atualize título, classificação, referência normativa, próxima revisão e visibilidade.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">
