@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -70,6 +70,9 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Editar metadados do documento</DialogTitle>
+          <DialogDescription>
+            Atualize título, classificação, referência normativa, próxima revisão e visibilidade.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="space-y-1">

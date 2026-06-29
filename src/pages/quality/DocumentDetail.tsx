@@ -24,7 +24,8 @@ import {
   Pencil,
   RotateCcw,
 } from "lucide-react";
-import { useQualityDocument } from "@/hooks/useQualityDocuments";
+import { useQualityDocument, useQualityDocuments } from "@/hooks/useQualityDocuments";
+import { addMonths } from "date-fns";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
 import { useQualityDocumentNorms } from "@/hooks/useQualityDocumentNorms";
 import DocumentNormsPanel from "@/components/quality/documents/DocumentNormsPanel";
@@ -74,6 +75,7 @@ const QualityDocumentDetail = () => {
   const { user } = useAuth();
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete, reactivate } =
     useQualityDocument(id);
+  const { update } = useQualityDocuments();
   const { signature, registerSignatureEvent } = useQualitySignature();
   const { expiredNorms } = useQualityDocumentNorms(id);
   const { perms } = useDocumentPerms(id);
@@ -118,6 +120,32 @@ const QualityDocumentDetail = () => {
   if (isLoading || !document) {
     return <p className="text-muted-foreground text-center py-12">Carregando documento...</p>;
   }
+
+  const recalcNextReview = async () => {
+    if (!document?.published_at) {
+      toast({ title: "Documento ainda não publicado", variant: "destructive" });
+      return;
+    }
+    let months = 12;
+    try {
+      const { data: settings } = await supabase
+        .from("quality_settings" as any)
+        .select("review_cycles")
+        .eq("company_id", document.company_id)
+        .maybeSingle();
+      const m = Number((settings as any)?.review_cycles?.document_review_months);
+      if (m > 0) months = m;
+    } catch (e) {
+      console.warn("[quality] could not read review_cycles", e);
+    }
+    const next = addMonths(parseISO(document.published_at), months);
+    const yyyy = next.getFullYear();
+    const mm = String(next.getMonth() + 1).padStart(2, "0");
+    const dd = String(next.getDate()).padStart(2, "0");
+    const nextStr = `${yyyy}-${mm}-${dd}`;
+    await update.mutateAsync({ id: document.id, next_review_date: nextStr } as any);
+    toast({ title: "Próxima revisão recalculada", description: format(next, "dd/MM/yyyy") });
+  };
 
   const createDraftVersion = async (kind: "rich_text" | "file") => {
     if (kind === "rich_text") {
@@ -440,6 +468,16 @@ const QualityDocumentDetail = () => {
                 <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
                   <Pencil className="h-4 w-4 mr-2" /> Editar metadados
                 </Button>
+                {document.status === "published" && document.published_at && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={recalcNextReview}
+                    disabled={update.isPending}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" /> Recalcular próxima revisão
+                  </Button>
+                )}
                 {document.status === "published" && (
                   <Button variant="destructive" onClick={() => setShowObsoleteConfirm(true)}>
                     <Archive className="h-4 w-4 mr-2" /> Marcar obsoleto

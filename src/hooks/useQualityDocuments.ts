@@ -106,7 +106,13 @@ export const useQualityDocuments = () => {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["quality_documents"] }),
+    onSuccess: (data: any) => {
+      qc.invalidateQueries({ queryKey: ["quality_documents"] });
+      if (data?.id) {
+        qc.invalidateQueries({ queryKey: ["quality_document", data.id] });
+        qc.invalidateQueries({ queryKey: ["quality_document_versions", data.id] });
+      }
+    },
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 

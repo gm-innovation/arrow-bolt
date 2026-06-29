@@ -1,54 +1,48 @@
-# Correções no Módulo de Documentos da Qualidade
+# Correção da edição de metadados do GED
 
-## Problemas identificados
+## Diagnóstico
 
-1. **Próxima revisão não bate com a publicação** (ex.: publicado 25/06/2026, revisão "20/06/2026" — anterior à publicação). Hoje o campo `next_review_date` é preenchido apenas na criação do documento e nunca recalculado quando uma nova versão é publicada, nem permite edição posterior.
-2. **Documento marcado como "Obsoleto" indevidamente.** O botão "Marcar obsoleto" fica visível e acionável sem confirmação, sem checagem de validade e sem possibilidade de reverter — qualquer clique acidental tornou o documento obsoleto (caso da "Política da Qualidade", com 1 versão e já obsoleto).
-3. **Upload restrito** a `.pdf, .doc, .docx`. Faltam formatos comuns do dia a dia (planilhas, imagens, apresentações, texto).
-4. **Sem campo de edição** para corrigir metadados (próxima revisão, classificação, visibilidade) depois de criado.
+**1. "Não está salvando / não aplica as alterações"**
+O `update.mutateAsync` em `useQualityDocuments.ts` invalida apenas a query da lista (`["quality_documents"]`). A página `DocumentDetail.tsx` lê de `useQualityDocument(id)`, cuja chave é `["quality_document", id]` — essa query **nunca é invalidada**, então o React Query devolve o cache antigo e a UI continua mostrando a data anterior (mesmo com o toast "Metadados atualizados" — o banco foi atualizado, só a tela não recarregou).
+
+**2. "Não aplicou ao que já foi criado"**
+A correção do `approveAndPublish` calcula `next_review_date` somente em publicações novas. Documentos já publicados (como a "Política da Qualidade" com data 20/06/2026) mantêm o valor antigo. Hoje só dá para corrigir um a um pelo diálogo de edição — que está com o bug acima e por isso parece "não funcionar".
 
 ## O que será feito
 
-### 1. Edição de metadados pós-criação
-Adicionar diálogo **"Editar metadados"** no cabeçalho da página de detalhe do documento, acessível para `qualidade`, `director` e `coordinator`. Campos editáveis:
-- Título
-- Classificação (interno/cliente/etc.)
-- **Próxima revisão** (date picker, com validação obrigatória > `published_at`)
-- Referência normativa
-- Visibilidade (restrita/ampliada)
+### 1. Corrigir invalidação de cache no `update`
+Em `src/hooks/useQualityDocuments.ts`, ajustar o `onSuccess` da mutation `update` para invalidar também a query do detalhe:
 
-A edição grava em `quality_documents` via `update` do hook existente — sem mudanças de schema.
+```ts
+onSuccess: (data) => {
+  qc.invalidateQueries({ queryKey: ["quality_documents"] });
+  if (data?.id) qc.invalidateQueries({ queryKey: ["quality_document", data.id] });
+}
+```
 
-### 2. Cálculo automático correto da próxima revisão
-- Adicionar setting **`document_review_months`** em `quality_settings.review_cycles` (default: **12 meses**), editável em `/quality/settings`.
-- No fluxo `approveAndPublish` (em `useQualityDocuments.ts`):
-  - Definir `published_at = now()`.
-  - Recalcular `next_review_date = published_at + document_review_months` **sempre**, sobrescrevendo o valor antigo (a menos que o usuário tenha editado manualmente na mesma sessão de publicação — nesse caso, manter o valor manual se for posterior a `published_at`).
-- Garantir uso de `date-fns` (`addMonths` + `format(..., 'yyyy-MM-dd')`) para evitar deslocamento de timezone.
+Mesmo tratamento para `markObsolete` e `reactivate` (já invalidam via `invalidate()` interno — confirmar). Resultado: ao salvar metadados, a página atualiza imediatamente.
 
-### 3. Obsolescência protegida
-- Trocar o botão "Marcar obsoleto" por um `AlertDialog` de confirmação explicando: "Esta ação retira o documento de circulação e marca todas as versões publicadas como obsoletas. Não pode ser desfeita pela interface."
-- Adicionar ação **"Reativar documento"** (visível quando `status='obsolete'`) que volta o documento para `published` e restaura a última versão publicada — apenas para `qualidade`/`director`.
-- Não há job automático que marca obsoleto; o problema relatado veio do clique direto. A confirmação resolve o caso prático.
+### 2. Botão "Recalcular próxima revisão" no detalhe
+Em `DocumentDetail.tsx`, ao lado do botão "Editar metadados", adicionar ação **"Recalcular próxima revisão"** (visível apenas para `qualidade`/`director`/`coordinator` e quando o documento estiver `published`). Comportamento:
 
-### 4. Upload de arquivos ampliado
-Substituir o `accept=".pdf,.doc,.docx"` por lista que cobre os formatos usados no SGQ:
-- PDF: `.pdf`
-- Word: `.doc, .docx`
-- Excel: `.xls, .xlsx, .csv`
-- PowerPoint: `.ppt, .pptx`
-- Texto: `.txt, .rtf, .odt`
-- Imagens: `.png, .jpg, .jpeg, .webp`
+- Lê `document_review_months` de `quality_settings` (default 12).
+- Calcula `published_at + N meses` usando `addMonths` do `date-fns` e `format(..., 'yyyy-MM-dd')` (evita drift de timezone — regra do projeto).
+- Chama o `update` com o novo `next_review_date`.
+- Mostra confirmação no toast com a nova data.
 
-Validar tamanho máximo (ex.: 50 MB) com toast amigável antes de enviar para o storage.
+Isso destrava a correção retroativa dos documentos já publicados sem precisar editar manualmente.
+
+### 3. Pequenos ajustes no diálogo de edição
+- Usar `addMonths`/`date-fns` em vez de manipulação manual de `Date` (consistência com a regra de timezone).
+- Garantir `aria-describedby` no `DialogContent` (warning atual no console).
+- Após salvar, o diálogo já fecha; com a correção do cache, o card de "Próxima revisão" reflete o novo valor sem refresh.
 
 ## Arquivos afetados
 
-- `src/pages/quality/DocumentDetail.tsx` — botão de editar metadados, AlertDialog de obsoleto, ação de reativar, novo `accept` do input.
-- `src/components/quality/EditDocumentMetadataDialog.tsx` (novo).
-- `src/hooks/useQualityDocuments.ts` — `approveAndPublish` calcula `next_review_date`; novo mutation `reactivate`.
-- `src/hooks/useQualitySettings.ts` — incluir `document_review_months` nos defaults/tipos.
-- `src/pages/quality/Settings.tsx` (ou aba existente) — input para o ciclo de revisão de documentos.
+- `src/hooks/useQualityDocuments.ts` — invalidação correta no `update` (e revisar `markObsolete`/`reactivate`).
+- `src/pages/quality/DocumentDetail.tsx` — botão "Recalcular próxima revisão".
+- `src/components/quality/EditDocumentMetadataDialog.tsx` — ajuste menor de acessibilidade.
 
-## Fora de escopo (registrar para próxima rodada)
-O usuário mencionou "várias outras coisas". Após estas correções, levantar lista completa com a Qualidade (ex.: cópias controladas, watermarks, fluxo de aprovação multi-aprovador, exportação) e tratar em onda seguinte.
+## Fora de escopo
+
+- Migração em massa recalculando `next_review_date` de todos os documentos publicados de uma vez. Pode ser feita depois se a Qualidade preferir um botão "Recalcular todos" em `/quality/settings` — me avise se quiser incluir.
