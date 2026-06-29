@@ -73,7 +73,8 @@ const sanitize = (n: string) =>
 const QualityDocumentDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
+  const canMarkObsolete = userRole === "qualidade" || userRole === "super_admin";
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete, reactivate } =
     useQualityDocument(id);
   const { update } = useQualityDocuments();
