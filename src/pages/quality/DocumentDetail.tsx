@@ -121,6 +121,32 @@ const QualityDocumentDetail = () => {
     return <p className="text-muted-foreground text-center py-12">Carregando documento...</p>;
   }
 
+  const recalcNextReview = async () => {
+    if (!document?.published_at) {
+      toast({ title: "Documento ainda não publicado", variant: "destructive" });
+      return;
+    }
+    let months = 12;
+    try {
+      const { data: settings } = await supabase
+        .from("quality_settings" as any)
+        .select("review_cycles")
+        .eq("company_id", document.company_id)
+        .maybeSingle();
+      const m = Number((settings as any)?.review_cycles?.document_review_months);
+      if (m > 0) months = m;
+    } catch (e) {
+      console.warn("[quality] could not read review_cycles", e);
+    }
+    const next = addMonths(parseISO(document.published_at), months);
+    const yyyy = next.getFullYear();
+    const mm = String(next.getMonth() + 1).padStart(2, "0");
+    const dd = String(next.getDate()).padStart(2, "0");
+    const nextStr = `${yyyy}-${mm}-${dd}`;
+    await update.mutateAsync({ id: document.id, next_review_date: nextStr } as any);
+    toast({ title: "Próxima revisão recalculada", description: format(next, "dd/MM/yyyy") });
+  };
+
   const createDraftVersion = async (kind: "rich_text" | "file") => {
     if (kind === "rich_text") {
       await createVersion.mutateAsync({
