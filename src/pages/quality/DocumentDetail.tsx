@@ -468,6 +468,16 @@ const QualityDocumentDetail = () => {
                 <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
                   <Pencil className="h-4 w-4 mr-2" /> Editar metadados
                 </Button>
+                {document.status === "published" && document.published_at && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={recalcNextReview}
+                    disabled={update.isPending}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" /> Recalcular próxima revisão
+                  </Button>
+                )}
                 {document.status === "published" && (
                   <Button variant="destructive" onClick={() => setShowObsoleteConfirm(true)}>
                     <Archive className="h-4 w-4 mr-2" /> Marcar obsoleto
