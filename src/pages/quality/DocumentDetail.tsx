@@ -481,7 +481,7 @@ const QualityDocumentDetail = () => {
                     <RotateCcw className="h-4 w-4 mr-2" /> Recalcular próxima revisão
                   </Button>
                 )}
-                {document.status === "published" && (
+                {document.status === "published" && canMarkObsolete && (
                   <Button variant="destructive" onClick={() => setShowObsoleteConfirm(true)}>
                     <Archive className="h-4 w-4 mr-2" /> Marcar obsoleto
                   </Button>
