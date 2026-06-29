@@ -90,6 +90,7 @@ const QualityDocumentDetail = () => {
   const [showViewer, setShowViewer] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
+  const [obsoleteReason, setObsoleteReason] = useState("");
 
   const activeVersion = versions[0] || null;
   const publishedVersion = useMemo(
