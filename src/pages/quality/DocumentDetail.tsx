@@ -75,6 +75,7 @@ const QualityDocumentDetail = () => {
   const { user } = useAuth();
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete, reactivate } =
     useQualityDocument(id);
+  const { update } = useQualityDocuments();
   const { signature, registerSignatureEvent } = useQualitySignature();
   const { expiredNorms } = useQualityDocumentNorms(id);
   const { perms } = useDocumentPerms(id);
