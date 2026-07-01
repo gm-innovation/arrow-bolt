@@ -17,6 +17,7 @@ const blankForm = {
   description: "",
   default_classification: "",
   default_review_interval_months: "" as string | number,
+  default_control_mode: "controlled" as "controlled" | "uncontrolled",
 };
 
 const QualitySettings = () => {
@@ -47,6 +48,7 @@ const QualitySettings = () => {
       default_review_interval_months: form.default_review_interval_months
         ? Number(form.default_review_interval_months)
         : null,
+      default_control_mode: form.default_control_mode,
     });
     setForm({ ...blankForm });
     setOpen(false);
@@ -129,6 +131,22 @@ const QualitySettings = () => {
                           }
                         />
                       </div>
+                    </div>
+                    <div className="space-y-1">
+                      <Label>Cópia (padrão)</Label>
+                      <select
+                        className="w-full border rounded-md h-10 px-3 text-sm bg-background"
+                        value={form.default_control_mode}
+                        onChange={(e) =>
+                          setForm({ ...form, default_control_mode: e.target.value as any })
+                        }
+                      >
+                        <option value="controlled">Controlada</option>
+                        <option value="uncontrolled">Não controlada</option>
+                      </select>
+                      <p className="text-xs text-muted-foreground">
+                        Aplica-se a novos documentos deste tipo. Pode ser sobrescrito por documento.
+                      </p>
                     </div>
                   </div>
                   <DialogFooter>
