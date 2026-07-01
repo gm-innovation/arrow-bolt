@@ -46,6 +46,9 @@ export interface OrgContext {
   last_review_notes: string | null;
   next_review_due_at: string | null;
   excluded_clauses: ExcludedClause[];
+  mission: string | null;
+  vision: string | null;
+  values: string | null;
   created_at: string;
   updated_at: string;
 }

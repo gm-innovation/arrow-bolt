@@ -16,6 +16,7 @@ import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useCentralApproval } from "@/hooks/useCentralApproval";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
 import { useQualityProcessDocumentHistory } from "@/hooks/useQualityProcessDocumentHistory";
+import { useQualityProcessDocuments, RELATIONSHIP_TYPE_LABELS, type ProcessDocRelationship } from "@/hooks/useQualityProcessDocuments";
 import {
   useProcessPartyLinks,
   useProcessLinkedDocuments,
@@ -55,6 +56,9 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
   const [newAct, setNewAct] = useState("");
   const { links: partyLinks } = useProcessPartyLinks(process?.id || null);
   const { documents: linkedDocs } = useProcessLinkedDocuments(process?.id || null);
+  const { links: processDocLinks, link: linkProcessDoc, unlink: unlinkProcessDoc } = useQualityProcessDocuments(process?.id || null);
+  const [newLinkDoc, setNewLinkDoc] = useState<string>("");
+  const [newLinkType, setNewLinkType] = useState<ProcessDocRelationship>("reference");
 
   if (!process) return null;
 
@@ -85,7 +89,7 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
         <Tabs defaultValue="doc" className="mt-4">
           <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="doc">Documento Controlado</TabsTrigger>
-            <TabsTrigger value="docs"><FileText className="h-3.5 w-3.5 mr-1" />Documentos ({linkedDocs.length})</TabsTrigger>
+            <TabsTrigger value="docs"><FileText className="h-3.5 w-3.5 mr-1" />Documentos ({linkedDocs.length + processDocLinks.length})</TabsTrigger>
             <TabsTrigger value="parties"><Users className="h-3.5 w-3.5 mr-1" />Partes ({partyLinks.length})</TabsTrigger>
             <TabsTrigger value="sipoc">SIPOC</TabsTrigger>
             <TabsTrigger value="acts">Atividades</TabsTrigger>
@@ -155,6 +159,78 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
                 </TableBody>
               </Table>
             )}
+
+            <div className="pt-4 border-t space-y-3">
+              <div>
+                <h4 className="text-sm font-semibold">Vínculos por tipo de relação</h4>
+                <p className="text-xs text-muted-foreground">
+                  Associe múltiplos documentos como Entrada, Saída, Referência ou Procedimento aplicável a este processo.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_180px_auto] gap-2 items-end">
+                <div>
+                  <Label className="text-xs">Documento</Label>
+                  <Select value={newLinkDoc} onValueChange={setNewLinkDoc}>
+                    <SelectTrigger><SelectValue placeholder="Selecionar documento" /></SelectTrigger>
+                    <SelectContent>
+                      {documents.map(d => <SelectItem key={d.id} value={d.id}>{d.code} — {d.title}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs">Tipo</Label>
+                  <Select value={newLinkType} onValueChange={(v) => setNewLinkType(v as ProcessDocRelationship)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {(Object.keys(RELATIONSHIP_TYPE_LABELS) as ProcessDocRelationship[]).map(k => (
+                        <SelectItem key={k} value={k}>{RELATIONSHIP_TYPE_LABELS[k]}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  size="sm"
+                  disabled={!newLinkDoc || linkProcessDoc.isPending}
+                  onClick={() => linkProcessDoc.mutate(
+                    { documentId: newLinkDoc, relationshipType: newLinkType },
+                    { onSuccess: () => setNewLinkDoc("") }
+                  )}
+                >
+                  <Plus className="h-4 w-4 mr-1" />Adicionar
+                </Button>
+              </div>
+
+              {(["input", "output", "reference", "procedure"] as ProcessDocRelationship[]).map(rel => {
+                const rows = processDocLinks.filter(l => l.relationship_type === rel);
+                if (rows.length === 0) return null;
+                return (
+                  <div key={rel} className="space-y-1">
+                    <div className="text-xs font-semibold text-muted-foreground uppercase">{RELATIONSHIP_TYPE_LABELS[rel]}</div>
+                    <ul className="divide-y border rounded">
+                      {rows.map(row => (
+                        <li key={row.id} className="p-2 flex items-center justify-between gap-2 text-sm">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-mono text-xs">{row.document?.code ?? row.document_id.slice(0, 8)}</div>
+                            <div className="truncate">{row.document?.title ?? "—"}</div>
+                          </div>
+                          {row.document && (
+                            <Button asChild size="sm" variant="ghost">
+                              <RouterLink to={`/quality/documents/${row.document.id}`}><Link2 className="h-3.5 w-3.5" /></RouterLink>
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => unlinkProcessDoc.mutate(row.id)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+              {processDocLinks.length === 0 && (
+                <p className="text-xs text-center text-muted-foreground py-3">Nenhum vínculo por tipo de relação ainda.</p>
+              )}
+            </div>
           </TabsContent>
 
           <TabsContent value="parties" className="space-y-3">
