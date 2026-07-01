@@ -11,7 +11,15 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { useQualityInterestedParties, usePartyEvidences, QIPCategory } from "@/hooks/useQualityInterestedParties";
-import { CheckCircle2, FileText, Plus, Trash2, Download, Clock } from "lucide-react";
+import {
+  usePartyProcessLinks,
+  RELATIONSHIP_LABELS,
+  RELEVANCE_LABELS,
+  type PartyProcessRelationship,
+  type PartyProcessRelevance,
+} from "@/hooks/useQualityPartyProcesses";
+import { useQualityProcesses } from "@/hooks/useQualityProcesses";
+import { CheckCircle2, FileText, Plus, Trash2, Download, Clock, Workflow, Link2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import PartyTreatmentHistoryTab from "@/components/quality/PartyTreatmentHistoryTab";
