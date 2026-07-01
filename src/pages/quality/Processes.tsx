@@ -119,6 +119,73 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
             )}
             <ProcessApproval documentId={process.current_document_id} />
           </TabsContent>
+
+          <TabsContent value="docs" className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Documentos controlados vinculados a este processo (via campo <code>process_id</code>).
+              Para vincular ou desvincular, edite os metadados do documento em <b>GED / SGQ</b>.
+            </p>
+            {linkedDocs.length === 0 ? (
+              <p className="text-center py-6 text-sm text-muted-foreground">Nenhum documento vinculado ao processo.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Próx. revisão</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {linkedDocs.map((d: any) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="text-xs font-mono">{d.code}</TableCell>
+                      <TableCell className="text-sm">{d.title}</TableCell>
+                      <TableCell><Badge variant="outline">{d.status}</Badge></TableCell>
+                      <TableCell className="text-xs">{d.next_review_date || "—"}</TableCell>
+                      <TableCell>
+                        <Button asChild size="sm" variant="ghost">
+                          <RouterLink to={`/quality/documents/${d.id}`}><Link2 className="h-3.5 w-3.5" /></RouterLink>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TabsContent>
+
+          <TabsContent value="parties" className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Partes interessadas vinculadas a este processo. Para vincular, abra a parte em <b>Partes Interessadas → Processos</b>.
+            </p>
+            {partyLinks.length === 0 ? (
+              <p className="text-center py-6 text-sm text-muted-foreground">Nenhuma parte vinculada.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Parte</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Relação</TableHead>
+                    <TableHead>Relevância</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {partyLinks.map((l: any) => (
+                    <TableRow key={l.party_id}>
+                      <TableCell className="font-medium">{l.party?.name ?? l.party_id}</TableCell>
+                      <TableCell className="capitalize text-xs">{l.party?.category}</TableCell>
+                      <TableCell><Badge variant="outline">{RELATIONSHIP_LABELS[l.relationship_type as PartyProcessRelationship] ?? l.relationship_type}</Badge></TableCell>
+                      <TableCell><Badge variant="secondary">{RELEVANCE_LABELS[l.relevance as PartyProcessRelevance] ?? l.relevance}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TabsContent>
           <TabsContent value="sipoc" className="space-y-3">
             {(["suppliers","inputs","activities","outputs","customers"] as const).map(k => (
               <div key={k}>
