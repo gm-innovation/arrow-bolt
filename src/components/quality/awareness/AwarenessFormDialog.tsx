@@ -118,20 +118,27 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
                 <Button variant="outline" className="w-full justify-start">Selecionar colaboradores...</Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command>
-                  <CommandInput placeholder="Buscar..." />
+                <Command shouldFilter={false}>
+                  <CommandInput placeholder="Buscar..." value={search} onValueChange={setSearch} />
                   <CommandList>
                     <CommandEmpty>Nenhum colaborador encontrado.</CommandEmpty>
                     <CommandGroup>
-                      {users.map((u) => {
-                        const checked = attendees.includes(u.id);
-                        return (
-                          <CommandItem key={u.id} onSelect={() => toggle(u.id)}>
-                            <Check className={cn("mr-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
-                            {u.full_name}
-                          </CommandItem>
-                        );
-                      })}
+                      {users
+                        .filter((u) => !search.trim() || (u.full_name || "").toLowerCase().includes(search.trim().toLowerCase()))
+                        .map((u) => {
+                          const checked = attendees.includes(u.id);
+                          return (
+                            <CommandItem
+                              key={u.id}
+                              value={u.full_name || u.id}
+                              onMouseDown={(e) => e.preventDefault()}
+                              onSelect={() => toggle(u.id)}
+                            >
+                              <Check className={cn("mr-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
+                              {u.full_name}
+                            </CommandItem>
+                          );
+                        })}
                     </CommandGroup>
                   </CommandList>
                 </Command>
