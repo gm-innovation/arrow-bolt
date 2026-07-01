@@ -308,7 +308,7 @@ const InterestedParties = () => {
                         return (
                           <div className="bg-background border rounded-md p-2 text-xs shadow">
                             <div className="font-semibold">{d.name}</div>
-                            <div className="text-muted-foreground capitalize">{d.category}</div>
+                            
                             <div>Poder: {d.power} · Interesse: {d.interest}</div>
                           </div>
                         );
