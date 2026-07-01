@@ -141,6 +141,26 @@ const OrgContext = () => {
         <TabsContent value="overview" className="mt-4 space-y-4">
           <LastManagementReviewCard />
           <Card>
+            <CardHeader><CardTitle className="text-base">Identidade Organizacional</CardTitle></CardHeader>
+            <CardContent className="grid md:grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs">Missão</Label>
+                <Textarea rows={4} value={mission} onChange={(e) => setMission(e.target.value)}
+                  placeholder="Razão de existir da organização." />
+              </div>
+              <div>
+                <Label className="text-xs">Visão</Label>
+                <Textarea rows={4} value={vision} onChange={(e) => setVision(e.target.value)}
+                  placeholder="Onde a organização quer chegar." />
+              </div>
+              <div>
+                <Label className="text-xs">Valores</Label>
+                <Textarea rows={4} value={values} onChange={(e) => setValues(e.target.value)}
+                  placeholder="Princípios que orientam decisões e comportamentos." />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
             <CardHeader><CardTitle className="text-base">Escopo do SGQ</CardTitle></CardHeader>
             <CardContent>
               <Textarea rows={3} value={scope} onChange={(e) => setScope(e.target.value)}
