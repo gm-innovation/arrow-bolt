@@ -21,6 +21,8 @@ import VersionViewerDialog from "@/components/quality/context/VersionViewerDialo
 import LastManagementReviewCard from "@/components/quality/context/LastManagementReviewCard";
 import type { ContextVersion } from "@/hooks/useQualityOrgContext";
 import { toast } from "@/hooks/use-toast";
+import CompetitiveAnalysisTab from "@/components/quality/context/CompetitiveAnalysisTab";
+import StrategicObjectivesTab from "@/components/quality/context/StrategicObjectivesTab";
 
 const OrgContext = () => {
   const { context, items, versions, saveContext, removeItem, linkItemRisk } = useQualityOrgContext();
@@ -135,6 +137,8 @@ const OrgContext = () => {
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="swot">SWOT</TabsTrigger>
           <TabsTrigger value="pestal">PESTAL</TabsTrigger>
+          <TabsTrigger value="competitive">Análise Competitiva</TabsTrigger>
+          <TabsTrigger value="strategic">Objetivos Estratégicos</TabsTrigger>
           <TabsTrigger value="history">Histórico ({versions.length})</TabsTrigger>
         </TabsList>
 
@@ -264,6 +268,14 @@ const OrgContext = () => {
             <CategoryColumn title="Ambiental" category="pestal_environmental" items={items} onAdd={openAdd} onEdit={openEdit} onRemove={(i) => removeItem.mutate(i.id)} onGenerateRisk={handleGenerateRisk} />
             <CategoryColumn title="Legal" category="pestal_legal" items={items} onAdd={openAdd} onEdit={openEdit} onRemove={(i) => removeItem.mutate(i.id)} onGenerateRisk={handleGenerateRisk} />
           </div>
+        </TabsContent>
+
+        <TabsContent value="competitive" className="mt-4">
+          <CompetitiveAnalysisTab />
+        </TabsContent>
+
+        <TabsContent value="strategic" className="mt-4">
+          <StrategicObjectivesTab />
         </TabsContent>
 
         <TabsContent value="history" className="mt-4">
