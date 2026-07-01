@@ -1,17 +1,22 @@
-## Remover campo "Categoria" de Partes Interessadas
+## Reorganização de menus (Qualidade → Suprimentos)
 
-A solicitação era remover o campo **Categoria** do cadastro/edição de Partes Interessadas, pois não é uma regra obrigatória ter aquelas categorias fixas (Cliente, Fornecedor, Órgão Regulador etc.).
+### O que muda
 
-### Alterações
+**Menu da Qualidade** (`src/components/DashboardLayout.tsx`)
+- Remover o grupo **"Suprimentos & Fornecedores"** (Provedores Externos + Homologação).
+- Remover o grupo **"Metrologia"** (Calibração de Instrumentos) — setor do Renan ainda não foi desenvolvido.
 
-1. **Diálogo de criação/edição** (`src/components/quality/parties/PartyDialog.tsx` ou equivalente): remover o `<Select>` de Categoria e o estado relacionado. Ajustar o grid para que "Relevância" ocupe a linha sozinha ou ao lado de outro campo já existente.
+**Menu de Suprimentos** (mesmo arquivo)
+- Adicionar dois itens novos entre "Solicitações" e "Configurações":
+  - **Provedores Externos** → `/quality/suppliers`
+  - **Homologação** → `/quality/homologation`
 
-2. **Hook `useQualityInterestedParties.ts`**: remover `category` do payload de `create` e tornar opcional na tipagem (`QIPCategory` vira opcional). Manter o campo no banco por compatibilidade retroativa (dados antigos continuam válidos), apenas parar de exigir/enviar.
+### O que NÃO muda
 
-3. **Listagem / tabela de Partes Interessadas** (`src/pages/quality/InterestedParties.tsx` e componentes de tabela/matriz): remover coluna e filtros por Categoria. Ajustar agrupamentos (ex.: matriz Poder×Interesse) para não depender mais de categoria.
+- As **rotas** `/quality/suppliers`, `/quality/suppliers/:id`, `/quality/homologation` e `/quality/devices` continuam registradas em `App.tsx` e as páginas permanecem intactas — só saem do menu lateral da Qualidade. Isso preserva links existentes e permite que o setor de Suprimentos acesse as mesmas telas sem retrabalho.
+- Nenhuma alteração em banco de dados, permissões (RLS) ou componentes de página.
+- O menu de Calibração fica reservado para quando o setor do Renan for desenvolvido — a página `/quality/devices` continua funcional para acesso direto por URL, mas some da navegação.
 
-4. **Migração leve (opcional)**: tornar `category` nullable em `quality_interested_parties` caso hoje seja `NOT NULL`, para permitir novos registros sem categoria. Confirmar antes de aplicar.
+### Observação sobre permissões
 
-### Fora de escopo
-- Não alterar SWOT, Processos ou outras áreas.
-- Não remover dados existentes de categoria já cadastrados.
+As páginas `/quality/suppliers` e `/quality/homologation` hoje têm RLS/roteamento voltados para o role `qualidade`. Se o pessoal de Suprimentos (role `compras`) precisar acessá-las via o novo item de menu, será necessário um ajuste de permissões — posso tratar isso numa etapa seguinte se você confirmar que os usuários de Suprimentos devem editar esses cadastros (e não apenas visualizar).
