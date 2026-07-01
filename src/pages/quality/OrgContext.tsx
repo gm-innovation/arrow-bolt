@@ -274,7 +274,14 @@ const OrgContext = () => {
       </Tabs>
 
       {dialogCat && (
-        <ContextItemDialog open={!!dialogCat} onClose={closeDialog} category={dialogCat} item={editing} />
+        <ContextItemDialog
+          open={!!dialogCat}
+          onClose={closeDialog}
+          category={dialogCat}
+          item={editing}
+          defaultDepartmentId={dialogCat.startsWith("swot_") && swotDept !== "all" && swotDept !== "none" ? swotDept : null}
+          defaultAnalysisPeriod={dialogCat.startsWith("swot_") && swotPeriod !== "all" ? swotPeriod : null}
+        />
       )}
       <ReviewContextDialog open={reviewOpen} onClose={() => setReviewOpen(false)} />
       <VersionViewerDialog version={viewVersion} onClose={() => setViewVersion(null)} />
