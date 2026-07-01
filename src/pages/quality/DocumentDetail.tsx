@@ -25,6 +25,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { useQualityDocument, useQualityDocuments } from "@/hooks/useQualityDocuments";
+import { useQualityDocumentTypes } from "@/hooks/useQualityDocumentTypes";
 import { addMonths } from "date-fns";
 import { useQualitySignature } from "@/hooks/useQualitySignature";
 import { useQualityDocumentNorms } from "@/hooks/useQualityDocumentNorms";
@@ -97,6 +98,18 @@ const QualityDocumentDetail = () => {
     () => versions.find((v) => v.status === "published") || null,
     [versions]
   );
+
+  const { types: docTypes } = useQualityDocumentTypes();
+  const effectiveControlMode: "controlled" | "uncontrolled" = useMemo(() => {
+    const own = (document as any)?.control_mode as "controlled" | "uncontrolled" | null | undefined;
+    if (own) return own;
+    const typeId = (document as any)?.document_type_id;
+    const t = docTypes.find((tt: any) => tt.id === typeId);
+    return (t?.default_control_mode as any) || "controlled";
+  }, [document, docTypes]);
+  const viewerWatermark =
+    effectiveControlMode === "uncontrolled" ? "CÓPIA NÃO CONTROLADA" : null;
+
 
   useEffect(() => {
     if (activeVersion) {
@@ -690,7 +703,7 @@ const QualityDocumentDetail = () => {
               </DialogTitle>
             </DialogHeader>
             <div className="flex-1 min-h-0">
-              <PDFCanvasViewer blob={fileBlob} />
+              <PDFCanvasViewer blob={fileBlob} watermarkText={viewerWatermark} />
             </div>
           </DialogContent>
         </Dialog>

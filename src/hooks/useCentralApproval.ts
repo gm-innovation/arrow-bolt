@@ -101,7 +101,7 @@ export const useCentralApprovalsQueue = () => {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
 
-  const { data: pending = [], isLoading } = useQuery({
+  const { data: pending = [], isLoading, error: queueError } = useQuery({
     queryKey: ["central_approvals_queue", profile?.company_id],
     enabled: !!user && !!profile?.company_id,
     queryFn: async () => {
@@ -111,7 +111,10 @@ export const useCentralApprovalsQueue = () => {
         .eq("company_id", profile!.company_id)
         .eq("status", "pending")
         .order("requested_at", { ascending: true });
-      if (error) throw error;
+      if (error) {
+        console.error("[central_approvals_queue] query error", error);
+        throw error;
+      }
       return (data as unknown) as CentralApproval[];
     },
   });
@@ -153,7 +156,7 @@ export const useCentralApprovalsQueue = () => {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
-  return { pending, isLoading, decide, comment };
+  return { pending, isLoading, queueError, decide, comment };
 };
 
 export const useCentralApprovalEvents = (approvalId?: string) => {

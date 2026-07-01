@@ -11,6 +11,7 @@ export interface QualityDocumentType {
   description: string | null;
   default_classification: string | null;
   default_review_interval_months: number | null;
+  default_control_mode: "controlled" | "uncontrolled" | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -35,8 +36,8 @@ export const useQualityDocumentTypes = () => {
 
   const create = useMutation({
     mutationFn: async (
-      input: Omit<QualityDocumentType, "id" | "company_id" | "created_at" | "updated_at" | "is_active"> &
-        Partial<Pick<QualityDocumentType, "is_active">>
+      input: Partial<Omit<QualityDocumentType, "id" | "company_id" | "created_at" | "updated_at">> &
+        Pick<QualityDocumentType, "code_prefix" | "name">
     ) => {
       const { data: profile } = await supabase
         .from("profiles")

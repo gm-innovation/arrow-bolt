@@ -3,6 +3,7 @@ import * as pdfjs from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import { Loader2 } from 'lucide-react';
 import { ScrollArea } from './scroll-area';
+import { ControlledCopyOverlay } from './ControlledCopyOverlay';
 
 // Configure worker
 pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
@@ -10,9 +11,15 @@ pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 interface PDFCanvasViewerProps {
   blob: Blob | null;
   className?: string;
+  /**
+   * When set, renders a repeating diagonal watermark over the pages
+   * (e.g. "CÓPIA NÃO CONTROLADA"). Uses the canvas overlay technique;
+   * safe because the PDF is rendered by pdfjs into our own canvas.
+   */
+  watermarkText?: string | null;
 }
 
-export const PDFCanvasViewer = ({ blob, className }: PDFCanvasViewerProps) => {
+export const PDFCanvasViewer = ({ blob, className, watermarkText }: PDFCanvasViewerProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isRendering, setIsRendering] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +108,10 @@ export const PDFCanvasViewer = ({ blob, className }: PDFCanvasViewerProps) => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       )}
-      <div ref={containerRef} className="p-2 bg-muted/30" />
+      <div className="relative">
+        <div ref={containerRef} className="p-2 bg-muted/30" />
+        {watermarkText ? <ControlledCopyOverlay text={watermarkText} /> : null}
+      </div>
     </ScrollArea>
   );
 };

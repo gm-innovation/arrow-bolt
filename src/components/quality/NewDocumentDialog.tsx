@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityDocumentTypes } from "@/hooks/useQualityDocumentTypes";
+import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 
 type DocOrigin = "internal" | "client" | "external_norm" | "external_law" | "external_certificate" | "safety";
 
@@ -23,6 +24,7 @@ interface Props {
 const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCodePrefixes, title }: Props) => {
   const { create } = useQualityDocuments();
   const { types: allTypes } = useQualityDocumentTypes();
+  const { data: companyUsers = [] } = useCompanyUsers();
   const types = typeCodePrefixes && typeCodePrefixes.length > 0
     ? allTypes.filter((t: any) => typeCodePrefixes.includes(t.code_prefix))
     : allTypes;
@@ -40,6 +42,8 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
     validity_end: "",
     auto_renewal: false,
     document_control_mode: "full_control" as "full_control" | "received_only",
+    responsible_user_id: "",
+    control_mode: "" as "" | "controlled" | "uncontrolled",
   });
 
   useEffect(() => {
@@ -58,6 +62,8 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
         validity_end: "",
         auto_renewal: false,
         document_control_mode: "full_control",
+        responsible_user_id: "",
+        control_mode: "",
       });
     }
   }, [open, lockedOrigin]);
@@ -90,6 +96,8 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
       validity_end: isExternal && form.validity_end ? form.validity_end : null,
       auto_renewal: form.auto_renewal,
       document_control_mode: form.document_control_mode,
+      responsible_user_id: form.responsible_user_id || null,
+      control_mode: form.control_mode || null,
     } as any);
     onOpenChange(false);
     onCreated?.((created as any).id);
@@ -195,6 +203,41 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
                   <SelectItem value="received_only">Apenas registro de ciência</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Responsável</Label>
+              <Select
+                value={form.responsible_user_id || "none"}
+                onValueChange={(v) => setForm({ ...form, responsible_user_id: v === "none" ? "" : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Sem responsável —</SelectItem>
+                  {(companyUsers as any[]).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.full_name || u.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Cópia</Label>
+              <Select
+                value={form.control_mode || "inherit"}
+                onValueChange={(v) => setForm({ ...form, control_mode: (v === "inherit" ? "" : v) as any })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inherit">Herdar do tipo</SelectItem>
+                  <SelectItem value="controlled">Controlada</SelectItem>
+                  <SelectItem value="uncontrolled">Não controlada</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                "Não controlada" aplica marca d'água no visualizador.
+              </p>
             </div>
           </div>
 
