@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,10 +57,10 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
   const toggle = (id: string) =>
     setAttendees((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
 
-  const closePicker = () => {
+  const closePicker = useCallback(() => {
     setPickerOpen(false);
     setSearch("");
-  };
+  }, []);
 
   useEffect(() => {
     if (!pickerOpen) return;
@@ -82,7 +82,7 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
       document.removeEventListener("pointerdown", handlePointerDown, true);
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [pickerOpen]);
+  }, [closePicker, pickerOpen]);
 
   const addExternal = () => {
     const name = extName.trim();
