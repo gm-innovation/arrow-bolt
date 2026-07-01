@@ -116,6 +116,40 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
               Deve ser posterior à data de publicação. Ao publicar uma nova versão, este campo é recalculado conforme o ciclo configurado em Parâmetros do SGQ.
             </p>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label>Responsável</Label>
+              <Select
+                value={form.responsible_user_id || "none"}
+                onValueChange={(v) => setForm({ ...form, responsible_user_id: v === "none" ? "" : v })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">— Sem responsável —</SelectItem>
+                  {(companyUsers as any[]).map((u) => (
+                    <SelectItem key={u.id} value={u.id}>{u.full_name || u.email}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Cópia</Label>
+              <Select
+                value={form.control_mode || "inherit"}
+                onValueChange={(v) => setForm({ ...form, control_mode: (v === "inherit" ? "" : v) as any })}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="inherit">Herdar do tipo</SelectItem>
+                  <SelectItem value="controlled">Controlada</SelectItem>
+                  <SelectItem value="uncontrolled">Não controlada</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                "Não controlada" aplica marca d'água no visualizador.
+              </p>
+            </div>
+          </div>
           <div className="flex items-center justify-between border rounded-md p-3">
             <div>
               <Label className="text-sm">Visibilidade ampliada</Label>
