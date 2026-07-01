@@ -56,6 +56,9 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
   const [newAct, setNewAct] = useState("");
   const { links: partyLinks } = useProcessPartyLinks(process?.id || null);
   const { documents: linkedDocs } = useProcessLinkedDocuments(process?.id || null);
+  const { links: processDocLinks, link: linkProcessDoc, unlink: unlinkProcessDoc } = useQualityProcessDocuments(process?.id || null);
+  const [newLinkDoc, setNewLinkDoc] = useState<string>("");
+  const [newLinkType, setNewLinkType] = useState<ProcessDocRelationship>("reference");
 
   if (!process) return null;
 
