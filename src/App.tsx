@@ -243,6 +243,7 @@ const App = () => {
             <Route path="/onboarding/:token" element={<Suspense fallback={<LoadingFallback />}><PublicOnboarding /></Suspense>} />
             <Route path="/carreiras/:slug" element={<Suspense fallback={<LoadingFallback />}><PublicCareers /></Suspense>} />
             <Route path="/satisfaction/r/:token" element={<Suspense fallback={<LoadingFallback />}><PublicSatisfactionResponse /></Suspense>} />
+            <Route path="/q/:token" element={<Suspense fallback={<LoadingFallback />}><PublicQualityDocument /></Suspense>} />
             <Route path="*" element={
               <AuthProvider>
                 <SidebarProvider>
