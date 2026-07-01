@@ -81,12 +81,28 @@ const TrailRow = ({ row, slaHours, masterName }: { row: CentralApprovalRow; slaH
           </Badge>
         </TableCell>
         <TableCell className="text-sm max-w-[260px] truncate">{row.notes || "—"}</TableCell>
-        <TableCell className="flex gap-1">
+        <TableCell className="flex gap-1 flex-wrap">
+          {row.entity_type === "document" && (
+            <Button size="sm" variant="secondary" asChild>
+              <Link to={`/quality/documents/${row.entity_id}`}>
+                <ExternalLink className="h-4 w-4 mr-1" />Abrir
+              </Link>
+            </Button>
+          )}
+          {row.entity_type === "company_document" && (
+            <Button size="sm" variant="secondary" asChild>
+              <Link to={`/quality/company-documents`}>
+                <ExternalLink className="h-4 w-4 mr-1" />Abrir
+              </Link>
+            </Button>
+          )}
           {canDecideCentral && (
             <>
-              <Button size="sm" onClick={() => decide.mutate({ id: row.id, status: "approved" })}>
-                <Check className="h-4 w-4 mr-1" />Aprovar
-              </Button>
+              {row.entity_type !== "document" && row.entity_type !== "company_document" && (
+                <Button size="sm" onClick={() => decide.mutate({ id: row.id, status: "approved" })}>
+                  <Check className="h-4 w-4 mr-1" />Aprovar
+                </Button>
+              )}
               <Button size="sm" variant="destructive" onClick={() => decide.mutate({ id: row.id, status: "rejected" })}>
                 <X className="h-4 w-4 mr-1" />Rejeitar
               </Button>
