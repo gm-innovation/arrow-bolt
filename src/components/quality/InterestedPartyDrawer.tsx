@@ -48,6 +48,8 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
   const { parties, update, markReviewed } = useQualityInterestedParties();
   const party = parties.find((p) => p.id === partyId);
   const { evidences, create: addEvidence, remove: rmEvidence } = usePartyEvidences(partyId ?? undefined);
+  const { processes } = useQualityProcesses();
+  const { links: processLinks, link: linkProcess, unlink: unlinkProcess } = usePartyProcessLinks(partyId ?? undefined);
 
   const [edit, setEdit] = useState<any>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -61,6 +63,12 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
     valid_until: "",
     file: null as File | null,
   });
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkForm, setLinkForm] = useState<{
+    process_id: string;
+    relationship_type: PartyProcessRelationship;
+    relevance: PartyProcessRelevance;
+  }>({ process_id: "", relationship_type: "impacta", relevance: "medium" });
 
   useEffect(() => {
     if (party) {
@@ -72,6 +80,8 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
         needs_expectations: party.needs_expectations ?? "",
         monitoring_method: party.monitoring_method ?? "",
         review_frequency_months: party.review_frequency_months ?? 12,
+        power_level: party.power_level ?? 3,
+        interest_level: party.interest_level ?? 3,
       });
     } else {
       setEdit(null);
