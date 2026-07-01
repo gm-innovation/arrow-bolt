@@ -361,6 +361,39 @@ export const useQualityDocument = (id: string | undefined) => {
         .eq("id", id!);
       if (dErr) throw dErr;
 
+      // Sincroniza fila central: marca a solicitação pendente como aprovada.
+      try {
+        const { data: pendingApproval } = await supabase
+          .from("quality_central_approvals" as any)
+          .select("id, company_id")
+          .eq("entity_type", "document")
+          .eq("entity_id", id!)
+          .eq("status", "pending")
+          .order("requested_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (pendingApproval) {
+          await supabase
+            .from("quality_central_approvals" as any)
+            .update({
+              status: "approved",
+              approved_by: user!.id,
+              approved_at: now,
+            } as any)
+            .eq("id", (pendingApproval as any).id);
+          await supabase.from("quality_central_approval_events" as any).insert({
+            approval_id: (pendingApproval as any).id,
+            company_id: (pendingApproval as any).company_id,
+            event_type: "approved",
+            actor_user_id: user!.id,
+            comment: "Aprovado via publicação do documento.",
+            metadata: { version_id: input.versionId },
+          });
+        }
+      } catch (e) {
+        console.warn("[quality] failed to sync central approval on publish", e);
+      }
+
       // notifica criador + colaboradores com permissão de visualização
       try {
         const targets = new Set<string>();
