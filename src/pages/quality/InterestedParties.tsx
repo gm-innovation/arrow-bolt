@@ -40,7 +40,6 @@ const InterestedParties = () => {
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
-    category: "cliente" as QIPCategory,
     needs_expectations: "",
     monitoring_method: "",
     relevance: "media",
@@ -53,7 +52,6 @@ const InterestedParties = () => {
     if (!form.name.trim()) return;
     await create.mutateAsync({
       name: form.name.trim(),
-      category: form.category,
       needs_expectations: form.needs_expectations || null,
       monitoring_method: form.monitoring_method || null,
       relevance: form.relevance as any,
@@ -63,7 +61,6 @@ const InterestedParties = () => {
     } as any);
     setForm({
       name: "",
-      category: "cliente",
       needs_expectations: "",
       monitoring_method: "",
       relevance: "media",
