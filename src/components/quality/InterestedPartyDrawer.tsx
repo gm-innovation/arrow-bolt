@@ -122,6 +122,7 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
             <Tabs defaultValue="data" className="mt-4">
               <TabsList>
                 <TabsTrigger value="data">Dados</TabsTrigger>
+                <TabsTrigger value="processes"><Workflow className="h-3 w-3 mr-1" /> Processos</TabsTrigger>
                 <TabsTrigger value="evidences">Evidências</TabsTrigger>
                 <TabsTrigger value="treatments"><Clock className="h-3 w-3 mr-1" /> Tratativas</TabsTrigger>
                 <TabsTrigger value="review">Revisão</TabsTrigger>
