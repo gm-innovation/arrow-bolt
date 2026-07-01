@@ -98,6 +98,8 @@ const QualityDocumentDetail = () => {
   const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
   const [obsoleteReason, setObsoleteReason] = useState("");
   const [nextReviewOverride, setNextReviewOverride] = useState<string>("");
+  const [editingNextReview, setEditingNextReview] = useState(false);
+  const [nextReviewEditValue, setNextReviewEditValue] = useState("");
   const [pendingOfficeDownload, setPendingOfficeDownload] = useState<{ path: string; filename: string; mime?: string | null } | null>(null);
 
   const activeVersion = versions[0] || null;
