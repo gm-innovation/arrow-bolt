@@ -311,7 +311,23 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         },
         { title: "Partes Interessadas", icon: Users, path: "/quality/interested-parties" },
         { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
+      ],
+    },
+    {
+      title: "Suprimentos & Fornecedores",
+      icon: Building2,
+      key: "q-supplies",
+      children: [
+        { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
         { title: "Homologação", icon: ClipboardCheck, path: "/quality/homologation" },
+      ],
+    },
+    {
+      title: "Metrologia",
+      icon: Gauge,
+      key: "q-metrology",
+      children: [
+        { title: "Calibração de Instrumentos", icon: Gauge, path: "/quality/devices" },
       ],
     },
     {
@@ -319,8 +335,6 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       icon: ShieldCheck,
       key: "q-ops",
       children: [
-        { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
-        { title: "Calibração", icon: Gauge, path: "/quality/devices" },
         { title: "Voz do Cliente", icon: MessagesSquare, path: "/quality/voice-of-customer" },
         { title: "Segurança", icon: HardHat, path: "/quality/safety" },
       ],
