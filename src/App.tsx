@@ -418,6 +418,9 @@ const App = () => {
                     <Route path="/supplies/requests" element={<SuppliesRequests />} />
                     <Route path="/supplies/settings" element={<SuppliesSettings />} />
                     <Route path="/supplies/profile" element={<CorpUserProfile />} />
+                    <Route path="/quality/suppliers" element={<QualitySuppliers />} />
+                    <Route path="/quality/suppliers/:id" element={<QualitySupplierDetail />} />
+                    <Route path="/quality/homologation" element={<QualityHomologation />} />
                   </Route>
 
                   {/* Quality - nested layout route */}

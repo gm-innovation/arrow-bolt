@@ -1,22 +1,21 @@
-## Reorganização de menus (Qualidade → Suprimentos)
+## Problema
 
-### O que muda
+Os itens "Provedores Externos" e "Homologação" aparecem no menu de Suprimentos, mas apontam para `/quality/suppliers` e `/quality/homologation`. Essas rotas estão dentro do bloco `<ProtectedRoute allowedRoles={['qualidade']}>` no `App.tsx`, então usuários com role `compras` são bloqueados e redirecionados para o dashboard.
 
-**Menu da Qualidade** (`src/components/DashboardLayout.tsx`)
-- Remover o grupo **"Suprimentos & Fornecedores"** (Provedores Externos + Homologação).
-- Remover o grupo **"Metrologia"** (Calibração de Instrumentos) — setor do Renan ainda não foi desenvolvido.
+## Correção
 
-**Menu de Suprimentos** (mesmo arquivo)
-- Adicionar dois itens novos entre "Solicitações" e "Configurações":
-  - **Provedores Externos** → `/quality/suppliers`
-  - **Homologação** → `/quality/homologation`
+Adicionar as rotas dentro do bloco de Suprimentos (`allowedRoles={['compras']}`) reutilizando os mesmos componentes de página, para que ambos os setores acessem sem alterar as rotas do menu.
 
-### O que NÃO muda
+**Arquivo:** `src/App.tsx` — no bloco de Suprimentos (linhas 416–421), acrescentar:
 
-- As **rotas** `/quality/suppliers`, `/quality/suppliers/:id`, `/quality/homologation` e `/quality/devices` continuam registradas em `App.tsx` e as páginas permanecem intactas — só saem do menu lateral da Qualidade. Isso preserva links existentes e permite que o setor de Suprimentos acesse as mesmas telas sem retrabalho.
-- Nenhuma alteração em banco de dados, permissões (RLS) ou componentes de página.
-- O menu de Calibração fica reservado para quando o setor do Renan for desenvolvido — a página `/quality/devices` continua funcional para acesso direto por URL, mas some da navegação.
+```tsx
+<Route path="/quality/suppliers" element={<QualitySuppliers />} />
+<Route path="/quality/suppliers/:id" element={<QualitySupplierDetail />} />
+<Route path="/quality/homologation" element={<QualityHomologation />} />
+```
 
-### Observação sobre permissões
+Assim os mesmos paths funcionam para roles `qualidade` e `compras`, sem duplicar código de página e sem mexer no sidemenu.
 
-As páginas `/quality/suppliers` e `/quality/homologation` hoje têm RLS/roteamento voltados para o role `qualidade`. Se o pessoal de Suprimentos (role `compras`) precisar acessá-las via o novo item de menu, será necessário um ajuste de permissões — posso tratar isso numa etapa seguinte se você confirmar que os usuários de Suprimentos devem editar esses cadastros (e não apenas visualizar).
+## Observação sobre RLS
+
+As tabelas de suppliers/homologation provavelmente têm policies restritas ao role `qualidade`. Se após o ajuste de rota as páginas abrirem vazias ou derem erro de permissão para o usuário de Suprimentos, faremos uma segunda rodada estendendo as policies para incluir `compras`. Isso será verificado após liberar a rota.
