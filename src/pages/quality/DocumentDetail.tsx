@@ -80,6 +80,9 @@ const QualityDocumentDetail = () => {
   const navigate = useNavigate();
   const { user, userRole } = useAuth();
   const canMarkObsolete = userRole === "qualidade" || userRole === "super_admin";
+  const isMaster = userRole === "qualidade" || userRole === "super_admin";
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete, reactivate } =
     useQualityDocument(id);
   const { update } = useQualityDocuments();
