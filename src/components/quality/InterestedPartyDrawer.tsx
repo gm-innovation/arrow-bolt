@@ -29,16 +29,6 @@ interface Props {
   onClose: () => void;
 }
 
-const CATEGORIES: { value: QIPCategory; label: string }[] = [
-  { value: "cliente", label: "Cliente" },
-  { value: "fornecedor", label: "Fornecedor" },
-  { value: "orgao_regulador", label: "Órgão Regulador" },
-  { value: "sociedade", label: "Sociedade" },
-  { value: "colaborador", label: "Colaborador" },
-  { value: "acionista", label: "Acionista" },
-  { value: "parceiro", label: "Parceiro" },
-  { value: "outro", label: "Outro" },
-];
 
 const EVIDENCE_TYPES = [
   "documento", "e-mail", "ata", "pesquisa", "licença", "certificado", "autorização", "outro",
