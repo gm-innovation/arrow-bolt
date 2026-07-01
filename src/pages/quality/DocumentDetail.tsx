@@ -737,6 +737,13 @@ const QualityDocumentDetail = () => {
 
         <EditDocumentMetadataDialog open={showEdit} onOpenChange={setShowEdit} document={document} />
 
+        <ShareDocumentDialog
+          open={showShare}
+          onOpenChange={setShowShare}
+          documentId={document.id}
+          documentTitle={document.title}
+        />
+
         <AlertDialog open={showObsoleteConfirm} onOpenChange={(o) => { setShowObsoleteConfirm(o); if (!o) setObsoleteReason(""); }}>
           <AlertDialogContent>
             <AlertDialogHeader>
