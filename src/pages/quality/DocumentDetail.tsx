@@ -98,6 +98,7 @@ const QualityDocumentDetail = () => {
   const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
   const [obsoleteReason, setObsoleteReason] = useState("");
   const [nextReviewOverride, setNextReviewOverride] = useState<string>("");
+  const [pendingOfficeDownload, setPendingOfficeDownload] = useState<{ path: string; filename: string; mime?: string | null } | null>(null);
 
   const activeVersion = versions[0] || null;
   const publishedVersion = useMemo(
@@ -220,7 +221,32 @@ const QualityDocumentDetail = () => {
     setNextReviewOverride("");
   };
 
-  const downloadFile = async (path: string, filename: string) => {
+  const isOfficeFile = (filename: string, mime?: string | null) => {
+    const ext = filename.toLowerCase().split(".").pop() || "";
+    if (["pdf", "png", "jpg", "jpeg", "webp", "gif", "txt"].includes(ext)) return false;
+    if (mime && (mime.startsWith("image/") || mime === "application/pdf" || mime.startsWith("text/"))) return false;
+    return ["doc", "docx", "xls", "xlsx", "ppt", "pptx", "odt", "ods", "odp", "csv", "rtf"].includes(ext);
+  };
+
+  const performDownload = async (path: string, filename: string) => {
+    const { data } = await supabase.storage.from("quality-documents").createSignedUrl(path, 300, {
+      download: filename,
+    });
+    if (data?.signedUrl) {
+      window.open(data.signedUrl, "_blank");
+      if (user) {
+        logQualityDocumentAccess({
+          document_id: document.id,
+          version_id: activeVersion?.id ?? null,
+          user_id: user.id,
+          action: "download",
+          context: { filename, control_mode: effectiveControlMode },
+        });
+      }
+    }
+  };
+
+  const downloadFile = async (path: string, filename: string, mime?: string | null) => {
     if (!perms.can_download) {
       toast({
         title: "Sem permissão para baixar",
@@ -238,21 +264,11 @@ const QualityDocumentDetail = () => {
       }
       return;
     }
-    const { data } = await supabase.storage.from("quality-documents").createSignedUrl(path, 300, {
-      download: filename,
-    });
-    if (data?.signedUrl) {
-      window.open(data.signedUrl, "_blank");
-      if (user) {
-        logQualityDocumentAccess({
-          document_id: document.id,
-          version_id: activeVersion?.id ?? null,
-          user_id: user.id,
-          action: "download",
-          context: { filename },
-        });
-      }
+    if (effectiveControlMode === "controlled" && isOfficeFile(filename, mime)) {
+      setPendingOfficeDownload({ path, filename, mime });
+      return;
     }
+    await performDownload(path, filename);
   };
 
   const openIntegratedViewer = async () => {
@@ -469,7 +485,7 @@ const QualityDocumentDetail = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => downloadFile(activeVersion.file_path!, activeVersion.file_name!)}
+                            onClick={() => downloadFile(activeVersion.file_path!, activeVersion.file_name!, activeVersion.file_mime)}
                             disabled={!perms.can_download}
                           >
                             <Download className="h-4 w-4 mr-1" /> Baixar
@@ -688,7 +704,7 @@ const QualityDocumentDetail = () => {
                           </p>
                         </div>
                         {v.content_kind === "file" && v.file_path && (
-                          <Button size="sm" variant="ghost" onClick={() => downloadFile(v.file_path!, v.file_name!)}>
+                          <Button size="sm" variant="ghost" onClick={() => downloadFile(v.file_path!, v.file_name!, v.file_mime)}>
                             Baixar arquivo
                           </Button>
                         )}
@@ -778,6 +794,34 @@ const QualityDocumentDetail = () => {
                 }}
               >
                 Marcar obsoleto
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={!!pendingOfficeDownload}
+          onOpenChange={(o) => { if (!o) setPendingOfficeDownload(null); }}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Este arquivo é uma cópia controlada</AlertDialogTitle>
+              <AlertDialogDescription>
+                Documentos Office (Word, Excel, PowerPoint) não podem receber marca d'água automática no visualizador.
+                Ao baixar este arquivo, você é responsável por não alterá-lo, redistribuí-lo ou imprimir cópias sem
+                autorização da Coordenação da Qualidade. O download será registrado no log de acesso.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={async () => {
+                  const p = pendingOfficeDownload;
+                  setPendingOfficeDownload(null);
+                  if (p) await performDownload(p.path, p.filename);
+                }}
+              >
+                Estou ciente, baixar
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
