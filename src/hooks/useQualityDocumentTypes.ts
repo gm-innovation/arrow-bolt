@@ -36,8 +36,8 @@ export const useQualityDocumentTypes = () => {
 
   const create = useMutation({
     mutationFn: async (
-      input: Omit<QualityDocumentType, "id" | "company_id" | "created_at" | "updated_at" | "is_active"> &
-        Partial<Pick<QualityDocumentType, "is_active">>
+      input: Partial<Omit<QualityDocumentType, "id" | "company_id" | "created_at" | "updated_at">> &
+        Pick<QualityDocumentType, "code_prefix" | "name">
     ) => {
       const { data: profile } = await supabase
         .from("profiles")
