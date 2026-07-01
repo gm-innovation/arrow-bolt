@@ -186,6 +186,7 @@ const QualityCompetenciesMatrix = lazy(() => import("./pages/quality/competencie
 const QualityCompetenciesProgram = lazy(() => import("./pages/quality/competencies/Program"));
 const QualityCompetenciesAwareness = lazy(() => import("./pages/quality/competencies/Awareness"));
 const PublicSatisfactionResponse = lazy(() => import("./pages/public/SatisfactionResponse"));
+const PublicQualityDocument = lazy(() => import("./pages/public/PublicQualityDocument"));
 
 const FinanceDashboard = lazy(() => import("./pages/finance/Dashboard"));
 const FinancePayables = lazy(() => import("./pages/finance/Payables"));
