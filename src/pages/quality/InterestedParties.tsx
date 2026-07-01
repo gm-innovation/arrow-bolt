@@ -56,6 +56,8 @@ const InterestedParties = () => {
     monitoring_method: "",
     relevance: "media",
     review_frequency_months: String(cycles.interested_parties_months),
+    power_level: "3",
+    interest_level: "3",
   });
 
   const submit = async () => {
@@ -67,7 +69,9 @@ const InterestedParties = () => {
       monitoring_method: form.monitoring_method || null,
       relevance: form.relevance as any,
       review_frequency_months: Number(form.review_frequency_months) || cycles.interested_parties_months,
-    });
+      power_level: Number(form.power_level) || 3,
+      interest_level: Number(form.interest_level) || 3,
+    } as any);
     setForm({
       name: "",
       category: "cliente",
@@ -75,6 +79,8 @@ const InterestedParties = () => {
       monitoring_method: "",
       relevance: "media",
       review_frequency_months: String(cycles.interested_parties_months),
+      power_level: "3",
+      interest_level: "3",
     });
     setOpen(false);
   };
