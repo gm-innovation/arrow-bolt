@@ -20,6 +20,7 @@ interface Props {
 const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => {
   const { update } = useQualityDocuments();
   const { data: companyUsers = [] } = useCompanyUsers();
+  const { processes } = useQualityProcesses();
   const [form, setForm] = useState({
     title: "",
     classification: "",
@@ -28,6 +29,7 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
     widely_visible: false,
     responsible_user_id: "",
     control_mode: "" as "" | "controlled" | "uncontrolled",
+    process_id: "",
   });
 
   useEffect(() => {
@@ -40,6 +42,7 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
         widely_visible: !!document.widely_visible,
         responsible_user_id: document.responsible_user_id || "",
         control_mode: (document.control_mode as any) || "",
+        process_id: document.process_id || "",
       });
     }
   }, [document, open]);
