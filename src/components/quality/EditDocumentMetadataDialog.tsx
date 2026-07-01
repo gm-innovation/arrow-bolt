@@ -7,6 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useCompanyUsers } from "@/hooks/useCompanyUsers";
+import { useQualityProcesses } from "@/hooks/useQualityProcesses";
 import { toast } from "@/hooks/use-toast";
 import { parseISO } from "date-fns";
 
