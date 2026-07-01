@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Check, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -118,11 +117,17 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
           </div>
           <div className="space-y-2">
             <Label>Participantes internos ({attendees.length})</Label>
-            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start">Selecionar colaboradores...</Button>
-              </PopoverTrigger>
-              <PopoverContent className="z-[60] w-[--radix-popover-trigger-width] p-0" align="start">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start"
+              aria-expanded={pickerOpen}
+              onClick={() => setPickerOpen((prev) => !prev)}
+            >
+              Selecionar colaboradores...
+            </Button>
+            {pickerOpen && (
+              <div className="overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-sm">
                 <div className="flex items-center border-b px-3">
                   <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
                   <Input
@@ -157,8 +162,8 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
                     })
                   )}
                 </div>
-              </PopoverContent>
-            </Popover>
+              </div>
+            )}
             {attendees.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {attendees.map((id) => {
