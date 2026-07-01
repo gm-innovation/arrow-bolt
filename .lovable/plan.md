@@ -1,21 +1,29 @@
 ## Problema
 
-Os itens "Provedores Externos" e "Homologação" aparecem no menu de Suprimentos, mas apontam para `/quality/suppliers` e `/quality/homologation`. Essas rotas estão dentro do bloco `<ProtectedRoute allowedRoles={['qualidade']}>` no `App.tsx`, então usuários com role `compras` são bloqueados e redirecionados para o dashboard.
+No diálogo "Registrar Evento de Conscientização" (`/quality/competencies/awareness`), a lista de colaboradores abre mas clicar em um nome não o adiciona à seleção. Nenhum badge aparece e o contador continua em 0.
 
-## Correção
+## Causa
 
-Adicionar as rotas dentro do bloco de Suprimentos (`allowedRoles={['compras']}`) reutilizando os mesmos componentes de página, para que ambos os setores acessem sem alterar as rotas do menu.
+Em `src/components/quality/awareness/AwarenessFormDialog.tsx`:
 
-**Arquivo:** `src/App.tsx` — no bloco de Suprimentos (linhas 416–421), acrescentar:
+1. `CommandItem` está sem a prop `value` explícita — o cmdk usa o texto como value, e o filtro/seleção pode não disparar `onSelect` corretamente quando o Popover está dentro de um Dialog do Radix (conflito de foco/pointer-events já conhecido).
+2. Falta `onMouseDown` para evitar que o Popover feche por perda de foco antes do clique registrar.
+3. O `CommandInput` não tem estado controlado, então a busca também não filtra.
 
-```tsx
-<Route path="/quality/suppliers" element={<QualitySuppliers />} />
-<Route path="/quality/suppliers/:id" element={<QualitySupplierDetail />} />
-<Route path="/quality/homologation" element={<QualityHomologation />} />
-```
+## Correção (somente UI, arquivo único)
 
-Assim os mesmos paths funcionam para roles `qualidade` e `compras`, sem duplicar código de página e sem mexer no sidemenu.
+Editar `src/components/quality/awareness/AwarenessFormDialog.tsx`:
 
-## Observação sobre RLS
+- Substituir o bloco Popover+Command por um seletor que funcione dentro do Dialog:
+  - Opção escolhida: manter Popover, mas em cada `CommandItem` adicionar `value={u.full_name}` e usar `onSelect` com id capturado no closure, além de `onMouseDown={(e) => e.preventDefault()}` para não perder foco.
+  - Adicionar estado `search` controlando `CommandInput` e filtrar `users` manualmente (case-insensitive) antes de mapear.
+  - Manter checkmark e badges já existentes.
 
-As tabelas de suppliers/homologation provavelmente têm policies restritas ao role `qualidade`. Se após o ajuste de rota as páginas abrirem vazias ou derem erro de permissão para o usuário de Suprimentos, faremos uma segunda rodada estendendo as policies para incluir `compras`. Isso será verificado após liberar a rota.
+Nada mais será alterado (nenhuma migração, hook, ou outra tela).
+
+## Verificação
+
+Após a mudança:
+- Abrir o diálogo, clicar em um nome → badge aparece e contador incrementa.
+- Buscar por texto filtra a lista.
+- Clicar de novo remove a seleção.
