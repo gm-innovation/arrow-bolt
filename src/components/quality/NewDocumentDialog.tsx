@@ -149,12 +149,24 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Classificação</Label>
-              <Input
-                value={form.classification}
-                onChange={(e) => setForm({ ...form, classification: e.target.value })}
-                placeholder="Ex.: Confidencial / Interno"
-              />
+              <Label>Classificação *</Label>
+              <Select
+                value={form.control_mode === "uncontrolled" ? "Não controlada" : (form.classification || "Controlada")}
+                onValueChange={(v) => setForm({
+                  ...form,
+                  classification: v,
+                  control_mode: v === "Não controlada" ? "uncontrolled" : "controlled",
+                })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Controlada">Controlada</SelectItem>
+                  <SelectItem value="Não controlada">Não controlada</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                "Não controlada" aplica marca d'água no visualizador.
+              </p>
             </div>
             <div className="space-y-1">
               <Label>Próxima Revisão</Label>
@@ -206,39 +218,20 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Responsável</Label>
-              <Select
-                value={form.responsible_user_id || "none"}
-                onValueChange={(v) => setForm({ ...form, responsible_user_id: v === "none" ? "" : v })}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">— Sem responsável —</SelectItem>
-                  {(companyUsers as any[]).map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.full_name || u.email}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Cópia</Label>
-              <Select
-                value={form.control_mode || "inherit"}
-                onValueChange={(v) => setForm({ ...form, control_mode: (v === "inherit" ? "" : v) as any })}
-              >
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="inherit">Herdar do tipo</SelectItem>
-                  <SelectItem value="controlled">Controlada</SelectItem>
-                  <SelectItem value="uncontrolled">Não controlada</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                "Não controlada" aplica marca d'água no visualizador.
-              </p>
-            </div>
+          <div className="space-y-1">
+            <Label>Responsável</Label>
+            <Select
+              value={form.responsible_user_id || "none"}
+              onValueChange={(v) => setForm({ ...form, responsible_user_id: v === "none" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecionar responsável" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— Sem responsável —</SelectItem>
+                {(companyUsers as any[]).map((u) => (
+                  <SelectItem key={u.id} value={u.id}>{u.full_name || u.email}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {form.origin !== "internal" && (
