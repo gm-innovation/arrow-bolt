@@ -21,6 +21,8 @@ import VersionViewerDialog from "@/components/quality/context/VersionViewerDialo
 import LastManagementReviewCard from "@/components/quality/context/LastManagementReviewCard";
 import type { ContextVersion } from "@/hooks/useQualityOrgContext";
 import { toast } from "@/hooks/use-toast";
+import CompetitiveAnalysisTab from "@/components/quality/context/CompetitiveAnalysisTab";
+import StrategicObjectivesTab from "@/components/quality/context/StrategicObjectivesTab";
 
 const OrgContext = () => {
   const { context, items, versions, saveContext, removeItem, linkItemRisk } = useQualityOrgContext();
