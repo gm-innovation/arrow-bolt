@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
+import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 import { toast } from "@/hooks/use-toast";
 import { parseISO } from "date-fns";
 
@@ -16,12 +18,15 @@ interface Props {
 
 const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => {
   const { update } = useQualityDocuments();
+  const { data: companyUsers = [] } = useCompanyUsers();
   const [form, setForm] = useState({
     title: "",
     classification: "",
     normative_reference: "",
     next_review_date: "",
     widely_visible: false,
+    responsible_user_id: "",
+    control_mode: "" as "" | "controlled" | "uncontrolled",
   });
 
   useEffect(() => {
@@ -32,6 +37,8 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
         normative_reference: document.normative_reference || "",
         next_review_date: document.next_review_date || "",
         widely_visible: !!document.widely_visible,
+        responsible_user_id: document.responsible_user_id || "",
+        control_mode: (document.control_mode as any) || "",
       });
     }
   }, [document, open]);
@@ -60,6 +67,8 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
       normative_reference: form.normative_reference || null,
       next_review_date: form.next_review_date || null,
       widely_visible: form.widely_visible,
+      responsible_user_id: form.responsible_user_id || null,
+      control_mode: form.control_mode || null,
     } as any);
     toast({ title: "Metadados atualizados" });
     onOpenChange(false);
