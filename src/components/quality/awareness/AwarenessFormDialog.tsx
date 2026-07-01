@@ -7,11 +7,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { Check, X } from "lucide-react";
+import { Check, Plus, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQualityAwarenessEvents } from "@/hooks/useQualityAwareness";
+import { useQualityAwarenessEvents, ExternalAttendee } from "@/hooks/useQualityAwareness";
 
 interface Props {
   open: boolean;
@@ -28,6 +28,10 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
   const [attendees, setAttendees] = useState<string[]>([]);
   const [users, setUsers] = useState<{ id: string; full_name: string }[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [externalAttendees, setExternalAttendees] = useState<ExternalAttendee[]>([]);
+  const [extName, setExtName] = useState("");
+  const [extCompany, setExtCompany] = useState("");
+  const [extEmail, setExtEmail] = useState("");
 
   useEffect(() => {
     if (!open || !profile?.company_id) return;
@@ -44,10 +48,29 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
     setEventDate(new Date().toISOString().slice(0, 10));
     setEvidenceUrl("");
     setAttendees([]);
+    setExternalAttendees([]);
+    setExtName("");
+    setExtCompany("");
+    setExtEmail("");
   }, [open, profile?.company_id]);
 
   const toggle = (id: string) =>
     setAttendees((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const addExternal = () => {
+    const name = extName.trim();
+    if (!name) return;
+    setExternalAttendees((prev) => [
+      ...prev,
+      { name, company: extCompany.trim() || undefined, email: extEmail.trim() || undefined },
+    ]);
+    setExtName("");
+    setExtCompany("");
+    setExtEmail("");
+  };
+
+  const removeExternal = (idx: number) =>
+    setExternalAttendees((prev) => prev.filter((_, i) => i !== idx));
 
   const submit = async () => {
     if (!topic.trim()) return;
@@ -57,6 +80,7 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
       event_date: eventDate,
       evidence_url: evidenceUrl || undefined,
       attendees,
+      external_attendees: externalAttendees,
     });
     onOpenChange(false);
   };
@@ -87,10 +111,10 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
             <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
           <div className="space-y-2">
-            <Label>Participantes ({attendees.length})</Label>
+            <Label>Participantes internos ({attendees.length})</Label>
             <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start">Selecionar participantes...</Button>
+                <Button variant="outline" className="w-full justify-start">Selecionar colaboradores...</Button>
               </PopoverTrigger>
               <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                 <Command>
@@ -127,6 +151,36 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
                 })}
               </div>
             )}
+            <p className="text-xs text-muted-foreground">
+              Colaboradores internos recebem notificação in-app para confirmar ciência.
+            </p>
+          </div>
+
+          <div className="space-y-2 border rounded-md p-3 bg-muted/20">
+            <Label>Participantes externos ({externalAttendees.length})</Label>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-2">
+              <Input placeholder="Nome *" value={extName} onChange={(e) => setExtName(e.target.value)} />
+              <Input placeholder="Empresa" value={extCompany} onChange={(e) => setExtCompany(e.target.value)} />
+              <Input placeholder="E-mail (opcional)" value={extEmail} onChange={(e) => setExtEmail(e.target.value)} />
+              <Button type="button" variant="outline" onClick={addExternal} disabled={!extName.trim()}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            {externalAttendees.length > 0 && (
+              <div className="flex flex-wrap gap-1 pt-1">
+                {externalAttendees.map((a, i) => (
+                  <Badge key={i} variant="outline" className="gap-1">
+                    {a.name}{a.company ? ` · ${a.company}` : ""}
+                    <button onClick={() => removeExternal(i)} className="ml-1 hover:opacity-70">
+                      <X className="h-3 w-3" />
+                    </button>
+                  </Badge>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Ex.: cliente auditando, visitante, prestador. Ficam registrados apenas para evidência.
+            </p>
           </div>
         </div>
         <DialogFooter>

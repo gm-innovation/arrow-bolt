@@ -3,6 +3,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
+export interface ExternalAttendee {
+  name: string;
+  company?: string;
+  email?: string;
+}
+
 export interface AwarenessEvent {
   id: string;
   company_id: string;
@@ -11,6 +17,7 @@ export interface AwarenessEvent {
   event_date: string;
   conducted_by: string | null;
   evidence_url: string | null;
+  external_attendees: ExternalAttendee[];
   created_at: string;
   updated_at: string;
 }
@@ -30,7 +37,10 @@ export const useQualityAwarenessEvents = () => {
         .eq("company_id", profile!.company_id!)
         .order("event_date", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as AwarenessEvent[];
+      return ((data ?? []) as any[]).map((r) => ({
+        ...r,
+        external_attendees: Array.isArray(r.external_attendees) ? r.external_attendees : [],
+      })) as AwarenessEvent[];
     },
   });
 
@@ -41,6 +51,7 @@ export const useQualityAwarenessEvents = () => {
       event_date?: string;
       evidence_url?: string;
       attendees: string[];
+      external_attendees?: ExternalAttendee[];
     }) => {
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
       const { data: ev, error } = await supabase
@@ -52,6 +63,7 @@ export const useQualityAwarenessEvents = () => {
           event_date: input.event_date || new Date().toISOString().slice(0, 10),
           conducted_by: user?.id ?? null,
           evidence_url: input.evidence_url || null,
+          external_attendees: input.external_attendees ?? [],
         } as any)
         .select()
         .single();
@@ -92,7 +104,46 @@ export const useAwarenessAttendees = (eventId?: string | null) => {
         .select("user_id, acknowledged_at")
         .eq("event_id", eventId!);
       if (error) throw error;
-      return (data ?? []) as unknown as { user_id: string; acknowledged_at: string }[];
+      return (data ?? []) as unknown as { user_id: string; acknowledged_at: string | null }[];
     },
   });
+};
+
+export const useMyAwarenessEvents = () => {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const key = ["my_quality_awareness", user?.id];
+
+  const query = useQuery({
+    queryKey: key,
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quality_awareness_attendees" as any)
+        .select("event_id, acknowledged_at, event:quality_awareness_events(id, topic, description, event_date)")
+        .eq("user_id", user!.id)
+        .order("acknowledged_at", { ascending: true, nullsFirst: true });
+      if (error) throw error;
+      return (data ?? []) as any[];
+    },
+  });
+
+  const acknowledge = useMutation({
+    mutationFn: async (eventId: string) => {
+      if (!user?.id) throw new Error("Não autenticado");
+      const { error } = await supabase
+        .from("quality_awareness_attendees" as any)
+        .update({ acknowledged_at: new Date().toISOString() })
+        .eq("event_id", eventId)
+        .eq("user_id", user.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key });
+      toast({ title: "Ciência registrada" });
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  return { rows: query.data ?? [], isLoading: query.isLoading, acknowledge };
 };

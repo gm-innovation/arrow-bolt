@@ -3,18 +3,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Megaphone, Plus, Trash2, Users } from "lucide-react";
+import { Megaphone, Plus, Trash2, Users, UserPlus } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useQualityAwarenessEvents, useAwarenessAttendees } from "@/hooks/useQualityAwareness";
 import AwarenessFormDialog from "@/components/quality/awareness/AwarenessFormDialog";
 
-const AttendeeCount = ({ eventId }: { eventId: string }) => {
+const AttendeeStats = ({ eventId, externalCount }: { eventId: string; externalCount: number }) => {
   const { data = [] } = useAwarenessAttendees(eventId);
+  const acked = data.filter((a) => !!a.acknowledged_at).length;
+  const total = data.length;
+  const pct = total ? Math.round((acked / total) * 100) : null;
   return (
-    <span className="flex items-center gap-1 text-sm">
-      <Users className="h-3.5 w-3.5" />
-      {data.length}
-    </span>
+    <div className="flex flex-col gap-1 text-xs">
+      <span className="flex items-center gap-1">
+        <Users className="h-3.5 w-3.5" /> {total} interno(s)
+        {pct !== null && (
+          <Badge variant={pct === 100 ? "default" : "secondary"} className="ml-1">{pct}% ciência</Badge>
+        )}
+      </span>
+      {externalCount > 0 && (
+        <span className="flex items-center gap-1 text-muted-foreground">
+          <UserPlus className="h-3.5 w-3.5" /> {externalCount} externo(s)
+        </span>
+      )}
+    </div>
   );
 };
 
@@ -62,7 +74,7 @@ const Awareness = () => {
                   <TableCell className="text-sm max-w-md truncate">
                     {e.description || <span className="text-muted-foreground">—</span>}
                   </TableCell>
-                  <TableCell><AttendeeCount eventId={e.id} /></TableCell>
+                  <TableCell><AttendeeStats eventId={e.id} externalCount={e.external_attendees?.length ?? 0} /></TableCell>
                   <TableCell>
                     {e.evidence_url ? (
                       <a className="text-primary text-sm underline" href={e.evidence_url} target="_blank" rel="noreferrer">Abrir</a>
