@@ -94,6 +94,7 @@ const QualityDocumentDetail = () => {
   const [fileBlob, setFileBlob] = useState<Blob | null>(null);
   const [showViewer, setShowViewer] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
   const [obsoleteReason, setObsoleteReason] = useState("");
   const [nextReviewOverride, setNextReviewOverride] = useState<string>("");
