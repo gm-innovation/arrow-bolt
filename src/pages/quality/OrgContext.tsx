@@ -25,6 +25,31 @@ import { toast } from "@/hooks/use-toast";
 const OrgContext = () => {
   const { context, items, versions, saveContext, removeItem, linkItemRisk } = useQualityOrgContext();
   const { upsert: upsertRisk } = useQualityRisks();
+  const { departments } = useDepartments();
+
+  const [swotDept, setSwotDept] = useState<string>("all");
+  const [swotPeriod, setSwotPeriod] = useState<string>("all");
+
+  const swotItems = useMemo(() => items.filter((i) => i.category.startsWith("swot_")), [items]);
+  const periodOptions = useMemo(() => {
+    const set = new Set<string>();
+    swotItems.forEach((i) => { if (i.analysis_period) set.add(i.analysis_period); });
+    return Array.from(set).sort().reverse();
+  }, [swotItems]);
+
+  const filteredSwot = useMemo(() => {
+    return swotItems.filter((i) => {
+      if (swotDept === "all") {
+        // include all
+      } else if (swotDept === "none") {
+        if (i.department_id) return false;
+      } else if (i.department_id !== swotDept) {
+        return false;
+      }
+      if (swotPeriod !== "all" && (i.analysis_period ?? "") !== swotPeriod) return false;
+      return true;
+    });
+  }, [swotItems, swotDept, swotPeriod]);
 
   const [scope, setScope] = useState<string>("");
   const [internal, setInternal] = useState<string>("");
