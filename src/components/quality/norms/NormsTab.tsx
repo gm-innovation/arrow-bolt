@@ -4,8 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Search, Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, Search, Pencil, Trash2, AlertTriangle, Download } from "lucide-react";
 import { format, differenceInDays, parseISO } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { useQualityReferenceNorms, type QualityReferenceNorm } from "@/hooks/useQualityIsoStructure";
 import { useControlledDocMeta } from "@/hooks/useControlledDocMeta";
 import NormFormDialog from "./NormFormDialog";
@@ -124,6 +126,25 @@ export const NormsTab = () => {
                     </TableCell>
                     <TableCell>{renderStatusBadge()}</TableCell>
                     <TableCell className="text-right">
+                      {(n as any).attachment_url && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title={(n as any).attachment_name || "Abrir arquivo"}
+                          onClick={async () => {
+                            const { data, error } = await supabase.storage
+                              .from("quality-norms")
+                              .createSignedUrl((n as any).attachment_url, 60 * 5);
+                            if (error || !data?.signedUrl) {
+                              toast({ title: "Erro ao abrir arquivo", description: error?.message, variant: "destructive" });
+                              return;
+                            }
+                            window.open(data.signedUrl, "_blank");
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => { setEditing(n); setOpen(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
