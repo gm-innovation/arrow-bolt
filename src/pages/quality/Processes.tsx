@@ -16,6 +16,7 @@ import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useCentralApproval } from "@/hooks/useCentralApproval";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
 import { useQualityProcessDocumentHistory } from "@/hooks/useQualityProcessDocumentHistory";
+import { useQualityProcessDocuments, RELATIONSHIP_TYPE_LABELS, type ProcessDocRelationship } from "@/hooks/useQualityProcessDocuments";
 import {
   useProcessPartyLinks,
   useProcessLinkedDocuments,
