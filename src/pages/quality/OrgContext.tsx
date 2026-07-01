@@ -55,6 +55,9 @@ const OrgContext = () => {
   const [internal, setInternal] = useState<string>("");
   const [external, setExternal] = useState<string>("");
   const [freq, setFreq] = useState<number>(12);
+  const [mission, setMission] = useState<string>("");
+  const [vision, setVision] = useState<string>("");
+  const [values, setValues] = useState<string>("");
 
   useEffect(() => {
     if (context) {
@@ -62,6 +65,9 @@ const OrgContext = () => {
       setInternal(context.internal_issues ?? "");
       setExternal(context.external_issues ?? "");
       setFreq(context.review_frequency_months ?? 12);
+      setMission((context as any).mission ?? "");
+      setVision((context as any).vision ?? "");
+      setValues((context as any).values ?? "");
     }
   }, [context?.id]);
 
