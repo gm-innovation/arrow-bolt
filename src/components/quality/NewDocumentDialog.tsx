@@ -151,7 +151,7 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
             <div className="space-y-1">
               <Label>Classificação *</Label>
               <Select
-                value={form.classification || form.control_mode === "uncontrolled" ? (form.control_mode === "uncontrolled" ? "Não controlada" : "Controlada") : ""}
+                value={form.control_mode === "uncontrolled" ? "Não controlada" : (form.classification || "Controlada")}
                 onValueChange={(v) => setForm({
                   ...form,
                   classification: v,
