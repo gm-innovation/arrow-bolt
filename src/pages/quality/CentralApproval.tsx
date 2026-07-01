@@ -9,7 +9,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
-import { ShieldCheck, Crown, Check, X, Users, Clock, History, MessageSquarePlus, ChevronDown } from "lucide-react";
+import { ShieldCheck, Crown, Check, X, Users, Clock, History, MessageSquarePlus, ChevronDown, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useQualitySettings, type ApprovalScope } from "@/hooks/useQualitySettings";
 import {
   useCentralApprovalsQueue,
