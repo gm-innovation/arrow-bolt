@@ -80,6 +80,9 @@ const QualityDocumentDetail = () => {
   const navigate = useNavigate();
   const { user, userRole } = useAuth();
   const canMarkObsolete = userRole === "qualidade" || userRole === "super_admin";
+  const isMaster = userRole === "qualidade" || userRole === "super_admin";
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const { document, versions, isLoading, createVersion, submitForApproval, approveAndPublish, markObsolete, reactivate } =
     useQualityDocument(id);
   const { update } = useQualityDocuments();
@@ -98,6 +101,8 @@ const QualityDocumentDetail = () => {
   const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
   const [obsoleteReason, setObsoleteReason] = useState("");
   const [nextReviewOverride, setNextReviewOverride] = useState<string>("");
+  const [editingNextReview, setEditingNextReview] = useState(false);
+  const [nextReviewEditValue, setNextReviewEditValue] = useState("");
   const [pendingOfficeDownload, setPendingOfficeDownload] = useState<{ path: string; filename: string; mime?: string | null } | null>(null);
 
   const activeVersion = versions[0] || null;
@@ -547,6 +552,15 @@ const QualityDocumentDetail = () => {
                     <RotateCcw className="h-4 w-4 mr-2" /> Reativar documento
                   </Button>
                 )}
+                {isMaster && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    title="Excluir permanentemente (somente Master)"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" /> Excluir documento
+                  </Button>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
@@ -558,9 +572,55 @@ const QualityDocumentDetail = () => {
               </div>
               <div>
                 <p className="text-muted-foreground">Próxima revisão</p>
-                <p className="font-medium">
-                  {document.next_review_date ? format(parseISO(document.next_review_date), "dd/MM/yyyy") : "—"}
-                </p>
+                {editingNextReview ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="date"
+                      className="border rounded-md px-2 py-1 text-sm bg-background"
+                      value={nextReviewEditValue}
+                      onChange={(e) => setNextReviewEditValue(e.target.value)}
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      onClick={async () => {
+                        await update.mutateAsync({
+                          id: document.id,
+                          next_review_date: nextReviewEditValue || null,
+                        } as any);
+                        setEditingNextReview(false);
+                        toast({ title: "Próxima revisão atualizada" });
+                      }}
+                    >
+                      Salvar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      onClick={() => setEditingNextReview(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="font-medium flex items-center gap-2">
+                    {document.next_review_date ? format(parseISO(document.next_review_date), "dd/MM/yyyy") : "—"}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0"
+                      onClick={() => {
+                        setNextReviewEditValue(document.next_review_date || "");
+                        setEditingNextReview(true);
+                      }}
+                      title="Editar próxima revisão"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-muted-foreground">Revisão atual</p>
@@ -822,6 +882,62 @@ const QualityDocumentDetail = () => {
                 }}
               >
                 Estou ciente, baixar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir documento permanentemente?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação é <strong>irreversível</strong>. O documento{" "}
+                <strong>{document.code} — {document.title}</strong>, todas as suas versões, permissões
+                e arquivos anexados serão apagados. Considere marcar como obsoleto se quiser preservar
+                o histórico.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={deleting}
+                className="bg-destructive hover:bg-destructive/90"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  setDeleting(true);
+                  try {
+                    // apaga arquivos do storage relacionados
+                    const paths = (versions || [])
+                      .map((v: any) => v.file_path)
+                      .filter((p: string | null) => !!p);
+                    if (paths.length > 0) {
+                      try {
+                        await supabase.storage.from("quality-documents").remove(paths as string[]);
+                      } catch (e) {
+                        console.warn("[quality] storage remove failed", e);
+                      }
+                    }
+                    const { error } = await supabase
+                      .from("quality_documents")
+                      .delete()
+                      .eq("id", document.id);
+                    if (error) throw error;
+                    toast({ title: "Documento excluído" });
+                    navigate("/quality/documents");
+                  } catch (err: any) {
+                    toast({
+                      title: "Erro ao excluir",
+                      description: err.message,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setDeleting(false);
+                    setShowDeleteConfirm(false);
+                  }
+                }}
+              >
+                {deleting ? "Excluindo…" : "Excluir permanentemente"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
