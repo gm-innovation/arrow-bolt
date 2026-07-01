@@ -24,6 +24,8 @@ import {
   Pencil,
   RotateCcw,
   Share2,
+} from "lucide-react";
+
 
 import { useQualityDocument, useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityDocumentTypes } from "@/hooks/useQualityDocumentTypes";
