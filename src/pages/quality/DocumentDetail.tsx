@@ -558,9 +558,55 @@ const QualityDocumentDetail = () => {
               </div>
               <div>
                 <p className="text-muted-foreground">Próxima revisão</p>
-                <p className="font-medium">
-                  {document.next_review_date ? format(parseISO(document.next_review_date), "dd/MM/yyyy") : "—"}
-                </p>
+                {editingNextReview ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      type="date"
+                      className="border rounded-md px-2 py-1 text-sm bg-background"
+                      value={nextReviewEditValue}
+                      onChange={(e) => setNextReviewEditValue(e.target.value)}
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      onClick={async () => {
+                        await update.mutateAsync({
+                          id: document.id,
+                          next_review_date: nextReviewEditValue || null,
+                        } as any);
+                        setEditingNextReview(false);
+                        toast({ title: "Próxima revisão atualizada" });
+                      }}
+                    >
+                      Salvar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2"
+                      onClick={() => setEditingNextReview(false)}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="font-medium flex items-center gap-2">
+                    {document.next_review_date ? format(parseISO(document.next_review_date), "dd/MM/yyyy") : "—"}
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 w-6 p-0"
+                      onClick={() => {
+                        setNextReviewEditValue(document.next_review_date || "");
+                        setEditingNextReview(true);
+                      }}
+                      title="Editar próxima revisão"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </Button>
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-muted-foreground">Revisão atual</p>
