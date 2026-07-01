@@ -11,7 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useQualityInterestedParties, QIPCategory } from "@/hooks/useQualityInterestedParties";
+import { useQualityInterestedParties } from "@/hooks/useQualityInterestedParties";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
 import InterestedPartyDrawer from "@/components/quality/InterestedPartyDrawer";
 import { Plus, Users, Trash2, CheckCircle2, AlertTriangle, Clock, Grid3x3 } from "lucide-react";
@@ -19,17 +19,6 @@ import { differenceInDays, parseISO } from "date-fns";
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, ReferenceLine, ZAxis,
 } from "recharts";
-
-const CATEGORIES: { value: QIPCategory; label: string }[] = [
-  { value: "cliente", label: "Cliente" },
-  { value: "fornecedor", label: "Fornecedor" },
-  { value: "orgao_regulador", label: "Órgão Regulador" },
-  { value: "sociedade", label: "Sociedade" },
-  { value: "colaborador", label: "Colaborador" },
-  { value: "acionista", label: "Acionista" },
-  { value: "parceiro", label: "Parceiro" },
-  { value: "outro", label: "Outro" },
-];
 
 const RELEVANCES = [
   { value: "alta", label: "Alta" },
