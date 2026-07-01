@@ -23,7 +23,8 @@ import {
   BookMarked,
   Pencil,
   RotateCcw,
-} from "lucide-react";
+  Share2,
+
 import { useQualityDocument, useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityDocumentTypes } from "@/hooks/useQualityDocumentTypes";
 import { addMonths } from "date-fns";
@@ -92,6 +93,7 @@ const QualityDocumentDetail = () => {
   const [showEdit, setShowEdit] = useState(false);
   const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
   const [obsoleteReason, setObsoleteReason] = useState("");
+  const [nextReviewOverride, setNextReviewOverride] = useState<string>("");
 
   const activeVersion = versions[0] || null;
   const publishedVersion = useMemo(
@@ -206,7 +208,12 @@ const QualityDocumentDetail = () => {
       action: "approval",
       notes: `Aprovação da revisão ${activeVersion.revision_label}`,
     });
-    await approveAndPublish.mutateAsync({ versionId: activeVersion.id, signatureEventId: evt.id });
+    await approveAndPublish.mutateAsync({
+      versionId: activeVersion.id,
+      signatureEventId: evt.id,
+      nextReviewDateOverride: nextReviewOverride || null,
+    });
+    setNextReviewOverride("");
   };
 
   const downloadFile = async (path: string, filename: string) => {
@@ -477,9 +484,20 @@ const QualityDocumentDetail = () => {
                   </Button>
                 )}
                 {activeVersion?.status === "pending_approval" && (
-                  <Button onClick={approveCurrent}>
-                    <CheckCircle2 className="h-4 w-4 mr-2" /> Aprovar e Publicar
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2 border rounded-md px-2 py-1 bg-muted/40">
+                    <label className="text-xs text-muted-foreground">
+                      Próxima revisão (opcional):
+                    </label>
+                    <input
+                      type="date"
+                      className="border rounded-md px-2 py-1 text-sm bg-background"
+                      value={nextReviewOverride}
+                      onChange={(e) => setNextReviewOverride(e.target.value)}
+                    />
+                    <Button onClick={approveCurrent}>
+                      <CheckCircle2 className="h-4 w-4 mr-2" /> Aprovar e Publicar
+                    </Button>
+                  </div>
                 )}
                 <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
                   <Pencil className="h-4 w-4 mr-2" /> Editar metadados

@@ -253,7 +253,7 @@ export const useQualityDocument = (id: string | undefined) => {
   });
 
   const approveAndPublish = useMutation({
-    mutationFn: async (input: { versionId: string; signatureEventId?: string | null }) => {
+    mutationFn: async (input: { versionId: string; signatureEventId?: string | null; nextReviewDateOverride?: string | null }) => {
       const nowDate = new Date();
       const now = nowDate.toISOString();
       // grava aprovação
@@ -280,26 +280,30 @@ export const useQualityDocument = (id: string | undefined) => {
         .eq("id", input.versionId);
       if (vErr) throw vErr;
 
-      // calcula próxima revisão a partir do ciclo configurado
+      // calcula próxima revisão: prioriza override informado, senão usa ciclo configurado
       let nextReviewDate: string | null = null;
-      try {
-        if (data?.company_id) {
-          const { data: settings } = await supabase
-            .from("quality_settings" as any)
-            .select("review_cycles")
-            .eq("company_id", data.company_id)
-            .maybeSingle();
-          const months =
-            Number((settings as any)?.review_cycles?.document_review_months) || 12;
-          const nxt = new Date(nowDate);
-          nxt.setMonth(nxt.getMonth() + months);
-          const yyyy = nxt.getFullYear();
-          const mm = String(nxt.getMonth() + 1).padStart(2, "0");
-          const dd = String(nxt.getDate()).padStart(2, "0");
-          nextReviewDate = `${yyyy}-${mm}-${dd}`;
+      if (input.nextReviewDateOverride && /^\d{4}-\d{2}-\d{2}$/.test(input.nextReviewDateOverride)) {
+        nextReviewDate = input.nextReviewDateOverride;
+      } else {
+        try {
+          if (data?.company_id) {
+            const { data: settings } = await supabase
+              .from("quality_settings" as any)
+              .select("review_cycles")
+              .eq("company_id", data.company_id)
+              .maybeSingle();
+            const months =
+              Number((settings as any)?.review_cycles?.document_review_months) || 12;
+            const nxt = new Date(nowDate);
+            nxt.setMonth(nxt.getMonth() + months);
+            const yyyy = nxt.getFullYear();
+            const mm = String(nxt.getMonth() + 1).padStart(2, "0");
+            const dd = String(nxt.getDate()).padStart(2, "0");
+            nextReviewDate = `${yyyy}-${mm}-${dd}`;
+          }
+        } catch (e) {
+          console.warn("[quality] could not compute next_review_date", e);
         }
-      } catch (e) {
-        console.warn("[quality] could not compute next_review_date", e);
       }
 
       // documento publicado, current_version aponta

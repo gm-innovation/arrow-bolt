@@ -96,4 +96,8 @@ verify_jwt = false
 [functions.list-llm-models]
 verify_jwt = false
 
+[functions.quality-public-doc]
+verify_jwt = false
+
+
 
