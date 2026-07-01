@@ -176,18 +176,53 @@ const OrgContext = () => {
           <ExcludedClausesCard />
         </TabsContent>
 
-        <TabsContent value="swot" className="mt-4">
+        <TabsContent value="swot" className="mt-4 space-y-3">
+          <Card>
+            <CardContent className="p-3 flex flex-wrap items-end gap-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Filter className="h-4 w-4" /> Filtros
+              </div>
+              <div className="min-w-[200px]">
+                <Label className="text-xs">Departamento</Label>
+                <Select value={swotDept} onValueChange={setSwotDept}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="none">Organização toda (sem depto)</SelectItem>
+                    {departments.map((d: any) => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="min-w-[160px]">
+                <Label className="text-xs">Período</Label>
+                <Select value={swotPeriod} onValueChange={setSwotPeriod}>
+                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    {periodOptions.map((p) => (
+                      <SelectItem key={p} value={p}>{p}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="text-xs text-muted-foreground ml-auto">
+                {filteredSwot.length} itens visíveis
+              </div>
+            </CardContent>
+          </Card>
           <div className="grid md:grid-cols-2 gap-4">
-            <CategoryColumn title="Forças" category="swot_strength" items={items}
+            <CategoryColumn title="Forças" category="swot_strength" items={filteredSwot}
               accent="bg-emerald-50 dark:bg-emerald-950/30"
               onAdd={openAdd} onEdit={openEdit} onRemove={(i) => removeItem.mutate(i.id)} onGenerateRisk={handleGenerateRisk} />
-            <CategoryColumn title="Fraquezas" category="swot_weakness" items={items}
+            <CategoryColumn title="Fraquezas" category="swot_weakness" items={filteredSwot}
               accent="bg-amber-50 dark:bg-amber-950/30"
               onAdd={openAdd} onEdit={openEdit} onRemove={(i) => removeItem.mutate(i.id)} onGenerateRisk={handleGenerateRisk} />
-            <CategoryColumn title="Oportunidades" category="swot_opportunity" items={items}
+            <CategoryColumn title="Oportunidades" category="swot_opportunity" items={filteredSwot}
               accent="bg-sky-50 dark:bg-sky-950/30"
               onAdd={openAdd} onEdit={openEdit} onRemove={(i) => removeItem.mutate(i.id)} onGenerateRisk={handleGenerateRisk} />
-            <CategoryColumn title="Ameaças" category="swot_threat" items={items}
+            <CategoryColumn title="Ameaças" category="swot_threat" items={filteredSwot}
               accent="bg-rose-50 dark:bg-rose-950/30"
               onAdd={openAdd} onEdit={openEdit} onRemove={(i) => removeItem.mutate(i.id)} onGenerateRisk={handleGenerateRisk} />
           </div>
