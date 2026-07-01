@@ -126,6 +126,25 @@ export const NormsTab = () => {
                     </TableCell>
                     <TableCell>{renderStatusBadge()}</TableCell>
                     <TableCell className="text-right">
+                      {(n as any).attachment_url && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title={(n as any).attachment_name || "Abrir arquivo"}
+                          onClick={async () => {
+                            const { data, error } = await supabase.storage
+                              .from("quality-norms")
+                              .createSignedUrl((n as any).attachment_url, 60 * 5);
+                            if (error || !data?.signedUrl) {
+                              toast({ title: "Erro ao abrir arquivo", description: error?.message, variant: "destructive" });
+                              return;
+                            }
+                            window.open(data.signedUrl, "_blank");
+                          }}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button variant="ghost" size="icon" onClick={() => { setEditing(n); setOpen(true); }}>
                         <Pencil className="h-4 w-4" />
                       </Button>
