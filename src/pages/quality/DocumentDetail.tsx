@@ -62,6 +62,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import EditDocumentMetadataDialog from "@/components/quality/EditDocumentMetadataDialog";
+import ShareDocumentDialog from "@/components/quality/ShareDocumentDialog";
 
 const statusLabel: Record<string, string> = {
   draft: "Rascunho",
