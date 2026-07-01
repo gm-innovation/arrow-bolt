@@ -23,7 +23,10 @@ import {
   BookMarked,
   Pencil,
   RotateCcw,
+  Share2,
 } from "lucide-react";
+
+
 import { useQualityDocument, useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityDocumentTypes } from "@/hooks/useQualityDocumentTypes";
 import { addMonths } from "date-fns";
@@ -59,6 +62,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import EditDocumentMetadataDialog from "@/components/quality/EditDocumentMetadataDialog";
+import ShareDocumentDialog from "@/components/quality/ShareDocumentDialog";
 
 const statusLabel: Record<string, string> = {
   draft: "Rascunho",
@@ -90,8 +94,10 @@ const QualityDocumentDetail = () => {
   const [fileBlob, setFileBlob] = useState<Blob | null>(null);
   const [showViewer, setShowViewer] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [showObsoleteConfirm, setShowObsoleteConfirm] = useState(false);
   const [obsoleteReason, setObsoleteReason] = useState("");
+  const [nextReviewOverride, setNextReviewOverride] = useState<string>("");
 
   const activeVersion = versions[0] || null;
   const publishedVersion = useMemo(
@@ -206,7 +212,12 @@ const QualityDocumentDetail = () => {
       action: "approval",
       notes: `Aprovação da revisão ${activeVersion.revision_label}`,
     });
-    await approveAndPublish.mutateAsync({ versionId: activeVersion.id, signatureEventId: evt.id });
+    await approveAndPublish.mutateAsync({
+      versionId: activeVersion.id,
+      signatureEventId: evt.id,
+      nextReviewDateOverride: nextReviewOverride || null,
+    });
+    setNextReviewOverride("");
   };
 
   const downloadFile = async (path: string, filename: string) => {
@@ -477,13 +488,29 @@ const QualityDocumentDetail = () => {
                   </Button>
                 )}
                 {activeVersion?.status === "pending_approval" && (
-                  <Button onClick={approveCurrent}>
-                    <CheckCircle2 className="h-4 w-4 mr-2" /> Aprovar e Publicar
-                  </Button>
+                  <div className="flex flex-wrap items-center gap-2 border rounded-md px-2 py-1 bg-muted/40">
+                    <label className="text-xs text-muted-foreground">
+                      Próxima revisão (opcional):
+                    </label>
+                    <input
+                      type="date"
+                      className="border rounded-md px-2 py-1 text-sm bg-background"
+                      value={nextReviewOverride}
+                      onChange={(e) => setNextReviewOverride(e.target.value)}
+                    />
+                    <Button onClick={approveCurrent}>
+                      <CheckCircle2 className="h-4 w-4 mr-2" /> Aprovar e Publicar
+                    </Button>
+                  </div>
                 )}
                 <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
                   <Pencil className="h-4 w-4 mr-2" /> Editar metadados
                 </Button>
+                {document.status === "published" && (
+                  <Button variant="outline" size="sm" onClick={() => setShowShare(true)}>
+                    <Share2 className="h-4 w-4 mr-2" /> Compartilhar
+                  </Button>
+                )}
                 {document.status === "published" && document.published_at && (
                   <Button
                     variant="outline"
@@ -709,6 +736,13 @@ const QualityDocumentDetail = () => {
         </Dialog>
 
         <EditDocumentMetadataDialog open={showEdit} onOpenChange={setShowEdit} document={document} />
+
+        <ShareDocumentDialog
+          open={showShare}
+          onOpenChange={setShowShare}
+          documentId={document.id}
+          documentTitle={document.title}
+        />
 
         <AlertDialog open={showObsoleteConfirm} onOpenChange={(o) => { setShowObsoleteConfirm(o); if (!o) setObsoleteReason(""); }}>
           <AlertDialogContent>

@@ -186,6 +186,7 @@ const QualityCompetenciesMatrix = lazy(() => import("./pages/quality/competencie
 const QualityCompetenciesProgram = lazy(() => import("./pages/quality/competencies/Program"));
 const QualityCompetenciesAwareness = lazy(() => import("./pages/quality/competencies/Awareness"));
 const PublicSatisfactionResponse = lazy(() => import("./pages/public/SatisfactionResponse"));
+const PublicQualityDocument = lazy(() => import("./pages/public/PublicQualityDocument"));
 
 const FinanceDashboard = lazy(() => import("./pages/finance/Dashboard"));
 const FinancePayables = lazy(() => import("./pages/finance/Payables"));
@@ -242,6 +243,7 @@ const App = () => {
             <Route path="/onboarding/:token" element={<Suspense fallback={<LoadingFallback />}><PublicOnboarding /></Suspense>} />
             <Route path="/carreiras/:slug" element={<Suspense fallback={<LoadingFallback />}><PublicCareers /></Suspense>} />
             <Route path="/satisfaction/r/:token" element={<Suspense fallback={<LoadingFallback />}><PublicSatisfactionResponse /></Suspense>} />
+            <Route path="/q/:token" element={<Suspense fallback={<LoadingFallback />}><PublicQualityDocument /></Suspense>} />
             <Route path="*" element={
               <AuthProvider>
                 <SidebarProvider>
