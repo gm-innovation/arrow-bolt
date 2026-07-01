@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { useQualityInterestedParties, usePartyEvidences, QIPCategory } from "@/hooks/useQualityInterestedParties";
+import { useQualityInterestedParties, usePartyEvidences } from "@/hooks/useQualityInterestedParties";
 import {
   usePartyProcessLinks,
   RELATIONSHIP_LABELS,
@@ -29,16 +29,6 @@ interface Props {
   onClose: () => void;
 }
 
-const CATEGORIES: { value: QIPCategory; label: string }[] = [
-  { value: "cliente", label: "Cliente" },
-  { value: "fornecedor", label: "Fornecedor" },
-  { value: "orgao_regulador", label: "Órgão Regulador" },
-  { value: "sociedade", label: "Sociedade" },
-  { value: "colaborador", label: "Colaborador" },
-  { value: "acionista", label: "Acionista" },
-  { value: "parceiro", label: "Parceiro" },
-  { value: "outro", label: "Outro" },
-];
 
 const EVIDENCE_TYPES = [
   "documento", "e-mail", "ata", "pesquisa", "licença", "certificado", "autorização", "outro",
@@ -74,7 +64,7 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
     if (party) {
       setEdit({
         name: party.name,
-        category: party.category,
+        
         relevance: party.relevance,
         status: party.status,
         needs_expectations: party.needs_expectations ?? "",
@@ -133,16 +123,7 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
                   <Label>Nome</Label>
                   <Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label>Categoria</Label>
-                    <Select value={edit.category} onValueChange={(v) => setEdit({ ...edit, category: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label>Relevância</Label>
                     <Select value={edit.relevance} onValueChange={(v) => setEdit({ ...edit, relevance: v })}>

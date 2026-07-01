@@ -11,7 +11,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { useQualityInterestedParties, QIPCategory } from "@/hooks/useQualityInterestedParties";
+import { useQualityInterestedParties } from "@/hooks/useQualityInterestedParties";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
 import InterestedPartyDrawer from "@/components/quality/InterestedPartyDrawer";
 import { Plus, Users, Trash2, CheckCircle2, AlertTriangle, Clock, Grid3x3 } from "lucide-react";
@@ -19,17 +19,6 @@ import { differenceInDays, parseISO } from "date-fns";
 import {
   ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, ReferenceLine, ZAxis,
 } from "recharts";
-
-const CATEGORIES: { value: QIPCategory; label: string }[] = [
-  { value: "cliente", label: "Cliente" },
-  { value: "fornecedor", label: "Fornecedor" },
-  { value: "orgao_regulador", label: "Órgão Regulador" },
-  { value: "sociedade", label: "Sociedade" },
-  { value: "colaborador", label: "Colaborador" },
-  { value: "acionista", label: "Acionista" },
-  { value: "parceiro", label: "Parceiro" },
-  { value: "outro", label: "Outro" },
-];
 
 const RELEVANCES = [
   { value: "alta", label: "Alta" },
@@ -51,7 +40,6 @@ const InterestedParties = () => {
   const [selected, setSelected] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
-    category: "cliente" as QIPCategory,
     needs_expectations: "",
     monitoring_method: "",
     relevance: "media",
@@ -64,7 +52,6 @@ const InterestedParties = () => {
     if (!form.name.trim()) return;
     await create.mutateAsync({
       name: form.name.trim(),
-      category: form.category,
       needs_expectations: form.needs_expectations || null,
       monitoring_method: form.monitoring_method || null,
       relevance: form.relevance as any,
@@ -74,7 +61,6 @@ const InterestedParties = () => {
     } as any);
     setForm({
       name: "",
-      category: "cliente",
       needs_expectations: "",
       monitoring_method: "",
       relevance: "media",
@@ -121,25 +107,14 @@ const InterestedParties = () => {
                 <Label>Nome *</Label>
                 <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label>Categoria *</Label>
-                  <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v as QIPCategory })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label>Relevância</Label>
-                  <Select value={form.relevance} onValueChange={(v) => setForm({ ...form, relevance: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {RELEVANCES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
+              <div className="space-y-1">
+                <Label>Relevância</Label>
+                <Select value={form.relevance} onValueChange={(v) => setForm({ ...form, relevance: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {RELEVANCES.map((r) => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1">
                 <Label>Necessidades e expectativas</Label>
@@ -214,7 +189,6 @@ const InterestedParties = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Categoria</TableHead>
                   <TableHead>Relevância</TableHead>
                   <TableHead>Tratativa</TableHead>
                   <TableHead>Última evidência</TableHead>
@@ -237,7 +211,6 @@ const InterestedParties = () => {
                         {p.name}
                         <Badge variant="outline" className="ml-2 capitalize">{p.status}</Badge>
                       </TableCell>
-                      <TableCell className="capitalize">{CATEGORIES.find((c) => c.value === p.category)?.label ?? p.category}</TableCell>
                       <TableCell className="capitalize">{p.relevance}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Select
@@ -335,7 +308,7 @@ const InterestedParties = () => {
                         return (
                           <div className="bg-background border rounded-md p-2 text-xs shadow">
                             <div className="font-semibold">{d.name}</div>
-                            <div className="text-muted-foreground capitalize">{d.category}</div>
+                            
                             <div>Poder: {d.power} · Interesse: {d.interest}</div>
                           </div>
                         );
@@ -345,7 +318,7 @@ const InterestedParties = () => {
                       name="Partes"
                       data={parties.map((p) => ({
                         name: p.name,
-                        category: p.category,
+                        
                         power: p.power_level ?? 3,
                         interest: p.interest_level ?? 3,
                         z: 1,
