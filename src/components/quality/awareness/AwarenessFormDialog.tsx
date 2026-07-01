@@ -1,13 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { Check, Plus, X } from "lucide-react";
+import { Check, Plus, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,6 +71,12 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
   const removeExternal = (idx: number) =>
     setExternalAttendees((prev) => prev.filter((_, i) => i !== idx));
 
+  const filteredUsers = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return users;
+    return users.filter((u) => (u.full_name || "").toLowerCase().includes(term));
+  }, [search, users]);
+
   const submit = async () => {
     if (!topic.trim()) return;
     await create.mutateAsync({
@@ -113,37 +117,53 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
           </div>
           <div className="space-y-2">
             <Label>Participantes internos ({attendees.length})</Label>
-            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full justify-start">Selecionar colaboradores...</Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                <Command shouldFilter={false}>
-                  <CommandInput placeholder="Buscar..." value={search} onValueChange={setSearch} />
-                  <CommandList>
-                    <CommandEmpty>Nenhum colaborador encontrado.</CommandEmpty>
-                    <CommandGroup>
-                      {users
-                        .filter((u) => !search.trim() || (u.full_name || "").toLowerCase().includes(search.trim().toLowerCase()))
-                        .map((u) => {
-                          const checked = attendees.includes(u.id);
-                          return (
-                            <CommandItem
-                              key={u.id}
-                              value={u.full_name || u.id}
-                              onMouseDown={(e) => e.preventDefault()}
-                              onSelect={() => toggle(u.id)}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
-                              {u.full_name}
-                            </CommandItem>
-                          );
-                        })}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full justify-start"
+              aria-expanded={pickerOpen}
+              onClick={() => setPickerOpen((prev) => !prev)}
+            >
+              Selecionar colaboradores...
+            </Button>
+            {pickerOpen && (
+              <div className="overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-sm">
+                <div className="flex items-center border-b px-3">
+                  <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+                  <Input
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Buscar..."
+                    className="h-11 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+                  />
+                </div>
+                <div className="max-h-[300px] overflow-y-auto p-1">
+                  {filteredUsers.length === 0 ? (
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      Nenhum colaborador encontrado.
+                    </div>
+                  ) : (
+                    filteredUsers.map((u) => {
+                      const checked = attendees.includes(u.id);
+                      return (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => toggle(u.id)}
+                          className={cn(
+                            "flex w-full items-center rounded-sm px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground",
+                            checked && "bg-accent text-accent-foreground"
+                          )}
+                        >
+                          <Check className={cn("mr-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
+                          <span className="min-w-0 flex-1 truncate">{u.full_name}</span>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
             {attendees.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {attendees.map((id) => {
