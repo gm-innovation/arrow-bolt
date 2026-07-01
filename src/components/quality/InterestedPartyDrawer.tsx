@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
-import { useQualityInterestedParties, usePartyEvidences, QIPCategory } from "@/hooks/useQualityInterestedParties";
+import { useQualityInterestedParties, usePartyEvidences } from "@/hooks/useQualityInterestedParties";
 import {
   usePartyProcessLinks,
   RELATIONSHIP_LABELS,
