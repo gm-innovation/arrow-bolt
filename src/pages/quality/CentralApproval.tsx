@@ -156,7 +156,7 @@ const CentralApproval = () => {
     slaHours, upsert,
   } = useQualitySettings();
   const { data: users = [] } = useCompanyUsers();
-  const { pending } = useCentralApprovalsQueue();
+  const { pending, isLoading: loadingQueue, queueError } = useCentralApprovalsQueue();
 
   const usersList = users as { id: string; full_name: string }[];
   const masterName = usersList.find((u) => u.id === settings?.quality_master_user_id)?.full_name ?? "—";
@@ -310,7 +310,13 @@ const CentralApproval = () => {
           <CardTitle className="text-base">Fila de aprovações pendentes</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {pending.length === 0 ? (
+          {queueError ? (
+            <div className="p-6 text-center text-sm text-destructive">
+              Erro ao carregar a fila: {(queueError as any)?.message || "Falha na consulta."}
+            </div>
+          ) : loadingQueue ? (
+            <div className="p-6 text-center text-sm text-muted-foreground">Carregando...</div>
+          ) : pending.length === 0 ? (
             <div className="p-6 text-center text-sm text-muted-foreground">Sem aprovações pendentes.</div>
           ) : (
             <Table>
