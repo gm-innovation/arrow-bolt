@@ -157,14 +157,32 @@ const InterestedParties = () => {
                   onChange={(e) => setForm({ ...form, monitoring_method: e.target.value })}
                 />
               </div>
-              <div className="space-y-1">
-                <Label>Ciclo de revisão (meses)</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={form.review_frequency_months}
-                  onChange={(e) => setForm({ ...form, review_frequency_months: e.target.value })}
-                />
+              <div className="grid grid-cols-3 gap-3">
+                <div className="space-y-1">
+                  <Label>Ciclo de revisão (meses)</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={form.review_frequency_months}
+                    onChange={(e) => setForm({ ...form, review_frequency_months: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Poder (1-5)</Label>
+                  <Input
+                    type="number" min={1} max={5}
+                    value={form.power_level}
+                    onChange={(e) => setForm({ ...form, power_level: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label>Interesse (1-5)</Label>
+                  <Input
+                    type="number" min={1} max={5}
+                    value={form.interest_level}
+                    onChange={(e) => setForm({ ...form, interest_level: e.target.value })}
+                  />
+                </div>
               </div>
             </div>
             <DialogFooter>
@@ -174,6 +192,13 @@ const InterestedParties = () => {
           </DialogContent>
         </Dialog>
       </div>
+
+      <Tabs defaultValue="list">
+        <TabsList>
+          <TabsTrigger value="list"><Users className="h-3.5 w-3.5 mr-1" /> Lista</TabsTrigger>
+          <TabsTrigger value="matrix"><Grid3x3 className="h-3.5 w-3.5 mr-1" /> Matriz Poder × Interesse</TabsTrigger>
+        </TabsList>
+        <TabsContent value="list" className="mt-4">
 
       <Card>
         <CardHeader><CardTitle>Lista</CardTitle></CardHeader>
