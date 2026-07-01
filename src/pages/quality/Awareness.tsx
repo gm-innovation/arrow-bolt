@@ -74,7 +74,7 @@ const Awareness = () => {
                   <TableCell className="text-sm max-w-md truncate">
                     {e.description || <span className="text-muted-foreground">—</span>}
                   </TableCell>
-                  <TableCell><AttendeeCount eventId={e.id} /></TableCell>
+                  <TableCell><AttendeeStats eventId={e.id} externalCount={e.external_attendees?.length ?? 0} /></TableCell>
                   <TableCell>
                     {e.evidence_url ? (
                       <a className="text-primary text-sm underline" href={e.evidence_url} target="_blank" rel="noreferrer">Abrir</a>
