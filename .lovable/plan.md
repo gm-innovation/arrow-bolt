@@ -1,97 +1,110 @@
-## Fase 3 — Contexto Organizacional (ISO §4) — Plano final
 
-**Objetivo:** completar a cláusula 4 da ISO 9001 com SWOT por departamento e ciclo, matriz Poder × Interesse revisável, tipagem semântica do vínculo Parte ↔ Processo, e transformar Processo em hub do SGQ (Documentos + Partes + Riscos + Objetivos + Indicadores).
+# Plano — Adendo v4.1 + Manual v5 do SGQ Arrow
 
----
+Dois PDFs entregues em `/mnt/documents/`, escritos para o **time de Qualidade**, com passo-a-passo textual, **links reais** para o app em produção e **capturas anotadas** (setas/realces) sobre os botões mencionados.
 
-### 1. SWOT por departamento + ciclo de análise
+## Entregáveis
 
-**Banco (`quality_context_items`)**
-- `department_id uuid NULL` (FK `departments`) — NULL = corporativo.
-- `analysis_period text NULL` — livre (ex.: `2026`, `2026-Q2`, `2026-S1`). Índice `(company_id, department_id, analysis_period, category)`.
-- Snapshot em `quality_context_versions` passa a incluir ambos os campos.
+1. `adendo-sgq-arrow_v4.1.pdf` — 8–12 páginas, só o que mudou desde o v4.
+2. `manual-uso-sgq-arrow_v5.pdf` — manual completo consolidado, substitui o v4.
 
-**UI — `OrgContext.tsx` (aba SWOT)**
-- Filtros no topo: **Departamento** (Corporativo/todos ou específico) + **Período** (combobox com autocomplete a partir dos valores existentes; permite digitar novo).
-- Corporativo/todos: agrega itens; badge indicando origem (Corp ou nome do depto) e período.
-- Ao criar item: campos Departamento e Período pré-preenchidos com o filtro ativo.
+Ambos com: capa, sumário interno clicável, hyperlinks para rotas de `https://arrow.googlemarineinnovation.com.br`, cabeçalho/rodapé com versão e data, paleta e logo do Arrow.
 
-**UI — `ScenarioSwot.tsx`**
-- Toggle **Consolidado** vs **Por departamento**; seletor de período.
-- Modo "Por departamento": grid de cards, um por depto + card destaque Corporativo; cada card mostra cenário (Ofensivo/Defensivo/Reorientação/Sobrevivência) e scores.
-- `computeSwotScenario` aceita filtro por `department_id` e `analysis_period`.
+## O que significa "clicável" (sem invenção)
 
----
+- **Sumário clicável**: âncoras internas via ReportLab Platypus.
+- **Links externos**: cada instrução do tipo "abra Qualidade > Documentos" é um hyperlink que abre `https://arrow.googlemarineinnovation.com.br/quality/documents` no navegador do leitor.
+- **Capturas anotadas**: screenshots reais do app (Playwright) com setas/círculos/números desenhados por cima usando Pillow, apontando para o botão/campo citado no texto ao lado.
 
-### 2. Partes Interessadas — Matriz Poder × Interesse revisável
+PDF em si não executa nada dentro do app — isso é o limite técnico.
 
-**Banco (`quality_interested_parties`)**
-- `power_level smallint` (1–5)
-- `interest_level smallint` (1–5)
-- `next_review_date date NULL`
+## Escopo de conteúdo (por seção, com rota + captura + anotação)
 
-**UI — `InterestedParties.tsx`**
-- Formulário: campos Poder, Interesse, Próxima revisão.
-- Listagem: badge de status de revisão (`Em dia` / `Vence em X dias` / `Vencida`).
-- Nova aba **"Matriz Poder × Interesse"** — recharts ScatterChart 2×2 com quadrantes:
-  - Alto poder + Alto interesse → **Gerenciar de perto**
-  - Alto poder + Baixo interesse → **Manter satisfeito**
-  - Baixo poder + Alto interesse → **Manter informado**
-  - Baixo poder + Baixo interesse → **Monitorar**
-- Click no ponto abre o detalhe da parte; legenda com contagem por quadrante.
-- Dashboard de Revisões (existente): incluir partes com `next_review_date` vencido/próximo.
+### 1. Governança documental
+- Responsável pelo documento (Novo doc + Editar metadados) → `/quality/documents`
+- Cópia Controlada vs Não Controlada + default por Tipo → `/quality/documents/settings`
+- Editar Próxima Revisão (metadados + publish de nova versão) → `/quality/documents/:id`
+- Recalcular próxima revisão (legado)
+- Marcar como Obsoleto (motivo obrigatório ≥10 chars, log, restrição de acesso)
+- Upload ampliado (Word/Excel/PPT/CSV, 50 MB) + aviso ao baixar Office
 
----
+### 2. Compartilhamento
+- Link público com token, expiração, limite de uso, revogação, contador → botão Compartilhar em `/quality/documents/:id`
+- Rota pública `/q/:token` com marca d'água
 
-### 3. Parte Interessada ↔ Processo — vínculo tipado
+### 3. Fila central de aprovações
+- Exibição de erro real em vez de "Sem aprovações pendentes" → `/quality/central-approvals`
 
-**Banco — nova tabela `quality_interested_party_processes`**
-- `party_id`, `process_id` (PK composta)
-- `relevance` enum (`low`|`medium`|`high`) — responde "quanto"
-- `relationship_type` enum — responde "como":
-  `cliente | fornecedor | fiscaliza | recebe_informacao | executa | impacta | influencia`
-- GRANTs + RLS por company (padrão qualidade/super_admin).
+### 4. Contexto Organizacional (ISO §4)
+- SWOT por Departamento + Período → `/quality/org-context`
+- Partes Interessadas: campos Poder/Interesse/Próxima revisão + Matriz Poder × Interesse → `/quality/interested-parties`
+- Vínculos tipados Parte ↔ Processo (Cliente, Fornecedor, Fiscaliza, Recebe informação, Executa, Impacta, Influencia + relevância)
+- Processo como Hub (abas Documentos e Partes) → `/quality/processes`
+- Documento ↔ Processo (campo em Editar metadados)
 
-**Hooks — `useQualityInterestedParties.ts`**
-- `linkProcess(partyId, processId, relevance, relationship_type)` / `unlinkProcess`.
-- `useInterestedPartyProcesses(partyId)` e o inverso `useProcessInterestedParties(processId)`.
+### 5. Conscientização (§7.3)
+- Participantes externos (nome/empresa/email) → `/quality/awareness`
+- Confirmar ciência em Minha Conta → `/account` (aba Conscientizações)
+- % ciência no dashboard
 
-**UI**
-- Detalhe da parte: seção **"Processos afetados"** com multiselect + relevância + tipo de relacionamento inline.
+### 6. Autorização Master SGQ
+- Política aditiva `qms_master_full_access` em 25 tabelas para `qualidade` e `super_admin` (texto explicativo, sem tela)
 
----
+### 7. Reorganização de menus (v4 → v5)
+- Grupo Suprimentos & Fornecedores (Provedores Externos + Homologação)
+- Grupo Metrologia (Calibração de Instrumentos)
+- Captura da sidebar antes/depois
 
-### 4. Documento Controlado ↔ Processo + Processo como Hub do SGQ
+## Estrutura dos documentos
 
-**Banco**
-- `quality_documents.process_id uuid NULL` (FK `quality_processes`) + índice.
-  (Reaproveita documento existente; sem tabela nova.)
+**Adendo v4.1** — Capa • Sumário • Resumo executivo (1p) • Seções 1–7 (1–2 p cada) • Anexo: matriz "O que mudou por perfil".
 
-**UI — criação/edição de documento**
-- Campo opcional **Processo vinculado** em `NewDocumentDialog` e `EditDocumentMetadataDialog`.
+**Manual v5** — Capa • Sumário • 1. Visão geral do SGQ • 2. Governança documental • 3. Compartilhamento e links públicos • 4. Aprovações e revisões • 5. Contexto Organizacional • 6. Partes Interessadas e Matriz • 7. Processo como hub • 8. Conscientização • 9. Menus e navegação • 10. Perfis e permissões (nota Master SGQ) • Anexo A: Glossário • Anexo B: Changelog v4 → v5.
 
-**UI — `Processes.tsx` (detalhe/hub)**
-Adicionar abas/seções no processo:
-- **Documentos** (via `quality_documents.process_id`) — com atalho para abrir cada documento.
-- **Partes interessadas** (via `quality_interested_party_processes`) — mostra tipo + relevância.
-- **Riscos** (via `quality_risks` já ligáveis a processo).
-- **Objetivos & Indicadores** (via `quality_objectives`/`quality_indicators` já ligáveis).
+## Como as capturas são obtidas
 
-Cada seção é read-only + link para a tela mestre correspondente. Transforma Processo no hub navegável do SGQ.
+Playwright headless no localhost:8080 com sessão do usuário injetada, viewport 1280×1800. Uma captura por funcionalidade (~15 telas), salvas em `/tmp/browser/manual-v5/screenshots/`. Depois, Pillow desenha sobre cada uma:
 
----
+- círculos vermelhos ao redor dos botões citados
+- setas apontando do texto para o alvo
+- números correspondentes aos passos do texto ao lado
 
-### Ordem de execução (revisada)
+Coordenadas dos alvos capturadas via `element.bounding_box()` do Playwright — sem chute.
 
-1. **Migration única** — colunas SWOT (`department_id`, `analysis_period`); partes (`power_level`, `interest_level`, `next_review_date`); nova tabela `quality_interested_party_processes` com `relevance` + `relationship_type`; `quality_documents.process_id`.
-2. **Hooks** — extensão de `useQualityOrgContext`, `useQualityInterestedParties`, `useQualityProcesses`, `useQualityDocuments`.
-3. **Links cruzados** — abas do hub em `Processes.tsx` + campo Processo em documentos + badges de contagem em listagens. (Reutiliza só consultas; valida modelagem cedo.)
-4. **UI SWOT** — filtros por depto/período em `OrgContext` e `ScenarioSwot`.
-5. **UI Partes** — formulário com Poder/Interesse/Próxima revisão, aba matriz 2×2 e integração com Dashboard de Revisões.
+Rotas cobertas:
+```text
+/quality/documents  (lista + Novo doc + Editar metadados)
+/quality/documents/:id  (visualizador + Compartilhar + histórico)
+/quality/documents/settings  (default_control_mode por tipo)
+/quality/central-approvals
+/quality/org-context  (SWOT com filtros)
+/quality/interested-parties  (aba Matriz)
+/quality/processes  (drawer hub)
+/quality/awareness
+/account  (aba Conscientizações)
+Sidebar Qualidade (Suprimentos + Metrologia)
+```
 
----
+Se alguma rota não estiver navegável para o usuário logado no ambiente sandbox, uso captura da rota mais próxima e cito o motivo no rodapé da imagem — sem forjar tela.
 
-### Fora de escopo desta fase
-- Árvore/mapa visual integrado (adiado).
-- Vínculo Partes ↔ Normas legais (adiado).
-- UI de tratamentos (`quality_party_treatments`) — adiado.
+## Geração dos PDFs
+
+- Python + ReportLab (Platypus).
+- Fontes com suporte a acentos (DejaVu Sans / DejaVu Serif) — sem quadrados pretos.
+- Paleta importada de `src/index.css` do projeto para consistência visual.
+- Sumário via `TableOfContents` do Platypus (âncoras internas clicáveis).
+- Hyperlinks externos via tag `<link href="https://…">` dentro de Paragraph.
+- Cabeçalho com logo Arrow (extraído de `public/`), rodapé com "Manual SGQ Arrow · v5 · 01/07/2026 · pág X/Y".
+
+## QA obrigatório
+
+Após cada PDF: `pdftoppm -jpeg -r 150` e inspeção página a página. Checklist: overflow de texto, clipping, contraste, setas na posição certa, links no lugar certo, sumário funcionando. Corrijo e regenero até passar. Reporto no final o que verifiquei.
+
+## Ordem de execução (após aprovação)
+
+1. Auditar cores/logo/tokens do app.
+2. Playwright: navegar cada rota, capturar screenshot + bounding boxes dos alvos.
+3. Pillow: anotar cada screenshot com setas/círculos numerados.
+4. Gerar `adendo-sgq-arrow_v4.1.pdf` + QA visual.
+5. Gerar `manual-uso-sgq-arrow_v5.pdf` + QA visual.
+6. Publicar em `/mnt/documents/` com tags `presentation-artifact`.
