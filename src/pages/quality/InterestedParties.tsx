@@ -301,6 +301,80 @@ const InterestedParties = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="matrix" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Matriz Poder × Interesse</CardTitle>
+              <p className="text-xs text-muted-foreground">
+                Quadrantes: <b>Gerenciar de perto</b> (alto poder, alto interesse) · <b>Manter satisfeito</b> (alto poder, baixo interesse) · <b>Manter informado</b> (baixo poder, alto interesse) · <b>Monitorar</b> (baixo, baixo).
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[420px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ScatterChart margin={{ top: 20, right: 30, bottom: 40, left: 30 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                      type="number" dataKey="interest" name="Interesse" domain={[0, 6]} ticks={[1, 2, 3, 4, 5]}
+                      label={{ value: "Interesse →", position: "insideBottom", offset: -10 }}
+                    />
+                    <YAxis
+                      type="number" dataKey="power" name="Poder" domain={[0, 6]} ticks={[1, 2, 3, 4, 5]}
+                      label={{ value: "Poder →", angle: -90, position: "insideLeft" }}
+                    />
+                    <ZAxis type="number" dataKey="z" range={[80, 80]} />
+                    <ReferenceLine x={3} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
+                    <ReferenceLine y={3} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" />
+                    <RTooltip
+                      cursor={{ strokeDasharray: "3 3" }}
+                      content={({ active, payload }) => {
+                        if (!active || !payload?.length) return null;
+                        const d: any = payload[0].payload;
+                        return (
+                          <div className="bg-background border rounded-md p-2 text-xs shadow">
+                            <div className="font-semibold">{d.name}</div>
+                            <div className="text-muted-foreground capitalize">{d.category}</div>
+                            <div>Poder: {d.power} · Interesse: {d.interest}</div>
+                          </div>
+                        );
+                      }}
+                    />
+                    <Scatter
+                      name="Partes"
+                      data={parties.map((p) => ({
+                        name: p.name,
+                        category: p.category,
+                        power: p.power_level ?? 3,
+                        interest: p.interest_level ?? 3,
+                        z: 1,
+                        id: p.id,
+                      }))}
+                      fill="hsl(var(--primary))"
+                      onClick={(e: any) => e?.id && setSelected(e.id)}
+                    />
+                  </ScatterChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid grid-cols-2 gap-3 mt-4 text-xs">
+                <div className="border rounded p-2 bg-amber-50 dark:bg-amber-950/30">
+                  <b>Manter satisfeito</b> (poder alto, interesse baixo)
+                </div>
+                <div className="border rounded p-2 bg-rose-50 dark:bg-rose-950/30">
+                  <b>Gerenciar de perto</b> (poder alto, interesse alto)
+                </div>
+                <div className="border rounded p-2 bg-muted">
+                  <b>Monitorar</b> (poder baixo, interesse baixo)
+                </div>
+                <div className="border rounded p-2 bg-sky-50 dark:bg-sky-950/30">
+                  <b>Manter informado</b> (poder baixo, interesse alto)
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
 
       <InterestedPartyDrawer
         partyId={selected}
