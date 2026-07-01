@@ -552,6 +552,15 @@ const QualityDocumentDetail = () => {
                     <RotateCcw className="h-4 w-4 mr-2" /> Reativar documento
                   </Button>
                 )}
+                {isMaster && (
+                  <Button
+                    variant="destructive"
+                    onClick={() => setShowDeleteConfirm(true)}
+                    title="Excluir permanentemente (somente Master)"
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-2" /> Excluir documento
+                  </Button>
+                )}
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
