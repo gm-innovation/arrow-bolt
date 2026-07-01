@@ -123,16 +123,7 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
                   <Label>Nome</Label>
                   <Input value={edit.name} onChange={(e) => setEdit({ ...edit, name: e.target.value })} />
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="space-y-1">
-                    <Label>Categoria</Label>
-                    <Select value={edit.category} onValueChange={(v) => setEdit({ ...edit, category: v })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {CATEGORIES.map((c) => <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label>Relevância</Label>
                     <Select value={edit.relevance} onValueChange={(v) => setEdit({ ...edit, relevance: v })}>
