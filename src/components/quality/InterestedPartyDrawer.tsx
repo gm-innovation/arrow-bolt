@@ -64,7 +64,7 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
     if (party) {
       setEdit({
         name: party.name,
-        category: party.category,
+        
         relevance: party.relevance,
         status: party.status,
         needs_expectations: party.needs_expectations ?? "",
