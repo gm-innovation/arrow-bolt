@@ -270,6 +270,14 @@ const OrgContext = () => {
           </div>
         </TabsContent>
 
+        <TabsContent value="competitive" className="mt-4">
+          <CompetitiveAnalysisTab />
+        </TabsContent>
+
+        <TabsContent value="strategic" className="mt-4">
+          <StrategicObjectivesTab />
+        </TabsContent>
+
         <TabsContent value="history" className="mt-4">
           <Card>
             <CardContent className="p-0">
