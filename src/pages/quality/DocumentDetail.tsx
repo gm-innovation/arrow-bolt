@@ -506,6 +506,11 @@ const QualityDocumentDetail = () => {
                 <Button variant="outline" size="sm" onClick={() => setShowEdit(true)}>
                   <Pencil className="h-4 w-4 mr-2" /> Editar metadados
                 </Button>
+                {document.status === "published" && (
+                  <Button variant="outline" size="sm" onClick={() => setShowShare(true)}>
+                    <Share2 className="h-4 w-4 mr-2" /> Compartilhar
+                  </Button>
+                )}
                 {document.status === "published" && document.published_at && (
                   <Button
                     variant="outline"
