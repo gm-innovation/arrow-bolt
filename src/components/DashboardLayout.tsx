@@ -317,23 +317,6 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       ],
     },
     {
-      title: "Suprimentos & Fornecedores",
-      icon: Building2,
-      key: "q-supplies",
-      children: [
-        { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
-        { title: "Homologação", icon: ClipboardCheck, path: "/quality/homologation" },
-      ],
-    },
-    {
-      title: "Metrologia",
-      icon: Gauge,
-      key: "q-metrology",
-      children: [
-        { title: "Calibração de Instrumentos", icon: Gauge, path: "/quality/devices" },
-      ],
-    },
-    {
       title: "Operação da Qualidade",
       icon: ShieldCheck,
       key: "q-ops",
