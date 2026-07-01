@@ -11,6 +11,7 @@ export interface QualityDocumentType {
   description: string | null;
   default_classification: string | null;
   default_review_interval_months: number | null;
+  default_control_mode: "controlled" | "uncontrolled" | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
