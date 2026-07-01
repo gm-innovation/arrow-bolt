@@ -28,6 +28,7 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
   const [attendees, setAttendees] = useState<string[]>([]);
   const [users, setUsers] = useState<{ id: string; full_name: string }[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [externalAttendees, setExternalAttendees] = useState<ExternalAttendee[]>([]);
   const [extName, setExtName] = useState("");
   const [extCompany, setExtCompany] = useState("");
