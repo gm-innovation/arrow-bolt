@@ -8,13 +8,17 @@ import { Badge } from "@/components/ui/badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQualityInterestedParties, QIPCategory } from "@/hooks/useQualityInterestedParties";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
 import InterestedPartyDrawer from "@/components/quality/InterestedPartyDrawer";
-import { Plus, Users, Trash2, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { Plus, Users, Trash2, CheckCircle2, AlertTriangle, Clock, Grid3x3 } from "lucide-react";
 import { differenceInDays, parseISO } from "date-fns";
+import {
+  ScatterChart, Scatter, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip, ResponsiveContainer, ReferenceLine, ZAxis,
+} from "recharts";
 
 const CATEGORIES: { value: QIPCategory; label: string }[] = [
   { value: "cliente", label: "Cliente" },
