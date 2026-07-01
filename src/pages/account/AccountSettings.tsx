@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { UserCog, Lock, Palette, Bell, ShieldAlert, Loader2, PenLine } from "lucide-react";
+import { UserCog, Lock, Palette, Bell, ShieldAlert, Loader2, PenLine, Megaphone } from "lucide-react";
 import SignatureSection from "@/components/account/SignatureSection";
+import MyAwarenessPanel from "@/components/account/MyAwarenessPanel";
 
 const AccountSettings = () => {
   const { user, profile, updatePassword } = useAuth();
