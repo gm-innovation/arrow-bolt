@@ -155,6 +155,24 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
               </p>
             </div>
           </div>
+          <div className="space-y-1">
+            <Label>Processo vinculado (SGQ)</Label>
+            <Select
+              value={form.process_id || "none"}
+              onValueChange={(v) => setForm({ ...form, process_id: v === "none" ? "" : v })}
+            >
+              <SelectTrigger><SelectValue placeholder="Selecionar processo" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">— Sem processo —</SelectItem>
+                {processes.map((p: any) => (
+                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              O processo passa a exibir este documento na aba "Documentos vinculados".
+            </p>
+          </div>
           <div className="flex items-center justify-between border rounded-md p-3">
             <div>
               <Label className="text-sm">Visibilidade ampliada</Label>
