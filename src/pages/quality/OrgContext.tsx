@@ -193,7 +193,8 @@ const OrgContext = () => {
               <Button onClick={() => saveContext.mutate({
                 applicable_scope: scope, internal_issues: internal,
                 external_issues: external, review_frequency_months: freq,
-              })} disabled={saveContext.isPending}>
+                mission, vision, values,
+              } as any)} disabled={saveContext.isPending}>
                 <Save className="h-4 w-4 mr-1" />Salvar
               </Button>
             </CardContent>
