@@ -76,7 +76,12 @@ const AccountSettings = () => {
           <TabsTrigger value="appearance"><Palette className="h-4 w-4 mr-2" /> Aparência</TabsTrigger>
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-2" /> Notificações</TabsTrigger>
           <TabsTrigger value="session"><ShieldAlert className="h-4 w-4 mr-2" /> Sessão</TabsTrigger>
+          <TabsTrigger value="awareness"><Megaphone className="h-4 w-4 mr-2" /> Conscientizações</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="awareness" className="mt-4">
+          <MyAwarenessPanel />
+        </TabsContent>
 
         <TabsContent value="signature" className="mt-4">
           <SignatureSection />
