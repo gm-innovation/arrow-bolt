@@ -137,6 +137,8 @@ const OrgContext = () => {
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
           <TabsTrigger value="swot">SWOT</TabsTrigger>
           <TabsTrigger value="pestal">PESTAL</TabsTrigger>
+          <TabsTrigger value="competitive">Análise Competitiva</TabsTrigger>
+          <TabsTrigger value="strategic">Objetivos Estratégicos</TabsTrigger>
           <TabsTrigger value="history">Histórico ({versions.length})</TabsTrigger>
         </TabsList>
 
