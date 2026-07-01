@@ -886,6 +886,62 @@ const QualityDocumentDetail = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir documento permanentemente?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação é <strong>irreversível</strong>. O documento{" "}
+                <strong>{document.code} — {document.title}</strong>, todas as suas versões, permissões
+                e arquivos anexados serão apagados. Considere marcar como obsoleto se quiser preservar
+                o histórico.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                disabled={deleting}
+                className="bg-destructive hover:bg-destructive/90"
+                onClick={async (e) => {
+                  e.preventDefault();
+                  setDeleting(true);
+                  try {
+                    // apaga arquivos do storage relacionados
+                    const paths = (versions || [])
+                      .map((v: any) => v.file_path)
+                      .filter((p: string | null) => !!p);
+                    if (paths.length > 0) {
+                      try {
+                        await supabase.storage.from("quality-documents").remove(paths as string[]);
+                      } catch (e) {
+                        console.warn("[quality] storage remove failed", e);
+                      }
+                    }
+                    const { error } = await supabase
+                      .from("quality_documents")
+                      .delete()
+                      .eq("id", document.id);
+                    if (error) throw error;
+                    toast({ title: "Documento excluído" });
+                    navigate("/quality/documents");
+                  } catch (err: any) {
+                    toast({
+                      title: "Erro ao excluir",
+                      description: err.message,
+                      variant: "destructive",
+                    });
+                  } finally {
+                    setDeleting(false);
+                    setShowDeleteConfirm(false);
+                  }
+                }}
+              >
+                {deleting ? "Excluindo…" : "Excluir permanentemente"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </TooltipProvider>
   );
