@@ -30,6 +30,8 @@ export interface QualityInterestedParty {
   last_reviewed_by: string | null;
   last_review_notes: string | null;
   next_review_due_at: string | null;
+  power_level: number | null;
+  interest_level: number | null;
   created_at: string;
   updated_at: string;
 }

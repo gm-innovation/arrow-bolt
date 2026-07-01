@@ -19,6 +19,8 @@ export interface ContextItem {
   impact_level: ImpactLevel | null;
   position: number;
   linked_risk_id: string | null;
+  department_id: string | null;
+  analysis_period: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

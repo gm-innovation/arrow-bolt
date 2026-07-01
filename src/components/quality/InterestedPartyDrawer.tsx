@@ -11,7 +11,15 @@ import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { useQualityInterestedParties, usePartyEvidences, QIPCategory } from "@/hooks/useQualityInterestedParties";
-import { CheckCircle2, FileText, Plus, Trash2, Download, Clock } from "lucide-react";
+import {
+  usePartyProcessLinks,
+  RELATIONSHIP_LABELS,
+  RELEVANCE_LABELS,
+  type PartyProcessRelationship,
+  type PartyProcessRelevance,
+} from "@/hooks/useQualityPartyProcesses";
+import { useQualityProcesses } from "@/hooks/useQualityProcesses";
+import { CheckCircle2, FileText, Plus, Trash2, Download, Clock, Workflow, Link2 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import PartyTreatmentHistoryTab from "@/components/quality/PartyTreatmentHistoryTab";
@@ -40,6 +48,8 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
   const { parties, update, markReviewed } = useQualityInterestedParties();
   const party = parties.find((p) => p.id === partyId);
   const { evidences, create: addEvidence, remove: rmEvidence } = usePartyEvidences(partyId ?? undefined);
+  const { processes } = useQualityProcesses();
+  const { links: processLinks, link: linkProcess, unlink: unlinkProcess } = usePartyProcessLinks(partyId ?? undefined);
 
   const [edit, setEdit] = useState<any>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -53,6 +63,12 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
     valid_until: "",
     file: null as File | null,
   });
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkForm, setLinkForm] = useState<{
+    process_id: string;
+    relationship_type: PartyProcessRelationship;
+    relevance: PartyProcessRelevance;
+  }>({ process_id: "", relationship_type: "impacta", relevance: "medium" });
 
   useEffect(() => {
     if (party) {
@@ -64,6 +80,8 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
         needs_expectations: party.needs_expectations ?? "",
         monitoring_method: party.monitoring_method ?? "",
         review_frequency_months: party.review_frequency_months ?? 12,
+        power_level: party.power_level ?? 3,
+        interest_level: party.interest_level ?? 3,
       });
     } else {
       setEdit(null);
@@ -104,6 +122,7 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
             <Tabs defaultValue="data" className="mt-4">
               <TabsList>
                 <TabsTrigger value="data">Dados</TabsTrigger>
+                <TabsTrigger value="processes"><Workflow className="h-3 w-3 mr-1" /> Processos</TabsTrigger>
                 <TabsTrigger value="evidences">Evidências</TabsTrigger>
                 <TabsTrigger value="treatments"><Clock className="h-3 w-3 mr-1" /> Tratativas</TabsTrigger>
                 <TabsTrigger value="review">Revisão</TabsTrigger>
@@ -162,14 +181,32 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
                     onChange={(e) => setEdit({ ...edit, monitoring_method: e.target.value })}
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label>Ciclo de revisão (meses)</Label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={edit.review_frequency_months}
-                    onChange={(e) => setEdit({ ...edit, review_frequency_months: Number(e.target.value) || 0 })}
-                  />
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="space-y-1">
+                    <Label>Ciclo de revisão (meses)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={edit.review_frequency_months}
+                      onChange={(e) => setEdit({ ...edit, review_frequency_months: Number(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Poder (1-5)</Label>
+                    <Input
+                      type="number" min={1} max={5}
+                      value={edit.power_level ?? 3}
+                      onChange={(e) => setEdit({ ...edit, power_level: Math.min(5, Math.max(1, Number(e.target.value) || 3)) })}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label>Interesse (1-5)</Label>
+                    <Input
+                      type="number" min={1} max={5}
+                      value={edit.interest_level ?? 3}
+                      onChange={(e) => setEdit({ ...edit, interest_level: Math.min(5, Math.max(1, Number(e.target.value) || 3)) })}
+                    />
+                  </div>
                 </div>
                 <div className="flex justify-end">
                   <Button
@@ -177,6 +214,104 @@ const InterestedPartyDrawer = ({ partyId, onClose }: Props) => {
                   >
                     Salvar alterações
                   </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="processes" className="space-y-3 mt-4">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {processLinks.length} processo{processLinks.length === 1 ? "" : "s"} vinculado{processLinks.length === 1 ? "" : "s"}
+                  </p>
+                  <Dialog open={linkOpen} onOpenChange={setLinkOpen}>
+                    <DialogTrigger asChild>
+                      <Button size="sm"><Link2 className="h-4 w-4 mr-2" /> Vincular processo</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader><DialogTitle>Vincular a processo</DialogTitle></DialogHeader>
+                      <div className="grid gap-3">
+                        <div className="space-y-1">
+                          <Label>Processo *</Label>
+                          <Select
+                            value={linkForm.process_id}
+                            onValueChange={(v) => setLinkForm({ ...linkForm, process_id: v })}
+                          >
+                            <SelectTrigger><SelectValue placeholder="Selecione um processo" /></SelectTrigger>
+                            <SelectContent>
+                              {processes.map((p: any) => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label>Tipo de relação</Label>
+                            <Select
+                              value={linkForm.relationship_type}
+                              onValueChange={(v) => setLinkForm({ ...linkForm, relationship_type: v as PartyProcessRelationship })}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(RELATIONSHIP_LABELS).map(([k, l]) => (
+                                  <SelectItem key={k} value={k}>{l}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Relevância</Label>
+                            <Select
+                              value={linkForm.relevance}
+                              onValueChange={(v) => setLinkForm({ ...linkForm, relevance: v as PartyProcessRelevance })}
+                            >
+                              <SelectTrigger><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {Object.entries(RELEVANCE_LABELS).map(([k, l]) => (
+                                  <SelectItem key={k} value={k}>{l}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setLinkOpen(false)}>Cancelar</Button>
+                        <Button
+                          disabled={!linkForm.process_id || linkProcess.isPending}
+                          onClick={async () => {
+                            await linkProcess.mutateAsync(linkForm);
+                            setLinkForm({ process_id: "", relationship_type: "impacta", relevance: "medium" });
+                            setLinkOpen(false);
+                          }}
+                        >
+                          Vincular
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+                <div className="space-y-2">
+                  {processLinks.map((l: any) => (
+                    <div key={l.process_id} className="border rounded p-3 flex items-start justify-between gap-2">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Workflow className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{l.process?.name ?? l.process_id}</span>
+                          <Badge variant="outline" className="capitalize">{RELATIONSHIP_LABELS[l.relationship_type as PartyProcessRelationship] ?? l.relationship_type}</Badge>
+                          <Badge variant="secondary">{RELEVANCE_LABELS[l.relevance as PartyProcessRelevance] ?? l.relevance}</Badge>
+                        </div>
+                      </div>
+                      <Button
+                        size="icon" variant="ghost"
+                        onClick={() => { if (confirm("Remover vínculo?")) unlinkProcess.mutate(l.process_id); }}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ))}
+                  {processLinks.length === 0 && (
+                    <p className="text-sm text-muted-foreground text-center py-4">Nenhum processo vinculado.</p>
+                  )}
                 </div>
               </TabsContent>
 

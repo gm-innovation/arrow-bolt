@@ -10,12 +10,21 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Edit, Trash2, Workflow, FileText, History as HistoryIcon, AlertTriangle } from "lucide-react";
+import { Plus, Edit, Trash2, Workflow, FileText, History as HistoryIcon, AlertTriangle, Users, Link2 } from "lucide-react";
 import { useQualityProcesses, useProcessSIPOC, useProcessActivities, type QualityProcess } from "@/hooks/useQualityProcesses";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useCentralApproval } from "@/hooks/useCentralApproval";
 import { useQualitySettings } from "@/hooks/useQualitySettings";
 import { useQualityProcessDocumentHistory } from "@/hooks/useQualityProcessDocumentHistory";
+import {
+  useProcessPartyLinks,
+  useProcessLinkedDocuments,
+  RELATIONSHIP_LABELS,
+  RELEVANCE_LABELS,
+  type PartyProcessRelationship,
+  type PartyProcessRelevance,
+} from "@/hooks/useQualityPartyProcesses";
+import { Link as RouterLink } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 
 const TYPE_LABELS: Record<QualityProcess["type"], string> = {
@@ -44,6 +53,8 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
     activities: sipoc?.activities || "", outputs: sipoc?.outputs || "", customers: sipoc?.customers || "",
   });
   const [newAct, setNewAct] = useState("");
+  const { links: partyLinks } = useProcessPartyLinks(process?.id || null);
+  const { documents: linkedDocs } = useProcessLinkedDocuments(process?.id || null);
 
   if (!process) return null;
 
@@ -72,8 +83,10 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader><SheetTitle>{process.name}</SheetTitle></SheetHeader>
         <Tabs defaultValue="doc" className="mt-4">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="doc">Documento Controlado</TabsTrigger>
+            <TabsTrigger value="docs"><FileText className="h-3.5 w-3.5 mr-1" />Documentos ({linkedDocs.length})</TabsTrigger>
+            <TabsTrigger value="parties"><Users className="h-3.5 w-3.5 mr-1" />Partes ({partyLinks.length})</TabsTrigger>
             <TabsTrigger value="sipoc">SIPOC</TabsTrigger>
             <TabsTrigger value="acts">Atividades</TabsTrigger>
             <TabsTrigger value="history"><HistoryIcon className="h-3.5 w-3.5 mr-1" />Histórico</TabsTrigger>
@@ -105,6 +118,73 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
               </div>
             )}
             <ProcessApproval documentId={process.current_document_id} />
+          </TabsContent>
+
+          <TabsContent value="docs" className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Documentos controlados vinculados a este processo (via campo <code>process_id</code>).
+              Para vincular ou desvincular, edite os metadados do documento em <b>GED / SGQ</b>.
+            </p>
+            {linkedDocs.length === 0 ? (
+              <p className="text-center py-6 text-sm text-muted-foreground">Nenhum documento vinculado ao processo.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Título</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Próx. revisão</TableHead>
+                    <TableHead></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {linkedDocs.map((d: any) => (
+                    <TableRow key={d.id}>
+                      <TableCell className="text-xs font-mono">{d.code}</TableCell>
+                      <TableCell className="text-sm">{d.title}</TableCell>
+                      <TableCell><Badge variant="outline">{d.status}</Badge></TableCell>
+                      <TableCell className="text-xs">{d.next_review_date || "—"}</TableCell>
+                      <TableCell>
+                        <Button asChild size="sm" variant="ghost">
+                          <RouterLink to={`/quality/documents/${d.id}`}><Link2 className="h-3.5 w-3.5" /></RouterLink>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
+          </TabsContent>
+
+          <TabsContent value="parties" className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              Partes interessadas vinculadas a este processo. Para vincular, abra a parte em <b>Partes Interessadas → Processos</b>.
+            </p>
+            {partyLinks.length === 0 ? (
+              <p className="text-center py-6 text-sm text-muted-foreground">Nenhuma parte vinculada.</p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Parte</TableHead>
+                    <TableHead>Categoria</TableHead>
+                    <TableHead>Relação</TableHead>
+                    <TableHead>Relevância</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {partyLinks.map((l: any) => (
+                    <TableRow key={l.party_id}>
+                      <TableCell className="font-medium">{l.party?.name ?? l.party_id}</TableCell>
+                      <TableCell className="capitalize text-xs">{l.party?.category}</TableCell>
+                      <TableCell><Badge variant="outline">{RELATIONSHIP_LABELS[l.relationship_type as PartyProcessRelationship] ?? l.relationship_type}</Badge></TableCell>
+                      <TableCell><Badge variant="secondary">{RELEVANCE_LABELS[l.relevance as PartyProcessRelevance] ?? l.relevance}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </TabsContent>
           <TabsContent value="sipoc" className="space-y-3">
             {(["suppliers","inputs","activities","outputs","customers"] as const).map(k => (
