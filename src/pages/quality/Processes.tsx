@@ -53,6 +53,8 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
     activities: sipoc?.activities || "", outputs: sipoc?.outputs || "", customers: sipoc?.customers || "",
   });
   const [newAct, setNewAct] = useState("");
+  const { links: partyLinks } = useProcessPartyLinks(process?.id || null);
+  const { documents: linkedDocs } = useProcessLinkedDocuments(process?.id || null);
 
   if (!process) return null;
 
