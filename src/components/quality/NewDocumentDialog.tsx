@@ -96,6 +96,8 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
       validity_end: isExternal && form.validity_end ? form.validity_end : null,
       auto_renewal: form.auto_renewal,
       document_control_mode: form.document_control_mode,
+      responsible_user_id: form.responsible_user_id || null,
+      control_mode: form.control_mode || null,
     } as any);
     onOpenChange(false);
     onCreated?.((created as any).id);
