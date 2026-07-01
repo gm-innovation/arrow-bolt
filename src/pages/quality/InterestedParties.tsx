@@ -318,7 +318,7 @@ const InterestedParties = () => {
                       name="Partes"
                       data={parties.map((p) => ({
                         name: p.name,
-                        category: p.category,
+                        
                         power: p.power_level ?? 3,
                         interest: p.interest_level ?? 3,
                         z: 1,
