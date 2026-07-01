@@ -149,12 +149,24 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label>Classificação</Label>
-              <Input
-                value={form.classification}
-                onChange={(e) => setForm({ ...form, classification: e.target.value })}
-                placeholder="Ex.: Confidencial / Interno"
-              />
+              <Label>Classificação *</Label>
+              <Select
+                value={form.classification || form.control_mode === "uncontrolled" ? (form.control_mode === "uncontrolled" ? "Não controlada" : "Controlada") : ""}
+                onValueChange={(v) => setForm({
+                  ...form,
+                  classification: v,
+                  control_mode: v === "Não controlada" ? "uncontrolled" : "controlled",
+                })}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Controlada">Controlada</SelectItem>
+                  <SelectItem value="Não controlada">Não controlada</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                "Não controlada" aplica marca d'água no visualizador.
+              </p>
             </div>
             <div className="space-y-1">
               <Label>Próxima Revisão</Label>
