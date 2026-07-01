@@ -9,6 +9,10 @@ export type IndicatorFrequency = "mensal" | "trimestral" | "semestral" | "anual"
 export type PlannedChangeStatus = "rascunho" | "em_analise" | "aprovada" | "implementada" | "rejeitada";
 export type PlannedChangeType = "processo" | "documento" | "recurso" | "estrutura" | "sistema" | "outro";
 
+export type ObjectiveScope = "strategic" | "quality" | "operational";
+export type TimeHorizon = "short" | "medium" | "long";
+export type IdentityLink = "mission" | "vision" | "values";
+
 export interface QualityObjective {
   id: string;
   company_id: string;
@@ -23,6 +27,10 @@ export interface QualityObjective {
   target_value: number | null;
   unit: string | null;
   notes: string | null;
+  objective_scope: ObjectiveScope;
+  time_horizon: TimeHorizon | null;
+  linked_to: IdentityLink | null;
+  parent_objective_id: string | null;
   created_at: string;
   updated_at: string;
 }
