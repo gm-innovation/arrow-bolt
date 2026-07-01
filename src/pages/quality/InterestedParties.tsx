@@ -189,7 +189,6 @@ const InterestedParties = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead>Categoria</TableHead>
                   <TableHead>Relevância</TableHead>
                   <TableHead>Tratativa</TableHead>
                   <TableHead>Última evidência</TableHead>
@@ -212,7 +211,6 @@ const InterestedParties = () => {
                         {p.name}
                         <Badge variant="outline" className="ml-2 capitalize">{p.status}</Badge>
                       </TableCell>
-                      <TableCell className="capitalize">{CATEGORIES.find((c) => c.value === p.category)?.label ?? p.category}</TableCell>
                       <TableCell className="capitalize">{p.relevance}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
                         <Select
