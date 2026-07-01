@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,7 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
   const [users, setUsers] = useState<{ id: string; full_name: string }[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const pickerRef = useRef<HTMLDivElement>(null);
   const [externalAttendees, setExternalAttendees] = useState<ExternalAttendee[]>([]);
   const [extName, setExtName] = useState("");
   const [extCompany, setExtCompany] = useState("");
@@ -55,6 +56,33 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
 
   const toggle = (id: string) =>
     setAttendees((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
+  const closePicker = useCallback(() => {
+    setPickerOpen(false);
+    setSearch("");
+  }, []);
+
+  useEffect(() => {
+    if (!pickerOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (target && pickerRef.current?.contains(target)) return;
+      closePicker();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closePicker();
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [closePicker, pickerOpen]);
 
   const addExternal = () => {
     const name = extName.trim();
@@ -87,11 +115,17 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
       attendees,
       external_attendees: externalAttendees,
     });
+    closePicker();
     onOpenChange(false);
   };
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) closePicker();
+    onOpenChange(nextOpen);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Registrar Evento de Conscientização</DialogTitle>
@@ -115,7 +149,7 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
             <Label>Descrição</Label>
             <Textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
-          <div className="space-y-2">
+          <div ref={pickerRef} className="space-y-2">
             <Label>Participantes internos ({attendees.length})</Label>
             <Button
               type="button"
@@ -212,7 +246,7 @@ const AwarenessFormDialog = ({ open, onOpenChange }: Props) => {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
           <Button onClick={submit} disabled={!topic.trim() || create.isPending}>Registrar</Button>
         </DialogFooter>
       </DialogContent>
