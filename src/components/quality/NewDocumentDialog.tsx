@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useQualityDocuments } from "@/hooks/useQualityDocuments";
 import { useQualityDocumentTypes } from "@/hooks/useQualityDocumentTypes";
+import { useCompanyUsers } from "@/hooks/useCompanyUsers";
 
 type DocOrigin = "internal" | "client" | "external_norm" | "external_law" | "external_certificate" | "safety";
 
@@ -23,6 +24,7 @@ interface Props {
 const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCodePrefixes, title }: Props) => {
   const { create } = useQualityDocuments();
   const { types: allTypes } = useQualityDocumentTypes();
+  const { data: companyUsers = [] } = useCompanyUsers();
   const types = typeCodePrefixes && typeCodePrefixes.length > 0
     ? allTypes.filter((t: any) => typeCodePrefixes.includes(t.code_prefix))
     : allTypes;
@@ -40,6 +42,8 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
     validity_end: "",
     auto_renewal: false,
     document_control_mode: "full_control" as "full_control" | "received_only",
+    responsible_user_id: "",
+    control_mode: "" as "" | "controlled" | "uncontrolled",
   });
 
   useEffect(() => {
@@ -58,6 +62,8 @@ const NewDocumentDialog = ({ open, onOpenChange, onCreated, lockedOrigin, typeCo
         validity_end: "",
         auto_renewal: false,
         document_control_mode: "full_control",
+        responsible_user_id: "",
+        control_mode: "",
       });
     }
   }, [open, lockedOrigin]);
