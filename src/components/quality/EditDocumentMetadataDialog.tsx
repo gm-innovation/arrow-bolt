@@ -73,6 +73,7 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
       widely_visible: form.widely_visible,
       responsible_user_id: form.responsible_user_id || null,
       control_mode: form.control_mode || null,
+      process_id: form.process_id || null,
     } as any);
     toast({ title: "Metadados atualizados" });
     onOpenChange(false);
