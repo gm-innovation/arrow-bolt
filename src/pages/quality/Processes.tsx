@@ -83,8 +83,10 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
       <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader><SheetTitle>{process.name}</SheetTitle></SheetHeader>
         <Tabs defaultValue="doc" className="mt-4">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto">
             <TabsTrigger value="doc">Documento Controlado</TabsTrigger>
+            <TabsTrigger value="docs"><FileText className="h-3.5 w-3.5 mr-1" />Documentos ({linkedDocs.length})</TabsTrigger>
+            <TabsTrigger value="parties"><Users className="h-3.5 w-3.5 mr-1" />Partes ({partyLinks.length})</TabsTrigger>
             <TabsTrigger value="sipoc">SIPOC</TabsTrigger>
             <TabsTrigger value="acts">Atividades</TabsTrigger>
             <TabsTrigger value="history"><HistoryIcon className="h-3.5 w-3.5 mr-1" />Histórico</TabsTrigger>
