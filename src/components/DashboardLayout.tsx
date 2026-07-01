@@ -250,14 +250,17 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
-  const comprasMenuItems = [
+  const comprasMenuItems: MenuEntry[] = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/supplies/dashboard" },
     { title: "Solicitações", icon: ShoppingBag, path: "/supplies/requests" },
+    { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
+    { title: "Homologação", icon: ClipboardCheck, path: "/quality/homologation" },
     { title: "Configurações", icon: Settings, path: "/supplies/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
+
 
   const qualidadeMenuItems: MenuEntry[] = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/quality/dashboard" },
@@ -311,23 +314,6 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         },
         { title: "Partes Interessadas", icon: Users, path: "/quality/interested-parties" },
         { title: "Análise Crítica", icon: ClipboardList, path: "/quality/management-review" },
-      ],
-    },
-    {
-      title: "Suprimentos & Fornecedores",
-      icon: Building2,
-      key: "q-supplies",
-      children: [
-        { title: "Provedores Externos", icon: Building2, path: "/quality/suppliers" },
-        { title: "Homologação", icon: ClipboardCheck, path: "/quality/homologation" },
-      ],
-    },
-    {
-      title: "Metrologia",
-      icon: Gauge,
-      key: "q-metrology",
-      children: [
-        { title: "Calibração de Instrumentos", icon: Gauge, path: "/quality/devices" },
       ],
     },
     {
