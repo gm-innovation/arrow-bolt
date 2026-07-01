@@ -176,6 +176,7 @@ const QualitySettings = () => {
                       <TableHead>Nome</TableHead>
                       <TableHead>Classificação</TableHead>
                       <TableHead>Revisão (meses)</TableHead>
+                      <TableHead>Cópia padrão</TableHead>
                       <TableHead className="text-center">Ativo</TableHead>
                       <TableHead></TableHead>
                     </TableRow>
@@ -187,6 +188,21 @@ const QualitySettings = () => {
                         <TableCell className="font-medium">{t.name}</TableCell>
                         <TableCell>{t.default_classification || "—"}</TableCell>
                         <TableCell>{t.default_review_interval_months ?? "—"}</TableCell>
+                        <TableCell>
+                          <select
+                            className="border rounded-md h-8 px-2 text-xs bg-background"
+                            value={t.default_control_mode ?? "controlled"}
+                            onChange={(e) =>
+                              update.mutate({
+                                id: t.id,
+                                default_control_mode: e.target.value as any,
+                              })
+                            }
+                          >
+                            <option value="controlled">Controlada</option>
+                            <option value="uncontrolled">Não controlada</option>
+                          </select>
+                        </TableCell>
                         <TableCell className="text-center">
                           <Switch
                             checked={t.is_active}
