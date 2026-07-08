@@ -111,6 +111,8 @@ const Users = () => {
         return "Qualidade";
       case "financeiro":
         return "Financeiro";
+      case "marketing":
+        return "Marketing";
       default:
         return "Sem função";
     }
