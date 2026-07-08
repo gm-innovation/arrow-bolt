@@ -105,6 +105,8 @@ export const useAllUsers = () => {
     phone?: string;
     company_id?: string;
     role?: string;
+    email?: string;
+    password?: string;
   }) => {
     try {
       const { data, error } = await supabase.functions.invoke('update-user', {

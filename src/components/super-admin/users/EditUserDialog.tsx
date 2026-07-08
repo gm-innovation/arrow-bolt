@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -9,6 +9,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -30,15 +31,21 @@ import { useCompanies } from "@/hooks/useCompanies";
 
 const formSchema = z.object({
   full_name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres"),
+  email: z.string().email("Email inválido"),
   phone: z.string().optional(),
   company_id: z.string().min(1, "Selecione uma empresa"),
   role: z.string().min(1, "Selecione uma função"),
+  password: z
+    .string()
+    .optional()
+    .refine((v) => !v || v.length >= 6, "Senha deve ter no mínimo 6 caracteres"),
 });
 
 interface EditUserDialogProps {
   user: {
     id: string;
     full_name: string;
+    email: string;
     phone: string | null;
     company_id: string | null;
     role: string | null;
@@ -55,9 +62,11 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     resolver: zodResolver(formSchema),
     defaultValues: {
       full_name: "",
+      email: "",
       phone: "",
       company_id: "",
       role: "",
+      password: "",
     },
   });
 
@@ -65,9 +74,11 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     if (user) {
       form.reset({
         full_name: user.full_name,
+        email: user.email || "",
         phone: user.phone || "",
         company_id: user.company_id || "",
         role: user.role || "",
+        password: "",
       });
     }
   }, [user, form]);
@@ -75,7 +86,18 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user) return;
 
-    const result = await updateUser(user.id, values);
+    const payload: any = {
+      full_name: values.full_name,
+      phone: values.phone,
+      company_id: values.company_id,
+      role: values.role,
+      email: values.email,
+    };
+    if (values.password && values.password.length > 0) {
+      payload.password = values.password;
+    }
+
+    const result = await updateUser(user.id, payload);
     if (result.success) {
       onOpenChange(false);
     }
@@ -83,7 +105,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Editar Usuário</DialogTitle>
         </DialogHeader>
@@ -98,6 +120,42 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                   <FormControl>
                     <Input placeholder="João Silva" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="usuario@empresa.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Nova Senha</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="Deixe em branco para manter"
+                      autoComplete="new-password"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Preencha apenas se quiser redefinir a senha do usuário.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
