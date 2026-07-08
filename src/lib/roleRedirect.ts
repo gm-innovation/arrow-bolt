@@ -10,6 +10,7 @@ export const roleRedirects: Record<string, string> = {
   compras: "/supplies/dashboard",
   qualidade: "/quality/dashboard",
   financeiro: "/finance/dashboard",
+  marketing: "/commercial/dashboard",
 };
 
 export const getRoleRedirectPath = (role: string | null): string | null => {

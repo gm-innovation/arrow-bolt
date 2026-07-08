@@ -111,6 +111,8 @@ const Users = () => {
         return "Qualidade";
       case "financeiro":
         return "Financeiro";
+      case "marketing":
+        return "Marketing";
       default:
         return "Sem função";
     }
@@ -158,6 +160,7 @@ const Users = () => {
               <SelectItem value="compras">Suprimentos</SelectItem>
               <SelectItem value="qualidade">Qualidade</SelectItem>
               <SelectItem value="financeiro">Financeiro</SelectItem>
+              <SelectItem value="marketing">Marketing</SelectItem>
             </SelectContent>
           </Select>
         </div>

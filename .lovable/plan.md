@@ -1,53 +1,37 @@
-## Rodada C — Contexto da Organização + Processos com múltiplos documentos
+## Objetivo
+Criar o papel **Marketing** reutilizando o módulo Comercial existente (mesmas telas, mesmas tabelas), sem duplicar código.
 
-### C1. Hub de Contexto da Organização
+## Abordagem
+Marketing entra como um novo `app_role` que redireciona para `/commercial/*` e usa o mesmo `DashboardLayout` do Comercial. Nenhum módulo novo é criado.
 
-**Nova subpágina "Identidade Organizacional"** (Missão / Visão / Valores)
-- Reaproveitar a tabela `quality_org_context` adicionando 3 colunas: `mission`, `vision`, `values` (texto livre).
-- Editável apenas por Master (`is_quality_master`).
-- Nova rota `/quality/org-identity` OU nova aba dentro de `RisksHub` (`?tab=identity`).
+## Passos
 
-**Reorganização do Hub**
-- Transformar `/quality/risks?tab=context` (OrgContext) em página com blocos/cards que agrupam:
-  - Identidade Organizacional (Missão/Visão/Valores) — editável inline
-  - Escopo do SGQ (já existe)
-  - Questões internas/externas (já existe)
-  - Análise SWOT/PESTAL (já existe abaixo)
-  - Link para Partes Interessadas
-  - Link para Análises Críticas
-  - Link para Política da Qualidade
+### 1. Banco de dados (migration)
+- Adicionar valor `'marketing'` ao enum `public.app_role`.
+- Revisar policies RLS que hoje liberam acesso ao Comercial (ex.: `crm_opportunities`, `crm_buyers`, `crm_tasks`, `crm_knowledge_base`, `crm_products`, `crm_sales`, `clients`, `client_contacts`, `client_addresses`, `crm_client_recurrences`, `crm_reference_documents`) e incluir `has_role(auth.uid(), 'marketing')` onde hoje há `'commercial'`.
+  - Escopo: mesmas permissões do Comercial (leitura + escrita nas mesmas tabelas). Se depois quiser restringir (ex.: Marketing só lê vendas), ajustamos.
 
-**Filtro por setor no SWOT**
-- Adicionar coluna `department_id` (nullable) em `quality_context_items`.
-- No formulário de item SWOT/PESTAL: Select opcional de Departamento.
-- Na UI de SWOT (`ScenarioSwot` / grid): filtro por departamento no topo.
+### 2. Frontend — mapeamento de papel
+- `src/lib/roleRedirect.ts`: adicionar `marketing: "/commercial/dashboard"`.
+- `src/components/account/AccountLayoutRoute.tsx`: mapear `marketing → "commercial"` em `roleToUserType`.
+- `src/App.tsx` (ou onde estão as rotas `/commercial/*` protegidas): incluir `marketing` na lista de roles permitidos ao lado de `commercial`, `coordinator`, `manager`, `director`.
+- `DashboardLayout` do Comercial: garantir que aceita o papel Marketing (mesmo menu lateral do Comercial).
 
-### C2. Processos com múltiplos documentos vinculados
+### 3. Telas de gestão de usuários
+Incluir a opção "Marketing" nos selects de papel:
+- `src/pages/super-admin/Users.tsx`
+- `src/pages/admin/Users.tsx` / `NewUser.tsx` / `EditUser.tsx`
+- `src/pages/commercial/admin/Users.tsx` (constante `ROLES` e `roleLabels`)
+- Qualquer outro dropdown de roles (busca rápida por `roleLabels`/`ROLES`).
 
-**Nova tabela `quality_process_documents`**
-- Colunas: `process_id` (FK), `document_id` (FK), `relationship_type` enum (`input`, `output`, `reference`, `procedure`), `created_by`, timestamps.
-- RLS espelhando `quality_processes` (mesma company via join).
-- GRANTs para `authenticated` e `service_role`.
+### 4. Rótulo pt-BR
+Adicionar `marketing: "Marketing"` em todos os mapas `roleLabels` encontrados (memória do projeto: `role-labels-mapping-pt-br`).
 
-**Hook `useQualityProcessDocuments`**
-- `list(processId)`, `link({processId, documentId, relationshipType})`, `unlink(id)`.
+## Fora de escopo
+- Não criar módulo/rotas `/marketing/*`.
+- Não criar dashboards, KPIs ou telas específicas de Marketing agora.
+- Não mexer em permissões de outros módulos (HR, Financeiro, Qualidade etc.) — Marketing não terá acesso a eles.
 
-**UI no Editor de Processo** (`Processes.tsx` / painel do processo)
-- Nova seção "Documentos vinculados" com:
-  - Combobox de documento (`quality_documents` publicados da empresa)
-  - Select de tipo (Entrada / Saída / Referência / Procedimento)
-  - Botão adicionar
-  - Lista agrupada por tipo com botão remover
-- Preservar compatibilidade: se `quality_processes` tiver coluna única atual de documento (ex.: `document_id`), manter, mas tratar como legado.
-
-### Ordem de execução
-1. Migration única: colunas `mission/vision/values` em `quality_org_context`, coluna `department_id` em `quality_context_items`, nova tabela `quality_process_documents` com RLS/GRANTs.
-2. Após aprovação: hooks e UI (Identidade, filtro SWOT, vínculos de processo).
-3. Entregar para validação antes de qualquer outra rodada.
-
-### Fora de escopo
-- Notificações E-mail/WhatsApp (adiado).
-- Reescrita do Hub Risks (mantém tabs atuais + acréscimos).
-- Módulo Renan, Marketing, Feed.
-
-Confirma para eu iniciar a Rodada C?
+## Perguntas antes de implementar
+1. **Permissões idênticas ao Comercial?** Marketing terá exatamente o mesmo acesso (criar/editar oportunidades, clientes, produtos, vendas, tarefas, base de conhecimento)? Ou quer restringir algo (ex.: só leitura em Vendas/Sales)?
+2. **Quem pode criar usuário Marketing?** Igual ao Comercial hoje (Super Admin, Coordenador, Diretor, RH)?

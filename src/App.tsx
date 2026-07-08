@@ -352,7 +352,7 @@ const App = () => {
                   </Route>
 
                   {/* Commercial - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['commercial']}><DashboardLayout userType="commercial" /></ProtectedRoute>}>
+                  <Route element={<ProtectedRoute allowedRoles={['commercial', 'marketing']}><DashboardLayout userType="commercial" /></ProtectedRoute>}>
                     <Route path="/commercial/dashboard" element={<CommercialDashboard />} />
                     <Route path="/commercial/clients" element={<CommercialClients />} />
                     <Route path="/commercial/opportunities" element={<CommercialOpportunities />} />
@@ -374,7 +374,7 @@ const App = () => {
                   </Route>
 
                   {/* Commercial Admin Routes - separate layout */}
-                  <Route element={<ProtectedRoute allowedRoles={['commercial']} />}>
+                  <Route element={<ProtectedRoute allowedRoles={['commercial', 'marketing']} />}>
                     <Route path="/commercial/admin" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminDashboard /></CommercialAdminLayout></Suspense>} />
                     <Route path="/commercial/admin/users" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminUsers /></CommercialAdminLayout></Suspense>} />
                     <Route path="/commercial/admin/services" element={<Suspense fallback={<LoadingFallback />}><CommercialAdminLayout><CommercialAdminServices /></CommercialAdminLayout></Suspense>} />

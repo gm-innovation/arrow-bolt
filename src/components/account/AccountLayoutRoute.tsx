@@ -26,6 +26,7 @@ const roleToUserType: Record<string, UserType> = {
   compras: "compras",
   qualidade: "qualidade",
   financeiro: "financeiro",
+  marketing: "commercial",
 };
 
 /**
