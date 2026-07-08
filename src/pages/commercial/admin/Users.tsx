@@ -19,12 +19,14 @@ import { toast } from "sonner";
 const ROLES = [
   { value: "coordinator", label: "Coordenador" },
   { value: "commercial", label: "Comercial" },
+  { value: "marketing", label: "Marketing" },
   { value: "manager", label: "Gerente" },
 ];
 
 const roleLabels: Record<string, string> = {
   coordinator: "Coordenador",
   commercial: "Comercial",
+  marketing: "Marketing",
   manager: "Gerente",
   technician: "Técnico",
   hr: "RH",
