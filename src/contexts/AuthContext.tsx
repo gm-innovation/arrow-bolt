@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     try {
       const [roleResult, profileResult] = await Promise.all([
-        supabase.from('user_roles').select('role').eq('user_id', userId).maybeSingle(),
+        supabase.from('user_roles').select('role').eq('user_id', userId),
         supabase.from('profiles').select('id, company_id, full_name, email').eq('id', userId).maybeSingle(),
       ]);
 
@@ -55,7 +55,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Error fetching user role:', roleResult.error);
         setUserRole(null);
       } else {
-        setUserRole(roleResult.data?.role || null);
+        const roles = (roleResult.data || []).map((r: any) => r.role as string);
+        // Pick a primary role. Prefer 'marketing' over the mirrored 'commercial'
+        // (marketing users automatically also get the commercial role via a DB trigger).
+        const priority = [
+          'super_admin', 'director', 'coordinator', 'admin', 'manager',
+          'hr', 'qualidade', 'financeiro', 'compras', 'marketing',
+          'commercial', 'technician',
+        ];
+        const primary = priority.find((r) => roles.includes(r)) || roles[0] || null;
+        setUserRole(primary);
       }
 
       if (profileResult.data) {
