@@ -160,6 +160,7 @@ const Users = () => {
               <SelectItem value="compras">Suprimentos</SelectItem>
               <SelectItem value="qualidade">Qualidade</SelectItem>
               <SelectItem value="financeiro">Financeiro</SelectItem>
+              <SelectItem value="marketing">Marketing</SelectItem>
             </SelectContent>
           </Select>
         </div>
