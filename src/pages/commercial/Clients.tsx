@@ -12,7 +12,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ClientsTable } from "@/components/commercial/clients/ClientsTable";
-import { NewClientDialog } from "@/components/commercial/clients/NewClientDialog";
+import { NewClientForm } from "@/components/admin/clients/NewClientForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ClientDetailSheet } from "@/components/commercial/clients/ClientDetailSheet";
 import { ClientGroupDialog } from "@/components/commercial/clients/ClientGroupDialog";
 import { toast } from "sonner";
@@ -337,13 +338,23 @@ const CommercialClients = () => {
         onDelete={canManage ? requestSingleDelete : undefined}
       />
 
-      <NewClientDialog
-        open={dialogOpen}
-        onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingClient(null); }}
-        onSave={(data, buyer, legalEntities, addresses) => saveMutation.mutate({ formData: data, buyer, legalEntities, addresses })}
-        initialData={editingClient}
-        isLoading={saveMutation.isPending}
-      />
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingClient(null); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingClient ? `Editar Cliente - ${editingClient.name}` : 'Novo Cliente'}</DialogTitle>
+          </DialogHeader>
+          <NewClientForm
+            clientData={editingClient || undefined}
+            onSuccess={() => {
+              setDialogOpen(false);
+              setEditingClient(null);
+              queryClient.invalidateQueries({ queryKey: ['commercial-clients'] });
+              queryClient.invalidateQueries({ queryKey: ['commercial-client-options'] });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
 
       <ClientDetailSheet
         open={detailOpen}
