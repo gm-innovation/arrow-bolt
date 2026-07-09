@@ -111,7 +111,7 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
       } else {
         const insertPayload: Record<string, any> = { company_id: profileData.company_id, ...sanitizedData };
         if (pendingCnpj?.cnpj) insertPayload.cnpj = pendingCnpj.cnpj;
-        const { data: newClient, error } = await supabase.from("clients").insert(insertPayload).select().single();
+        const { data: newClient, error } = await supabase.from("clients").insert(insertPayload as any).select().single();
         if (error) throw error;
         targetId = newClient.id;
         toast({ title: "Cliente cadastrado", description: "As informações do cliente foram salvas" });
