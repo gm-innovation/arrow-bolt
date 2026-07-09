@@ -1,34 +1,44 @@
 ## Objetivo
+1. Dar visibilidade completa (somente leitura) de OSs, medições e vendas para Comercial/Marketing.
+2. Unificar Serviços (medições) + Produtos (`crm_sales`) numa única página `/commercial/sales`.
+3. Criar o Painel de Inteligência (IA) do Comercial/Marketing em `/commercial/ai-insights`, alimentado por OSs, vendas, oportunidades e leads.
 
-Usar o **mesmo modal de Medição Final** dos coordenadores (`MeasurementDialog` com abas Básico/Mão de Obra/Materiais/Serviços/Deslocamento/Despesas) também em `/commercial/measurements`, respeitando a regra: **cada usuário só edita o que é dele**; exceções: `super_admin` e `director` (e mantemos `coordinator/admin` como já hoje).
+## Onda 1 — RLS (backend)
+Adicionar políticas SELECT para `commercial` e `marketing` (escopo `company_id = user_company_id(auth.uid())`) em:
+- `service_orders`, `os_materials`, `service_visits`, `visit_technicians`, `service_history`
+- `measurements` e sub-tabelas (materials/services/man_hours/travels/expenses) — validar
+- `crm_sales`, `crm_sale_items` — validar (marketing precisa SELECT)
 
-## Mudanças
+Edição continua restrita pelas policies existentes (dono/coordenador/diretor/super_admin).
 
-### 1. Frontend — `src/pages/commercial/Measurements.tsx`
-- Substituir `MeasurementDetailDialog` por `MeasurementDialog` (mesmo componente de `admin/ServiceOrders.tsx`), abrindo em `<Dialog open onOpenChange>`.
-- Ajustar o `select` da query para incluir `service_orders(id, order_number, created_by, clients(name))` e passar `serviceOrderId={m.service_orders.id}`.
-- Calcular `canEdit` no cliente (apenas para UX — habilitar/desabilitar botões): `super_admin || director || coordinator || admin || (role in [commercial, marketing] && service_order.created_by === profile.id)`. A segurança real fica na RLS.
+## Onda 2 — Página unificada `/commercial/sales`
+- Nova página `src/pages/commercial/Sales.tsx` com abas:
+  - **Serviços** — tabela de medições atual (já usa `MeasurementDialog` completo do coordenador, `readOnly` quando não é dono).
+  - **Produtos** — tabela de `crm_sales` (cliente, número, status, total, itens), abrindo modal de detalhes com itens e vínculo à oportunidade.
+- Rota `/commercial/sales` no `App.tsx` (papéis `commercial`, `marketing`); redirecionar `/commercial/measurements` → `/commercial/sales?tab=servicos`.
+- Sidebar: substituir "Medições" por "Vendas".
+- Deletar `src/pages/commercial/Measurements.tsx` após migração.
 
-### 2. `MeasurementForm` — modo leitura
-- Adicionar prop `readOnly?: boolean` propagada por `MeasurementDialog`.
-- Quando `true`: desabilitar inputs/botões de salvar/adicionar/remover em todas as abas. Layout idêntico ao print.
+## Onda 3 — Painel de IA `/commercial/ai-insights`
+- Nova página + item no sidebar ("Inteligência").
+- Cards de KPI: total vendido (serviços+produtos), ticket médio, clientes em risco de churn, oportunidades de recorrência vencendo.
+- Seções alimentadas por Edge Function `commercial-ai-insights` (Lovable AI Gateway, modelo `google/gemini-2.5-flash`):
+  1. **Recuperação de clientes** — lista clientes sem compra/OS há N dias com sugestão de abordagem.
+  2. **Recorrências previstas** — cruza `crm_client_recurrences` + histórico de OS para prever próximas janelas.
+  3. **Recomendações de upsell/cross-sell** — baseado em produtos/serviços já consumidos.
+  4. **Resumo do pipeline** — narrativa das oportunidades abertas e ações sugeridas.
+- Edge Function lê OSs, medições, vendas, oportunidades e leads da empresa (via service_role) e devolve JSON estruturado; a UI renderiza cards + botão "Gerar ação" (cria `crm_task` para o comercial).
+- Todos os insights são registrados em `ai_proactive_alerts` (tabela já existente) para histórico e feed.
 
-### 3. RLS — permitir edição do "dono" para Comercial/Marketing
-Regra: usuário com role `commercial` ou `marketing` pode `INSERT/UPDATE/DELETE` em `measurements` e sub-tabelas **somente** quando a OS pai foi criada por ele (`service_orders.created_by = auth.uid()`). `super_admin`, `director`, `coordinator`, `admin` mantêm acesso amplo já existente.
+## Detalhes técnicos
+- RLS: uma migração por onda, seguindo padrão de política já existente com `has_role`.
+- Modal do coordenador (`MeasurementDialog`) já suporta `readOnly`.
+- Modal de venda de produto: novo `SaleDetailDialog` reutilizando o padrão do coordenador (`src/pages/manager` não tem equivalente hoje — criar leve, exibindo `crm_sale_items`).
+- IA: Edge Function `supabase/functions/commercial-ai-insights/index.ts` com CORS, `verify_jwt=true`, secret `LOVABLE_API_KEY`.
 
-- Criar função SECURITY DEFINER `public.can_edit_measurement(_measurement_id uuid)` que retorna `true` se:
-  - `has_role(auth.uid(), 'super_admin' | 'director' | 'coordinator' | 'admin')`, **ou**
-  - `has_role(auth.uid(), 'commercial' | 'marketing')` **e** `service_orders.created_by = auth.uid()` para a OS da medição.
-- Aplicar em novas policies de `UPDATE/INSERT/DELETE` nas tabelas: `measurements`, `measurement_materials`, `measurement_services`, `measurement_man_hours`, `measurement_travels`, `measurement_expenses` (usando `measurement_id` para as sub-tabelas).
-- Manter SELECT como está (já visível para esses papéis).
+## Fora do escopo
+- Alterar regras de edição de OS/medição/venda.
+- Chat conversacional com IA (a resposta foi "painel de insights", não chat).
 
-### 4. Limpeza
-- Remover `MeasurementDetailDialog` se `rg` confirmar que nada mais o usa.
-
-## Fora de escopo
-- Alterar cálculos de medição, categoria fiscal ou fluxo do coordenador.
-- Mudanças em outros módulos.
-
-## Confirmações rápidas
-1. "Dono" = quem criou a OS (`service_orders.created_by`). Ok?
-2. `commercial`/`marketing` podem **criar** medição para uma OS própria também (não só editar existente)? Assumo que sim.
+## Ordem de execução
+Onda 1 (RLS) → Onda 2 (Vendas) → Onda 3 (IA). Confirmar após cada onda antes da próxima.
