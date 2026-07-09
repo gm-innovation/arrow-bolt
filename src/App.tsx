@@ -111,6 +111,7 @@ const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"))
 const HREmployees = lazy(() => import("./pages/hr/Employees"));
 const HRUniversity = lazy(() => import("./pages/hr/University"));
 const HREPI = lazy(() => import("./pages/hr/EPI"));
+const HRHealthExams = lazy(() => import("./pages/hr/HealthExams"));
 const HRPartnerships = lazy(() => import("./pages/hr/Partnerships"));
 const PublicOnboarding = lazy(() => import("./pages/onboarding/PublicOnboarding"));
 const PublicCareers = lazy(() => import("./pages/careers/PublicCareers"));
