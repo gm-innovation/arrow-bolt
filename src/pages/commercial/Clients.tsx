@@ -61,10 +61,25 @@ const CommercialClients = () => {
     queryFn: async () => {
       const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user!.id).single();
       if (!profile?.company_id) throw new Error('Empresa não encontrada');
-      const { data, error } = await supabase.from('clients').select('*').eq('company_id', profile.company_id).order('name');
-      
+
+      const { data: eligibleClients, error: eligibleError } = await (supabase as any)
+        .from('crm_client_options')
+        .select('id')
+        .eq('company_id', profile.company_id);
+      if (eligibleError) throw eligibleError;
+
+      const eligibleIds = (eligibleClients || []).map((client: any) => client.id).filter(Boolean);
+      if (eligibleIds.length === 0) return [];
+
+      const { data, error } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('company_id', profile.company_id)
+        .in('id', eligibleIds)
+        .order('name');
+
       if (error) throw error;
-      return (data || []).filter((client: any) => client.crm_visible !== false);
+      return data || [];
     },
     enabled: !!user?.id,
   });

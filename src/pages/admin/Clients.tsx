@@ -136,12 +136,25 @@ const Clients = () => {
     try {
       setLoading(true);
 
+      const { data: eligibleClients, error: eligibleError } = await (supabase as any)
+        .from("crm_client_options")
+        .select("id")
+        .eq("company_id", companyId);
+      if (eligibleError) throw eligibleError;
+
+      const eligibleIds = (eligibleClients || []).map((client: any) => client.id).filter(Boolean);
+      if (eligibleIds.length === 0) {
+        setClients([]);
+        setTotalCount(0);
+        return;
+      }
+
       // Build query with server-side search
       let query = supabase
         .from("clients")
         .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, commercial_status, entity_type, crm_visible, omie_client_id, ignore_omie_sync, vessels (id, name, vessel_type)`, { count: "exact" })
         .eq("company_id", companyId)
-        .eq("crm_visible", true)
+        .in("id", eligibleIds)
         .order("name");
 
       if (debouncedSearch.length >= 2) {
