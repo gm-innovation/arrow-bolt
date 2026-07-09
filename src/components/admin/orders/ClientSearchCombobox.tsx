@@ -46,8 +46,8 @@ export const ClientSearchCombobox = ({
       return;
     }
     const loadLabel = async () => {
-      const { data } = await supabase
-        .from("clients")
+      const { data } = await (supabase as any)
+        .from("crm_client_options")
         .select("name, parent_client_id")
         .eq("id", value)
         .single();
@@ -61,8 +61,8 @@ export const ClientSearchCombobox = ({
     if (!companyId) return;
     setLoading(true);
     try {
-      let query = supabase
-        .from("clients")
+      let query = (supabase as any)
+        .from("crm_client_options")
         .select("id, name, parent_client_id")
         .eq("company_id", companyId)
         .order("name")
@@ -82,19 +82,21 @@ export const ClientSearchCombobox = ({
       const parentIds = [...new Set(clientList.filter(c => c.parent_client_id).map(c => c.parent_client_id!))];
       const parentMap: Record<string, string> = {};
       if (parentIds.length > 0) {
-        const { data: parents } = await supabase
-          .from("clients")
+        const { data: parents } = await (supabase as any)
+          .from("crm_client_options")
           .select("id, name")
           .in("id", parentIds);
         parents?.forEach(p => { parentMap[p.id] = p.name; });
       }
 
       // Count children for each client shown
-      const { data: childCounts } = await supabase
-        .from("clients")
-        .select("parent_client_id")
-        .eq("company_id", companyId)
-        .in("parent_client_id", clientIds);
+      const { data: childCounts } = clientIds.length > 0
+        ? await (supabase as any)
+          .from("crm_client_options")
+          .select("parent_client_id")
+          .eq("company_id", companyId)
+          .in("parent_client_id", clientIds)
+        : { data: [] };
 
       const countMap: Record<string, number> = {};
       childCounts?.forEach(c => {

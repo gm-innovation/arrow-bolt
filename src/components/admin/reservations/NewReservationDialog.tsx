@@ -125,8 +125,8 @@ export const NewReservationDialog = ({
       );
 
       // Fetch clients
-      const { data: clientData } = await supabase
-        .from("clients")
+      const { data: clientData } = await (supabase as any)
+        .from("crm_client_options")
         .select("id, name")
         .eq("company_id", profile.company_id)
         .order("name");
