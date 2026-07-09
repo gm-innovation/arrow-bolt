@@ -1,47 +1,34 @@
 ## Objetivo
-Revalidar ponta-a-ponta o módulo Comercial/Marketing após todas as refatorações recentes (unificação de clientes, CNPJ automático, leads no Kanban, modal unificado, timezone) para garantir que nada quebrou.
 
-## Escopo da revisão
+Usar o **mesmo modal de Medição Final** dos coordenadores (`MeasurementDialog` com abas Básico/Mão de Obra/Materiais/Serviços/Deslocamento/Despesas) também em `/commercial/measurements`, respeitando a regra: **cada usuário só edita o que é dele**; exceções: `super_admin` e `director` (e mantemos `coordinator/admin` como já hoje).
 
-### 1. Cadastro de Clientes (`/commercial/clients`)
-- Abrir o novo modal unificado (`NewClientForm`) — verificar tabs Empresa / Contatos / Embarcações.
-- Criar cliente PJ via busca por CNPJ (edge function `lookup-cnpj`).
-- Criar cliente manualmente sem CNPJ.
-- Editar cliente existente, adicionar razão social e endereço.
-- Confirmar que o cliente aparece imediatamente na lista após salvar (invalidação de cache).
-- Toggle `crm_visible` refletindo nos seletores do CRM.
+## Mudanças
 
-### 2. Oportunidades e Leads (`/commercial/opportunities`)
-- Kanban: coluna virtual "Leads do Site" carrega, mini-cards clicáveis abrem `LeadDetailsDialog`.
-- Drag-and-drop de lead para coluna de estágio dispara `ConvertLeadDialog`.
-- Botão "Converter" no card também abre o diálogo.
-- Aba "Leads do Site": tabela clicável, filtro por status, badge de contagem.
-- Conversão de lead → cria cliente + oportunidade + contato (`crm_buyers`).
-- CRUD de oportunidade padrão (criar, editar, mover entre estágios).
+### 1. Frontend — `src/pages/commercial/Measurements.tsx`
+- Substituir `MeasurementDetailDialog` por `MeasurementDialog` (mesmo componente de `admin/ServiceOrders.tsx`), abrindo em `<Dialog open onOpenChange>`.
+- Ajustar o `select` da query para incluir `service_orders(id, order_number, created_by, clients(name))` e passar `serviceOrderId={m.service_orders.id}`.
+- Calcular `canEdit` no cliente (apenas para UX — habilitar/desabilitar botões): `super_admin || director || coordinator || admin || (role in [commercial, marketing] && service_order.created_by === profile.id)`. A segurança real fica na RLS.
 
-### 3. Dashboard Comercial (`/commercial`)
-- 4 mini-cards de KPI de leads (Novos, Em contato, Convertidos, Descartados) com contagens corretas.
-- Cards de KPI comerciais existentes (pipeline, ganhos, previsão) continuam funcionando.
+### 2. `MeasurementForm` — modo leitura
+- Adicionar prop `readOnly?: boolean` propagada por `MeasurementDialog`.
+- Quando `true`: desabilitar inputs/botões de salvar/adicionar/remover em todas as abas. Layout idêntico ao print.
 
-### 4. Combobox de clientes no CRM
-- `ClientSearchCombobox` filtra apenas clientes com `crm_visible = true` (sem funcionários).
-- Busca server-side por nome/CNPJ.
+### 3. RLS — permitir edição do "dono" para Comercial/Marketing
+Regra: usuário com role `commercial` ou `marketing` pode `INSERT/UPDATE/DELETE` em `measurements` e sub-tabelas **somente** quando a OS pai foi criada por ele (`service_orders.created_by = auth.uid()`). `super_admin`, `director`, `coordinator`, `admin` mantêm acesso amplo já existente.
 
-### 5. Datas e Timezone
-- Datas exibidas em cards, tabelas e detalhes de lead/oportunidade sem shift de -1 dia.
+- Criar função SECURITY DEFINER `public.can_edit_measurement(_measurement_id uuid)` que retorna `true` se:
+  - `has_role(auth.uid(), 'super_admin' | 'director' | 'coordinator' | 'admin')`, **ou**
+  - `has_role(auth.uid(), 'commercial' | 'marketing')` **e** `service_orders.created_by = auth.uid()` para a OS da medição.
+- Aplicar em novas policies de `UPDATE/INSERT/DELETE` nas tabelas: `measurements`, `measurement_materials`, `measurement_services`, `measurement_man_hours`, `measurement_travels`, `measurement_expenses` (usando `measurement_id` para as sub-tabelas).
+- Manter SELECT como está (já visível para esses papéis).
 
-### 6. Permissões
-- Papel `marketing` acessa `/commercial/*` e recebe notificação `lead_received`.
-- Papel `coordinator` em `/admin/clients` compartilha o mesmo formulário unificado.
-
-## Método de teste
-- Playwright headless contra `http://localhost:8080` autenticado com a sessão Supabase injetada.
-- Screenshots em cada etapa em `/tmp/browser/commercial-review/screenshots/`.
-- Verificação de console/network para erros silenciosos.
-- Consultas SQL de sanidade (contagem de leads, oportunidades criadas nos testes) via `supabase--read_query`.
-- Ao final, uma lista objetiva do que passou / falhou, com correção imediata dos problemas encontrados.
+### 4. Limpeza
+- Remover `MeasurementDetailDialog` se `rg` confirmar que nada mais o usa.
 
 ## Fora de escopo
-- Alterações de UX que não sejam correção de bug.
-- Módulos fora de Comercial/Marketing (RH, Qualidade, Financeiro).
-- Geração de manual — só após validação completa.
+- Alterar cálculos de medição, categoria fiscal ou fluxo do coordenador.
+- Mudanças em outros módulos.
+
+## Confirmações rápidas
+1. "Dono" = quem criou a OS (`service_orders.created_by`). Ok?
+2. `commercial`/`marketing` podem **criar** medição para uma OS própria também (não só editar existente)? Assumo que sim.
