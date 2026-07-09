@@ -13,6 +13,7 @@ import { useDocumentClassification, ClassificationResult } from "@/hooks/useDocu
 import { Eye, EyeOff, Sparkles, CheckCircle2, XCircle, Loader2, FileText, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { formatLocalDate } from "@/lib/utils";
 
 const ROLE_OPTIONS = [
   { value: "technician", label: "Técnico" },

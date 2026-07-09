@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Plus, Trash2, Phone } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from '@/lib/utils';
 import { useOnCall } from '@/hooks/useOnCall';
 import { Skeleton } from '@/components/ui/skeleton';
 import NewOnCallDialog from '@/components/hr/NewOnCallDialog';
