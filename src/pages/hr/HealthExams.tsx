@@ -88,11 +88,11 @@ function useEmployeeOptions() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("id, full_name, position, avatar_url, is_active")
-        .eq("is_active", true)
+        .select("id, full_name, position, avatar_url, status")
+        .eq("status", "active")
         .order("full_name");
       if (error) throw error;
-      return ((data ?? []) as EmployeeOption[]);
+      return ((data ?? []) as unknown as EmployeeOption[]);
     },
   });
 }
