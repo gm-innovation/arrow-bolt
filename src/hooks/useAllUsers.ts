@@ -52,8 +52,18 @@ export const useAllUsers = () => {
 
       if (techniciansError) throw techniciansError;
 
-      // Create lookup maps
-      const rolesMap = new Map(rolesData?.map(r => [r.user_id, r.role]) || []);
+      // Create lookup maps. Marketing users have a mirrored 'commercial' row
+      // (for permission inheritance). Prefer the real role over 'commercial'.
+      const rolesMap = new Map<string, string>();
+      for (const r of rolesData || []) {
+        const existing = rolesMap.get(r.user_id);
+        if (!existing) {
+          rolesMap.set(r.user_id, r.role);
+        } else if (existing === 'commercial' && r.role !== 'commercial') {
+          rolesMap.set(r.user_id, r.role);
+        }
+        // if existing is a real role and incoming is 'commercial', keep existing
+      }
       const techniciansMap = new Map(techniciansData?.map(t => [t.user_id, t.active]) || []);
 
       const formattedUsers: UserData[] = profilesData?.map((u: any) => ({
