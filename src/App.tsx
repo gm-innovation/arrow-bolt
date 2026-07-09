@@ -113,6 +113,8 @@ const HRUniversity = lazy(() => import("./pages/hr/University"));
 const HREPI = lazy(() => import("./pages/hr/EPI"));
 const HRHealthExams = lazy(() => import("./pages/hr/HealthExams"));
 const HRVacations = lazy(() => import("./pages/hr/Vacations"));
+const HRPayrollExport = lazy(() => import("./pages/hr/PayrollExport"));
+
 const HRPartnerships = lazy(() => import("./pages/hr/Partnerships"));
 const PublicOnboarding = lazy(() => import("./pages/onboarding/PublicOnboarding"));
 const PublicCareers = lazy(() => import("./pages/careers/PublicCareers"));
@@ -348,6 +350,8 @@ const App = () => {
                     <Route path="/hr/employees" element={<HREmployees />} />
                     <Route path="/hr/health-exams" element={<HRHealthExams />} />
                     <Route path="/hr/vacations" element={<HRVacations />} />
+                    <Route path="/hr/payroll-export" element={<HRPayrollExport />} />
+
                     <Route path="/hr/university" element={<HRUniversity />} />
                     <Route path="/hr/profile" element={<HRProfile />} />
                     <Route path="/hr/settings" element={<HRSettings />} />

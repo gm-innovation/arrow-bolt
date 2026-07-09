@@ -99,5 +99,9 @@ verify_jwt = false
 [functions.quality-public-doc]
 verify_jwt = false
 
+[functions.hr-payroll-export]
+verify_jwt = true
+
+
 
 
