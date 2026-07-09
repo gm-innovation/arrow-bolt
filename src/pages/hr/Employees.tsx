@@ -13,7 +13,7 @@ import { EmployeeDetailSheet } from "@/components/hr/EmployeeDetailSheet";
 import { NewEmployeeForm, EmployeeFormValues } from "@/components/hr/NewEmployeeForm";
 import { useToast } from "@/hooks/use-toast";
 import { addDays } from "date-fns";
-import { sanitizeFileName } from "@/lib/utils";
+import { sanitizeFileName, formatLocalDate } from "@/lib/utils";
 
 const ROLE_LABELS: Record<string, string> = {
   technician: "Técnico",
@@ -403,7 +403,7 @@ export default function Employees() {
                         )}
                       </td>
                       <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">
-                        {new Date(emp.created_at).toLocaleDateString("pt-BR")}
+                        {emp.hire_date ? formatLocalDate(emp.hire_date) : formatLocalDate(emp.created_at)}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <Button size="sm" variant="outline" onClick={() => setSelectedEmployee(emp)}>
