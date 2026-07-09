@@ -233,6 +233,7 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
   const [height, setHeight] = useState(employee.height ? String(employee.height) : employee.technician?.height ? String(employee.technician.height) : "");
   const [emergencyName, setEmergencyName] = useState((employee as any).emergency_contact_name || "");
   const [emergencyPhone, setEmergencyPhone] = useState((employee as any).emergency_contact_phone || "");
+  const [hireDate, setHireDate] = useState((employee as any).hire_date || "");
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
 
@@ -250,6 +251,7 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
         height: height ? parseInt(height) : null,
         emergency_contact_name: emergencyName.trim() || null,
         emergency_contact_phone: emergencyPhone.trim() || null,
+        hire_date: hireDate || null,
       };
 
       const { error } = await supabase.from("profiles").update(profileUpdate).eq("id", employee.id);
@@ -271,8 +273,8 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       queryClient.invalidateQueries({ queryKey: ["hr-employees"] });
       setIsEditing(false);
-    } catch {
-      toast({ title: "Erro ao salvar dados", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Erro ao salvar dados", description: err?.message || String(err), variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -290,12 +292,12 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
     setHeight(employee.height ? String(employee.height) : employee.technician?.height ? String(employee.technician.height) : "");
     setEmergencyName((employee as any).emergency_contact_name || "");
     setEmergencyPhone((employee as any).emergency_contact_phone || "");
+    setHireDate((employee as any).hire_date || "");
   };
 
   const readOnlyFields = [
     { label: "Email", value: employee.email },
     { label: "Cargos", value: employee.roles.map((r) => ROLE_LABELS[r] || r).join(", ") },
-    { label: "Na empresa desde", value: format(new Date(employee.created_at), "dd/MM/yyyy", { locale: ptBR }) },
   ];
 
   const editableField = (label: string, value: string, onChange: (v: string) => void, displayValue?: string, type?: string) => (
@@ -361,6 +363,18 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
       </div>
       {editableField("Nome do contato", emergencyName, setEmergencyName)}
       {editableField("Telefone emergência", emergencyPhone, setEmergencyPhone)}
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Na empresa desde</span>
+        {isEditing ? (
+          <Input value={hireDate} onChange={(e) => setHireDate(e.target.value)} className="h-8" type="date" />
+        ) : (
+          <span className="text-sm text-foreground">
+            {hireDate ? format(new Date(hireDate), "dd/MM/yyyy", { locale: ptBR }) : format(new Date(employee.created_at), "dd/MM/yyyy", { locale: ptBR })}
+            {!hireDate && <span className="ml-2 text-xs text-muted-foreground">(data de cadastro — edite para definir admissão)</span>}
+          </span>
+        )}
+      </div>
 
       {readOnlyFields.map((f) => (
         <div key={f.label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
