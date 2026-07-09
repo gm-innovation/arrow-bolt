@@ -11,7 +11,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, Calculator, RefreshCw, CheckCircle2, Clock, XCircle, DollarSign, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { MeasurementDetailDialog } from "@/components/commercial/measurements/MeasurementDetailDialog";
+import { Dialog } from "@/components/ui/dialog";
+import { MeasurementDialog } from "@/components/admin/measurements/MeasurementDialog";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -19,10 +20,14 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
   finalized: { label: "Finalizada", variant: "outline" },
 };
 
+const EDIT_ANY_ROLES = new Set(["super_admin", "director", "coordinator", "admin"]);
+const OWNER_ROLES = new Set(["commercial", "marketing"]);
+
 const Measurements = () => {
-  const { profile } = useAuth();
+  const { profile, userRole } = useAuth();
   const [search, setSearch] = useState("");
-  const [selectedMeasurementId, setSelectedMeasurementId] = useState<string | null>(null);
+  const [selectedServiceOrderId, setSelectedServiceOrderId] = useState<string | null>(null);
+  const [selectedCreatedBy, setSelectedCreatedBy] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
 
   const { data: measurements = [], isLoading } = useQuery({
@@ -31,7 +36,7 @@ const Measurements = () => {
       if (!profile?.company_id) return [];
       const { data, error } = await supabase
         .from("measurements")
-        .select("*, service_orders(order_number, clients(name))")
+        .select("*, service_orders(id, order_number, created_by, clients(name))")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
@@ -45,6 +50,20 @@ const Measurements = () => {
     return clientName.toLowerCase().includes(search.toLowerCase()) ||
       orderNum.toLowerCase().includes(search.toLowerCase());
   });
+
+  const canEditAny = userRole ? EDIT_ANY_ROLES.has(userRole) : false;
+  const isOwnerRole = userRole ? OWNER_ROLES.has(userRole) : false;
+
+  const readOnlyForSelection = !canEditAny && !(
+    isOwnerRole && selectedCreatedBy && profile?.id === selectedCreatedBy
+  );
+
+  const handleOpen = (m: any) => {
+    setSelectedServiceOrderId(m.service_orders?.id || null);
+    setSelectedCreatedBy(m.service_orders?.created_by || null);
+    setDetailOpen(true);
+  };
+
 
   const kpis = useMemo(() => {
     const total = measurements.length;
