@@ -102,7 +102,7 @@ export const EditOpportunitySheet = ({
   const [closeDate, setCloseDate] = useState<Date | undefined>();
   const [tab, setTab] = useState("details");
 
-  const { data: users = [] } = useCompanyUsers(["commercial", "admin", "director", "manager"]);
+  const { data: users = [] } = useCompanyUsers(["commercial", "marketing", "admin", "director", "manager"]);
   const { addActivity } = useOpportunityActivities(opportunity?.id || null);
 
   useEffect(() => {

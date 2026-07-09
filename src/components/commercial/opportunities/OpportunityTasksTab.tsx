@@ -26,7 +26,7 @@ interface Props {
 
 export const OpportunityTasksTab = ({ opportunityId, clientId }: Props) => {
   const { tasks, isLoading, createTask, updateTask, deleteTask } = useCommercialTasks();
-  const { data: users = [] } = useCompanyUsers(["commercial", "admin", "director", "manager"]);
+  const { data: users = [] } = useCompanyUsers(["commercial", "marketing", "admin", "director", "manager"]);
 
   const oppTasks = useMemo(
     () => tasks.filter((t) => t.opportunity_id === opportunityId),
