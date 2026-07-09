@@ -84,6 +84,7 @@ const CommercialRecurrences = lazy(() => import("./pages/commercial/Recurrences"
 const CommercialSiteLeads = lazy(() => import("./pages/commercial/SiteLeads"));
 const CommercialMeasurements = lazy(() => import("./pages/commercial/Measurements"));
 const CommercialSales = lazy(() => import("./pages/commercial/Sales"));
+const CommercialAiInsights = lazy(() => import("./pages/commercial/AiInsights"));
 const CommercialReports = lazy(() => import("./pages/commercial/Reports"));
 const CommercialKnowledgeBase = lazy(() => import("./pages/commercial/KnowledgeBase"));
 const CommercialTasks = lazy(() => import("./pages/commercial/Tasks"));
@@ -375,6 +376,7 @@ const App = () => {
                     <Route path="/commercial/site-leads" element={<CommercialSiteLeads />} />
                     <Route path="/commercial/measurements" element={<CommercialMeasurements />} />
                     <Route path="/commercial/sales" element={<CommercialSales />} />
+                    <Route path="/commercial/ai-insights" element={<CommercialAiInsights />} />
                     <Route path="/commercial/reports" element={<CommercialReports />} />
                     <Route path="/commercial/knowledge-base" element={<CommercialKnowledgeBase />} />
                     <Route path="/commercial/import" element={<CommercialImport />} />
