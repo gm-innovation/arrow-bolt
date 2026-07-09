@@ -255,12 +255,12 @@ function DecisionDialog({
 }
 
 export default function Vacations() {
-  const { profile, hasRole } = useAuth();
+  const { profile, userRole } = useAuth();
   const [tab, setTab] = useState("all");
   const requests = useVacationRequests();
   const periods = useVacationPeriods();
   const cancel = useCancelVacationRequest();
-  const isHR = hasRole?.("hr") || hasRole?.("director") || hasRole?.("admin") || hasRole?.("super_admin");
+  const isHR = ["hr", "director", "admin", "super_admin"].includes(userRole ?? "");
 
   const filteredRequests = useMemo(() => {
     const list = requests.data ?? [];
