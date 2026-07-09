@@ -1,44 +1,88 @@
-## Objetivo
-1. Dar visibilidade completa (somente leitura) de OSs, medições e vendas para Comercial/Marketing.
-2. Unificar Serviços (medições) + Produtos (`crm_sales`) numa única página `/commercial/sales`.
-3. Criar o Painel de Inteligência (IA) do Comercial/Marketing em `/commercial/ai-insights`, alimentado por OSs, vendas, oportunidades e leads.
+# Manual Passo a Passo Ilustrado — Módulo Comercial / Marketing
 
-## Onda 1 — RLS (backend)
-Adicionar políticas SELECT para `commercial` e `marketing` (escopo `company_id = user_company_id(auth.uid())`) em:
-- `service_orders`, `os_materials`, `service_visits`, `visit_technicians`, `service_history`
-- `measurements` e sub-tabelas (materials/services/man_hours/travels/expenses) — validar
-- `crm_sales`, `crm_sale_items` — validar (marketing precisa SELECT)
+Manual completo com **screenshots reais anotados** de cada página, ferramenta e função do módulo, no formato passo a passo.
 
-Edição continua restrita pelas policies existentes (dono/coordenador/diretor/super_admin).
+## Escopo (17 seções da sidebar + fluxos)
 
-## Onda 2 — Página unificada `/commercial/sales`
-- Nova página `src/pages/commercial/Sales.tsx` com abas:
-  - **Serviços** — tabela de medições atual (já usa `MeasurementDialog` completo do coordenador, `readOnly` quando não é dono).
-  - **Produtos** — tabela de `crm_sales` (cliente, número, status, total, itens), abrindo modal de detalhes com itens e vínculo à oportunidade.
-- Rota `/commercial/sales` no `App.tsx` (papéis `commercial`, `marketing`); redirecionar `/commercial/measurements` → `/commercial/sales?tab=servicos`.
-- Sidebar: substituir "Medições" por "Vendas".
-- Deletar `src/pages/commercial/Measurements.tsx` após migração.
+Baseado na sidebar atual (`/commercial/*`):
 
-## Onda 3 — Painel de IA `/commercial/ai-insights`
-- Nova página + item no sidebar ("Inteligência").
-- Cards de KPI: total vendido (serviços+produtos), ticket médio, clientes em risco de churn, oportunidades de recorrência vencendo.
-- Seções alimentadas por Edge Function `commercial-ai-insights` (Lovable AI Gateway, modelo `google/gemini-2.5-flash`):
-  1. **Recuperação de clientes** — lista clientes sem compra/OS há N dias com sugestão de abordagem.
-  2. **Recorrências previstas** — cruza `crm_client_recurrences` + histórico de OS para prever próximas janelas.
-  3. **Recomendações de upsell/cross-sell** — baseado em produtos/serviços já consumidos.
-  4. **Resumo do pipeline** — narrativa das oportunidades abertas e ações sugeridas.
-- Edge Function lê OSs, medições, vendas, oportunidades e leads da empresa (via service_role) e devolve JSON estruturado; a UI renderiza cards + botão "Gerar ação" (cria `crm_task` para o comercial).
-- Todos os insights são registrados em `ai_proactive_alerts` (tabela já existente) para histórico e feed.
+| # | Página | Rota |
+|---|---|---|
+| 1 | Dashboard | `/commercial` |
+| 2 | Clientes | `/commercial/clients` |
+| 3 | Oportunidades | `/commercial/opportunities` (+ aba Leads do Site) |
+| 4 | Tarefas | `/commercial/tasks` |
+| 5 | Compradores | `/commercial/buyers` |
+| 6 | Produtos | `/commercial/products` |
+| 7 | Recorrências | `/commercial/recurrences` |
+| 8 | Vendas | `/commercial/sales` (abas Serviços + Produtos) |
+| 9 | Relatórios | `/commercial/reports` |
+| 10 | Conhecimento | `/commercial/knowledge` |
+| 11 | Inteligência (IA) | `/commercial/ai-insights` |
+| 12 | Notificações | `/commercial/notifications` |
+| 13 | Admin | `/commercial/admin` |
+| 14 | Configurações | `/commercial/settings` |
+| 15 | Feed | `/corp/feed` |
+| 16 | Solicitações | `/corp/requests` |
+| 17 | Treinamentos | `/corp/university` |
+| + | Menu do usuário (Perfil / Minha Conta / Sair) | topo |
 
-## Detalhes técnicos
-- RLS: uma migração por onda, seguindo padrão de política já existente com `has_role`.
-- Modal do coordenador (`MeasurementDialog`) já suporta `readOnly`.
-- Modal de venda de produto: novo `SaleDetailDialog` reutilizando o padrão do coordenador (`src/pages/manager` não tem equivalente hoje — criar leve, exibindo `crm_sale_items`).
-- IA: Edge Function `supabase/functions/commercial-ai-insights/index.ts` com CORS, `verify_jwt=true`, secret `LOVABLE_API_KEY`.
+**Modais e fluxos secundários também documentados com print:**
+- Novo Cliente (abas Empresa / Contatos / Embarcações) + busca CNPJ
+- Detalhes do Lead + Conversão de Lead
+- Kanban de Oportunidades (drag-and-drop)
+- Modal completo de Medição Final (abas Básico / Mão de Obra / Materiais / Serviços / Deslocamento / Despesas / Resumo)
+- Detalhes de Venda de Produto
+- Dossiê do Cliente (5 abas)
 
-## Fora do escopo
-- Alterar regras de edição de OS/medição/venda.
-- Chat conversacional com IA (a resposta foi "painel de insights", não chat).
+## Como será gerado
 
-## Ordem de execução
-Onda 1 (RLS) → Onda 2 (Vendas) → Onda 3 (IA). Confirmar após cada onda antes da próxima.
+### Fase 1 — Captura automatizada de screenshots
+Script Playwright (`/tmp/browser/manual/`) que:
+1. Restaura sessão Supabase (`LOVABLE_BROWSER_AUTH_STATUS=injected`), login como Comercial.
+2. Navega por cada rota da tabela acima, aguarda render, tira screenshot em viewport 1440×900.
+3. Para cada modal: abre via clique real, tira screenshot, fecha.
+4. Para cada aba: clica e captura separadamente.
+5. Salva em `/tmp/browser/manual/screenshots/NN_slug.png`.
+
+### Fase 2 — Anotação dos prints
+Script Python (PIL) que desenha sobre cada screenshot:
+- Balões numerados (①②③) apontando para botões/campos-chave.
+- Retângulos vermelhos destacando áreas importantes.
+- Legenda lateral com o que cada número significa.
+Saída: `/tmp/browser/manual/annotated/NN_slug.png`.
+
+### Fase 3 — Montagem do manual
+Um único **PDF** (`Manual_Comercial_Marketing_Passo_a_Passo_v3.pdf`) gerado com ReportLab, seguindo a identidade visual dos manuais anteriores (Lecsor/Arrow):
+- Capa escura com logo, título e versão.
+- Sumário navegável.
+- Uma seção por página do módulo, contendo:
+  - **O que é** — descrição funcional.
+  - **Quem pode acessar** — papéis com permissão.
+  - **Passo a passo** — lista numerada de ações, cada passo referenciando o número do balão no print.
+  - **Screenshot anotado** em largura total.
+  - **Dicas / Regras de negócio** (ex.: buyer auto-criado ao converter lead, edição de medição só pelo dono da OS, categorias de imposto).
+- Apêndices:
+  - Matriz de permissões por papel.
+  - Glossário (Lead, Oportunidade, RFQ, Buyer, Medição, Churn).
+  - Fluxos ilustrados ponta-a-ponta (Lead → Oportunidade → OS → Medição → Venda).
+  - Changelog v1 → v3.
+
+Também exportado em **DOCX** (`Manual_Comercial_Marketing_Passo_a_Passo_v3.docx`) com os mesmos prints embutidos via `docx-js`.
+
+### Fase 4 — QA obrigatório
+- Converter cada página do PDF para JPG e inspecionar (regra do skill pdf).
+- Verificar: prints não cortados, balões legíveis, sem texto sobreposto, sem placeholder.
+- Corrigir e re-renderizar até passar limpo.
+
+## Entrega
+
+Dois artefatos em `/mnt/documents/`, apresentados via `<presentation-artifact>` para download:
+- `Manual_Comercial_Marketing_Passo_a_Passo_v3.pdf`
+- `Manual_Comercial_Marketing_Passo_a_Passo_v3.docx`
+
+## Observações
+
+- Nenhuma alteração no código-fonte do app — trabalho é 100% de captura + documentação.
+- Se alguma rota exigir role diferente (ex.: `/commercial/admin` restrito a admin), farei re-login com conta apropriada usando a mesma sessão injetada; se não for possível, marco a seção com nota "acesso restrito ao Admin" e uso print vazio anotado.
+- Tempo estimado de execução: alto (18+ rotas × captura + anotação + montagem + QA). Entrego tudo em uma passada assim que aprovado.
