@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useCommercialClientOptions } from "@/hooks/useCommercialClientOptions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -47,7 +46,6 @@ const SEGMENT_LABEL: Record<string, string> = {
 };
 
 export default function AdminOpportunities() {
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Opp[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,16 +56,7 @@ export default function AdminOpportunities() {
 
   const { opportunities, updateOpportunity, deleteOpportunity } = useOpportunities();
   const { buyers } = useBuyers();
-  const { data: clientsList = [] } = useQuery({
-    queryKey: ["admin-opps-clients", user?.id],
-    queryFn: async () => {
-      const { data: prof } = await supabase.from("profiles").select("company_id").eq("id", user!.id).single();
-      if (!prof?.company_id) return [];
-      const { data } = await supabase.from("clients").select("id, name").eq("company_id", prof.company_id).order("name");
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
+  const { clients: clientsList } = useCommercialClientOptions();
 
   const detailOpp = useMemo<Opportunity | null>(
     () => (detailId ? opportunities.find((o) => o.id === detailId) ?? null : null),

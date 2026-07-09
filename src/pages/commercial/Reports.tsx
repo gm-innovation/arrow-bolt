@@ -13,9 +13,7 @@ import {
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area, Legend,
 } from "recharts";
 import { TrendingUp, Users, Target, Calendar, Filter, X } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useCommercialClientOptions } from "@/hooks/useCommercialClientOptions";
 import { differenceInDays } from "date-fns";
 
 const COLORS = ["hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(210, 70%, 50%)"];
@@ -32,21 +30,12 @@ const Reports = () => {
   const { data: stats } = useCommercialStats();
   const { opportunities } = useOpportunities();
   const { recurrences } = useRecurrences();
-  const { profile } = useAuth();
 
   // Filters
   const [clientFilter, setClientFilter] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ["report-clients", profile?.company_id],
-    queryFn: async () => {
-      if (!profile?.company_id) return [];
-      const { data } = await supabase.from("clients").select("id, name").eq("company_id", profile.company_id).order("name");
-      return data || [];
-    },
-    enabled: !!profile?.company_id,
-  });
+  const { clients } = useCommercialClientOptions();
 
   const clearFilters = () => { setClientFilter("all"); setPeriodFilter("all"); };
 

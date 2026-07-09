@@ -304,8 +304,8 @@ function ConvertLeadDialog({
   useEffect(() => {
     if (!open) return;
     (async () => {
-      const { data } = await supabase
-        .from("clients")
+      const { data } = await (supabase as any)
+        .from("crm_client_options")
         .select("id, name, cnpj")
         .eq("company_id", companyId)
         .order("name")

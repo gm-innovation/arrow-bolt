@@ -17,9 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { format, isBefore, addDays, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/contexts/AuthContext";
+import { useCommercialClientOptions } from "@/hooks/useCommercialClientOptions";
 import { EditRecurrenceSheet } from "@/components/commercial/recurrences/EditRecurrenceSheet";
 
 const RECURRENCE_TYPES = [
@@ -36,7 +34,6 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 };
 
 const Recurrences = () => {
-  const { profile } = useAuth();
   const { recurrences, isLoading, createRecurrence, updateRecurrence, deleteRecurrence } = useRecurrences();
   const { products } = useProducts();
   const [search, setSearch] = useState("");
@@ -47,15 +44,7 @@ const Recurrences = () => {
   const [form, setForm] = useState<Record<string, any>>({});
   const [nextDate, setNextDate] = useState<Date | undefined>();
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ["commercial-clients-list", profile?.company_id],
-    queryFn: async () => {
-      if (!profile?.company_id) return [];
-      const { data } = await supabase.from("clients").select("id, name").eq("company_id", profile.company_id).order("name");
-      return data || [];
-    },
-    enabled: !!profile?.company_id,
-  });
+  const { clients } = useCommercialClientOptions();
 
   const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 
