@@ -12,7 +12,8 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { ClientsTable } from "@/components/commercial/clients/ClientsTable";
-import { NewClientDialog } from "@/components/commercial/clients/NewClientDialog";
+import { NewClientForm } from "@/components/admin/clients/NewClientForm";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ClientDetailSheet } from "@/components/commercial/clients/ClientDetailSheet";
 import { ClientGroupDialog } from "@/components/commercial/clients/ClientGroupDialog";
 import { toast } from "sonner";
