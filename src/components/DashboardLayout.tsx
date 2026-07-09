@@ -233,8 +233,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Compradores", icon: ShoppingBag, path: "/commercial/buyers" },
     { title: "Produtos", icon: Package, path: "/commercial/products" },
     { title: "Recorrências", icon: RefreshCw, path: "/commercial/recurrences" },
-    
-    { title: "Medições", icon: Calculator, path: "/commercial/measurements" },
+    { title: "Vendas", icon: Calculator, path: "/commercial/sales" },
     { title: "Relatórios", icon: FileBarChart, path: "/commercial/reports" },
     { title: "Conhecimento", icon: BookOpen, path: "/commercial/knowledge-base" },
     { title: "Notificações", icon: Bell, path: "/commercial/notifications" },
