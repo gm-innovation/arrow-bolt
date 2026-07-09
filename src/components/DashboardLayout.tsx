@@ -51,6 +51,7 @@ import {
   BadgeCheck,
   Megaphone,
   FileCheck,
+  Stethoscope,
   User,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
@@ -211,6 +212,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Revisão de Documentos", icon: FileCheck, path: "/hr/document-reviews" },
     { title: "Recrutamento", icon: Inbox, path: "/hr/recruitment" },
     { title: "Gestão de EPI", icon: ClipboardList, path: "/hr/epi" },
+    { title: "Exames Ocupacionais", icon: Stethoscope, path: "/hr/health-exams" },
     { title: "Parcerias", icon: Inbox, path: "/hr/partnerships" },
     { title: "Treinamentos", icon: GraduationCap, path: "/hr/university" },
     { title: "Relatórios", icon: FileBarChart, path: "/hr/reports" },
