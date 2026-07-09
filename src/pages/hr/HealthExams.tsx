@@ -516,7 +516,7 @@ export default function HealthExams() {
                 ))}
               </TableBody>
             </Table>
-          </TabsContent>
+          </div>
         </CardContent>
       </Card>
 
