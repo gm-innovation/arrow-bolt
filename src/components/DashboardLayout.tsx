@@ -51,6 +51,7 @@ import {
   BadgeCheck,
   Megaphone,
   FileCheck,
+  Stethoscope,
   User,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
