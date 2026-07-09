@@ -297,6 +297,14 @@ const CommercialOpportunities = () => {
           onConverted={() => { setConvertLead(null); setConvertStage(undefined); }}
         />
       )}
+
+      <LeadDetailsDialog
+        lead={detailLead}
+        open={!!detailLead}
+        onOpenChange={(v) => !v && setDetailLead(null)}
+        onConvert={(lead) => { setDetailLead(null); handleConvertLead(lead); }}
+        onStatusChange={(id, status) => setLeadStatus.mutate({ id, status })}
+      />
     </div>
   );
 };
