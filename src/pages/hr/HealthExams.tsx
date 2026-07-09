@@ -425,7 +425,7 @@ export default function HealthExams() {
           </div>
         </CardHeader>
         <CardContent>
-          <TabsContent value={tab} forceMount>
+          <div>
             <Table>
               <TableHeader>
                 <TableRow>
