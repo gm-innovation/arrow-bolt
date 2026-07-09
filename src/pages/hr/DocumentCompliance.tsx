@@ -142,7 +142,7 @@ const EmployeeDrawer = ({
                     <span>Resp.: {responsibleLabel[r.responsible_role] ?? r.responsible_role}</span>
                     {r.expiry_date && (
                       <span>
-                        Validade: {new Date(r.expiry_date).toLocaleDateString("pt-BR")}
+                        Validade: {formatLocalDate(r.expiry_date)}
                         {r.due_in_days != null &&
                           ` (${r.due_in_days >= 0 ? `${r.due_in_days}d restantes` : `${Math.abs(r.due_in_days)}d vencido`})`}
                       </span>

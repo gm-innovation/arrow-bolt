@@ -381,8 +381,8 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
                           <p className="text-sm font-medium truncate">{cert.name || cert.file.name}</p>
                           {(cert.issueDate || cert.expiryDate) && (
                             <div className="text-xs text-muted-foreground space-y-0.5">
-                              {cert.issueDate && <p>Emissão: {new Date(cert.issueDate).toLocaleDateString('pt-BR')}</p>}
-                              {cert.expiryDate && <p>Validade: {new Date(cert.expiryDate).toLocaleDateString('pt-BR')}</p>}
+                              {cert.issueDate && <p>Emissão: {formatLocalDate(cert.issueDate)}</p>}
+                              {cert.expiryDate && <p>Validade: {formatLocalDate(cert.expiryDate)}</p>}
                             </div>
                           )}
                         </div>

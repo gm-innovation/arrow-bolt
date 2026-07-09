@@ -81,7 +81,7 @@ const ReviewSheet = ({
               <div><span className="font-medium text-foreground">Enviado em:</span> {new Date(row.uploaded_at).toLocaleString("pt-BR")}</div>
               <div><span className="font-medium text-foreground">Quem enviou:</span> {row.uploader_name ?? "—"}</div>
               {row.issue_date && (
-                <div><span className="font-medium text-foreground">Emissão:</span> {new Date(row.issue_date).toLocaleDateString("pt-BR")}</div>
+                <div><span className="font-medium text-foreground">Emissão:</span> {formatLocalDate(row.issue_date)}</div>
               )}
               <div><span className="font-medium text-foreground">Arquivo:</span> {row.file_name}</div>
             </div>

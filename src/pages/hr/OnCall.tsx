@@ -101,7 +101,7 @@ const OnCall = () => {
                           {onCall.technician?.profiles?.full_name || 'Técnico'}
                         </TableCell>
                         <TableCell>
-                          {format(new Date(onCall.on_call_date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
+                          {formatLocalDate(onCall.on_call_date, "dd/MM/yyyy (EEEE)")}
                         </TableCell>
                         <TableCell>
                           {onCall.start_time?.slice(0, 5)} - {onCall.end_time?.slice(0, 5)}

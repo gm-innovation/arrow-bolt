@@ -19,7 +19,7 @@ import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
-import { sanitizeFileName } from "@/lib/utils";
+import { sanitizeFileName, formatLocalDate } from "@/lib/utils";
 import type { EmployeeRow } from "@/pages/hr/Employees";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -336,7 +336,7 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
         {isEditing ? (
           <Input value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="h-8" type="date" />
         ) : (
-          <span className="text-sm text-foreground">{birthDate ? format(new Date(birthDate), "dd/MM/yyyy") : "—"}</span>
+          <span className="text-sm text-foreground">{birthDate ? formatLocalDate(birthDate) : "—"}</span>
         )}
       </div>
 
@@ -370,7 +370,7 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
           <Input value={hireDate} onChange={(e) => setHireDate(e.target.value)} className="h-8" type="date" />
         ) : (
           <span className="text-sm text-foreground">
-            {hireDate ? format(new Date(hireDate), "dd/MM/yyyy", { locale: ptBR }) : format(new Date(employee.created_at), "dd/MM/yyyy", { locale: ptBR })}
+            {hireDate ? formatLocalDate(hireDate) : format(new Date(employee.created_at), "dd/MM/yyyy", { locale: ptBR })}
             {!hireDate && <span className="ml-2 text-xs text-muted-foreground">(data de cadastro — edite para definir admissão)</span>}
           </span>
         )}
@@ -621,7 +621,7 @@ function HistoryTab({ employeeId }: { employeeId: string }) {
         (absences || []).forEach((a: any) => {
           timeline.push({
             date: a.start_date, type: "absence",
-            description: `${absenceLabels[a.absence_type] || a.absence_type}: ${format(new Date(a.start_date), "dd/MM/yyyy")} a ${format(new Date(a.end_date), "dd/MM/yyyy")}`,
+            description: `${absenceLabels[a.absence_type] || a.absence_type}: ${formatLocalDate(a.start_date)} a ${formatLocalDate(a.end_date)}`,
           });
         });
       }
@@ -781,7 +781,7 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
   const medicalFields = [
     { label: "Especialidade", value: tech.specialty || "—" },
     { label: "Tipo Sanguíneo", value: tech.blood_type ? `${tech.blood_type}${tech.blood_rh_factor || ""}` : "—" },
-    { label: "ASO Válido até", value: tech.aso_valid_until ? format(new Date(tech.aso_valid_until), "dd/MM/yyyy") : "—" },
+    { label: "ASO Válido até", value: tech.aso_valid_until ? formatLocalDate(tech.aso_valid_until) : "—" },
     { label: "Status Médico", value: tech.medical_status || "—" },
   ];
 
@@ -940,7 +940,7 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
                   <p className="text-sm font-medium truncate">{doc.certificate_name || doc.file_name || doc.document_type}</p>
                   <p className="text-xs text-muted-foreground">
                     {doc.document_type === "aso" ? "ASO" : "Certificação"}
-                    {doc.expiry_date && ` • Validade: ${format(new Date(doc.expiry_date), "dd/MM/yyyy")}`}
+                    {doc.expiry_date && ` • Validade: ${formatLocalDate(doc.expiry_date)}`}
                   </p>
                 </div>
               </div>
