@@ -1,39 +1,69 @@
-## Problema
+## Resposta direta
 
-No CRM Comercial, ao abrir uma oportunidade existente (ex.: "RFQ pelo site — Cahuã"), o campo **Cliente** aparece vazio, mesmo com o registro "Camorim" existindo e visível na view `crm_client_options`.
+A correção pontual no SIPOC do Marketing **resolve o caso**, mas o mesmo padrão de bug (estado local inicializado com dados que chegam depois via query) pode existir em outros drawers/dialogs da Qualidade. Por isso o plano tem duas partes: correção do caso reportado + varredura preventiva.
 
-**Causa raiz:** o `EditOpportunitySheet` (e o `NewOpportunityDialog`) usa um `<Select>` shadcn simples que recebe a lista completa de ~2.122 clientes de uma vez via `useCommercialClientOptions`. Com esse volume, o Radix Select trava a renderização das opções, e o `value` selecionado não encontra o `<SelectItem>` correspondente no momento da montagem — resultando em trigger vazio. O mesmo problema afeta a criação (dropdown lento/vazio) e o seletor de Comprador quando dependente do cliente.
+## Causa raiz
 
-O módulo Admin/Ordens de Serviço já resolveu isso com o componente `ClientSearchCombobox`, que faz busca server-side na view `crm_client_options` e resolve o rótulo do cliente selecionado por `id`.
+Padrão anti-idiomático em vários formulários:
 
-## Plano
+```tsx
+const { sipoc } = useProcessSIPOC(id);          // async
+const [s, setS] = useState({ suppliers: sipoc?.suppliers || "", ... });
+```
 
-Padronizar o seletor de cliente do módulo Comercial usando o mesmo combobox server-side já validado em OS.
+`useState` só usa o valor inicial **uma vez**. Quando a query resolve depois, o estado permanece vazio e os campos aparecem em branco (mesmo com dados salvos). Também quebra ao trocar o item selecionado sem desmontar o componente.
 
-### 1. Generalizar o `ClientSearchCombobox`
-- Mover/renomear (ou reexportar) `src/components/admin/orders/ClientSearchCombobox.tsx` para um local compartilhado: `src/components/shared/ClientSearchCombobox.tsx`.
-- Tornar `companyId` opcional: quando ausente, usar o `profile.company_id` do `AuthContext` (evita props redundantes no CRM).
-- Manter o comportamento atual: busca por 2+ caracteres, badges de grupo/pai, resolução do rótulo por `id`.
+## Correção
 
-### 2. Substituir o Select de Cliente no CRM
-Arquivos a atualizar (trocar `<Select>` de cliente pelo novo combobox):
-- `src/components/commercial/opportunities/EditOpportunitySheet.tsx` (linha ~231).
-- `src/components/commercial/opportunities/NewOpportunityDialog.tsx` (linha ~113).
+### 1. Fix imediato — SIPOC (`src/pages/quality/Processes.tsx`)
+Adicionar `useEffect` que ressincroniza `s` sempre que `sipoc` ou `process.id` mudar. Mesma coisa para o formulário de Atividades se aplicável.
 
-O comportamento de `onValueChange` continua o mesmo: atualiza `client_id` e limpa `buyer_id`.
+### 2. Prevenção — varredura nos formulários da Qualidade
+Auditar os arquivos que usam o padrão `useState({...campo: hookData?.x || ""})`:
 
-### 3. Ajustar carregamento de rótulo em modo edição
-Garantir que, ao abrir o sheet com um `client_id` já persistido, o combobox exiba o nome imediatamente (o próprio componente já faz `select name from crm_client_options where id = value`).
+- `src/pages/quality/Processes.tsx` (SIPOC + Atividades)
+- `src/components/quality/InterestedPartyDrawer.tsx`
+- `src/components/quality/EditDocumentMetadataDialog.tsx`
+- `src/components/quality/SupplierDocumentsList.tsx`
+- `src/components/quality/DocumentControlledCopiesPanel.tsx`
+- `src/pages/quality/Settings.tsx`
+- `src/pages/quality/ManagementReview.tsx`
+- `src/pages/quality/Planning.tsx`
+- `src/pages/quality/OrgChart.tsx`
+- `src/pages/quality/Deviations.tsx`
+- `src/pages/quality/Improvements.tsx`
+- `src/pages/quality/IsoStructure.tsx`
+- `src/pages/quality/InterestedParties.tsx`
+- `src/pages/quality/ITBackup.tsx`
+- `src/components/quality/AuditAttachmentsDrawer.tsx`
+- `src/components/quality/NewDocumentDialog.tsx`
+- `src/components/quality/CreateImprovementFromButton.tsx`
+- `src/components/quality/voc/ComplaintsTabBase.tsx`
+- `src/components/quality/voc/CampaignsTab.tsx`
 
-### 4. Deixar `useCommercialClientOptions` só para casos que realmente precisam da lista pré-carregada
-- Manter o hook (usado em filtros/tabelas), mas remover a passagem de `clients` como prop nos dois componentes acima — o combobox busca sozinho.
-- Ajustar a assinatura dos componentes (`clients` deixa de ser obrigatório) e o `Opportunities.tsx` para não passar mais o array.
+Em cada um: se o `useState` inicial depende de dados de query/props que podem mudar, adicionar `useEffect` de sincronização (ou trocar por `key={id}` no componente pai para forçar remount, quando fizer sentido). Diálogos de "criar novo" que não recebem dados de query ficam intocados.
 
-### 5. Validação
-- Abrir a oportunidade "RFQ pelo site — Cahuã": campo deve exibir "Camorim".
-- Criar nova oportunidade: buscar "cam" retorna a lista filtrada rapidamente.
-- Confirmar que Comprador continua sendo filtrado por `client_id` selecionado.
+## Detalhes técnicos
 
-### Fora de escopo
-- Nenhuma mudança em RLS, view `crm_client_options`, hooks de oportunidade ou lógica de negócio.
-- Outros seletores de cliente do CRM (Tarefas, Recorrências, Vendas) — podem receber a mesma padronização em rodada seguinte se você quiser.
+Padrão de correção aplicado:
+
+```tsx
+useEffect(() => {
+  setS({
+    suppliers: sipoc?.suppliers ?? "",
+    inputs: sipoc?.inputs ?? "",
+    activities: sipoc?.activities ?? "",
+    outputs: sipoc?.outputs ?? "",
+    customers: sipoc?.customers ?? "",
+  });
+}, [sipoc, process?.id]);
+```
+
+Nenhuma mudança de banco. Dados atuais do Marketing continuam íntegros.
+
+## Validação
+
+1. Abrir Processos → Marketing → SIPOC: campos devem exibir o conteúdo salvo.
+2. Trocar para outro processo sem fechar o drawer: campos devem atualizar.
+3. Editar e salvar: valor persiste e volta a aparecer ao reabrir.
+4. Repetir teste rápido em 2–3 dos outros drawers auditados.
