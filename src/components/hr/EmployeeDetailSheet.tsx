@@ -652,7 +652,7 @@ function HistoryTab({ employeeId }: { employeeId: string }) {
           <div key={i} className="flex gap-3 border-l-2 border-muted-foreground/20 pl-4 py-1">
             <div>
               <p className="text-sm text-foreground">{ev.description}</p>
-              <p className="text-xs text-muted-foreground">{format(new Date(ev.date), "dd/MM/yyyy", { locale: ptBR })}</p>
+              <p className="text-xs text-muted-foreground">{formatLocalDate(ev.date)}</p>
             </div>
           </div>
         ))
