@@ -335,7 +335,7 @@ export default function Vacations() {
           </Tabs>
         </CardHeader>
         <CardContent>
-          <TabsContent value={tab} forceMount>
+          <div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -396,7 +396,7 @@ export default function Vacations() {
                 })}
               </TableBody>
             </Table>
-          </TabsContent>
+          </div>
         </CardContent>
       </Card>
 
