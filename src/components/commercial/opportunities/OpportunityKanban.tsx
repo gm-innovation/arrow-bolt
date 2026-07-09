@@ -31,10 +31,17 @@ interface Props {
   onCardClick: (opp: Opportunity) => void;
   leads?: Lead[];
   onConvertLead?: (lead: Lead, targetStage?: string) => void;
+  onLeadClick?: (lead: Lead) => void;
 }
 
-const LeadMiniCard = ({ lead, onConvert }: { lead: Lead; onConvert: () => void }) => (
-  <div className="bg-card border border-dashed border-primary/40 rounded-lg p-3 space-y-1 hover:shadow-md transition-shadow">
+const LeadMiniCard = ({ lead, onConvert, onOpen }: { lead: Lead; onConvert: () => void; onOpen?: () => void }) => (
+  <div
+    role={onOpen ? "button" : undefined}
+    tabIndex={onOpen ? 0 : undefined}
+    onClick={onOpen}
+    onKeyDown={onOpen ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onOpen(); } } : undefined}
+    className={`bg-card border border-dashed border-primary/40 rounded-lg p-3 space-y-1 hover:shadow-md transition-shadow ${onOpen ? "cursor-pointer" : ""}`}
+  >
     <div className="flex items-start justify-between gap-2">
       <div className="min-w-0">
         <p className="text-sm font-medium truncate">{lead.company_name || lead.name || "Sem identificação"}</p>
@@ -61,14 +68,20 @@ const LeadMiniCard = ({ lead, onConvert }: { lead: Lead; onConvert: () => void }
       <span className="text-[10px] text-muted-foreground">
         {formatDistanceToNow(new Date(lead.created_at), { addSuffix: true, locale: ptBR })}
       </span>
-      <Button size="sm" variant="secondary" className="h-6 text-xs px-2" onClick={onConvert}>
+      <Button
+        size="sm"
+        variant="secondary"
+        className="h-6 text-xs px-2"
+        onClick={(e) => { e.stopPropagation(); onConvert(); }}
+      >
         <Sparkles className="h-3 w-3 mr-1" /> Converter
       </Button>
     </div>
   </div>
 );
 
-export const OpportunityKanban = ({ opportunities, onStageChange, onCardClick, leads = [], onConvertLead }: Props) => {
+
+export const OpportunityKanban = ({ opportunities, onStageChange, onCardClick, leads = [], onConvertLead, onLeadClick }: Props) => {
   const isMobile = useIsMobile();
   const [openStages, setOpenStages] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = { [LEADS_DROPPABLE_ID]: true };
@@ -126,7 +139,7 @@ export const OpportunityKanban = ({ opportunities, onStageChange, onCardClick, l
                     {...prov.dragHandleProps}
                     className={`transition-shadow duration-200 rounded-lg ${snap.isDragging ? "shadow-lg ring-2 ring-primary/30" : ""}`}
                   >
-                    <LeadMiniCard lead={lead} onConvert={() => onConvertLead?.(lead)} />
+                    <LeadMiniCard lead={lead} onConvert={() => onConvertLead?.(lead)} onOpen={onLeadClick ? () => onLeadClick(lead) : undefined} />
                   </div>
                 )}
               </Draggable>

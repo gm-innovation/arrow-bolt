@@ -17,6 +17,7 @@ import { OpportunityDetails } from "@/components/commercial/opportunities/Opport
 import { EditOpportunitySheet } from "@/components/commercial/opportunities/EditOpportunitySheet";
 import { SiteLeadsTab } from "@/components/commercial/opportunities/SiteLeadsTab";
 import { ConvertLeadDialog, type Lead } from "@/components/commercial/opportunities/ConvertLeadDialog";
+import { LeadDetailsDialog } from "@/components/commercial/opportunities/LeadDetailsDialog";
 import { useSiteLeads } from "@/hooks/useSiteLeads";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,7 +52,7 @@ const CommercialOpportunities = () => {
   const { profile } = useAuth();
   const { opportunities, isLoading, updateOpportunity, createOpportunity, deleteOpportunity } = useOpportunities();
   const { buyers } = useBuyers();
-  const { openLeads } = useSiteLeads();
+  const { openLeads, setStatus: setLeadStatus } = useSiteLeads();
   const [view, setView] = useState<'kanban' | 'list'>(() => (localStorage.getItem('opp-view') as any) || 'kanban');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editData, setEditData] = useState<any>(null);
@@ -64,6 +65,7 @@ const CommercialOpportunities = () => {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [convertLead, setConvertLead] = useState<Lead | null>(null);
+  const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [convertStage, setConvertStage] = useState<string | undefined>(undefined);
 
   const setTab = (v: string) => {
@@ -203,6 +205,7 @@ const CommercialOpportunities = () => {
               onCardClick={handleCardClick}
               leads={openLeads}
               onConvertLead={handleConvertLead}
+              onLeadClick={setDetailLead}
             />
           ) : (
             <div className="rounded-md border">
@@ -294,6 +297,14 @@ const CommercialOpportunities = () => {
           onConverted={() => { setConvertLead(null); setConvertStage(undefined); }}
         />
       )}
+
+      <LeadDetailsDialog
+        lead={detailLead}
+        open={!!detailLead}
+        onOpenChange={(v) => !v && setDetailLead(null)}
+        onConvert={(lead) => { setDetailLead(null); handleConvertLead(lead); }}
+        onStatusChange={(id, status) => setLeadStatus.mutate({ id, status })}
+      />
     </div>
   );
 };
