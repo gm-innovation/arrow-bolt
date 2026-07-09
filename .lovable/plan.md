@@ -1,56 +1,75 @@
-## Plano: Auditoria e testes end-to-end do módulo de RH
+# Auditoria do Módulo de RH
 
-Objetivo: percorrer todas as rotas, hooks e fluxos de RH, verificando integridade de dados, RLS, UI e regressões, no mesmo padrão da auditoria feita em Comercial/Marketing.
+## ✅ Já implementado e funcional
+| Requisito | Onde | Status |
+|---|---|---|
+| Cadastro e gestão de colaboradores | `/hr/employees`, hierarquia, cargos | OK |
+| Documentos digitais + alertas de vencimento | `/hr/documents`, `/hr/document-compliance`, `/hr/document-reviews`, catálogo por cargo | OK |
+| Afastamentos (atestado, licença, home office, treinamento) | `/hr/absences` (`useAbsences`) | OK |
+| Controle de ponto | `/hr/time-control` (`useHRTimeEntries`, ajustes, relatório PDF/XLSX) | OK |
+| EPI (estoque, entregas, fichas) | `/hr/epi` | OK |
+| Treinamentos e certificados | Universidade Corporativa (`/corp/university`, trilhas, certificados PDF) | OK |
+| Comunicação interna / endomarketing | Feed, Grupos, Aniversariantes, Kudos, Badges | OK |
+| Dashboards e relatórios | `/hr/dashboard`, `/hr/reports`, conformidade documental | OK |
+| Notificações automáticas | `notifications` + triggers de documentos, revisões, RH | OK |
+| Controle de acesso por perfil | RBAC (`user_roles`, `has_role`, RLS) | OK |
+| Autoatendimento do colaborador | `/corp/my-documents`, `/corp/requests`, perfil, alterar senha | OK |
+| Fluxos eletrônicos de aprovação | `corp_requests` (Folga/Férias, Documento, Reembolso, etc.) com aprovação de gestor/diretor | OK |
+| Recrutamento & Onboarding | `/hr/recruitment`, `/hr/onboarding` (link público, docs admissionais) | OK |
 
-### 1. Auditoria de banco (via read_query)
-- **Hierarquia & cargos**: checar `profiles.direct_manager_id` (ciclos, órfãos, gestores desligados) e `position` vs catálogo.
-- **Catálogo documental**: `hr_document_catalog` + `hr_document_catalog_positions` (documentos sem cargo, cargos sem documentos obrigatórios).
-- **Documentos de colaboradores**: `hr_employee_documents` — registros órfãos, `review_status` inconsistente, arquivos ausentes no storage `corp-documents`.
-- **Compliance RPC**: rodar `hr_employee_document_status` e `hr_pending_reviews` para a company real e conferir contagens.
-- **Recrutamento**: `job_openings`, `job_applications`, `job_application_notes`, tags e assignments — órfãos, RLS, notificações `request_created` residuais fora de RH/Diretoria (repetir a limpeza feita para Cahua se surgirem novos casos).
-- **Ponto/ausências/EPI/parcerias/on-call/onboarding**: `time_entries`, `hr_time_adjustments`, `technician_absences`, `epi_*`, `hr_partnerships`, `technician_on_call`, `employee_onboarding`, `onboarding_documents` — integridade referencial e RLS.
-- **Departamentos**: `departments` + `department_members` — usuários sem departamento, membros duplicados.
-- **Papéis**: usuários com role `hr` ativos; garantir que o espelho `commercial` do Marketing não vaze permissões de RH.
+## ⚠️ Lacunas identificadas
+1. **Exames ocupacionais (ASO) / SST clínica** — não há entidade dedicada. Hoje ASO entra como documento genérico, sem tipo (admissional/periódico/mudança de função/retorno/demissional), sem clínica, sem médico responsável, sem agendamento e sem alerta baseado em periodicidade legal (NR-7 / PCMSO).
+2. **Contratos de trabalho e aditivos** — não existe registro estruturado de contrato (tipo CLT/PJ/estágio, data de admissão/desligamento, salário, jornada, aditivos, rescisão). Hoje só há documentos soltos.
+3. **Fluxo dedicado de Férias** — hoje férias entram na fila genérica "Folga/Férias" em `corp_requests`, sem período aquisitivo, saldo de dias, abono pecuniário, 13º ou espelho para o gestor.
+4. **Integração com folha de pagamento** — não existe exportação (CSV/SEFIP/eSocial) nem conector. Precisa de export mínimo mensal (ponto + absenteísmo + horas extras + adicionais).
+5. **LGPD** — falta trilha de consentimento do colaborador, registro de acesso a dados pessoais (`data_access_log`) e página de política/direitos do titular no portal do colaborador.
 
-### 2. Testes de rota (Playwright headless, sessão HR injetada)
-Percorrer cada rota, capturar screenshot, ler console/network:
-```
-/hr/dashboard
-/hr/documents
-/hr/document-compliance
-/hr/document-reviews
-/hr/settings              (hierarquia, cargos, catálogo, departamentos)
-/hr/onboarding
-/hr/onboarding-settings
-/hr/time-control
-/hr/epi
-/hr/on-call
-/hr/partnerships
-/hr/reports
-/hr/profile
-/corp/my-documents        (visão colaborador)
-```
+---
 
-### 3. Fluxos funcionais críticos (validação visível em tela)
-1. **Compliance**: abrir dashboard, filtrar por status, abrir gaveta de um colaborador, validar cores/contadores contra RPC.
-2. **Revisão documental**: aprovar e rejeitar um upload de teste, verificar propagação para `my-documents` do colaborador e limpeza de notificação.
-3. **Hierarquia**: alterar gestor direto de um colaborador, confirmar trigger anti-ciclo e refresh do combobox.
-4. **Catálogo**: criar documento obrigatório vinculado a cargo, subir arquivo pelo portal do colaborador, ver aparecer na fila de revisão.
-5. **Recrutamento**: abrir vaga, enviar candidatura pública (rota `/onboarding/publica` ou form existente), ver notificação chegar só em RH/Diretoria.
-6. **Ponto**: abrir controle de ponto, lançar ajuste, verificar aprovação.
-7. **EPI/On-call/Parcerias**: criar 1 registro em cada e confirmar listagem + RLS (usuário fora do RH não vê).
-8. **Onboarding**: gerar link público, abrir em contexto anônimo, subir 1 documento, aprovar no admin.
+# Plano de implementação (5 mini-ondas)
 
-### 4. Correções aplicadas na hora
-- Bugs de UI simples (keys, z-index de dialog, pointer-events, `useState` que não sincroniza com query assíncrona — mesmo padrão do fix do SIPOC).
-- Limpeza de notificações estagnadas (`notifications` de tipos de RH em caixas de não-RH).
-- Ajustes de RLS/GRANT se aparecer "permission denied" em alguma tabela hr_*.
-- Regressões maiores viram nota no relatório final, não são corrigidas sem confirmação.
+## Onda 1 — SST clínica (ASO e PCMSO)
+- Tabela `hr_health_exams` (colaborador, tipo, data realização, próxima data, clínica, médico CRM, resultado apto/inapto/apto com restrição, anexo).
+- Regras automáticas de "próxima data" por tipo (admissional na admissão, periódico anual/bienal por faixa etária/risco, demissional na saída).
+- Página `/hr/health-exams` com Kanban Válido / A vencer 60 dias / Vencido.
+- Alerta in-app + e-mail para RH e colaborador conforme política.
+- Ação rápida a partir da ficha do colaborador ("Registrar ASO").
 
-### 5. Entregável
-Relatório resumido por área com: rotas OK, achados de dados, correções aplicadas, itens que ficam pendentes de decisão do usuário.
+## Onda 2 — Contratos e vínculo
+- Tabela `hr_contracts` (tipo, data admissão, data desligamento, salário base, jornada, centro de custo, motivo rescisão) + `hr_contract_amendments` (aditivos).
+- Aba "Contrato" na ficha do colaborador com histórico e geração de PDF a partir de template.
+- Bloqueio: colaborador só fica "Ativo" com contrato vigente.
 
-### Detalhes técnicos
-- Playwright via shell em `/tmp/browser/hr-audit/`, viewport 1280×1800, sessão Supabase injetada via env.
-- Consultas somente-leitura via `supabase--read_query`; qualquer alteração de schema/limpeza vai por `supabase--migration` com descrição em português.
-- Edições de código apenas com `line_replace`/`write` em arquivos já lidos; nenhum retrabalho de business logic sem sinal claro de bug.
+## Onda 3 — Fluxo de férias completo
+- Tabela `hr_vacation_balances` (período aquisitivo, dias devidos, dias gozados, dias vendidos, dias restantes) atualizada por trigger a partir da admissão.
+- Novo tipo dedicado de solicitação "Férias" em `corp_requests` com campos: início, fim, dias, abono pecuniário (sim/não, dias), adiantamento 13º.
+- Aprovação em 2 etapas (gestor direto → RH), com validação de saldo e antecedência mínima (30 dias).
+- Aviso de férias em PDF e recibo assinável.
+
+## Onda 4 — Exportação para folha
+- Edge function `export-payroll` gerando CSV/XLSX mensal por colaborador com: horas trabalhadas, faltas, atestados, horas extras 50/100%, adicional noturno, DSR, férias no mês, afastamentos.
+- Layouts pré-configuráveis (Domínio/Contmatic/eSocial simplificado) em `payroll_export_layouts`.
+- Página `/hr/payroll-export` com seleção de mês + preview + download.
+
+## Onda 5 — LGPD e autoatendimento reforçado
+- Tabela `lgpd_consents` (colaborador, finalidade, versão do termo, aceite em, IP) + banner de aceite no primeiro login.
+- Trigger `data_access_log` para toda leitura de dados sensíveis (ASO, contrato, documentos pessoais) via função `SECURITY DEFINER` chamada nos hooks.
+- Página `/corp/my-privacy`: exportar meus dados (JSON/PDF), solicitar correção, solicitar anonimização (vira `corp_request` roteado ao Encarregado).
+- Configuração de "Encarregado LGPD" (DPO) em `hr_settings`.
+
+---
+
+## Detalhes técnicos
+- Todas as tabelas novas em `public.*` com `GRANT` para `authenticated` e `service_role`, RLS via `has_role('hr'|'director'|'super_admin')` + self.
+- Notificações reutilizam a fila `notifications` + template Resend já em uso.
+- Alertas de ASO/documentos consolidados em uma única edge function `check-hr-compliance` (cron diário) que hoje já roda para documentos — apenas estender.
+- Sem alterar `auth`, `storage.buckets` via SQL, ou o cliente Supabase gerado.
+
+## Ordem sugerida de execução
+1. Onda 1 (SST) — maior risco legal aberto.
+2. Onda 3 (Férias) — pedido antigo do RH.
+3. Onda 2 (Contratos) — destrava Onda 4.
+4. Onda 4 (Folha).
+5. Onda 5 (LGPD).
+
+Confirma essa ordem, ou prefere priorizar Férias ou LGPD primeiro?
