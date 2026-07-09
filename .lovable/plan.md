@@ -1,36 +1,39 @@
-Escopo: modal **Editar Usuário do Super Admin** (`/super-admin/users` → `src/components/super-admin/users/EditUserDialog.tsx`) e o hook que popula a lista (`src/hooks/useAllUsers.ts`).
-
 ## Diagnóstico
 
-**1. "Marketing" salva/exibe como "Comercial"**
-- A migration `20260708164841_...sql` tem um trigger que, ao inserir `marketing` em `user_roles`, insere também uma linha espelho `commercial` (herança de permissões). O banco está correto.
-- `useAllUsers.ts` monta o mapa de papéis assim:
-  ```ts
-  const rolesMap = new Map(rolesData?.map(r => [r.user_id, r.role]) || []);
-  ```
-  Usuário Marketing tem duas linhas (`marketing` + `commercial`); o `Map` fica com a última — normalmente `commercial`. Por isso a lista/edição do Super Admin mostra "Comercial".
+### 1. Alterar senha — já implementado, precisa de validação
+- `src/pages/account/AccountSettings.tsx` (aba **Segurança**) chama `updatePassword(newPassword)` do `AuthContext`.
+- `AuthContext.updatePassword` executa `supabase.auth.updateUser({ password })` — chamada correta e suportada pela Lovable Cloud.
+- Não há bug de código. Apenas confirmar em teste ao vivo (login com usuário, mudar senha, deslogar, logar com a nova senha).
 
-**2. "Salvar Alterações" só funciona após vários cliques**
-- Bug conhecido do Radix `Select` dentro de `Dialog`: ao fechar o dropdown, `pointer-events: none` fica preso no `<body>` por alguns ms, engolindo o primeiro clique no botão.
-- O botão também não tem estado de "salvando", então o usuário clica repetidamente sem feedback.
+### 2. Notificação "Novo currículo recebido" chegou para Comercial/Marketing
+- O trigger `notify_hr_on_new_application` (migration `20260512201814_...sql`) já filtra corretamente: só notifica usuários com role `hr` ou `director` da mesma empresa.
+- Consulta ao banco confirma: a notificação de "CAHUA ARAUJO FERNANDES" foi criada em **18/05/2026** — data em que ela ainda tinha o papel `hr`. Depois o papel foi trocado para `marketing` (+ espelho `commercial`), mas a notificação antiga permaneceu na caixa dela.
+- Ou seja: **não é bug do trigger**, é sujeira histórica de notificações criadas antes da troca de papel.
 
-## Correções (somente frontend)
+## Correções
 
-### `src/hooks/useAllUsers.ts`
-Ao montar `rolesMap`, dar prioridade ao papel "real" sobre o espelho `commercial`:
-- Se o usuário já tem um papel `!= commercial` no mapa, ignorar `commercial`.
-- Caso contrário, gravar normalmente.
+### Migration (dados) — limpeza de notificações órfãs
+Excluir notificações com título `Novo currículo recebido` cujo destinatário não tem mais `hr` nem `director` hoje:
+```sql
+DELETE FROM public.notifications n
+WHERE n.title = 'Novo currículo recebido'
+  AND NOT EXISTS (
+    SELECT 1 FROM public.user_roles ur
+    WHERE ur.user_id = n.user_id
+      AND ur.role IN ('hr','director')
+  );
+```
 
-Resultado: usuário Marketing aparece como `marketing` na tela.
+### Reforço no trigger (defesa em profundidade)
+Reescrever `notify_hr_on_new_application` para excluir explicitamente quem tenha `commercial` ou `marketing` como papel "operacional" e ainda tenha `hr`/`director` (não deveria acontecer, mas garante) — na prática o filtro atual já basta; então **apenas adicionamos um comentário**. Não vamos mexer no trigger fora do necessário.
 
-### `src/components/super-admin/users/EditUserDialog.tsx`
-- Usar `form.formState.isSubmitting` para desabilitar o botão e mostrar "Salvando…".
-- Ao fechar o `Select` de Função/Empresa, restaurar `document.body.style.pointerEvents = ''` (fix padrão para o combo Radix Select + Dialog), garantindo que o primeiro clique em "Salvar Alterações" seja registrado.
+Se preferir, dá para adicionar uma cláusula extra `AND NOT EXISTS (marketing role)` — mas isso mudaria semântica caso um Diretor também acumule Marketing. Melhor manter simples e só limpar o histórico.
 
-### Sem migrations
-- Trigger `mirror_marketing_to_commercial` permanece intacto (herança de permissões do Marketing).
+### Validação do fluxo de alterar senha
+1. Login como usuário Comercial/Marketing.
+2. Ir em Settings → Segurança.
+3. Definir nova senha (8+ chars) → clicar "Salvar nova senha".
+4. Toast "Senha alterada com sucesso".
+5. Logout → login com a nova senha.
 
-## Verificação
-1. Lista de usuários em `/super-admin/users` mostra "Marketing" para usuários Marketing.
-2. Abrir "Editar Usuário" → dropdown Função aparece com "Marketing" selecionado.
-3. Trocar função e clicar uma única vez em "Salvar Alterações" → salva na hora; botão fica "Salvando…" até concluir.
+Sem alterações de frontend.
