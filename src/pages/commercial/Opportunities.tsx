@@ -15,6 +15,7 @@ import { OpportunityDetails } from "@/components/commercial/opportunities/Opport
 import { EditOpportunitySheet } from "@/components/commercial/opportunities/EditOpportunitySheet";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatLocalDate } from "@/lib/utils";
 
 const stageLabels: Record<string, string> = {
   identified: 'Identificada', qualified: 'Qualificada', proposal: 'Proposta',
@@ -200,7 +201,7 @@ const CommercialOpportunities = () => {
                   <TableCell className="hidden md:table-cell">{formatCurrency(opp.estimated_value)}</TableCell>
                   <TableCell><Badge variant="secondary" className={stageColors[opp.stage]}>{stageLabels[opp.stage]}</Badge></TableCell>
                   <TableCell className="hidden lg:table-cell">{opp.probability != null ? `${opp.probability}%` : '—'}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{opp.expected_close_date ? format(new Date(opp.expected_close_date), 'dd/MM/yyyy') : '—'}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{opp.expected_close_date ? formatLocalDate(opp.expected_close_date) : '—'}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

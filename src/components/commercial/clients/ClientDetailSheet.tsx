@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DollarSign, TrendingDown, BarChart3, Pencil, Plus, Sparkles, ThumbsUp, X, CalendarIcon, User, Building2 } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { useNavigate } from "react-router-dom";
+import { formatLocalDate } from "@/lib/utils";
 
 const STATUS_BADGES: Record<string, { label: string; color: string }> = {
   prospect: { label: "Prospect", color: "bg-blue-100 text-blue-800" },
@@ -293,7 +294,7 @@ export const ClientDetailSheet = ({ open, onOpenChange, client, onEdit }: Props)
                       {o.expected_close_date && (
                         <span className="flex items-center gap-1">
                           <CalendarIcon className="h-3 w-3" />
-                          {format(new Date(o.expected_close_date), "dd/MM/yyyy")}
+                          {formatLocalDate(o.expected_close_date)}
                         </span>
                       )}
                     </div>

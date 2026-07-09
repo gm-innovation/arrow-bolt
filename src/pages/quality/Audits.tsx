@@ -9,6 +9,7 @@ import NewAuditDialog from "@/components/quality/NewAuditDialog";
 import AuditAttachmentsDrawer from "@/components/quality/AuditAttachmentsDrawer";
 import CreateImprovementFromButton from "@/components/quality/CreateImprovementFromButton";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 
 const statusLabels: Record<string, string> = {
@@ -75,7 +76,7 @@ const QualityAudits = () => {
                         {statusLabels[audit.status] || audit.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{format(new Date(audit.planned_date), "dd/MM/yyyy")}</TableCell>
+                    <TableCell>{formatLocalDate(audit.planned_date)}</TableCell>
                     <TableCell className="text-xs">{audit.next_due_at ? format(new Date(audit.next_due_at), "dd/MM/yyyy") : "—"}</TableCell>
                     <TableCell>{audit.lead_auditor?.full_name || "—"}</TableCell>
                     <TableCell className="flex gap-1">

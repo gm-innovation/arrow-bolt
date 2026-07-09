@@ -28,6 +28,7 @@ import {
   ImprovementEffectiveness,
 } from "@/hooks/useQualityImprovements";
 import { differenceInDays, parseISO } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 const SOURCE_LABELS: Record<ImprovementSource, string> = {
   ncr: "NCR",
@@ -336,7 +337,7 @@ const Improvements = () => {
                         {row.due_date ? (
                           <span className={overdue ? "text-destructive font-medium flex items-center gap-1" : ""}>
                             {overdue && <Clock className="h-3 w-3" />}
-                            {new Date(row.due_date).toLocaleDateString("pt-BR")}
+                            {formatLocalDate(row.due_date)}
                           </span>
                         ) : (
                           <span className="text-muted-foreground">—</span>

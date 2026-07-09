@@ -3,6 +3,7 @@ import { ArrowUpCircle, ArrowDownCircle, Receipt, TrendingUp } from "lucide-reac
 import { useFinancePayables, useFinanceReceivables, useFinanceReimbursements } from "@/hooks/useFinance";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 const FinanceDashboard = () => {
   const { payables } = useFinancePayables();
@@ -85,7 +86,7 @@ const FinanceDashboard = () => {
                 <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-destructive/30">
                   <div>
                     <p className="text-sm font-medium">Pagar: {p.supplier_name}</p>
-                    <p className="text-xs text-muted-foreground">Venceu em {format(new Date(p.due_date), "dd/MM/yyyy")}</p>
+                    <p className="text-xs text-muted-foreground">Venceu em {formatLocalDate(p.due_date)}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-destructive">{fmt(Number(p.amount))}</p>
@@ -97,7 +98,7 @@ const FinanceDashboard = () => {
                 <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-amber-500/30">
                   <div>
                     <p className="text-sm font-medium">Receber: {r.client_name}</p>
-                    <p className="text-xs text-muted-foreground">Venceu em {format(new Date(r.due_date), "dd/MM/yyyy")}</p>
+                    <p className="text-xs text-muted-foreground">Venceu em {formatLocalDate(r.due_date)}</p>
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">{fmt(Number(r.amount))}</p>
@@ -109,7 +110,7 @@ const FinanceDashboard = () => {
                 <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <p className="text-sm font-medium">Pagar: {p.supplier_name}</p>
-                    <p className="text-xs text-muted-foreground">Vence em {format(new Date(p.due_date), "dd/MM/yyyy")}</p>
+                    <p className="text-xs text-muted-foreground">Vence em {formatLocalDate(p.due_date)}</p>
                   </div>
                   <p className="font-semibold">{fmt(Number(p.amount))}</p>
                 </div>

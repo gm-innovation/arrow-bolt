@@ -7,6 +7,7 @@ import { Plus, ClipboardCheck } from "lucide-react";
 import { useQualityActionPlans } from "@/hooks/useQualityActionPlans";
 import NewActionPlanDialog from "@/components/quality/NewActionPlanDialog";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 const statusLabels: Record<string, string> = {
   draft: "Rascunho", in_progress: "Em Andamento", verification: "Verificação",
@@ -72,7 +73,7 @@ const QualityActionPlans = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{plan.responsible?.full_name || "—"}</TableCell>
-                    <TableCell>{plan.target_date ? format(new Date(plan.target_date), "dd/MM/yyyy") : "—"}</TableCell>
+                    <TableCell>{plan.target_date ? formatLocalDate(plan.target_date) : "—"}</TableCell>
                     <TableCell>
                       {plan.status === "draft" && (
                         <Button size="sm" variant="outline" onClick={() => updatePlan.mutate({ id: plan.id, status: "in_progress" })}>

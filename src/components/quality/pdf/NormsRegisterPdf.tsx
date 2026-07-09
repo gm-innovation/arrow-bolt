@@ -3,13 +3,14 @@ import { Text, View } from "@react-pdf/renderer";
 import { ControlledDocPage, docStyles, type ControlledDocMeta } from "./ControlledDocPdfFrame";
 import type { QualityReferenceNorm } from "@/hooks/useQualityIsoStructure";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 interface Props {
   meta: Omit<ControlledDocMeta, "code" | "revisionLabel" | "title">;
   norms: QualityReferenceNorm[];
 }
 
-const fmt = (d?: string | null) => (d ? format(new Date(d), "dd/MM/yyyy") : "—");
+const fmt = (d?: string | null) => (d ? formatLocalDate(d) : "—");
 
 export const NormsRegisterPdf = ({ meta, norms }: Props) => {
   const full: ControlledDocMeta = {

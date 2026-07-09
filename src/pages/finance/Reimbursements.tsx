@@ -7,6 +7,7 @@ import { Plus, Receipt } from "lucide-react";
 import { useFinanceReimbursements } from "@/hooks/useFinance";
 import NewReimbursementDialog from "@/components/finance/NewReimbursementDialog";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 const statusLabels: Record<string, string> = {
   pending: "Pendente", approved: "Aprovado", rejected: "Rejeitado", paid: "Pago", cancelled: "Cancelado",
@@ -56,7 +57,7 @@ const FinanceReimbursements = () => {
                     <TableCell>{r.requester?.full_name || "—"}</TableCell>
                     <TableCell className="font-medium">{r.description}</TableCell>
                     <TableCell className="text-right">{fmt(Number(r.amount))}</TableCell>
-                    <TableCell>{format(new Date(r.expense_date), "dd/MM/yyyy")}</TableCell>
+                    <TableCell>{formatLocalDate(r.expense_date)}</TableCell>
                     <TableCell>
                       <Badge variant={r.status === "paid" ? "default" : r.status === "rejected" ? "destructive" : "secondary"}>
                         {statusLabels[r.status] || r.status}
