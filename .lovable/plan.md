@@ -1,36 +1,47 @@
 ## Objetivo
-Unificar o modal de cadastro/edição de clientes usando a versão mais completa (a do Admin/Coordenadores — `NewClientForm`) também na área Comercial, eliminando o `NewClientDialog` atual.
+Revalidar ponta-a-ponta o módulo Comercial/Marketing após todas as refatorações recentes (unificação de clientes, CNPJ automático, leads no Kanban, modal unificado, timezone) para garantir que nada quebrou.
 
-## Situação atual
-- **Comercial** (`/commercial/clients`) usa `src/components/commercial/clients/NewClientDialog.tsx` — versão simplificada com abas (Empresa / Contatos / Embarcações).
-- **Admin/Coordenadores** (`/admin/clients`) usa `src/components/admin/clients/NewClientForm.tsx` — versão rica com Identificação (Tipo de Pessoa, Segmento), múltiplas Razões Sociais/CNPJs, múltiplos Endereços com CEP, etc.
-- Os dois gravam nas mesmas tabelas (`clients`, `client_legal_entities`, `client_addresses`, `crm_buyers`), mas com contratos diferentes.
+## Escopo da revisão
 
-## Plano de implementação
+### 1. Cadastro de Clientes (`/commercial/clients`)
+- Abrir o novo modal unificado (`NewClientForm`) — verificar tabs Empresa / Contatos / Embarcações.
+- Criar cliente PJ via busca por CNPJ (edge function `lookup-cnpj`).
+- Criar cliente manualmente sem CNPJ.
+- Editar cliente existente, adicionar razão social e endereço.
+- Confirmar que o cliente aparece imediatamente na lista após salvar (invalidação de cache).
+- Toggle `crm_visible` refletindo nos seletores do CRM.
 
-1. **Promover `NewClientForm` a componente compartilhado**
-   - Mover `src/components/admin/clients/NewClientForm.tsx` para `src/components/clients/ClientFormDialog.tsx` (ou manter no lugar e apenas reimportar; a decisão fica no build).
-   - Garantir que aceite `initialData` para modo edição (verificar se já suporta; caso não, adicionar).
-   - Manter o mesmo contrato `onSave(data, buyer, legalEntities, addresses)` já usado no Comercial para reaproveitar a mutation existente.
+### 2. Oportunidades e Leads (`/commercial/opportunities`)
+- Kanban: coluna virtual "Leads do Site" carrega, mini-cards clicáveis abrem `LeadDetailsDialog`.
+- Drag-and-drop de lead para coluna de estágio dispara `ConvertLeadDialog`.
+- Botão "Converter" no card também abre o diálogo.
+- Aba "Leads do Site": tabela clicável, filtro por status, badge de contagem.
+- Conversão de lead → cria cliente + oportunidade + contato (`crm_buyers`).
+- CRUD de oportunidade padrão (criar, editar, mover entre estágios).
 
-2. **Substituir o modal no Comercial**
-   - Em `src/pages/commercial/Clients.tsx`:
-     - Remover import de `NewClientDialog`.
-     - Importar o formulário unificado.
-     - Ajustar o payload esperado (Tipo de Pessoa, Segmento, múltiplas Razões Sociais/CNPJs, múltiplos Endereços) e mapear para a mutation `saveMutation` já existente (que hoje já insere em `client_legal_entities` e `client_addresses`).
-   - Manter o checkbox "Exibir este cadastro nos seletores do CRM" (`crm_visible`).
+### 3. Dashboard Comercial (`/commercial`)
+- 4 mini-cards de KPI de leads (Novos, Em contato, Convertidos, Descartados) com contagens corretas.
+- Cards de KPI comerciais existentes (pipeline, ganhos, previsão) continuam funcionando.
 
-3. **Ajustar Admin para usar o mesmo componente**
-   - Em `src/pages/admin/Clients.tsx`, apontar para o novo caminho compartilhado (se movido).
+### 4. Combobox de clientes no CRM
+- `ClientSearchCombobox` filtra apenas clientes com `crm_visible = true` (sem funcionários).
+- Busca server-side por nome/CNPJ.
 
-4. **Remover código morto**
-   - Deletar `src/components/commercial/clients/NewClientDialog.tsx`.
+### 5. Datas e Timezone
+- Datas exibidas em cards, tabelas e detalhes de lead/oportunidade sem shift de -1 dia.
 
-5. **Verificações finais**
-   - Confirmar que criação e edição funcionam nas duas rotas (`/commercial/clients` e `/admin/clients`).
-   - Confirmar que o `crm_visible` e o comprador primário (`crm_buyers`) continuam sendo persistidos.
+### 6. Permissões
+- Papel `marketing` acessa `/commercial/*` e recebe notificação `lead_received`.
+- Papel `coordinator` em `/admin/clients` compartilha o mesmo formulário unificado.
+
+## Método de teste
+- Playwright headless contra `http://localhost:8080` autenticado com a sessão Supabase injetada.
+- Screenshots em cada etapa em `/tmp/browser/commercial-review/screenshots/`.
+- Verificação de console/network para erros silenciosos.
+- Consultas SQL de sanidade (contagem de leads, oportunidades criadas nos testes) via `supabase--read_query`.
+- Ao final, uma lista objetiva do que passou / falhou, com correção imediata dos problemas encontrados.
 
 ## Fora de escopo
-- Alterações nas tabelas de banco.
-- Mudanças no fluxo de conversão de lead em cliente (permanece usando o mesmo formulário unificado depois).
-- Ajustes visuais além dos necessários para o formulário rico caber no modal.
+- Alterações de UX que não sejam correção de bug.
+- Módulos fora de Comercial/Marketing (RH, Qualidade, Financeiro).
+- Geração de manual — só após validação completa.
