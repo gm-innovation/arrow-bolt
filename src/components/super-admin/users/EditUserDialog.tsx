@@ -83,6 +83,16 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     }
   }, [user, form]);
 
+  // Workaround: Radix Select inside Dialog can leave `pointer-events: none`
+  // on <body>, swallowing the first click on "Salvar Alterações".
+  const handleSelectOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setTimeout(() => {
+        document.body.style.pointerEvents = "";
+      }, 0);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user) return;
 
@@ -181,7 +191,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Empresa</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} onOpenChange={handleSelectOpenChange}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma empresa" />
@@ -206,7 +216,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Função</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} onOpenChange={handleSelectOpenChange}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma função" />
@@ -236,10 +246,13 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={form.formState.isSubmitting}
               >
                 Cancelar
               </Button>
-              <Button type="submit">Salvar Alterações</Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Salvando..." : "Salvar Alterações"}
+              </Button>
             </div>
           </form>
         </Form>
