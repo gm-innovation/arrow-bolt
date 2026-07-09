@@ -364,6 +364,18 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
       {editableField("Nome do contato", emergencyName, setEmergencyName)}
       {editableField("Telefone emergência", emergencyPhone, setEmergencyPhone)}
 
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Na empresa desde</span>
+        {isEditing ? (
+          <Input value={hireDate} onChange={(e) => setHireDate(e.target.value)} className="h-8" type="date" />
+        ) : (
+          <span className="text-sm text-foreground">
+            {hireDate ? format(new Date(hireDate), "dd/MM/yyyy", { locale: ptBR }) : format(new Date(employee.created_at), "dd/MM/yyyy", { locale: ptBR })}
+            {!hireDate && <span className="ml-2 text-xs text-muted-foreground">(data de cadastro — edite para definir admissão)</span>}
+          </span>
+        )}
+      </div>
+
       {readOnlyFields.map((f) => (
         <div key={f.label} className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
           <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">{f.label}</span>
