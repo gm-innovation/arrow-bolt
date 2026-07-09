@@ -396,7 +396,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
               <BasicInfoTab 
                 measurement={measurement} 
                 serviceOrderId={serviceOrderId}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
 
@@ -405,7 +405,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
                 measurementId={measurement.id}
                 serviceOrderId={serviceOrderId}
                 manHours={measurement.measurement_man_hours || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
 
@@ -413,7 +413,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
               <MaterialsTab 
                 measurementId={measurement.id}
                 materials={measurement.measurement_materials || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
                 technicianMaterials={technicianMaterials}
                 serviceOrderId={serviceOrderId}
               />
@@ -423,7 +423,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
               <ServicesTab 
                 measurementId={measurement.id}
                 services={measurement.measurement_services || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
 
@@ -431,7 +431,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
               <TravelsTab 
                 measurementId={measurement.id}
                 travels={measurement.measurement_travels || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
 
@@ -439,7 +439,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
               <ExpensesTab 
                 measurementId={measurement.id}
                 expenses={measurement.measurement_expenses || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
           </CardContent>
@@ -450,7 +450,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
 
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>
-          {isDraft ? 'Fechar' : 'Voltar'}
+          {canEdit ? 'Fechar' : 'Voltar'}
         </Button>
         <Button
           variant="outline"
@@ -467,7 +467,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
           <FileText className="h-4 w-4 mr-2" />
           PDF
         </Button>
-        {isDraft && (
+        {canEdit && (
           <Button 
             onClick={handleFinalize}
             disabled={finalizeMeasurement.isPending}
