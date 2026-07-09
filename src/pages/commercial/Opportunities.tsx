@@ -45,10 +45,13 @@ const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => {
 };
 
 const CommercialOpportunities = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const clientFilter = searchParams.get('client') || '';
+  const tab = searchParams.get('tab') === 'leads' ? 'leads' : 'pipeline';
+  const { profile } = useAuth();
   const { opportunities, isLoading, updateOpportunity, createOpportunity, deleteOpportunity } = useOpportunities();
   const { buyers } = useBuyers();
+  const { openLeads } = useSiteLeads();
   const [view, setView] = useState<'kanban' | 'list'>(() => (localStorage.getItem('opp-view') as any) || 'kanban');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editData, setEditData] = useState<any>(null);
@@ -60,6 +63,19 @@ const CommercialOpportunities = () => {
   const [stageFilter, setStageFilter] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [convertLead, setConvertLead] = useState<Lead | null>(null);
+  const [convertStage, setConvertStage] = useState<string | undefined>(undefined);
+
+  const setTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === 'pipeline') next.delete('tab'); else next.set('tab', v);
+    setSearchParams(next, { replace: true });
+  };
+
+  const handleConvertLead = (lead: Lead, targetStage?: string) => {
+    setConvertLead(lead);
+    setConvertStage(targetStage);
+  };
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) {
