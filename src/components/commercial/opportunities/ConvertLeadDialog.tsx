@@ -189,12 +189,44 @@ export function ConvertLeadDialog({
     if (!clientId) { toast.error("Selecione um cliente"); return; }
     if (!title.trim()) { toast.error("Informe um título"); return; }
     setSaving(true);
+
+    // Auto-create buyer from lead if none selected and lead has contact info
+    let effectiveBuyerId = buyerId;
+    if (!effectiveBuyerId && lead.name && lead.email) {
+      // Try to find an existing buyer for this client with same email first
+      const { data: existing } = await supabase
+        .from("crm_buyers")
+        .select("id")
+        .eq("client_id", clientId)
+        .eq("email", lead.email)
+        .eq("is_active", true)
+        .maybeSingle();
+      if (existing?.id) {
+        effectiveBuyerId = existing.id;
+      } else {
+        const { data: newBuyer, error: buyerErr } = await supabase
+          .from("crm_buyers")
+          .insert({
+            company_id: companyId,
+            client_id: clientId,
+            name: lead.name,
+            email: lead.email,
+            phone: lead.phone,
+            is_primary: false,
+            is_active: true,
+          } as any)
+          .select("id")
+          .single();
+        if (!buyerErr && newBuyer) effectiveBuyerId = newBuyer.id;
+      }
+    }
+
     const { data: opp, error: oppErr } = await supabase
       .from("crm_opportunities")
       .insert({
         company_id: companyId,
         client_id: clientId,
-        buyer_id: buyerId,
+        buyer_id: effectiveBuyerId,
         assigned_to: userId,
         title: title.trim(),
         description,
