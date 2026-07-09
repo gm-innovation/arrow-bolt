@@ -1,9 +1,13 @@
-## Fix crash em `/hr/vacations`
+## Tornar "Na empresa desde" editável (hire_date)
 
-Mesmo bug estrutural que ocorreu em HealthExams: o `<TabsContent>` (linha 338) está fora do `<Tabs>` (que é fechado na linha 335, dentro do `CardHeader`), causando o erro `TabsContent must be used within Tabs`.
+Hoje o campo "Na empresa desde" em `PersonalTab` (`EmployeeDetailSheet.tsx`) é renderizado como texto somente-leitura a partir de `created_at`. A coluna `hire_date` já existe em `profiles`, mas não é editável na UI — por isso Hugo (e outros importados) ficam sem data de admissão, o que impede a geração automática de períodos aquisitivos de férias.
 
 ### Correção
-Em `src/pages/hr/Vacations.tsx`, remover o wrapper `<TabsContent>` (linhas 338 e 399) — a filtragem já é feita via `filteredRequests` baseada no estado `tab`, então o wrapper é desnecessário, igual ao fix aplicado em HealthExams.
+1. Adicionar estado `hireDate` no `PersonalTab` inicializado com `employee.hire_date`.
+2. Substituir o item read-only "Na empresa desde" por um campo editável: `type="date"` no modo edição, exibindo `dd/MM/yyyy` (com fallback `created_at`) no modo leitura.
+3. Incluir `hire_date: hireDate || null` no `profileUpdate` do `handleSave`.
+4. Reset em `handleCancel`.
+5. Melhorar tratamento de erro: mostrar `error.message` no toast em vez de mensagem genérica, facilitando diagnóstico caso RLS/coluna falhem.
+6. Garantir que `EmployeeRow` (em `pages/hr/Employees.tsx`) inclua `hire_date` no SELECT — verificar e adicionar se ausente.
 
-### Verificação adicional
-Fazer varredura nos demais arquivos recém-criados/alterados do RH (`PayrollExport.tsx`, e demais páginas HR) para garantir que não há outros `TabsContent` fora de `<Tabs>` nem outros crashes estruturais óbvios. Se encontrados, aplicar a mesma correção.
+Sem mudanças no banco.
