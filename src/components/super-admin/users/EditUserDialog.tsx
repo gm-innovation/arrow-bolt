@@ -216,7 +216,7 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Função</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value} onOpenChange={handleSelectOpenChange}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione uma função" />
