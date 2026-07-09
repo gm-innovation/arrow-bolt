@@ -83,6 +83,16 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
     }
   }, [user, form]);
 
+  // Workaround: Radix Select inside Dialog can leave `pointer-events: none`
+  // on <body>, swallowing the first click on "Salvar Alterações".
+  const handleSelectOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      setTimeout(() => {
+        document.body.style.pointerEvents = "";
+      }, 0);
+    }
+  };
+
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     if (!user) return;
 
