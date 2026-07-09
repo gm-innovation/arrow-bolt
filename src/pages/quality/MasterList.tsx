@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { differenceInDays, parseISO } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
-const fmt = (d?: string | null) => (d ? new Date(d).toLocaleDateString("pt-BR") : "—");
+const fmt = (d?: string | null) => (d ? formatLocalDate(d) : "—");
 
 type ReviewBucket = "all" | "overdue" | "soon" | "ok" | "no_cycle";
 

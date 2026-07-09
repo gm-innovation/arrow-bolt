@@ -1,6 +1,7 @@
 import { Document, Text, View } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { ControlledDocPage, docStyles, type ControlledDocMeta } from "./ControlledDocPdfFrame";
+import { formatLocalDate } from "@/lib/utils";
 
 export interface CalibrationCheckpoint {
   nominal_value?: number | string | null;
@@ -51,7 +52,7 @@ const RESULT: Record<string, string> = {
   reproved: "REPROVADO",
 };
 
-const dt = (s?: string | null) => (s ? format(new Date(s), "dd/MM/yyyy") : "—");
+const dt = (s?: string | null) => (s ? formatLocalDate(s) : "—");
 
 export interface CalibrationCertificatePdfProps {
   meta: Omit<ControlledDocMeta, "code" | "title" | "revisionLabel" | "subtitleBlock" | "issuedAt" | "validUntil">;

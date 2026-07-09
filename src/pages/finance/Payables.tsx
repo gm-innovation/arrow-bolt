@@ -9,6 +9,7 @@ import { Plus, Search } from "lucide-react";
 import { useFinancePayables } from "@/hooks/useFinance";
 import NewPayableDialog from "@/components/finance/NewPayableDialog";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 const statusLabels: Record<string, string> = {
   pending: "Pendente", approved: "Aprovada", partial: "Parcial", paid: "Paga", overdue: "Vencida", cancelled: "Cancelada",
@@ -80,7 +81,7 @@ const FinancePayables = () => {
                     <TableCell className="font-medium">{p.supplier_name}</TableCell>
                     <TableCell>{p.invoice_number || "—"}</TableCell>
                     <TableCell className="text-right">{fmt(Number(p.amount))}</TableCell>
-                    <TableCell>{format(new Date(p.due_date), "dd/MM/yyyy")}</TableCell>
+                    <TableCell>{formatLocalDate(p.due_date)}</TableCell>
                     <TableCell>
                       <Badge variant={p.status === "paid" ? "default" : p.status === "overdue" ? "destructive" : "secondary"}>
                         {statusLabels[p.status] || p.status}

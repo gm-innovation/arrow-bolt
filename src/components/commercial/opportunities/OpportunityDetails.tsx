@@ -10,6 +10,7 @@ import { Opportunity, useOpportunityActivities } from "@/hooks/useOpportunities"
 import { ActivityTimeline } from "./ActivityTimeline";
 import { format } from "date-fns";
 import { Plus } from "lucide-react";
+import { formatLocalDate } from "@/lib/utils";
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
@@ -62,7 +63,7 @@ export const OpportunityDetails = ({ opportunity, open, onOpenChange }: Props) =
             <div><span className="text-muted-foreground">Valor:</span><p className="font-medium">{opportunity.estimated_value ? formatCurrency(opportunity.estimated_value) : '—'}</p></div>
             <div><span className="text-muted-foreground">Probabilidade:</span><p className="font-medium">{opportunity.probability != null ? `${opportunity.probability}%` : '—'}</p></div>
             <div><span className="text-muted-foreground">Responsável:</span><p>{opportunity.assigned_name || '—'}</p></div>
-            <div><span className="text-muted-foreground">Data Prevista:</span><p>{opportunity.expected_close_date ? format(new Date(opportunity.expected_close_date), 'dd/MM/yyyy') : '—'}</p></div>
+            <div><span className="text-muted-foreground">Data Prevista:</span><p>{opportunity.expected_close_date ? formatLocalDate(opportunity.expected_close_date) : '—'}</p></div>
             {opportunity.buyer_name && <div><span className="text-muted-foreground">Comprador:</span><p>{opportunity.buyer_name}</p></div>}
           </div>
 

@@ -12,6 +12,7 @@ import NewNCRDialog from "@/components/quality/NewNCRDialog";
 import CreateImprovementFromButton from "@/components/quality/CreateImprovementFromButton";
 import NcrFormalPdfButton from "@/components/quality/pdf/NcrFormalPdfButton";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 
 const statusLabels: Record<string, string> = {
@@ -139,7 +140,7 @@ const QualityNCRs = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{ncr.responsible?.full_name || "—"}</TableCell>
-                    <TableCell>{ncr.deadline ? format(new Date(ncr.deadline), "dd/MM/yyyy") : "—"}</TableCell>
+                    <TableCell>{ncr.deadline ? formatLocalDate(ncr.deadline) : "—"}</TableCell>
                     <TableCell className="flex gap-1">
                       {ncr.status === "open" && (
                         <Button size="sm" variant="outline" onClick={() => updateNCR.mutate({ id: ncr.id, status: "analysis" })}>

@@ -9,6 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Upload, ChevronDown, History } from 'lucide-react';
+import { formatLocalDate } from '@/lib/utils';
 
 const ReuploadDialog = ({ row }: { row: ComplianceRow }) => {
   const [open, setOpen] = useState(false);
@@ -100,7 +101,7 @@ export const MyHRDocumentsPanel = () => {
                   </div>
                   {r.expiry_date && (
                     <div className="text-xs text-muted-foreground mt-1">
-                      Validade: {new Date(r.expiry_date).toLocaleDateString('pt-BR')}
+                      Validade: {formatLocalDate(r.expiry_date)}
                       {r.due_in_days != null &&
                         ` (${r.due_in_days >= 0 ? `${r.due_in_days}d restantes` : `${Math.abs(r.due_in_days)}d vencido`})`}
                     </div>

@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Pencil, Eye, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Link2, Unlink, ChevronRight, Building2, Trash2, BanIcon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 const STATUS_BADGES: Record<string, string> = {
   prospect: 'bg-blue-100 text-blue-800',
@@ -228,7 +229,7 @@ export const ClientsTable = ({
         </TableCell>
         <TableCell className="hidden lg:table-cell text-right">{formatCurrency(client.annual_revenue)}</TableCell>
         <TableCell className="hidden md:table-cell">
-          {client.last_contact_date ? format(new Date(client.last_contact_date), 'dd/MM/yyyy') : '—'}
+          {client.last_contact_date ? formatLocalDate(client.last_contact_date) : '—'}
         </TableCell>
         <TableCell className="text-right">
           <div className="flex justify-end gap-1">

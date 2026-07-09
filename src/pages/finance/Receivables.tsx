@@ -9,6 +9,7 @@ import { Plus, Search } from "lucide-react";
 import { useFinanceReceivables } from "@/hooks/useFinance";
 import NewReceivableDialog from "@/components/finance/NewReceivableDialog";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 const statusLabels: Record<string, string> = {
   invoiced: "Faturada", partial: "Parcial", paid: "Recebida", overdue: "Vencida", cancelled: "Cancelada",
@@ -80,7 +81,7 @@ const FinanceReceivables = () => {
                     <TableCell className="font-medium">{r.client_name}</TableCell>
                     <TableCell>{r.invoice_number || "—"}</TableCell>
                     <TableCell className="text-right">{fmt(Number(r.amount))}</TableCell>
-                    <TableCell>{format(new Date(r.due_date), "dd/MM/yyyy")}</TableCell>
+                    <TableCell>{formatLocalDate(r.due_date)}</TableCell>
                     <TableCell>
                       <Badge variant={r.status === "paid" ? "default" : r.status === "overdue" ? "destructive" : "secondary"}>
                         {statusLabels[r.status] || r.status}

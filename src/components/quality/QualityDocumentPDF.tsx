@@ -1,5 +1,6 @@
 import { Document, Page, Text, View, StyleSheet, Font } from "@react-pdf/renderer";
 import { format } from "date-fns";
+import { formatLocalDate } from "@/lib/utils";
 
 // ------- helpers para converter JSON do Tiptap em blocos PDF -------
 type Node = { type: string; content?: Node[]; text?: string; marks?: { type: string }[]; attrs?: any };
@@ -215,7 +216,7 @@ export const QualityDocumentPDF = ({
             Publicado em: {publishedAt ? format(new Date(publishedAt), "dd/MM/yyyy") : "—"}
           </Text>
           <Text>
-            Próxima revisão: {nextReviewDate ? format(new Date(nextReviewDate), "dd/MM/yyyy") : "—"}
+            Próxima revisão: {nextReviewDate ? formatLocalDate(nextReviewDate) : "—"}
           </Text>
           {classification && <Text>Classificação: {classification}</Text>}
         </View>

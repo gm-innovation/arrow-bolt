@@ -1,6 +1,7 @@
 import { Document, Text, View } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { ControlledDocPage, docStyles, type ControlledDocMeta } from "./ControlledDocPdfFrame";
+import { formatLocalDate } from "@/lib/utils";
 
 export interface NcrFormalPdfData {
   ncr_number: number | string;
@@ -38,7 +39,7 @@ const STATUS: Record<string, string> = {
   verification: "Verificação", closed: "Encerrada", cancelled: "Cancelada",
 };
 
-const dt = (s?: string | null) => (s ? format(new Date(s), "dd/MM/yyyy") : "—");
+const dt = (s?: string | null) => (s ? formatLocalDate(s) : "—");
 
 export interface NcrFormalPdfProps {
   meta: Omit<ControlledDocMeta, "code" | "title" | "revisionLabel" | "subtitleBlock" | "issuedAt">;

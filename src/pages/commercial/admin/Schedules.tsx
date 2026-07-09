@@ -14,6 +14,7 @@ import { CalendarClock, List, Calendar, Eye } from "lucide-react";
 import { format, isBefore, startOfDay } from "date-fns";
 import { useState } from "react";
 import { toast } from "sonner";
+import { formatLocalDate } from "@/lib/utils";
 
 const getStatusBadge = (nextDate: string) => {
   const today = startOfDay(new Date());
@@ -104,7 +105,7 @@ const AdminSchedules = () => {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className="text-sm font-medium text-foreground">
-                            {format(new Date(r.next_date), "dd/MM/yyyy")}
+                            {formatLocalDate(r.next_date)}
                           </p>
                         </div>
                         {getStatusBadge(r.next_date)}
@@ -171,7 +172,7 @@ const AdminSchedules = () => {
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm text-muted-foreground">Próxima Data</p>
-                    <p className="font-medium text-foreground">{format(new Date(selectedItem.next_date), "dd/MM/yyyy")}</p>
+                    <p className="font-medium text-foreground">{formatLocalDate(selectedItem.next_date)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-muted-foreground">Status</p>

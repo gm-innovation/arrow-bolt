@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RefreshCw, User, DollarSign, CalendarDays } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { formatLocalDate } from "@/lib/utils";
 
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
   draft: { label: "Rascunho", variant: "secondary" },
@@ -164,7 +165,7 @@ export const MeasurementDetailDialog = ({ measurementId, open, onOpenChange }: M
                   items={manHours}
                   columns={["Data", "Período", "Total Horas", "Tipo", "Valor Total"]}
                   row={(item: any) => [
-                    item.work_date ? format(new Date(item.work_date), "dd/MM/yyyy") : "-",
+                    item.work_date ? formatLocalDate(item.work_date) : "-",
                     item.period || "-",
                     item.total_hours ?? "-",
                     item.hour_type || "-",
@@ -193,7 +194,7 @@ export const MeasurementDetailDialog = ({ measurementId, open, onOpenChange }: M
                   row={(item: any) => [
                     item.description || "-",
                     item.category || "-",
-                    item.expense_date ? format(new Date(item.expense_date), "dd/MM/yyyy") : "-",
+                    item.expense_date ? formatLocalDate(item.expense_date) : "-",
                     item.amount ? formatCurrency(item.amount) : "-",
                   ]}
                 />

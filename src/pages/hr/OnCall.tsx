@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Plus, Trash2, Phone } from 'lucide-react';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { formatLocalDate } from '@/lib/utils';
 import { useOnCall } from '@/hooks/useOnCall';
 import { Skeleton } from '@/components/ui/skeleton';
 import NewOnCallDialog from '@/components/hr/NewOnCallDialog';
@@ -101,7 +102,7 @@ const OnCall = () => {
                           {onCall.technician?.profiles?.full_name || 'Técnico'}
                         </TableCell>
                         <TableCell>
-                          {format(new Date(onCall.on_call_date), "dd/MM/yyyy (EEEE)", { locale: ptBR })}
+                          {formatLocalDate(onCall.on_call_date, "dd/MM/yyyy (EEEE)")}
                         </TableCell>
                         <TableCell>
                           {onCall.start_time?.slice(0, 5)} - {onCall.end_time?.slice(0, 5)}
