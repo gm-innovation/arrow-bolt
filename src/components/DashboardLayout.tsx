@@ -52,6 +52,7 @@ import {
   Megaphone,
   FileCheck,
   Stethoscope,
+  Palmtree,
   User,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
@@ -213,6 +214,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Recrutamento", icon: Inbox, path: "/hr/recruitment" },
     { title: "Gestão de EPI", icon: ClipboardList, path: "/hr/epi" },
     { title: "Exames Ocupacionais", icon: Stethoscope, path: "/hr/health-exams" },
+    { title: "Férias", icon: Palmtree, path: "/hr/vacations" },
     { title: "Parcerias", icon: Inbox, path: "/hr/partnerships" },
     { title: "Treinamentos", icon: GraduationCap, path: "/hr/university" },
     { title: "Relatórios", icon: FileBarChart, path: "/hr/reports" },
