@@ -1,48 +1,39 @@
-## Diagnóstico revisado
+## Problema
 
-Você está certo em desconfiar. A captura mostra que o dropdown continua puxando a tabela `clients` sem nenhum filtro de elegibilidade além da empresa. Além disso, a resposta real da tela `/commercial/opportunities` ainda retorna uma lista enorme de clientes, incluindo registros importados indevidamente ou sem classificação confiável.
+No CRM Comercial, ao abrir uma oportunidade existente (ex.: "RFQ pelo site — Cahuã"), o campo **Cliente** aparece vazio, mesmo com o registro "Camorim" existindo e visível na view `crm_client_options`.
 
-O problema não é só “um nome específico”: o CRM hoje permite que qualquer registro em `clients` apareça em seletores comerciais, inclusive registros importados do ERP com CPF, pessoa física marcada como PJ, fornecedores/lojas genéricas e possíveis colaboradores.
+**Causa raiz:** o `EditOpportunitySheet` (e o `NewOpportunityDialog`) usa um `<Select>` shadcn simples que recebe a lista completa de ~2.122 clientes de uma vez via `useCommercialClientOptions`. Com esse volume, o Radix Select trava a renderização das opções, e o `value` selecionado não encontra o `<SelectItem>` correspondente no momento da montagem — resultando em trigger vazio. O mesmo problema afeta a criação (dropdown lento/vazio) e o seletor de Comprador quando dependente do cliente.
 
-## Plano de correção
+O módulo Admin/Ordens de Serviço já resolveu isso com o componente `ClientSearchCombobox`, que faz busca server-side na view `crm_client_options` e resolve o rótulo do cliente selecionado por `id`.
 
-### 1. Criar uma regra central de “cliente comercial válido”
-- Adicionar no backend uma função/visão segura para listar apenas clientes elegíveis para CRM.
-- Critérios iniciais:
-  - mesma empresa do usuário;
-  - excluir registros bloqueados/ignorados para uso comercial;
-  - excluir nomes que colidam com colaboradores ativos;
-  - tratar CPF como pessoa física e impedir que CPF marcado como PJ apareça como cliente corporativo por padrão;
-  - manter exceções controladas para clientes PF quando forem realmente clientes.
+## Plano
 
-### 2. Aplicar o filtro em todos os seletores comerciais
-Substituir consultas diretas a `clients` por essa fonte central em:
-- Oportunidades;
-- Tarefas comerciais;
-- Recorrências;
-- Compradores/contatos;
-- Relatórios comerciais;
-- Leads/conversão em cliente quando aplicável;
-- área comercial/admin equivalente.
+Padronizar o seletor de cliente do módulo Comercial usando o mesmo combobox server-side já validado em OS.
 
-### 3. Saneamento da base existente
-- Marcar ou remover da seleção comercial registros que são colaboradores, fornecedores ou cadastros importados incorretamente.
-- Corrigir `entity_type` para registros com CPF.
-- Criar uma lista de bloqueio para nomes/documentos que não devem aparecer como clientes no CRM.
-- Não apagar registros com histórico sem transferir vínculos antes.
+### 1. Generalizar o `ClientSearchCombobox`
+- Mover/renomear (ou reexportar) `src/components/admin/orders/ClientSearchCombobox.tsx` para um local compartilhado: `src/components/shared/ClientSearchCombobox.tsx`.
+- Tornar `companyId` opcional: quando ausente, usar o `profile.company_id` do `AuthContext` (evita props redundantes no CRM).
+- Manter o comportamento atual: busca por 2+ caracteres, badges de grupo/pai, resolução do rótulo por `id`.
 
-### 4. Prevenção de reincidência
-- Ajustar o processo de importação/sincronização para não transformar colaborador/fornecedor em cliente comercial selecionável.
-- Reforçar trigger/regra de validação no backend para bloquear colisão com colaborador ativo.
-- Padronizar criação manual de cliente para exigir tipo correto de pessoa.
+### 2. Substituir o Select de Cliente no CRM
+Arquivos a atualizar (trocar `<Select>` de cliente pelo novo combobox):
+- `src/components/commercial/opportunities/EditOpportunitySheet.tsx` (linha ~231).
+- `src/components/commercial/opportunities/NewOpportunityDialog.tsx` (linha ~113).
 
-### 5. Validação final
-- Confirmar no banco que `CAHUA ARAUJO FERNANDES` e `CAIO REIS MARTINS DE VERAS` não existem mais como opção de cliente comercial.
-- Abrir `/commercial/opportunities` e validar que o dropdown de Cliente não lista colaboradores.
-- Validar os demais seletores do CRM para evitar correção parcial só na tela da imagem.
+O comportamento de `onValueChange` continua o mesmo: atualiza `client_id` e limpa `buyer_id`.
 
-## Detalhes técnicos
+### 3. Ajustar carregamento de rótulo em modo edição
+Garantir que, ao abrir o sheet com um `client_id` já persistido, o combobox exiba o nome imediatamente (o próprio componente já faz `select name from crm_client_options where id = value`).
 
-- Vou evitar consultas diretas repetidas como `.from('clients').select('id, name')` nos seletores.
-- A correção deve ser centralizada para não depender de lembrar de filtrar tela por tela.
-- Como envolve backend/dados reais, a etapa de migração/saneamento precisará passar pela aprovação antes de executar.
+### 4. Deixar `useCommercialClientOptions` só para casos que realmente precisam da lista pré-carregada
+- Manter o hook (usado em filtros/tabelas), mas remover a passagem de `clients` como prop nos dois componentes acima — o combobox busca sozinho.
+- Ajustar a assinatura dos componentes (`clients` deixa de ser obrigatório) e o `Opportunities.tsx` para não passar mais o array.
+
+### 5. Validação
+- Abrir a oportunidade "RFQ pelo site — Cahuã": campo deve exibir "Camorim".
+- Criar nova oportunidade: buscar "cam" retorna a lista filtrada rapidamente.
+- Confirmar que Comprador continua sendo filtrado por `client_id` selecionado.
+
+### Fora de escopo
+- Nenhuma mudança em RLS, view `crm_client_options`, hooks de oportunidade ou lógica de negócio.
+- Outros seletores de cliente do CRM (Tarefas, Recorrências, Vendas) — podem receber a mesma padronização em rodada seguinte se você quiser.
