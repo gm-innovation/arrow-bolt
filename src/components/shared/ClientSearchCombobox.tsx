@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronsUpDown, Crown, Link2, Search, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Link2, Search, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -14,7 +13,6 @@ interface ClientOption {
   name: string;
   parent_client_id: string | null;
   parent_name?: string;
-  children_count?: number;
 }
 
 interface ClientSearchComboboxProps {
@@ -43,6 +41,8 @@ export const ClientSearchCombobox = ({
   const [selectedLabel, setSelectedLabel] = useState("");
   const debouncedSearch = useDebounce(search, 300);
   const inputRef = useRef<HTMLInputElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!value) {
@@ -62,6 +62,15 @@ export const ClientSearchCombobox = ({
 
   const searchClients = useCallback(async (term: string) => {
     if (!companyId) return;
+    const normalizedTerm = term.trim();
+    const requestId = ++requestIdRef.current;
+
+    if (normalizedTerm.length === 1) {
+      setClients([]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       let query = (supabase as any)
@@ -69,18 +78,17 @@ export const ClientSearchCombobox = ({
         .select("id, name, parent_client_id")
         .eq("company_id", companyId)
         .order("name")
-        .limit(30);
+        .limit(20);
 
-      if (term.length >= 2) {
-        query = query.ilike("name", `%${term}%`);
+      if (normalizedTerm.length >= 2) {
+        query = query.ilike("name", `%${normalizedTerm}%`);
       }
 
       const { data, error } = await query;
       if (error) throw error;
+      if (requestId !== requestIdRef.current) return;
 
       const clientList = data || [];
-      const clientIds = clientList.map((c: any) => c.id);
-
       const parentIds = [...new Set(clientList.filter((c: any) => c.parent_client_id).map((c: any) => c.parent_client_id))];
       const parentMap: Record<string, string> = {};
       if (parentIds.length > 0) {
@@ -88,35 +96,21 @@ export const ClientSearchCombobox = ({
           .from("crm_client_options")
           .select("id, name")
           .in("id", parentIds);
+        if (requestId !== requestIdRef.current) return;
         parents?.forEach((p: any) => { parentMap[p.id] = p.name; });
       }
-
-      const { data: childCounts } = clientIds.length > 0
-        ? await (supabase as any)
-          .from("crm_client_options")
-          .select("parent_client_id")
-          .eq("company_id", companyId)
-          .in("parent_client_id", clientIds)
-        : { data: [] };
-
-      const countMap: Record<string, number> = {};
-      childCounts?.forEach((c: any) => {
-        if (c.parent_client_id) {
-          countMap[c.parent_client_id] = (countMap[c.parent_client_id] || 0) + 1;
-        }
-      });
 
       const enriched: ClientOption[] = clientList.map((c: any) => ({
         ...c,
         parent_name: c.parent_client_id ? parentMap[c.parent_client_id] : undefined,
-        children_count: countMap[c.id] || 0,
       }));
 
       setClients(enriched);
     } catch (err) {
       console.error("Error searching clients:", err);
+      if (requestId === requestIdRef.current) setClients([]);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, [companyId]);
 
@@ -131,25 +125,54 @@ export const ClientSearchCombobox = ({
       setTimeout(() => inputRef.current?.focus(), 100);
     } else {
       setSearch("");
+      setClients([]);
     }
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!wrapperRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className={cn("w-full justify-between font-normal", className)}
-        >
-          <span className="truncate">{selectedLabel || placeholder}</span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[400px] p-0 z-[100]" align="start">
+    <div ref={wrapperRef} className="relative w-full">
+      <Button
+        type="button"
+        variant="outline"
+        role="combobox"
+        aria-expanded={open}
+        disabled={disabled}
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown") setOpen(true);
+        }}
+        className={cn("w-full justify-between font-normal", className)}
+      >
+        <span className="truncate">{selectedLabel || placeholder}</span>
+        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+      </Button>
+
+      {open && (
+      <div
+        role="listbox"
+        className="absolute left-0 right-0 top-full z-[100] mt-1 overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md"
+      >
         <div className="flex items-center border-b px-3 py-2">
           <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
           <Input
@@ -157,6 +180,8 @@ export const ClientSearchCombobox = ({
             placeholder="Buscar cliente..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
             className="border-0 focus-visible:ring-0 h-8"
           />
         </div>
@@ -174,6 +199,8 @@ export const ClientSearchCombobox = ({
               <button
                 type="button"
                 key={client.id}
+                role="option"
+                aria-selected={value === client.id}
                 onClick={() => {
                   onValueChange(client.id);
                   setSelectedLabel(client.name);
@@ -188,12 +215,6 @@ export const ClientSearchCombobox = ({
                 <div className="flex flex-col items-start flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 w-full">
                     <span className="truncate">{client.name}</span>
-                    {client.children_count > 0 && (
-                      <Badge variant="info" size="sm" className="gap-0.5 shrink-0">
-                        <Crown className="h-3 w-3" />
-                        Grupo ({client.children_count})
-                      </Badge>
-                    )}
                     {client.parent_client_id && client.parent_name && (
                       <Badge variant="outline" size="sm" className="gap-0.5 shrink-0">
                         <Link2 className="h-3 w-3" />
@@ -206,7 +227,8 @@ export const ClientSearchCombobox = ({
             ))
           )}
         </div>
-      </PopoverContent>
-    </Popover>
+      </div>
+      )}
+    </div>
   );
 };
