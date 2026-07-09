@@ -1,69 +1,64 @@
-## Resposta direta
 
-A correção pontual no SIPOC do Marketing **resolve o caso**, mas o mesmo padrão de bug (estado local inicializado com dados que chegam depois via query) pode existir em outros drawers/dialogs da Qualidade. Por isso o plano tem duas partes: correção do caso reportado + varredura preventiva.
+# Revisão e testes do módulo Comercial/Marketing
 
-## Causa raiz
+Objetivo: validar, de ponta a ponta, que todas as telas, hooks, permissões e integrações do módulo comercial (incluindo o novo papel `marketing`) estão funcionando, sem regressões após as últimas mudanças (combobox de clientes, view `crm_client_options`, remoção de funcionários, novo papel Marketing, etc.).
 
-Padrão anti-idiomático em vários formulários:
+## 1. Escopo da auditoria
 
-```tsx
-const { sipoc } = useProcessSIPOC(id);          // async
-const [s, setS] = useState({ suppliers: sipoc?.suppliers || "", ... });
-```
+**Páginas cobertas** (`src/pages/commercial/*` + `src/pages/admin/Opportunities.tsx`):
+- Dashboard, Clientes, Compradores, Oportunidades, Produtos, Vendas (CRM), Tarefas, Recorrências, Medições, Base de Conhecimento, Relatórios, Perfil, Configurações
+- Admin › Oportunidades de Serviço (compartilha componentes)
 
-`useState` só usa o valor inicial **uma vez**. Quando a query resolve depois, o estado permanece vazio e os campos aparecem em branco (mesmo com dados salvos). Também quebra ao trocar o item selecionado sem desmontar o componente.
+**Hooks/serviços críticos:**
+- `useCommercialClientOptions`, `useBuyers`, `useOpportunities`, `useOpportunityProducts`, `useOpportunityTransfers`, `useCrmSales`, `useCommercialTasks`, `useProducts`, `useRecurrences`, `useClientContacts`, `useClientAddresses`, `useClientLegalEntities`, `useClientAnalytics`, `useKnowledgeBase`, `useCommercialStats`, `usePartyTreatments`.
 
-## Correção
+**Componentes compartilhados:**
+- `ClientSearchCombobox`, `NewOpportunityDialog`, `EditOpportunitySheet`, diálogos de vendas, tarefas e recorrências.
 
-### 1. Fix imediato — SIPOC (`src/pages/quality/Processes.tsx`)
-Adicionar `useEffect` que ressincroniza `s` sempre que `sipoc` ou `process.id` mudar. Mesma coisa para o formulário de Atividades se aplicável.
+## 2. Checklist funcional (por página)
 
-### 2. Prevenção — varredura nos formulários da Qualidade
-Auditar os arquivos que usam o padrão `useState({...campo: hookData?.x || ""})`:
+Para cada página verificar: carregamento, filtros, criação, edição, exclusão, permissões (`comercial`, `marketing`, `admin`, `director`), estado vazio, paginação/scroll, e sincronização de estado após mutação (padrão do bug SIPOC — `useState` inicializado de query assíncrona).
 
-- `src/pages/quality/Processes.tsx` (SIPOC + Atividades)
-- `src/components/quality/InterestedPartyDrawer.tsx`
-- `src/components/quality/EditDocumentMetadataDialog.tsx`
-- `src/components/quality/SupplierDocumentsList.tsx`
-- `src/components/quality/DocumentControlledCopiesPanel.tsx`
-- `src/pages/quality/Settings.tsx`
-- `src/pages/quality/ManagementReview.tsx`
-- `src/pages/quality/Planning.tsx`
-- `src/pages/quality/OrgChart.tsx`
-- `src/pages/quality/Deviations.tsx`
-- `src/pages/quality/Improvements.tsx`
-- `src/pages/quality/IsoStructure.tsx`
-- `src/pages/quality/InterestedParties.tsx`
-- `src/pages/quality/ITBackup.tsx`
-- `src/components/quality/AuditAttachmentsDrawer.tsx`
-- `src/components/quality/NewDocumentDialog.tsx`
-- `src/components/quality/CreateImprovementFromButton.tsx`
-- `src/components/quality/voc/ComplaintsTabBase.tsx`
-- `src/components/quality/voc/CampaignsTab.tsx`
+- **Clientes**: busca, dossiê (5 abas), Omie sync, `crm_visible`, criação/edição sem colidir com funcionários.
+- **Compradores**: vínculo com cliente, contato primário automático.
+- **Oportunidades**: pipeline, drag/troca de etapa, combobox de cliente dentro do Sheet (regressão recente), transferência, produtos vinculados, motivo de perda, geração de OS.
+- **Vendas (CRM)**: itens, baixa de estoque, status.
+- **Tarefas**: CRUD, filtros, categorias.
+- **Recorrências**: geração de oportunidades a partir de templates, lead time.
+- **Produtos**: CRUD, estoque.
+- **Medições / Relatórios / KB / Dashboard**: leituras, agregações, exportações.
+- **Perfil / Configurações**: edição própria.
 
-Em cada um: se o `useState` inicial depende de dados de query/props que podem mudar, adicionar `useEffect` de sincronização (ou trocar por `key={id}` no componente pai para forçar remount, quando fizer sentido). Diálogos de "criar novo" que não recebem dados de query ficam intocados.
+## 3. Auditoria técnica transversal
+
+- **Papel `marketing`**: confirmar rotas (`App.tsx`), sidebar, permissões RLS (leitura/escrita nas tabelas CRM), aparição em seletores de responsável.
+- **Fonte de clientes**: garantir que todos os seletores comerciais usam `crm_client_options` (view) — nenhuma consulta residual em `clients` direto.
+- **Padrão SIPOC-like**: varrer diálogos comerciais em busca de `useState` inicializado com dado assíncrono sem `useEffect` de sincronização (ex.: edição de oportunidade, edição de venda, edição de tarefa, recorrência).
+- **RLS**: rodar `supabase--linter` e queries de sanidade nas tabelas `crm_*` para checar policies e grants.
+- **Console/network**: coletar erros durante navegação Playwright.
+
+## 4. Estratégia de teste
+
+1. **Estático**: leitura em paralelo de páginas e hooks; grep por anti-padrões (`from("clients")` fora da view, `useState(...)` dependente de query sem effect).
+2. **Banco**: `supabase--read_query` para conferir integridade (funcionários fora de `clients`, oportunidades órfãs, buyers sem client, papel `marketing` presente em `user_roles`).
+3. **Runtime (Playwright headless em `localhost:8080`)** com sessão do usuário atual:
+   - Login → percorrer cada rota comercial, tirar screenshot, capturar console errors e requests com status ≥ 400.
+   - Fluxos-chave: criar cliente → criar comprador → criar oportunidade (validando combobox no Sheet) → mover etapa → gerar OS; criar tarefa; criar venda com item.
+4. **Relatório**: tabela por página com Status (OK / Warning / Bug), evidência (screenshot + trecho de log) e proposta de correção priorizada.
+
+## 5. Entregáveis
+
+- Relatório em Markdown com achados organizados por severidade.
+- Lista priorizada de correções (sem aplicá-las nesta rodada — só após sua aprovação).
+- Se surgirem bugs bloqueantes durante a auditoria, pausar e trazer para decisão antes de seguir testando.
+
+## 6. Fora de escopo
+
+- Módulo de Qualidade, RH, Suprimentos, Financeiro (só se aparecerem como dependências diretas do Comercial).
+- Novas features — apenas verificação do existente.
 
 ## Detalhes técnicos
 
-Padrão de correção aplicado:
-
-```tsx
-useEffect(() => {
-  setS({
-    suppliers: sipoc?.suppliers ?? "",
-    inputs: sipoc?.inputs ?? "",
-    activities: sipoc?.activities ?? "",
-    outputs: sipoc?.outputs ?? "",
-    customers: sipoc?.customers ?? "",
-  });
-}, [sipoc, process?.id]);
-```
-
-Nenhuma mudança de banco. Dados atuais do Marketing continuam íntegros.
-
-## Validação
-
-1. Abrir Processos → Marketing → SIPOC: campos devem exibir o conteúdo salvo.
-2. Trocar para outro processo sem fechar o drawer: campos devem atualizar.
-3. Editar e salvar: valor persiste e volta a aparecer ao reabrir.
-4. Repetir teste rápido em 2–3 dos outros drawers auditados.
+- Ferramentas: `code--view`, `rg`, `supabase--read_query`, `supabase--linter`, Playwright via shell (viewport 1280×1800, sessão Supabase injetada em `localStorage`).
+- Artefatos: `/tmp/browser/commercial-audit/screenshots/*.png` + `report.md`.
+- Duração estimada: 1 rodada longa de exploração antes de propor as correções.
