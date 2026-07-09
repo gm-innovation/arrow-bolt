@@ -1,50 +1,87 @@
-# Manual Comercial/Marketing v2 — com prints e passo a passo detalhado
+# Plano — Refatoração Comercial/Marketing + Manual v3
 
-## Objetivo
-Substituir o `manual-uso-comercial-arrow.pdf` atual por uma versão didática, com **prints reais anonimizados** de cada tela e **passos numerados clique-a-clique** para cada fluxo.
+Ordem: primeiro corrigimos o produto (Ondas 1–4), depois regeramos o manual v3 já refletindo o sistema correto (Onda 5). Cada onda vira uma entrega separada para você validar antes da próxima.
 
-## Preparação do ambiente para prints
-1. Criar seed de dados fictícios no preview via Playwright (login como Comercial/Marketing).
-2. Popular: 3 clientes ("Náutica Atlântico Ltda.", "Marina Sul S/A", "Estaleiro Norte"), 2 grupos econômicos, 5 oportunidades no Kanban (etapas variadas), 1 recorrência, 1 venda com estoque, 2 tarefas, 1 lead do site, 1 artigo na Base de Conhecimento, 1 medição com tributação.
-3. Capturar prints em 1440×900, sempre com sidebar aberta, usando Playwright headless. Salvar em `/tmp/manual-prints/`.
-4. Aplicar máscara de blur em qualquer PII residual (e-mails/telefones reais) via PIL antes de embutir.
+---
 
-## Estrutura do PDF (identidade Lecsor, mesmo template do SGQ v6)
-- Capa + contracapa com versão v2.0 e data.
-- Sumário clicável.
-- **Convenções de uso** (ícones, callouts Dica/Atenção/Importante).
-- **1. Primeiros passos** — login, visão geral da sidebar, perfil comercial vs marketing.
-- **2. Dashboard Comercial** — KPIs, filtros de período, drilldown. [3 prints]
-- **3. Clientes e Grupos Econômicos** — cadastro, dossiê (5 abas), vinculação de grupo, ClientSearchCombobox. [5 prints, 15 passos]
-- **4. Oportunidades (Kanban/Pipeline)** — criar, mover etapas, ganhar/perder, produtos, previsão. [6 prints]
-- **5. Recorrências** — cadastro, lead time, alertas de renovação. [3 prints]
-- **6. Vendas e Estoque** — confirmar venda, baixa automática, devolução. [4 prints]
-- **7. Tarefas Comerciais** — criar, atribuir, concluir, filtros. [3 prints]
-- **8. Leads do Site** — triagem, conversão em oportunidade. [2 prints]
-- **9. Base de Conhecimento (Marketing)** — criar artigo, segmentação, versionamento, tags. [4 prints]
-- **10. Medições com Tributação** — abrir medição, categorias ISS (5%/2%/0%), fórmula "por dentro", fechar. [4 prints]
-- **11. Relatórios e Exportações** — filtros, exportar Excel/PDF. [2 prints]
-- **12. Perguntas frequentes e solução de problemas**.
-- **Anexo A** — rotas e permissões por papel.
-- **Anexo B** — glossário.
+## Onda 1 — Base global de Clientes, Compradores e Embarcações (item 6)
 
-Cada seção segue o padrão:
-1. **Para que serve** (1 parágrafo).
-2. **Quando usar**.
-3. **Passo a passo numerado** ("1. No menu lateral, clique em **Comercial › Clientes**. 2. Clique no botão **+ Novo Cliente** no topo direito…").
-4. **Print(s)** com legenda e setas/realces em vermelho apontando o elemento citado.
-5. **Dicas & atenções** em callouts.
+**Objetivo:** eliminar a percepção de "cadastros por departamento". Cliente é da empresa; Coordenação, Comercial, Marketing e Suprimentos consomem a mesma base.
 
-## Geração
-- Script Python com ReportLab (Platypus) reaproveitando estilos do manual SGQ v6.
-- Anotações nos prints via PIL (setas, retângulos vermelhos, números circulados).
-- QA obrigatório: converter cada página em JPG e inspecionar antes de entregar (layout, prints legíveis, sem PII, sem quebras estranhas).
-- Salvar como `/mnt/documents/manual-uso-comercial-arrow_v2.pdf`.
+- Consolidar `clients` + `crm_client_options` + formulário dos Coordenadores em **um único cadastro global** por `company_id`.
+- Padronizar a distinção entre "cliente ativo" e "prospect" via campo `commercial_status` (item 3): quando existe OS/venda, exibir badge **Cliente**; sem histórico comercial, **Prospect**. Nada de duplicar registros.
+- Reaproveitar `client_contacts` / `crm_buyers` como visões da mesma pessoa (contato operacional = comprador). Unificar via `ClientSearchCombobox` já existente, agora usado também nos formulários de Coordenação.
+- Embarcações (`vessels`) e vínculos comprador↔embarcação (`contact_vessel_links`) permanecem globais e passam a aparecer em todos os módulos que hoje mostram só um recorte.
+- Remover formulários duplicados; manter um único **"Adicionar Cliente"** disponível em Comercial, Coordenação e Suprimentos com as mesmas regras.
 
-## Estimativa
-~45-55 páginas, ~35 prints anotados.
+## Onda 2 — Cadastro de Cliente por CNPJ com preenchimento automático (item 4)
 
-## Detalhes técnicos
-- Playwright com sessão Supabase injetada (`LOVABLE_BROWSER_SUPABASE_*`) para logar como usuário Comercial.
-- Seed feito via SQL direto (`supabase--insert`) em um `company_id` de teste, marcando registros com prefixo `[DEMO]` para permitir limpeza posterior.
-- Blur/máscara aplicado somente se a captura pegar dado real; prioridade é usar dados criados no seed.
+**Objetivo:** ao abrir "Adicionar Novo Cliente", começar pelo CNPJ e buscar os dados públicos.
+
+- Novo Edge Function `lookup-cnpj` que consulta uma API pública de CNPJ (BrasilAPI/ReceitaWS) e retorna razão social, nome fantasia, endereço, CNAE, telefone e e-mail quando disponíveis.
+- Campo CNPJ vira o primeiro passo do modal: máscara, validação de dígito, botão **Buscar**. Ao retornar, preencher os demais campos, mantendo edição manual.
+- Fallback manual quando a API não responde ou o CNPJ é estrangeiro.
+- Reaproveitado em Coordenação, Comercial e Suprimentos (base já unificada na Onda 1).
+
+## Onda 3 — Destaque de Leads no Dashboard Comercial (item 7)
+
+**Objetivo:** leads recebidos pelo site ficam visíveis logo na entrada do módulo.
+
+- Novo card **"Leads recentes (últimos 7 dias)"** no `/commercial/dashboard`, com contador, lista das 5 últimas entradas e ação **Abrir**.
+- Notificação in-app (usa `notifications` já existente) para papéis `commercial`, `marketing` e `director` sempre que um novo lead chega em `public_site_leads`.
+- Badge com contagem de leads não lidos no item **Leads do Site** do menu lateral.
+
+## Onda 4 — Medições puxando saídas de material do Eva (item 8)
+
+**Objetivo:** medição deixa de ser cadastro manual e passa a consolidar o que já foi apontado.
+
+Fluxo alvo:
+
+```text
+Eva (saídas de material por OS) ──▶ os_materials ──▶ Medição (rascunho)
+                                                       │
+                                Time entries (mão de obra) ─┤
+                                                       │
+                              Deslocamentos/Despesas manuais ─┘
+                                                       ▼
+                                        Comercial/Coordenação revisa,
+                                        aplica ISS por categoria,
+                                        finaliza e envia ao cliente
+```
+
+- Ao abrir Medição de uma OS, popular automaticamente a aba **Materiais** a partir de `os_materials` (integração Eva já existente) — sem exigir OS finalizada.
+- Sincronizador (`Sincronizar`) passa a listar OS **com saídas de material ainda não medidas**, não OS finalizadas.
+- Preservar edição manual (adicionar/remover linhas), mas marcar origem "Eva" nas linhas importadas para auditoria.
+- Mão de obra continua vindo de `time_entries`; deslocamento/despesas seguem manuais.
+- Ajustar textos e tooltips para deixar claro o novo fluxo.
+
+## Onda 5 — Manual de Uso Comercial/Marketing v3
+
+Só depois das Ondas 1–4 aprovadas. Regera o PDF cobrindo todas as suas observações:
+
+- **Remover** referência a "Instalar App" (item 1) — só menciona favoritos/PWA se realmente existir; caso contrário, corta.
+- **Corrigir** origem das credenciais: **"e-mail e senha fornecidos pela Engenharia"** (item 2).
+- **Explicar** o ciclo Prospect → Cliente conforme definido na Onda 1 (item 3).
+- **Reescrever** capítulo de Clientes descrevendo o novo cadastro por CNPJ (item 4) e a base global compartilhada (item 6).
+- **Refazer o print** do modal de Oportunidade aberto (item 5) e detalhar cada aba (Detalhes, Histórico, Tarefas, Itens, Transferência).
+- **Adicionar destaque de Leads** no capítulo de Dashboard (item 7).
+- **Reescrever** o capítulo de Medições conforme o novo fluxo Eva → Medição → Cliente (item 8).
+- **Novo capítulo "Minha Conta"** cobrindo as abas Conta, Segurança, Assinatura, Aparência, Notificações, Sessão e Conscientizações, incluindo troca de senha (item 9).
+- **Novos capítulos**: Admin (do módulo Comercial), Feed corporativo, Solicitações, Treinamentos (Universidade Corporativa) e assistente **Marina** (IA) — todos com passo a passo e prints (item 10).
+- Manter identidade visual, callouts e sumário do padrão SGQ v6.
+
+---
+
+## Detalhes técnicos (para referência)
+
+- **Onda 1:** consolidar em `public.clients` (fonte única). Ajustar RLS para leitura por qualquer papel operacional da mesma `company_id`; escrita restrita a Coordenação/Comercial/Suprimentos/Director. Migrar formulários de Coordenação para reusar `NewClientForm`. Depreciar caminhos que criam cliente fora dessa base.
+- **Onda 2:** `supabase/functions/lookup-cnpj/index.ts` com cache curto (idempotency por CNPJ + timestamp) para não estourar limite da API pública. Sem segredo obrigatório (BrasilAPI é aberta); se optarmos por ReceitaWS pago, peço a chave via `add_secret`.
+- **Onda 3:** trigger `AFTER INSERT` em `public_site_leads` insere `notifications` para os papéis alvo. Card do dashboard consome `useCommercialStats` estendido.
+- **Onda 4:** ajustar `useMeasurements` e `MaterialsTab` para hidratar a partir de `os_materials` filtrando `service_order_id`; nova coluna `origin` (`eva` | `manual`) em `measurement_materials`.
+- **Onda 5:** reusar scripts Playwright em `/tmp/browser/manual/` para novas capturas; PDF via ReportLab seguindo o layout do SGQ v6.
+
+## Fora do escopo agora
+
+- Reescrever módulos de Coordenação além do formulário de cliente.
+- Alterar integração Omie/Eva além do que a Onda 4 precisa.
+- Redesenho visual global do Comercial.

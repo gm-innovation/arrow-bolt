@@ -2,8 +2,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Search, Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,6 +44,9 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [savedClientId, setSavedClientId] = useState<string | null>(clientData?.id || null);
+  const [cnpjQuery, setCnpjQuery] = useState("");
+  const [isLookingUp, setIsLookingUp] = useState(false);
+  const [pendingCnpj, setPendingCnpj] = useState<{ cnpj: string; razao_social: string } | null>(null);
 
   const form = useForm<CompanyFormData>({
     resolver: zodResolver(formSchema),
@@ -53,6 +58,35 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
       crm_visible: clientData?.crm_visible ?? true,
     },
   });
+
+  const handleLookupCnpj = async () => {
+    const cnpj = cnpjQuery.replace(/\D/g, "");
+    if (cnpj.length !== 14) {
+      toast({ title: "CNPJ inválido", description: "Informe os 14 dígitos.", variant: "destructive" });
+      return;
+    }
+    setIsLookingUp(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("lookup-cnpj", { body: { cnpj } });
+      if (error) throw error;
+      if (!data || data.error) throw new Error(data?.error || "CNPJ não encontrado");
+
+      form.setValue("name", data.nome_fantasia || data.razao_social || "", { shouldDirty: true });
+      if (data.email) form.setValue("email", data.email, { shouldDirty: true });
+      if (data.phone) form.setValue("phone", data.phone, { shouldDirty: true });
+
+      setPendingCnpj({ cnpj: data.cnpj, razao_social: data.razao_social });
+
+      toast({
+        title: "Dados encontrados",
+        description: `${data.razao_social}${data.situacao ? ` (${data.situacao})` : ""}. Revise, complete e salve.`,
+      });
+    } catch (err: any) {
+      toast({ title: "Não foi possível buscar", description: err.message, variant: "destructive" });
+    } finally {
+      setIsLookingUp(false);
+    }
+  };
 
   const onSubmit = async (data: CompanyFormData) => {
     try {
@@ -68,19 +102,50 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
         crm_visible: data.crm_visible,
       };
 
+      let targetId: string;
       if (clientData?.id) {
         const { error } = await supabase.from("clients").update(sanitizedData).eq("id", clientData.id);
         if (error) throw error;
+        targetId = clientData.id;
         toast({ title: "Cliente atualizado", description: "As informações do cliente foram atualizadas" });
-        setSavedClientId(clientData.id);
-        onSuccess?.(clientData.id);
       } else {
-        const { data: newClient, error } = await supabase.from("clients").insert({ company_id: profileData.company_id, ...sanitizedData }).select().single();
+        const insertPayload: Record<string, any> = { company_id: profileData.company_id, ...sanitizedData };
+        if (pendingCnpj?.cnpj) insertPayload.cnpj = pendingCnpj.cnpj;
+        const { data: newClient, error } = await supabase.from("clients").insert(insertPayload as any).select().single();
         if (error) throw error;
+        targetId = newClient.id;
         toast({ title: "Cliente cadastrado", description: "As informações do cliente foram salvas" });
-        setSavedClientId(newClient.id);
-        onSuccess?.(newClient.id);
       }
+
+      // Auto-create legal entity if we have a pending CNPJ from lookup
+      if (pendingCnpj?.cnpj) {
+        try {
+          const { data: existing } = await supabase
+            .from("client_legal_entities")
+            .select("id")
+            .eq("client_id", targetId)
+            .eq("cnpj", pendingCnpj.cnpj)
+            .maybeSingle();
+          if (!existing) {
+            const { data: currentEntities } = await supabase
+              .from("client_legal_entities")
+              .select("id")
+              .eq("client_id", targetId);
+            await supabase.from("client_legal_entities").insert({
+              client_id: targetId,
+              legal_name: pendingCnpj.razao_social || sanitizedData.name,
+              cnpj: pendingCnpj.cnpj,
+              is_primary: (currentEntities?.length || 0) === 0,
+            });
+          }
+          setPendingCnpj(null);
+        } catch (linkErr) {
+          console.error("Falha ao criar razão social a partir do CNPJ", linkErr);
+        }
+      }
+
+      setSavedClientId(targetId);
+      onSuccess?.(targetId);
     } catch (error: any) {
       toast({ title: "Erro ao salvar cliente", description: error.message, variant: "destructive" });
     } finally {
@@ -90,6 +155,26 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
 
   return (
     <div className="space-y-6">
+      {!clientData?.id && (
+        <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+          <Label className="text-sm font-semibold">Buscar dados pelo CNPJ</Label>
+          <div className="flex gap-2">
+            <Input
+              value={cnpjQuery}
+              onChange={(e) => setCnpjQuery(e.target.value)}
+              placeholder="00.000.000/0000-00"
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleLookupCnpj(); } }}
+            />
+            <Button type="button" variant="secondary" onClick={handleLookupCnpj} disabled={isLookingUp}>
+              {isLookingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-2">Buscar</span>
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Preenche automaticamente Nome, E-mail, Telefone e vincula a Razão Social após salvar.
+          </p>
+        </div>
+      )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
           const firstError = Object.values(errors)[0];

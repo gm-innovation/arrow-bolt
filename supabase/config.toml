@@ -102,6 +102,9 @@ verify_jwt = false
 [functions.hr-payroll-export]
 verify_jwt = true
 
+[functions.lookup-cnpj]
+verify_jwt = true
+
 
 
 
