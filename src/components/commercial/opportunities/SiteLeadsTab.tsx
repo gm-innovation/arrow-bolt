@@ -8,10 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Mail, Phone, Building2, Search, Eye, Sparkles } from "lucide-react";
+import { Mail, Phone, Search, Sparkles } from "lucide-react";
 import { useSiteLeads } from "@/hooks/useSiteLeads";
 import { ConvertLeadDialog, type Lead } from "./ConvertLeadDialog";
+import { LeadDetailsDialog } from "./LeadDetailsDialog";
 import { useAuth } from "@/contexts/AuthContext";
 
 const STATUS_LABEL: Record<Lead["status"], string> = {
@@ -105,7 +105,11 @@ export const SiteLeadsTab = ({ onConverted }: Props) => {
             ) : filtered.length === 0 ? (
               <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum lead.</TableCell></TableRow>
             ) : filtered.map((l) => (
-              <TableRow key={l.id} className={l.status === "new" ? "font-medium" : ""}>
+              <TableRow
+                key={l.id}
+                className={`cursor-pointer ${l.status === "new" ? "font-medium" : ""}`}
+                onClick={() => setSelected(l)}
+              >
                 <TableCell className="text-xs whitespace-nowrap">{format(new Date(l.created_at), "dd/MM/yy HH:mm", { locale: ptBR })}</TableCell>
                 <TableCell>
                   <Badge variant={l.type === "rfq" ? "default" : "secondary"}>
@@ -123,12 +127,13 @@ export const SiteLeadsTab = ({ onConverted }: Props) => {
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[l.status]}>{STATUS_LABEL[l.status]}</Badge>
                 </TableCell>
-                <TableCell className="text-right space-x-1">
-                  <Button variant="ghost" size="sm" onClick={() => setSelected(l)}>
-                    <Eye className="w-4 h-4" />
-                  </Button>
+                <TableCell className="text-right">
                   {l.status !== "converted" && (
-                    <Button variant="secondary" size="sm" onClick={() => setConvertLead(l)}>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={(e) => { e.stopPropagation(); setConvertLead(l); }}
+                    >
                       <Sparkles className="w-4 h-4 mr-1" /> Converter
                     </Button>
                   )}
@@ -139,61 +144,13 @@ export const SiteLeadsTab = ({ onConverted }: Props) => {
         </Table>
       </CardContent>
 
-      <Dialog open={!!selected} onOpenChange={(v) => !v && setSelected(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{selected?.company_name || selected?.name || "Lead"}</DialogTitle>
-          </DialogHeader>
-          {selected && (
-            <div className="space-y-3 text-sm">
-              <div className="grid grid-cols-2 gap-3">
-                {selected.email && <div className="flex items-center gap-2"><Mail className="w-4 h-4" />{selected.email}</div>}
-                {selected.phone && <div className="flex items-center gap-2"><Phone className="w-4 h-4" />{selected.phone}</div>}
-                {selected.company_name && <div className="flex items-center gap-2 col-span-2"><Building2 className="w-4 h-4" />{selected.company_name}</div>}
-              </div>
-              {selected.message && (
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Mensagem</div>
-                  <div className="p-3 bg-muted rounded whitespace-pre-wrap">{selected.message}</div>
-                </div>
-              )}
-              {selected.items?.length > 0 && (
-                <div>
-                  <div className="text-xs text-muted-foreground mb-1">Itens de interesse</div>
-                  <div className="border rounded divide-y">
-                    {selected.items.map((it, idx) => (
-                      <div key={idx} className="p-2 flex justify-between text-sm">
-                        <span>{it.name}{it.notes && <span className="text-muted-foreground"> — {it.notes}</span>}</span>
-                        {it.qty != null && <span className="font-mono">{it.qty}</span>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <div className="flex items-center gap-2 pt-2 border-t">
-                <span className="text-xs text-muted-foreground">Status:</span>
-                <Select
-                  value={selected.status}
-                  onValueChange={(v) => setStatus.mutate({ id: selected.id, status: v as Lead["status"] })}
-                  disabled={selected.status === "converted"}
-                >
-                  <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(STATUS_LABEL).map(([v, l]) => (
-                      <SelectItem key={v} value={v}>{l}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {selected.status !== "converted" && (
-                  <Button variant="default" size="sm" className="ml-auto" onClick={() => { setConvertLead(selected); setSelected(null); }}>
-                    <Sparkles className="w-4 h-4 mr-1" /> Converter
-                  </Button>
-                )}
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <LeadDetailsDialog
+        lead={selected}
+        open={!!selected}
+        onOpenChange={(v) => !v && setSelected(null)}
+        onConvert={(lead) => setConvertLead(lead)}
+        onStatusChange={(id, status) => setStatus.mutate({ id, status })}
+      />
 
       {convertLead && profile?.company_id && profile?.id && (
         <ConvertLeadDialog
