@@ -179,7 +179,7 @@ const Measurements = () => {
                        {m.created_at ? format(new Date(m.created_at), "dd/MM/yyyy") : "-"}
                      </TableCell>
                      <TableCell className="text-right">
-                       <Button variant="ghost" size="icon" onClick={() => { setSelectedMeasurementId(m.id); setDetailOpen(true); }}>
+                       <Button variant="ghost" size="icon" onClick={() => handleOpen(m)}>
                          <Eye className="h-4 w-4" />
                        </Button>
                        <Button variant="ghost" size="icon" onClick={() => toast.info("Reprocessamento iniciado")}>
@@ -194,11 +194,15 @@ const Measurements = () => {
         </CardContent>
       </Card>
 
-      <MeasurementDetailDialog
-        measurementId={selectedMeasurementId}
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-      />
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        {selectedServiceOrderId && (
+          <MeasurementDialog
+            serviceOrderId={selectedServiceOrderId}
+            onClose={() => setDetailOpen(false)}
+            readOnly={readOnlyForSelection}
+          />
+        )}
+      </Dialog>
     </div>
   );
 };
