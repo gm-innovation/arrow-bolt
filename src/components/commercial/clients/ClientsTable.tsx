@@ -336,14 +336,12 @@ export const ClientsTable = ({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map(client => {
+              {filtered.flatMap(client => {
                 const children = showGrouped ? (childrenMap.get(client.id) || []) : [];
-                return (
-                  <>
-                    {renderClientRow(client)}
-                    {children.map(child => renderClientRow(child, true))}
-                  </>
-                );
+                return [
+                  renderClientRow(client),
+                  ...children.map(child => renderClientRow(child, true)),
+                ];
               })}
             </TableBody>
           </Table>
