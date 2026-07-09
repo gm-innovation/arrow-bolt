@@ -17,6 +17,7 @@ import { OpportunityDetails } from "@/components/commercial/opportunities/Opport
 import { EditOpportunitySheet } from "@/components/commercial/opportunities/EditOpportunitySheet";
 import { SiteLeadsTab } from "@/components/commercial/opportunities/SiteLeadsTab";
 import { ConvertLeadDialog, type Lead } from "@/components/commercial/opportunities/ConvertLeadDialog";
+import { LeadDetailsDialog } from "@/components/commercial/opportunities/LeadDetailsDialog";
 import { useSiteLeads } from "@/hooks/useSiteLeads";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
