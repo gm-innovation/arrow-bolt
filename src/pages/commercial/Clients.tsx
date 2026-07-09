@@ -62,8 +62,9 @@ const CommercialClients = () => {
       const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user!.id).single();
       if (!profile?.company_id) throw new Error('Empresa não encontrada');
       const { data, error } = await supabase.from('clients').select('*').eq('company_id', profile.company_id).order('name');
+      
       if (error) throw error;
-      return data || [];
+      return (data || []).filter((client: any) => client.crm_visible !== false);
     },
     enabled: !!user?.id,
   });
@@ -111,6 +112,7 @@ const CommercialClients = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commercial-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['commercial-client-options'] });
       toast.success(editingClient ? 'Cliente atualizado' : 'Cliente criado');
       setDialogOpen(false);
       setEditingClient(null);
@@ -127,6 +129,7 @@ const CommercialClients = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commercial-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['commercial-client-options'] });
       toast.success('Clientes agrupados com sucesso');
       setGroupDialogOpen(false);
       setSelectedIds(new Set());
@@ -143,6 +146,7 @@ const CommercialClients = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['commercial-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['commercial-client-options'] });
       toast.success('Clientes desagrupados');
       setSelectedIds(new Set());
     },
@@ -191,6 +195,7 @@ const CommercialClients = () => {
     },
     onSuccess: ({ deleted, failed, errs }) => {
       queryClient.invalidateQueries({ queryKey: ['commercial-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['commercial-client-options'] });
       setSelectedIds(new Set());
       if (failed === 0) toast.success(`${deleted} cliente(s) excluído(s)`);
       else toast.warning(`${deleted} excluído(s), ${failed} não puderam (com vínculos): ${errs[0] || ''}`);
@@ -207,6 +212,7 @@ const CommercialClients = () => {
     },
     onSuccess: (_d, vars) => {
       queryClient.invalidateQueries({ queryKey: ['commercial-clients'] });
+      queryClient.invalidateQueries({ queryKey: ['commercial-client-options'] });
       toast.success(`${vars.ids.length} cliente(s) atualizado(s)`);
       setSelectedIds(new Set());
     },

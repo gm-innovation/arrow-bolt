@@ -39,6 +39,9 @@ interface Client {
   contact_person: string | null;
   parent_client_id: string | null;
   segment: string | null;
+  commercial_status?: string | null;
+  entity_type?: string | null;
+  crm_visible?: boolean | null;
   omie_client_id: string | number | null;
   ignore_omie_sync: boolean | null;
   vessels: Array<{
@@ -136,8 +139,9 @@ const Clients = () => {
       // Build query with server-side search
       let query = supabase
         .from("clients")
-        .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, omie_client_id, ignore_omie_sync, vessels (id, name, vessel_type)`, { count: "exact" })
+        .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, commercial_status, entity_type, crm_visible, omie_client_id, ignore_omie_sync, vessels (id, name, vessel_type)`, { count: "exact" })
         .eq("company_id", companyId)
+        .eq("crm_visible", true)
         .order("name");
 
       if (debouncedSearch.length >= 2) {
