@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 interface MeasurementFormProps {
   serviceOrderId: string;
   onClose?: () => void;
+  readOnly?: boolean;
 }
 
 export interface TechnicianTimeEntry {
@@ -77,7 +78,7 @@ function CreateMeasurementPrompt({ serviceOrderId, createMeasurement, onClose }:
   );
 }
 
-export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProps) => {
+export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: MeasurementFormProps) => {
   const { measurement, isLoading, finalizeMeasurement, createMeasurement } = useMeasurements(serviceOrderId);
   const { rates } = useServiceRates();
   const [activeTab, setActiveTab] = useState("basic");
@@ -272,6 +273,13 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
   }
 
   if (!measurement) {
+    if (readOnly) {
+      return (
+        <div className="text-center p-8 text-muted-foreground">
+          Nenhuma medição criada para esta OS ainda.
+        </div>
+      );
+    }
     return (
       <CreateMeasurementPrompt 
         serviceOrderId={serviceOrderId} 
@@ -282,6 +290,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
   }
 
   const isDraft = measurement.status === 'draft';
+  const canEdit = isDraft && !readOnly;
 
   const handleFinalize = async () => {
     await finalizeMeasurement.mutateAsync(measurement.id);
@@ -387,7 +396,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
               <BasicInfoTab 
                 measurement={measurement} 
                 serviceOrderId={serviceOrderId}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
 
@@ -396,7 +405,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
                 measurementId={measurement.id}
                 serviceOrderId={serviceOrderId}
                 manHours={measurement.measurement_man_hours || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
 
@@ -404,7 +413,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
               <MaterialsTab 
                 measurementId={measurement.id}
                 materials={measurement.measurement_materials || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
                 technicianMaterials={technicianMaterials}
                 serviceOrderId={serviceOrderId}
               />
@@ -414,7 +423,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
               <ServicesTab 
                 measurementId={measurement.id}
                 services={measurement.measurement_services || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
 
@@ -422,7 +431,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
               <TravelsTab 
                 measurementId={measurement.id}
                 travels={measurement.measurement_travels || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
 
@@ -430,7 +439,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
               <ExpensesTab 
                 measurementId={measurement.id}
                 expenses={measurement.measurement_expenses || []}
-                disabled={!isDraft}
+                disabled={!canEdit}
               />
             </TabsContent>
           </CardContent>
@@ -441,7 +450,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
 
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={onClose}>
-          {isDraft ? 'Fechar' : 'Voltar'}
+          {canEdit ? 'Fechar' : 'Voltar'}
         </Button>
         <Button
           variant="outline"
@@ -458,7 +467,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
           <FileText className="h-4 w-4 mr-2" />
           PDF
         </Button>
-        {isDraft && (
+        {canEdit && (
           <Button 
             onClick={handleFinalize}
             disabled={finalizeMeasurement.isPending}
