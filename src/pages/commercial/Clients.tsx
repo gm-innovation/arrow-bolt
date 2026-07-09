@@ -64,24 +64,12 @@ const CommercialClients = () => {
 
       const { data, error } = await (supabase as any)
         .from('crm_client_options')
-        .select('id, company_id, name, cnpj, entity_type, commercial_status, omie_client_id, parent_client_id')
+        .select('id, company_id, name, cnpj, entity_type, commercial_status, omie_client_id, parent_client_id, email, phone, address, contact_person, segment, annual_revenue, source, notes, last_contact_date, ignore_omie_sync, crm_visible, cep, street, street_number, city, state, created_at, updated_at')
         .eq('company_id', profile.company_id)
         .order('name');
 
       if (error) throw error;
-      return (data || []).map((client: any) => ({
-        ...client,
-        email: null,
-        phone: null,
-        address: null,
-        contact_person: null,
-        segment: null,
-        annual_revenue: null,
-        last_contact_date: null,
-        source: null,
-        notes: null,
-        ignore_omie_sync: false,
-      }));
+      return data || [];
     },
     enabled: !!user?.id,
   });

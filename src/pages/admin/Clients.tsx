@@ -139,7 +139,7 @@ const Clients = () => {
       // Build query with server-side search
       let query = (supabase as any)
         .from("crm_client_options")
-        .select(`id, name, cnpj, parent_client_id, commercial_status, entity_type, omie_client_id`, { count: "exact" })
+        .select(`id, company_id, name, cnpj, entity_type, commercial_status, omie_client_id, parent_client_id, email, phone, address, contact_person, segment, annual_revenue, source, notes, last_contact_date, ignore_omie_sync, crm_visible, cep, street, street_number, city, state, created_at, updated_at`, { count: "exact" })
         .eq("company_id", companyId)
         .order("name");
 
@@ -162,17 +162,7 @@ const Clients = () => {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      setClients(((data || []) as any[]).map((client) => ({
-        ...client,
-        email: null,
-        phone: null,
-        address: null,
-        contact_person: null,
-        segment: null,
-        crm_visible: true,
-        ignore_omie_sync: false,
-        vessels: [],
-      })) as Client[]);
+      setClients(((data || []) as any[]).map((client) => ({ ...client, vessels: [] })) as Client[]);
       setTotalCount(count || 0);
     } catch (error) {
       console.error("Error fetching clients:", error);
