@@ -339,10 +339,10 @@ export const ClientsTable = ({
               {filtered.map(client => {
                 const children = showGrouped ? (childrenMap.get(client.id) || []) : [];
                 return (
-                  <>
+                  <Fragment key={client.id}>
                     {renderClientRow(client)}
                     {children.map(child => renderClientRow(child, true))}
-                  </>
+                  </Fragment>
                 );
               })}
             </TableBody>
