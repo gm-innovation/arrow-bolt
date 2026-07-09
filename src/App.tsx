@@ -350,6 +350,8 @@ const App = () => {
                     <Route path="/hr/employees" element={<HREmployees />} />
                     <Route path="/hr/health-exams" element={<HRHealthExams />} />
                     <Route path="/hr/vacations" element={<HRVacations />} />
+                    <Route path="/hr/payroll-export" element={<HRPayrollExport />} />
+
                     <Route path="/hr/university" element={<HRUniversity />} />
                     <Route path="/hr/profile" element={<HRProfile />} />
                     <Route path="/hr/settings" element={<HRSettings />} />
