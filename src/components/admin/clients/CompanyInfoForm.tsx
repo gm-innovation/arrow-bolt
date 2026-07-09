@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from "react-hook-form";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +18,7 @@ const formSchema = z.object({
   email: z.string().trim().max(255).optional().or(z.literal("")),
   phone: z.string().trim().max(30).optional().or(z.literal("")),
   contact_person: z.string().trim().max(200).optional().or(z.literal("")),
+  crm_visible: z.boolean().default(true),
 });
 
 type CompanyFormData = z.infer<typeof formSchema>;
@@ -30,6 +32,7 @@ interface CompanyInfoFormProps {
     phone: string | null;
     address: string | null;
     contact_person: string | null;
+    crm_visible?: boolean | null;
   };
   onSuccess?: (clientId: string) => void;
 }
@@ -47,6 +50,7 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
       email: clientData?.email || "",
       phone: clientData?.phone || "",
       contact_person: clientData?.contact_person || "",
+      crm_visible: clientData?.crm_visible ?? true,
     },
   });
 
@@ -61,6 +65,7 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
         email: data.email?.trim().toLowerCase() || null,
         phone: data.phone?.trim() || null,
         contact_person: data.contact_person?.trim() || null,
+        crm_visible: data.crm_visible,
       };
 
       if (clientData?.id) {
@@ -117,6 +122,15 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
             <FormItem>
               <FormLabel>Pessoa de Contato</FormLabel>
               <FormControl><Input placeholder="Nome do contato principal" {...field} /></FormControl>
+              <FormMessage />
+            </FormItem>
+          )} />
+          <FormField control={form.control} name="crm_visible" render={({ field }) => (
+            <FormItem className="flex items-center gap-2 rounded-md border p-3">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+              </FormControl>
+              <FormLabel className="font-normal cursor-pointer m-0">Exibir este cadastro nos seletores do CRM</FormLabel>
               <FormMessage />
             </FormItem>
           )} />

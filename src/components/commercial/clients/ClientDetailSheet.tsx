@@ -93,7 +93,7 @@ export const ClientDetailSheet = ({ open, onOpenChange, client, onEdit }: Props)
     queryKey: ["client-group-children", client?.id],
     queryFn: async () => {
       const { data } = await supabase
-        .from("clients")
+        .from("crm_client_options" as any)
         .select("id, name, cnpj, segment, commercial_status, annual_revenue")
         .eq("parent_client_id", client!.id as any)
         .order("name");
