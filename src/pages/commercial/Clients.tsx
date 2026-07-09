@@ -338,13 +338,23 @@ const CommercialClients = () => {
         onDelete={canManage ? requestSingleDelete : undefined}
       />
 
-      <NewClientDialog
-        open={dialogOpen}
-        onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingClient(null); }}
-        onSave={(data, buyer, legalEntities, addresses) => saveMutation.mutate({ formData: data, buyer, legalEntities, addresses })}
-        initialData={editingClient}
-        isLoading={saveMutation.isPending}
-      />
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingClient(null); }}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingClient ? `Editar Cliente - ${editingClient.name}` : 'Novo Cliente'}</DialogTitle>
+          </DialogHeader>
+          <NewClientForm
+            clientData={editingClient || undefined}
+            onSuccess={() => {
+              setDialogOpen(false);
+              setEditingClient(null);
+              queryClient.invalidateQueries({ queryKey: ['commercial-clients'] });
+              queryClient.invalidateQueries({ queryKey: ['commercial-client-options'] });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+
 
       <ClientDetailSheet
         open={detailOpen}
