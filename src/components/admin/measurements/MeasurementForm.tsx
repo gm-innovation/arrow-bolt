@@ -21,6 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 interface MeasurementFormProps {
   serviceOrderId: string;
   onClose?: () => void;
+  readOnly?: boolean;
 }
 
 export interface TechnicianTimeEntry {
@@ -77,7 +78,7 @@ function CreateMeasurementPrompt({ serviceOrderId, createMeasurement, onClose }:
   );
 }
 
-export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProps) => {
+export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: MeasurementFormProps) => {
   const { measurement, isLoading, finalizeMeasurement, createMeasurement } = useMeasurements(serviceOrderId);
   const { rates } = useServiceRates();
   const [activeTab, setActiveTab] = useState("basic");
@@ -272,6 +273,13 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
   }
 
   if (!measurement) {
+    if (readOnly) {
+      return (
+        <div className="text-center p-8 text-muted-foreground">
+          Nenhuma medição criada para esta OS ainda.
+        </div>
+      );
+    }
     return (
       <CreateMeasurementPrompt 
         serviceOrderId={serviceOrderId} 
@@ -282,6 +290,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose }: MeasurementFormProp
   }
 
   const isDraft = measurement.status === 'draft';
+  const canEdit = isDraft && !readOnly;
 
   const handleFinalize = async () => {
     await finalizeMeasurement.mutateAsync(measurement.id);
