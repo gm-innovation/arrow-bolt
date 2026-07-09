@@ -81,7 +81,7 @@ const LeadMiniCard = ({ lead, onConvert, onOpen }: { lead: Lead; onConvert: () =
 );
 
 
-export const OpportunityKanban = ({ opportunities, onStageChange, onCardClick, leads = [], onConvertLead }: Props) => {
+export const OpportunityKanban = ({ opportunities, onStageChange, onCardClick, leads = [], onConvertLead, onLeadClick }: Props) => {
   const isMobile = useIsMobile();
   const [openStages, setOpenStages] = useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = { [LEADS_DROPPABLE_ID]: true };
@@ -139,7 +139,7 @@ export const OpportunityKanban = ({ opportunities, onStageChange, onCardClick, l
                     {...prov.dragHandleProps}
                     className={`transition-shadow duration-200 rounded-lg ${snap.isDragging ? "shadow-lg ring-2 ring-primary/30" : ""}`}
                   >
-                    <LeadMiniCard lead={lead} onConvert={() => onConvertLead?.(lead)} />
+                    <LeadMiniCard lead={lead} onConvert={() => onConvertLead?.(lead)} onOpen={onLeadClick ? () => onLeadClick(lead) : undefined} />
                   </div>
                 )}
               </Draggable>
