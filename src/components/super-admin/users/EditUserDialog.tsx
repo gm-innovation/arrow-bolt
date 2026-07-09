@@ -236,10 +236,13 @@ export function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
+                disabled={form.formState.isSubmitting}
               >
                 Cancelar
               </Button>
-              <Button type="submit">Salvar Alterações</Button>
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Salvando..." : "Salvar Alterações"}
+              </Button>
             </div>
           </form>
         </Form>
