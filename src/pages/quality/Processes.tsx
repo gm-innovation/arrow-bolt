@@ -53,6 +53,15 @@ const ProcessDrawer = ({ process, open, onClose }: { process: QualityProcess | n
     suppliers: sipoc?.suppliers || "", inputs: sipoc?.inputs || "",
     activities: sipoc?.activities || "", outputs: sipoc?.outputs || "", customers: sipoc?.customers || "",
   });
+  useEffect(() => {
+    setS({
+      suppliers: sipoc?.suppliers ?? "",
+      inputs: sipoc?.inputs ?? "",
+      activities: sipoc?.activities ?? "",
+      outputs: sipoc?.outputs ?? "",
+      customers: sipoc?.customers ?? "",
+    });
+  }, [sipoc, process?.id]);
   const [newAct, setNewAct] = useState("");
   const { links: partyLinks } = useProcessPartyLinks(process?.id || null);
   const { documents: linkedDocs } = useProcessLinkedDocuments(process?.id || null);
