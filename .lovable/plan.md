@@ -1,39 +1,56 @@
-## Diagnóstico
+## Plano: Auditoria e testes end-to-end do módulo de RH
 
-### 1. Alterar senha — já implementado, precisa de validação
-- `src/pages/account/AccountSettings.tsx` (aba **Segurança**) chama `updatePassword(newPassword)` do `AuthContext`.
-- `AuthContext.updatePassword` executa `supabase.auth.updateUser({ password })` — chamada correta e suportada pela Lovable Cloud.
-- Não há bug de código. Apenas confirmar em teste ao vivo (login com usuário, mudar senha, deslogar, logar com a nova senha).
+Objetivo: percorrer todas as rotas, hooks e fluxos de RH, verificando integridade de dados, RLS, UI e regressões, no mesmo padrão da auditoria feita em Comercial/Marketing.
 
-### 2. Notificação "Novo currículo recebido" chegou para Comercial/Marketing
-- O trigger `notify_hr_on_new_application` (migration `20260512201814_...sql`) já filtra corretamente: só notifica usuários com role `hr` ou `director` da mesma empresa.
-- Consulta ao banco confirma: a notificação de "CAHUA ARAUJO FERNANDES" foi criada em **18/05/2026** — data em que ela ainda tinha o papel `hr`. Depois o papel foi trocado para `marketing` (+ espelho `commercial`), mas a notificação antiga permaneceu na caixa dela.
-- Ou seja: **não é bug do trigger**, é sujeira histórica de notificações criadas antes da troca de papel.
+### 1. Auditoria de banco (via read_query)
+- **Hierarquia & cargos**: checar `profiles.direct_manager_id` (ciclos, órfãos, gestores desligados) e `position` vs catálogo.
+- **Catálogo documental**: `hr_document_catalog` + `hr_document_catalog_positions` (documentos sem cargo, cargos sem documentos obrigatórios).
+- **Documentos de colaboradores**: `hr_employee_documents` — registros órfãos, `review_status` inconsistente, arquivos ausentes no storage `corp-documents`.
+- **Compliance RPC**: rodar `hr_employee_document_status` e `hr_pending_reviews` para a company real e conferir contagens.
+- **Recrutamento**: `job_openings`, `job_applications`, `job_application_notes`, tags e assignments — órfãos, RLS, notificações `request_created` residuais fora de RH/Diretoria (repetir a limpeza feita para Cahua se surgirem novos casos).
+- **Ponto/ausências/EPI/parcerias/on-call/onboarding**: `time_entries`, `hr_time_adjustments`, `technician_absences`, `epi_*`, `hr_partnerships`, `technician_on_call`, `employee_onboarding`, `onboarding_documents` — integridade referencial e RLS.
+- **Departamentos**: `departments` + `department_members` — usuários sem departamento, membros duplicados.
+- **Papéis**: usuários com role `hr` ativos; garantir que o espelho `commercial` do Marketing não vaze permissões de RH.
 
-## Correções
-
-### Migration (dados) — limpeza de notificações órfãs
-Excluir notificações com título `Novo currículo recebido` cujo destinatário não tem mais `hr` nem `director` hoje:
-```sql
-DELETE FROM public.notifications n
-WHERE n.title = 'Novo currículo recebido'
-  AND NOT EXISTS (
-    SELECT 1 FROM public.user_roles ur
-    WHERE ur.user_id = n.user_id
-      AND ur.role IN ('hr','director')
-  );
+### 2. Testes de rota (Playwright headless, sessão HR injetada)
+Percorrer cada rota, capturar screenshot, ler console/network:
+```
+/hr/dashboard
+/hr/documents
+/hr/document-compliance
+/hr/document-reviews
+/hr/settings              (hierarquia, cargos, catálogo, departamentos)
+/hr/onboarding
+/hr/onboarding-settings
+/hr/time-control
+/hr/epi
+/hr/on-call
+/hr/partnerships
+/hr/reports
+/hr/profile
+/corp/my-documents        (visão colaborador)
 ```
 
-### Reforço no trigger (defesa em profundidade)
-Reescrever `notify_hr_on_new_application` para excluir explicitamente quem tenha `commercial` ou `marketing` como papel "operacional" e ainda tenha `hr`/`director` (não deveria acontecer, mas garante) — na prática o filtro atual já basta; então **apenas adicionamos um comentário**. Não vamos mexer no trigger fora do necessário.
+### 3. Fluxos funcionais críticos (validação visível em tela)
+1. **Compliance**: abrir dashboard, filtrar por status, abrir gaveta de um colaborador, validar cores/contadores contra RPC.
+2. **Revisão documental**: aprovar e rejeitar um upload de teste, verificar propagação para `my-documents` do colaborador e limpeza de notificação.
+3. **Hierarquia**: alterar gestor direto de um colaborador, confirmar trigger anti-ciclo e refresh do combobox.
+4. **Catálogo**: criar documento obrigatório vinculado a cargo, subir arquivo pelo portal do colaborador, ver aparecer na fila de revisão.
+5. **Recrutamento**: abrir vaga, enviar candidatura pública (rota `/onboarding/publica` ou form existente), ver notificação chegar só em RH/Diretoria.
+6. **Ponto**: abrir controle de ponto, lançar ajuste, verificar aprovação.
+7. **EPI/On-call/Parcerias**: criar 1 registro em cada e confirmar listagem + RLS (usuário fora do RH não vê).
+8. **Onboarding**: gerar link público, abrir em contexto anônimo, subir 1 documento, aprovar no admin.
 
-Se preferir, dá para adicionar uma cláusula extra `AND NOT EXISTS (marketing role)` — mas isso mudaria semântica caso um Diretor também acumule Marketing. Melhor manter simples e só limpar o histórico.
+### 4. Correções aplicadas na hora
+- Bugs de UI simples (keys, z-index de dialog, pointer-events, `useState` que não sincroniza com query assíncrona — mesmo padrão do fix do SIPOC).
+- Limpeza de notificações estagnadas (`notifications` de tipos de RH em caixas de não-RH).
+- Ajustes de RLS/GRANT se aparecer "permission denied" em alguma tabela hr_*.
+- Regressões maiores viram nota no relatório final, não são corrigidas sem confirmação.
 
-### Validação do fluxo de alterar senha
-1. Login como usuário Comercial/Marketing.
-2. Ir em Settings → Segurança.
-3. Definir nova senha (8+ chars) → clicar "Salvar nova senha".
-4. Toast "Senha alterada com sucesso".
-5. Logout → login com a nova senha.
+### 5. Entregável
+Relatório resumido por área com: rotas OK, achados de dados, correções aplicadas, itens que ficam pendentes de decisão do usuário.
 
-Sem alterações de frontend.
+### Detalhes técnicos
+- Playwright via shell em `/tmp/browser/hr-audit/`, viewport 1280×1800, sessão Supabase injetada via env.
+- Consultas somente-leitura via `supabase--read_query`; qualquer alteração de schema/limpeza vai por `supabase--migration` com descrição em português.
+- Edições de código apenas com `line_replace`/`write` em arquivos já lidos; nenhum retrabalho de business logic sem sinal claro de bug.
