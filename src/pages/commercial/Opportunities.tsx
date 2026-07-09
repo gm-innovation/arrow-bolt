@@ -52,7 +52,7 @@ const CommercialOpportunities = () => {
   const { profile } = useAuth();
   const { opportunities, isLoading, updateOpportunity, createOpportunity, deleteOpportunity } = useOpportunities();
   const { buyers } = useBuyers();
-  const { openLeads } = useSiteLeads();
+  const { openLeads, setStatus: setLeadStatus } = useSiteLeads();
   const [view, setView] = useState<'kanban' | 'list'>(() => (localStorage.getItem('opp-view') as any) || 'kanban');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editData, setEditData] = useState<any>(null);
@@ -65,6 +65,7 @@ const CommercialOpportunities = () => {
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [convertLead, setConvertLead] = useState<Lead | null>(null);
+  const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [convertStage, setConvertStage] = useState<string | undefined>(undefined);
 
   const setTab = (v: string) => {
@@ -204,6 +205,7 @@ const CommercialOpportunities = () => {
               onCardClick={handleCardClick}
               leads={openLeads}
               onConvertLead={handleConvertLead}
+              onLeadClick={setDetailLead}
             />
           ) : (
             <div className="rounded-md border">
