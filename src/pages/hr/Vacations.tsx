@@ -139,15 +139,21 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
           </div>
 
           <div className="md:col-span-2">
-            <Label>Período Aquisitivo</Label>
+            <Label>Período Aquisitivo (opcional)</Label>
             <Select value={periodId} onValueChange={setPeriodId} disabled={!employeeId}>
-              <SelectTrigger><SelectValue placeholder="Vincular a um período" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder={!employeeId ? "Selecione um colaborador primeiro" : "Vincular a um período (opcional)"} /></SelectTrigger>
               <SelectContent>
-                {(periods.data ?? []).map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {format(parseISO(p.period_start), "dd/MM/yyyy")} — {format(parseISO(p.period_end), "dd/MM/yyyy")} · saldo {p.entitled_days - p.used_days - p.sold_days}d
-                  </SelectItem>
-                ))}
+                {(periods.data ?? []).length === 0 ? (
+                  <div className="px-3 py-2 text-xs text-muted-foreground">
+                    Nenhum período aquisitivo cadastrado. Verifique a data de admissão do colaborador ou crie um período manualmente.
+                  </div>
+                ) : (
+                  (periods.data ?? []).map((p) => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {format(parseISO(p.period_start), "dd/MM/yyyy")} — {format(parseISO(p.period_end), "dd/MM/yyyy")} · saldo {p.entitled_days - p.used_days - p.sold_days}d
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>
