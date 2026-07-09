@@ -41,9 +41,9 @@ export const useClientAnalytics = (filters: ClientFilters = {}) => {
 
       if (!profileData?.company_id) throw new Error('Empresa não encontrada');
 
-      // Get all clients for the company
-      const { data: clients } = await supabase
-        .from('clients')
+      // Get only CRM-eligible clients for the company
+      const { data: clients } = await (supabase as any)
+        .from('crm_client_options')
         .select('id, name')
         .eq('company_id', profileData.company_id);
 
@@ -188,9 +188,9 @@ export const useClientAnalytics = (filters: ClientFilters = {}) => {
 
       if (!profileData?.company_id) throw new Error('Empresa não encontrada');
 
-      // Get total clients with orders
-      const { data: clients } = await supabase
-        .from('clients')
+      // Get total CRM-eligible clients with orders
+      const { data: clients } = await (supabase as any)
+        .from('crm_client_options')
         .select('id')
         .eq('company_id', profileData.company_id);
 

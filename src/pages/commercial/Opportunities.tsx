@@ -1,9 +1,7 @@
 import { useState, useMemo } from "react";
 import { useOpportunities, Opportunity } from "@/hooks/useOpportunities";
 import { useBuyers } from "@/hooks/useBuyers";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useCommercialClientOptions } from "@/hooks/useCommercialClientOptions";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +39,6 @@ const SortIcon = ({ active, dir }: { active: boolean; dir: SortDir }) => {
 };
 
 const CommercialOpportunities = () => {
-  const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const clientFilter = searchParams.get('client') || '';
   const { opportunities, isLoading, updateOpportunity, createOpportunity, deleteOpportunity } = useOpportunities();
@@ -67,16 +64,7 @@ const CommercialOpportunities = () => {
     }
   };
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ['commercial-clients-select', user?.id],
-    queryFn: async () => {
-      const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user!.id).single();
-      if (!profile?.company_id) return [];
-      const { data } = await supabase.from('clients').select('id, name').eq('company_id', profile.company_id).order('name');
-      return data || [];
-    },
-    enabled: !!user?.id,
-  });
+  const { clients } = useCommercialClientOptions();
 
   const setViewMode = (v: 'kanban' | 'list') => { setView(v); localStorage.setItem('opp-view', v); };
 

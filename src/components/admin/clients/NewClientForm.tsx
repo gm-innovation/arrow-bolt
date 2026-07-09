@@ -14,6 +14,7 @@ interface NewClientFormProps {
     phone: string | null;
     address: string | null;
     contact_person: string | null;
+    crm_visible?: boolean | null;
     vessels?: Array<{
       id: string;
       name: string;

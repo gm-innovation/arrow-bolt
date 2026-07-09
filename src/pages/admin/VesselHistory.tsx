@@ -76,8 +76,8 @@ const VesselHistory = () => {
       setVessels(vesselsData || []);
 
       // Fetch clients
-      const { data: clientsData } = await supabase
-        .from("clients")
+      const { data: clientsData } = await (supabase as any)
+        .from("crm_client_options")
         .select("id, name")
         .eq("company_id", profile.company_id);
       setClients(clientsData || []);

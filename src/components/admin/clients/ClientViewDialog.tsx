@@ -29,7 +29,7 @@ export const ClientViewDialog = ({ open, onOpenChange, client }: Props) => {
   const { data: childClients = [] } = useQuery({
     queryKey: ["client-children", client?.id],
     queryFn: async () => {
-      const { data } = await supabase.from("clients").select("id, name").eq("parent_client_id", client!.id).order("name");
+      const { data } = await (supabase as any).from("crm_client_options").select("id, name").eq("parent_client_id", client!.id).order("name");
       return data || [];
     },
     enabled: !!client?.id && open,

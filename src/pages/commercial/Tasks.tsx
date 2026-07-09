@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { useCommercialTasks } from "@/hooks/useCommercialTasks";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useCommercialClientOptions } from "@/hooks/useCommercialClientOptions";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +33,6 @@ const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondar
 };
 
 const CommercialTasks = () => {
-  const { profile } = useAuth();
   const { tasks, isLoading, createTask, updateTask, deleteTask } = useCommercialTasks();
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -43,15 +40,7 @@ const CommercialTasks = () => {
   const [form, setForm] = useState<Record<string, any>>({});
   const [dueDate, setDueDate] = useState<Date | undefined>();
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ["commercial-task-clients", profile?.company_id],
-    queryFn: async () => {
-      if (!profile?.company_id) return [];
-      const { data } = await supabase.from("clients").select("id, name").eq("company_id", profile.company_id).order("name");
-      return data || [];
-    },
-    enabled: !!profile?.company_id,
-  });
+  const { clients } = useCommercialClientOptions();
 
   const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
 

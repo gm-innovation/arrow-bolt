@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -32,7 +33,7 @@ export const NewClientDialog = ({ open, onOpenChange, onSave, initialData, isLoa
 
   useEffect(() => {
     if (open) {
-      setForm(initialData || {});
+      setForm(initialData || { entity_type: 'pj', crm_visible: true });
       setBuyer({});
       setLegalEntities([]);
       setAddresses([]);
@@ -113,6 +114,16 @@ export const NewClientDialog = ({ open, onOpenChange, onSave, initialData, isLoa
               <div className="space-y-2">
                 <Label>Pessoa de Contato</Label>
                 <Input value={form.contact_person || ''} onChange={e => set('contact_person', e.target.value)} />
+              </div>
+              <div className="flex items-center gap-2 rounded-md border p-3">
+                <Checkbox
+                  id="crm-visible"
+                  checked={form.crm_visible ?? true}
+                  onCheckedChange={v => set('crm_visible', !!v)}
+                />
+                <Label htmlFor="crm-visible" className="font-normal cursor-pointer">
+                  Exibir este cadastro nos seletores do CRM
+                </Label>
               </div>
             </div>
           </div>
