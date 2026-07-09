@@ -62,24 +62,26 @@ const CommercialClients = () => {
       const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user!.id).single();
       if (!profile?.company_id) throw new Error('Empresa não encontrada');
 
-      const { data: eligibleClients, error: eligibleError } = await (supabase as any)
+      const { data, error } = await (supabase as any)
         .from('crm_client_options')
-        .select('id')
-        .eq('company_id', profile.company_id);
-      if (eligibleError) throw eligibleError;
-
-      const eligibleIds = (eligibleClients || []).map((client: any) => client.id).filter(Boolean);
-      if (eligibleIds.length === 0) return [];
-
-      const { data, error } = await supabase
-        .from('clients')
-        .select('*')
+        .select('id, company_id, name, cnpj, entity_type, commercial_status, omie_client_id, parent_client_id')
         .eq('company_id', profile.company_id)
-        .in('id', eligibleIds)
         .order('name');
 
       if (error) throw error;
-      return data || [];
+      return (data || []).map((client: any) => ({
+        ...client,
+        email: null,
+        phone: null,
+        address: null,
+        contact_person: null,
+        segment: null,
+        annual_revenue: null,
+        last_contact_date: null,
+        source: null,
+        notes: null,
+        ignore_omie_sync: false,
+      }));
     },
     enabled: !!user?.id,
   });

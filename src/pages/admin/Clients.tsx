@@ -136,25 +136,11 @@ const Clients = () => {
     try {
       setLoading(true);
 
-      const { data: eligibleClients, error: eligibleError } = await (supabase as any)
-        .from("crm_client_options")
-        .select("id")
-        .eq("company_id", companyId);
-      if (eligibleError) throw eligibleError;
-
-      const eligibleIds = (eligibleClients || []).map((client: any) => client.id).filter(Boolean);
-      if (eligibleIds.length === 0) {
-        setClients([]);
-        setTotalCount(0);
-        return;
-      }
-
       // Build query with server-side search
-      let query = supabase
-        .from("clients")
-        .select(`id, name, cnpj, email, phone, address, contact_person, parent_client_id, segment, commercial_status, entity_type, crm_visible, omie_client_id, ignore_omie_sync, vessels (id, name, vessel_type)`, { count: "exact" })
+      let query = (supabase as any)
+        .from("crm_client_options")
+        .select(`id, name, cnpj, parent_client_id, commercial_status, entity_type, omie_client_id`, { count: "exact" })
         .eq("company_id", companyId)
-        .in("id", eligibleIds)
         .order("name");
 
       if (debouncedSearch.length >= 2) {
@@ -176,7 +162,17 @@ const Clients = () => {
 
       const { data, error, count } = await query;
       if (error) throw error;
-      setClients((data as Client[]) || []);
+      setClients(((data || []) as any[]).map((client) => ({
+        ...client,
+        email: null,
+        phone: null,
+        address: null,
+        contact_person: null,
+        segment: null,
+        crm_visible: true,
+        ignore_omie_sync: false,
+        vessels: [],
+      })) as Client[]);
       setTotalCount(count || 0);
     } catch (error) {
       console.error("Error fetching clients:", error);
