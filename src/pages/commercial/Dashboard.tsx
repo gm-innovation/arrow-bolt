@@ -8,7 +8,7 @@ import { PipelineSummaryCard } from "@/components/commercial/dashboard/PipelineS
 import { PendingActionsCard } from "@/components/commercial/dashboard/PendingActionsCard";
 import { AlertsCard } from "@/components/commercial/dashboard/AlertsCard";
 import { PipelineChart } from "@/components/commercial/dashboard/PipelineChart";
-import { LeadsHighlightCard } from "@/components/commercial/dashboard/LeadsHighlightCard";
+import { LeadsKpiCards } from "@/components/commercial/dashboard/LeadsKpiCards";
 import { addDays, isBefore, isAfter, differenceInDays } from "date-fns";
 import { useMemo } from "react";
 
@@ -90,7 +90,7 @@ const CommercialDashboard = () => {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-foreground">Dashboard Comercial</h2>
 
-      <LeadsHighlightCard />
+      <LeadsKpiCards />
 
       <CommercialStats
         activeClients={stats.activeClients}
