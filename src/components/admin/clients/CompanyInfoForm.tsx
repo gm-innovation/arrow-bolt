@@ -155,6 +155,26 @@ export const CompanyInfoForm = ({ clientData, onSuccess }: CompanyInfoFormProps)
 
   return (
     <div className="space-y-6">
+      {!clientData?.id && (
+        <div className="rounded-md border bg-muted/30 p-3 space-y-2">
+          <Label className="text-sm font-semibold">Buscar dados pelo CNPJ</Label>
+          <div className="flex gap-2">
+            <Input
+              value={cnpjQuery}
+              onChange={(e) => setCnpjQuery(e.target.value)}
+              placeholder="00.000.000/0000-00"
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleLookupCnpj(); } }}
+            />
+            <Button type="button" variant="secondary" onClick={handleLookupCnpj} disabled={isLookingUp}>
+              {isLookingUp ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+              <span className="ml-2">Buscar</span>
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Preenche automaticamente Nome, E-mail, Telefone e vincula a Razão Social após salvar.
+          </p>
+        </div>
+      )}
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
           const firstError = Object.values(errors)[0];
