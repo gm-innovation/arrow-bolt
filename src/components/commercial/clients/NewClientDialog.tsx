@@ -75,10 +75,20 @@ export const NewClientDialog = ({ open, onOpenChange, onSave, initialData, isLoa
           {/* Identificação */}
           <div>
             <h3 className="text-sm font-semibold text-muted-foreground mb-3">Identificação</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label>Nome Fantasia *</Label>
-                <Input value={form.name || ''} onChange={e => set('name', e.target.value)} placeholder="Nome fantasia da empresa" />
+                <Label>Tipo de Pessoa *</Label>
+                <Select value={form.entity_type || 'pj'} onValueChange={v => set('entity_type', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pj">Pessoa Jurídica</SelectItem>
+                    <SelectItem value="pf">Pessoa Física</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>{form.entity_type === 'pf' ? 'Nome Completo *' : 'Nome Fantasia *'}</Label>
+                <Input value={form.name || ''} onChange={e => set('name', e.target.value)} placeholder={form.entity_type === 'pf' ? 'Nome da pessoa' : 'Nome fantasia da empresa'} />
               </div>
               <div className="space-y-2">
                 <Label>Segmento</Label>
@@ -89,6 +99,9 @@ export const NewClientDialog = ({ open, onOpenChange, onSave, initialData, isLoa
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+
               <div className="space-y-2">
                 <Label>Email</Label>
                 <Input type="email" value={form.email || ''} onChange={e => set('email', e.target.value)} />
