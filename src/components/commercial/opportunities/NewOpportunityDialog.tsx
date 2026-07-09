@@ -11,6 +11,7 @@ import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { ClientSearchCombobox } from "@/components/shared/ClientSearchCombobox";
 
 const STAGES = [
   { value: 'identified', label: 'Identificada' },
@@ -89,12 +90,10 @@ export const NewOpportunityDialog = ({ open, onOpenChange, onSave, clients, buye
           </div>
           <div className="space-y-2">
             <Label>Cliente *</Label>
-            <Select value={form.client_id || ''} onValueChange={v => { set('client_id', v); set('buyer_id', null); }}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                {clients.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
+            <ClientSearchCombobox
+              value={form.client_id || ''}
+              onValueChange={v => { set('client_id', v); set('buyer_id', null); }}
+            />
           </div>
 
           {/* Linha 2: Valor + Estágio + Probabilidade */}

@@ -20,6 +20,7 @@ import { OpportunityTasksTab } from "./OpportunityTasksTab";
 import { OpportunityProductsTab } from "./OpportunityProductsTab";
 import { OpportunityTransferTab } from "./OpportunityTransferTab";
 import type { Opportunity } from "@/hooks/useOpportunities";
+import { ClientSearchCombobox } from "@/components/shared/ClientSearchCombobox";
 
 const STAGES = [
   { value: "identified", label: "Identificada" },
@@ -228,12 +229,11 @@ export const EditOpportunitySheet = ({
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Cliente *</Label>
-                  <Select value={form.client_id || ""} onValueChange={(v) => { set("client_id", v); set("buyer_id", null); }}>
-                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent>
-                      {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <ClientSearchCombobox
+                    value={form.client_id || ""}
+                    onValueChange={(v) => { set("client_id", v); set("buyer_id", null); }}
+                    disabled={readOnly}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label>Contato / Comprador</Label>
