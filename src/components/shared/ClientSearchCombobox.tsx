@@ -15,6 +15,26 @@ interface ClientOption {
   parent_name?: string;
 }
 
+interface ClientOptionRow {
+  id: string;
+  name: string;
+  parent_client_id: string | null;
+}
+
+interface ClientLabelRow {
+  name: string;
+}
+
+type QueryResult<T> = {
+  data: T[] | null;
+  error: Error | null;
+};
+
+type SingleQueryResult<T> = {
+  data: T | null;
+  error: Error | null;
+};
+
 interface ClientSearchComboboxProps {
   value: string;
   onValueChange: (value: string) => void;
@@ -50,11 +70,11 @@ export const ClientSearchCombobox = ({
       return;
     }
     const loadLabel = async () => {
-      const { data } = await (supabase as any)
-        .from("crm_client_options")
+      const { data } = await supabase
+        .from("crm_client_options" as never)
         .select("name")
         .eq("id", value)
-        .maybeSingle();
+        .maybeSingle() as SingleQueryResult<ClientLabelRow>;
       if (data) setSelectedLabel(data.name);
     };
     loadLabel();
@@ -73,8 +93,8 @@ export const ClientSearchCombobox = ({
 
     setLoading(true);
     try {
-      let query = (supabase as any)
-        .from("crm_client_options")
+      let query = supabase
+        .from("crm_client_options" as never)
         .select("id, name, parent_client_id")
         .eq("company_id", companyId)
         .order("name")
@@ -84,23 +104,23 @@ export const ClientSearchCombobox = ({
         query = query.ilike("name", `%${normalizedTerm}%`);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await query as QueryResult<ClientOptionRow>;
       if (error) throw error;
       if (requestId !== requestIdRef.current) return;
 
       const clientList = data || [];
-      const parentIds = [...new Set(clientList.filter((c: any) => c.parent_client_id).map((c: any) => c.parent_client_id))];
+      const parentIds = [...new Set(clientList.filter((c) => c.parent_client_id).map((c) => c.parent_client_id as string))];
       const parentMap: Record<string, string> = {};
       if (parentIds.length > 0) {
-        const { data: parents } = await (supabase as any)
-          .from("crm_client_options")
+        const { data: parents } = await supabase
+          .from("crm_client_options" as never)
           .select("id, name")
-          .in("id", parentIds);
+          .in("id", parentIds) as QueryResult<ClientLabelRow & { id: string }>;
         if (requestId !== requestIdRef.current) return;
-        parents?.forEach((p: any) => { parentMap[p.id] = p.name; });
+        parents?.forEach((p) => { parentMap[p.id] = p.name; });
       }
 
-      const enriched: ClientOption[] = clientList.map((c: any) => ({
+      const enriched: ClientOption[] = clientList.map((c) => ({
         ...c,
         parent_name: c.parent_client_id ? parentMap[c.parent_client_id] : undefined,
       }));
