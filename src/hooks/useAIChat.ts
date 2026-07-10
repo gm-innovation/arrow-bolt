@@ -276,11 +276,16 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
     let assistantContent = '';
 
     try {
+      // Use the user's access token so the edge function's RLS-scoped client
+      // acts as this exact user for any write (create/update/delete) tools.
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData?.session?.access_token
+        ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
       const response = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'Authorization': `Bearer ${accessToken}`,
         },
         body: JSON.stringify({
           message: messageText,
@@ -289,7 +294,8 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
           context: {
             ...context,
             companyId: context?.companyId || userCompanyId,
-            conversationId
+            userId: user?.id,
+            conversationId,
           },
           messages: messages.map(m => ({ role: m.role, content: m.content }))
         }),
