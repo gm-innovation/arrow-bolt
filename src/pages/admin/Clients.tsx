@@ -160,17 +160,26 @@ const Clients = () => {
       const to = from + PAGE_SIZE - 1;
       query = query.range(from, to);
 
-      const { data, error, count } = await query;
+      // Simple retry (up to 2) to survive transient network hiccups
+      let data: any = null, error: any = null, count: number | null = null;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const res = await query;
+        data = res.data; error = res.error; count = res.count ?? null;
+        if (!error) break;
+        await new Promise(r => setTimeout(r, 400));
+      }
       if (error) throw error;
       setClients(((data || []) as any[]).map((client) => ({ ...client, vessels: [] })) as Client[]);
       setTotalCount(count || 0);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching clients:", error);
-      toast({ title: "Erro ao carregar clientes", description: "Não foi possível carregar a lista de clientes", variant: "destructive" });
+      const isNetwork = String(error?.message || "").toLowerCase().includes("failed to fetch");
+      toast({ title: "Erro ao carregar clientes", description: isNetwork ? "Falha de rede, tentando novamente…" : "Não foi possível carregar a lista de clientes", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   }, [companyId, debouncedSearch, page, originFilter]);
+
 
   useEffect(() => {
     fetchClients();
