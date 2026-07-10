@@ -1,58 +1,44 @@
-## Plano: Testes e Revisão do Módulo de RH
 
-Executar auditoria E2E autenticada como usuário com papel `hr` cobrindo todas as rotas `/hr/*`, capturando erros de console, rede (HTTP ≥400), crashes de UI e regressões funcionais — mesmo padrão usado no módulo do Coordenador.
+# Manual do Módulo RH — Passo a Passo Ilustrado v1
 
-### Escopo de rotas
-- `/hr/dashboard` — KPIs e widgets
-- `/hr/employees` + ficha do colaborador (`EmployeeDetailSheet`)
-- `/hr/settings` — Hierarquia, Cargos, Departamentos, Catálogo de Documentos
-- `/hr/document-compliance` — Conformidade documental
-- `/hr/document-reviews` — Aprovação de documentos
-- `/hr/documents` — GED do RH
-- `/hr/health-exams` — SST/ASO
-- `/hr/vacations` — Férias (períodos + solicitações)
-- `/hr/payroll-export` — Exportação para folha
-- `/hr/time-control` — Ponto e ajustes
-- `/hr/epi` — EPIs
-- `/hr/on-call` — Sobreaviso
-- `/hr/onboarding` + `/hr/onboarding-settings`
-- `/hr/partnerships` — Convênios
-- `/hr/reports` — Relatórios
-- `/hr/profile`
+Seguindo o mesmo padrão dos manuais Comercial/Marketing v3 e Coordenador v1 (Lecsor Technology, capa institucional, seções numeradas, screenshots com callouts, rodapé paginado).
 
-### Metodologia
-1. **Login E2E** com sessão injetada (`LOVABLE_BROWSER_SUPABASE_*`) como usuário `hr`.
-2. **Playwright headless** navegando rota a rota:
-   - Screenshot de cada tela.
-   - Captura de `console.error`, `pageerror` e responses HTTP ≥400.
-   - Interações-chave: abrir modais principais, aplicar filtros, alternar abas.
-3. **Fluxos críticos** (interação real):
-   - Criar/editar colaborador → salvar `hire_date`.
-   - Gerar período aquisitivo → nova solicitação de férias → aprovação.
-   - Registrar exame ASO + upload.
-   - Marcar documento como revisado em `/hr/document-reviews`.
-   - Rodar `hr-payroll-export` para o mês corrente.
-   - Editar hierarquia em `/hr/settings` (trigger anti-ciclo).
-4. **Verificações transversais**:
-   - Datas sem shift UTC (`formatLocalDate` aplicado).
-   - RLS: papel `hr` acessa somente sua empresa.
-   - Nenhum `TabsContent` órfão (bug recorrente).
-   - Notificações da Edge `hr-document-compliance-check` chegando.
-5. **Consolidação**: tabela por rota com status ✅ / ⚠️ / ❌, evidências (screenshots + trechos de erro), causa provável e recomendação.
+## Escopo (23 rotas / 15 capítulos)
 
-### Correções neste turno
-- Bugs **bloqueantes** (crash, 500, RLS quebrada, dado errado exibido) → corrijo imediatamente.
-- Bugs **cosméticos / melhorias** → listo como backlog priorizado para você decidir.
+1. **Introdução** — papéis (`hr`, `director`, `super_admin`), fluxo geral, atalhos da sidebar
+2. **Dashboard RH** (`/hr/dashboard`) — KPIs (headcount, ASO a vencer, aniversariantes, ausências)
+3. **Colaboradores** (`/hr/employees`) — cadastro unificado, ficha (dados pessoais, endereço, `hire_date`, notas), edição, desligamento
+4. **Ponto & Time Control** (`/hr/time-control`) — batidas, ajustes, aprovações
+5. **Ausências, Feriados & Sobreaviso** (`/hr/absences`) — abas Ausências / Feriados / On-call
+6. **Férias** (`/hr/vacations`) — períodos aquisitivos, nova solicitação, aprovação Gestor→RH, saldo, expiração automática (job diário)
+7. **Exames de Saúde / ASO** (`/hr/health-exams`) — registro, upload, dashboard de vencimento, backfill legado
+8. **EPI** (`/hr/epi`) — estoque, entregas, movimentações
+9. **Documentos do Colaborador** (`/hr/documents`) + **Compliance por Cargo** (`/hr/document-compliance`) — catálogo, obrigatoriedade, revisões (`/hr/document-reviews`)
+10. **Onboarding** (`/hr/onboarding` + `/settings`) — link público, checklist, tipos de documento
+11. **Recrutamento & Seleção** (`/hr/recruitment`) — vagas, candidatos, tags, notas
+12. **Parcerias e Benefícios** (`/hr/partnerships`) — convênios
+13. **Exportação para Folha** (`/hr/payroll-export`) — consolidação mensal, XLSX/CSV
+14. **Universidade Corporativa (visão RH)** (`/hr/university`) — cursos, trilhas, certificados, XP
+15. **Configurações do RH** (`/hr/settings`) — hierarquia (`direct_manager_id`), catálogo de documentos, exames, feriados, benefícios
+16. **Perfil e Assistente Marina** — `/hr/profile`, atalhos, uso do agente
 
-### Entregável
-Relatório em chat com:
-- Resumo executivo (nº rotas OK / com issues).
-- Tabela detalhada por rota.
-- Lista de fixes aplicados + lista de pendências recomendadas.
-- Nenhum manual gerado nesta rodada (foco em QA).
+Para cada capítulo: descrição funcional em prosa, passos numerados, print anotado (setas/retângulos vermelhos nas ações-chave), boxes de "Regras & Automatismos" (RLS, triggers, jobs pg_cron).
 
-### Detalhes técnicos
-- Scripts Playwright em `/tmp/hr-qa/` (fora do checkout).
-- Viewport `1280x1800`, `headless=True`.
-- Session restore via `LOVABLE_BROWSER_SUPABASE_SESSION_JSON` + cookies antes de qualquer `goto` autenticado.
-- Login atual (`/hr/dashboard`) confirma sessão `hr` ativa — aproveito a sessão já injetada.
+## Fluxo de execução
+
+1. **Captura via Playwright** autenticado como usuário `hr` — ~30 screenshots (1280x1800), salvos em `/tmp/hr-manual/screens/`.
+2. **Anotações** em cada print com PIL (setas vermelhas + numeração), sem tapar dados.
+3. **Geração DOCX** com `docx-js` (Arial, headings customizados, tabela de papéis, capa Lecsor, rodapé "Manual RH v1 · Lecsor Technology · pág X").
+4. **Conversão PDF** via LibreOffice; render de todas as páginas em JPG para QA visual.
+5. **QA obrigatório** — inspecionar cada página, corrigir overflow/imagens quebradas e re-gerar.
+6. **Entrega** em `/mnt/documents/Manual_RH_Passo_a_Passo_v1.pdf` e `.docx` com `<presentation-artifact>`.
+
+## Identidade visual
+- Capa preta com logo Lecsor + subtítulo "Módulo Recursos Humanos"
+- Cor de destaque azul-marinho (#0F2A5C) para headings e callouts
+- Rodapé com data 07/2026 e versão
+- Tabela de papéis (RH · Diretor · Super Admin) e legenda de ícones
+
+## Entregáveis
+- `Manual_RH_Passo_a_Passo_v1.pdf` (~28 páginas)
+- `Manual_RH_Passo_a_Passo_v1.docx` (fonte editável)
