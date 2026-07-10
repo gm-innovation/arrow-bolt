@@ -296,6 +296,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
             companyId: context?.companyId || userCompanyId,
             userId: user?.id,
             conversationId,
+            pageUrl: typeof window !== 'undefined' ? window.location.pathname : undefined,
           },
           messages: messages.map(m => ({ role: m.role, content: m.content }))
         }),
