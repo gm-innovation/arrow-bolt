@@ -279,7 +279,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
             
             {/* Quick suggestions */}
             <div className="flex flex-wrap gap-2 justify-center mt-4">
-              {(quickSuggestions[userRole] || quickSuggestions.technician).map((suggestion, i) => (
+              {(quickSuggestions[userRole] || defaultSuggestions).map((suggestion, i) => (
                 <Button
                   key={i}
                   variant="outline"
