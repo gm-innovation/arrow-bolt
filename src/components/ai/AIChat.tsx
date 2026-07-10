@@ -27,6 +27,12 @@ interface AIChatProps {
   };
 }
 
+const defaultSuggestions = [
+  "Como abrir um chamado de suporte?",
+  "Onde encontro o manual desta tela?",
+  "Como criar um novo registro aqui?"
+];
+
 const quickSuggestions: Record<string, string[]> = {
   technician: [
     "Como resolver problema de sinal fraco?",
@@ -34,16 +40,62 @@ const quickSuggestions: Record<string, string[]> = {
     "Gerar relatório: fiz manutenção no radar"
   ],
   admin: [
-    "Qual técnico está disponível hoje?",
-    "Resumo das OS pendentes",
-    "Análise de produtividade da semana"
+    "Quais OSs estão pendentes hoje?",
+    "Qual técnico está disponível agora?",
+    "Resumo de produtividade da semana"
+  ],
+  coordinator: [
+    "Quais OSs estão pendentes hoje?",
+    "Qual técnico está disponível agora?",
+    "Resumo de produtividade da semana"
   ],
   manager: [
+    "KPIs consolidados da equipe",
     "Comparativo entre coordenadores",
-    "Tendências do último mês",
-    "KPIs da equipe"
+    "Aprovações pendentes"
+  ],
+  director: [
+    "KPIs estratégicos do mês",
+    "Solicitações aguardando minha aprovação",
+    "Resumo financeiro consolidado"
+  ],
+  commercial: [
+    "Novos leads do site nesta semana",
+    "Oportunidades em aberto por estágio",
+    "Buscar empresa por CNPJ"
+  ],
+  marketing: [
+    "Leads gerados pelo site este mês",
+    "Campanhas com melhor conversão",
+    "Oportunidades originadas de marketing"
+  ],
+  hr: [
+    "Exames ASO a vencer nos próximos 30 dias",
+    "Solicitações de férias pendentes",
+    "Documentos obrigatórios em atraso"
+  ],
+  quality: [
+    "Não conformidades em aberto",
+    "Documentos aguardando revisão",
+    "Conscientizações pendentes"
+  ],
+  supplies: [
+    "Solicitações de compra em aberto",
+    "Homologações de fornecedores pendentes",
+    "Provedores externos críticos"
+  ],
+  finance: [
+    "Contas a pagar desta semana",
+    "Recebíveis em atraso",
+    "Reembolsos aguardando aprovação"
+  ],
+  super_admin: [
+    "Chamados de suporte em aberto",
+    "Novas empresas cadastradas",
+    "Saúde geral do sistema"
   ]
 };
+
 
 export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }: AIChatProps) {
   const navigate = useNavigate();

@@ -1,38 +1,20 @@
-## Diagnóstico
+## Problema
+As sugestões rápidas exibidas ao abrir a Marina são fixas em `src/components/ai/AIChat.tsx` e mapeiam apenas `technician / admin / manager`. Qualquer outro papel (commercial, marketing, coordinator, director, hr, quality, supplies, finance, super_admin) cai no fallback `technician`, mostrando perguntas de campo ("sinal fraco", "ferramentas de instalação", "manutenção no radar").
 
-A falha não está no chat em si. O chamado é criado em `support_tickets`, mas o gatilho automático que deveria avisar o Super Admin tenta inserir em `notifications` usando colunas que não existem mais: `type` e `link`.
+## Correção
+Editar `src/components/ai/AIChat.tsx`:
 
-A tabela real usa:
-- `notification_type`
-- `reference_id`
+1. Expandir o mapa `quickSuggestions` cobrindo todos os papéis reais do Arrow, cada um com 3 perguntas coerentes:
+   - **commercial / marketing**: leads do site, oportunidades em aberto, follow-ups pendentes, CNPJ.
+   - **coordinator / admin**: OSs pendentes, técnicos disponíveis hoje, produtividade da semana.
+   - **director / manager**: KPIs consolidados, comparativo de coordenadores, aprovações pendentes.
+   - **hr**: exames ASO a vencer, férias pendentes, documentos obrigatórios em atraso.
+   - **quality**: NCs em aberto, documentos para revisão, conscientizações pendentes.
+   - **supplies**: solicitações de compra em aberto, homologações pendentes, provedores críticos.
+   - **finance**: contas a pagar da semana, recebíveis em atraso, reembolsos pendentes.
+   - **super_admin**: chamados abertos na inbox de suporte, novas empresas, saúde do sistema.
+   - **technician**: manter as atuais (campo).
 
-Além disso, os tipos `support_ticket_created` e `support_ticket_reply` ainda não existem no enum de notificações.
+2. Trocar o fallback `quickSuggestions.technician` por um conjunto **neutro** ("Como abrir um chamado de suporte?", "Onde encontro o manual desta tela?", "Como criar um novo registro aqui?") para qualquer papel não mapeado.
 
-## Plano de correção imediata
-
-1. **Corrigir o backend de notificações dos chamados**
-   - Adicionar os tipos de notificação faltantes:
-     - `support_ticket_created`
-     - `support_ticket_reply`
-   - Recriar as funções:
-     - `notify_support_ticket_created()`
-     - `notify_support_ticket_message()`
-   - Trocar os inserts antigos em `notifications(type, link, ...)` por `notifications(notification_type, reference_id, ...)`.
-
-2. **Corrigir rota de acompanhamento do usuário**
-   - Ajustar a notificação de resposta do Super Admin para apontar conceitualmente para `/account/tickets`, não para a rota inexistente `/account/support`.
-   - Como `notifications` não possui coluna `link`, a navegação continuará sendo feita pelo frontend conforme `notification_type` e `reference_id`.
-
-3. **Ajustar navegação do sino de notificações**
-   - Quando a notificação for `support_ticket_created`, enviar Super Admin para `/super-admin/support-inbox`.
-   - Quando for `support_ticket_reply`, enviar usuário para `/account/tickets`.
-
-4. **Testar o fluxo completo**
-   - Criar chamado pela ferramenta da Marina.
-   - Confirmar que o registro aparece em `support_tickets`.
-   - Confirmar que a notificação é criada para Super Admin.
-   - Confirmar que respostas do Super Admin geram notificação para o usuário.
-
-## Resultado esperado
-
-A Marina voltará a abrir chamados sem a mensagem “column notifications.type does not exist”, e o Super Admin receberá o chamado na Inbox de Suporte.
+Sem mudanças em backend, prompt ou tools — apenas a lista visual de atalhos.
