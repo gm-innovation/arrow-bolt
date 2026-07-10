@@ -2,7 +2,7 @@
 export const roleRedirects: Record<string, string> = {
   super_admin: "/super-admin/dashboard",
   coordinator: "/admin/dashboard",
-  manager: "/manager/dashboard",
+  manager: "/admin/dashboard",
   technician: "/tech/dashboard",
   hr: "/hr/dashboard",
   commercial: "/commercial/dashboard",

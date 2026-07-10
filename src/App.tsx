@@ -279,7 +279,7 @@ const App = () => {
                   </Route>
 
                   {/* Manager - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['manager', 'director']}><DashboardLayout userType="director" /></ProtectedRoute>}>
+                  <Route element={<ProtectedRoute allowedRoles={['director', 'super_admin']}><DashboardLayout userType="director" /></ProtectedRoute>}>
                     <Route path="/manager/dashboard" element={<ManagerDashboard />} />
                     <Route path="/manager/coordinators" element={<ManagerCoordinators />} />
                     <Route path="/manager/orders" element={<ManagerServiceOrders />} />
@@ -292,8 +292,8 @@ const App = () => {
                     <Route path="/manager/install" element={<InstallApp />} />
                   </Route>
 
-                  {/* Admin - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['coordinator']}><DashboardLayout userType="admin" /></ProtectedRoute>}>
+                  {/* Admin - nested layout route (coordinator = gerente = admin operacional) */}
+                  <Route element={<ProtectedRoute allowedRoles={['coordinator', 'manager', 'super_admin']}><DashboardLayout userType="admin" /></ProtectedRoute>}>
                     <Route path="/admin/dashboard" element={<AdminDashboard />} />
                     <Route path="/admin/orders" element={<ServiceOrders />} />
                     <Route path="/admin/calendar" element={<ServiceCalendar />} />
