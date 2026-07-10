@@ -169,8 +169,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
 
   const adminMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-    { title: "Leads", icon: Inbox, path: "/admin/leads" },
-    { title: "Oportunidades", icon: TrendingUp, path: "/admin/opportunities" },
+    { title: "Leads & Oportunidades", icon: TrendingUp, path: "/admin/opportunities" },
     { title: "Ordens de Serviço", icon: ClipboardList, path: "/admin/orders" },
     { title: "Reservas", icon: CreditCard, path: "/admin/reservations" },
     { title: "Clientes", icon: Users, path: "/admin/clients" },
