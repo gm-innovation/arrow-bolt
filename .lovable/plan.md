@@ -1,65 +1,64 @@
-## Objetivo
+# Plano de Testes — Módulo Coordenadores & Gerentes
 
-Adicionar uma aba visível **"Ações de Escrita"** em `/super-admin/ai-management`, ao lado de Guardrails/Tools & Modelo, para que o super admin veja e controle o que a Marina (e outros agentes) podem **criar / editar / excluir** por módulo. Hoje essas capacidades existem só no backend (`tools.ts` + system prompt) — sem reflexo na UI.
+Objetivo: validar de ponta a ponta as rotas `/admin/*` (Coordenador) e `/manager/*` (Diretor/Gerente), identificar bugs, RLS quebrada, dados ausentes, crashes e inconsistências de UI/data.
 
-## Onde encaixa
+## Metodologia
 
-`src/pages/super-admin/AIManagement.tsx` já tem um `Tabs` com 7 abas. Vamos:
-- Adicionar uma 8ª aba **"Ações de Escrita"** entre "Guardrails" e "Tools & Modelo".
-- Criar `src/components/super-admin/ai/WriteActionsTab.tsx`.
-- Persistir a configuração em `agent.scope.write_actions` (campo JSON já existente em `ai_agents`, sem migração).
+1. **Automação via Playwright** com sessão Supabase injetada (login já disponível).
+2. **Duas personas**: coordenador e diretor. Se não houver conta diretor disponível, testo apenas coordenador e uso `supabase--read_query` para validar visibilidade que exigiria a role diretor.
+3. **Screenshots** de cada tela crítica em `/tmp/browser/coord-manager/` para inspeção visual.
+4. **Console + Network** monitorados durante cada fluxo (erros 4xx/5xx, RLS, timeouts).
+5. **SQL** para conferir integridade após ações de escrita (OS criada, transferência, medição).
 
-## O que a aba mostra
+## Escopo — Coordenador (`/admin/*`)
 
-Cabeçalho explicativo curto: "Controle quais módulos a assistente pode alterar. Independente do que estiver marcado aqui, a assistente sempre respeita as permissões RLS do usuário logado — nunca escala privilégios."
+| Área | Verificações |
+|---|---|
+| Dashboard | KPIs carregam, gráficos renderizam, sem crashes |
+| Ordens de Serviço | Listagem, filtros, criar OS, editar, docking mode, PC/PO/RFQ |
+| Calendário de Serviços | Render, filtros por técnico, drag/drop se aplicável |
+| Histórico de Serviços | Filtros por embarcação/cliente |
+| Transferências | Criar transferência batch de técnicos |
+| Reservas de Técnicos | Bloqueio sem OS, conflitos |
+| Localizações de Técnicos | Mapa/lista |
+| Oportunidades (CRM serviço) | Kanban, leads segmentados, conversão |
+| Medições | Iniciar sob demanda, sub-tabelas (mão de obra, materiais, viagens, despesas, serviços), ISS por dentro, exportação |
+| Checklists | Templates + respostas |
+| Task Types / Measurement Settings | CRUD de configurações |
+| Usuários | Listagem por company_id |
+| Audit Logs | Render + filtros |
+| AI Analytics | Painel funcional |
+| Perfil / Configurações | Auto-serviço |
 
-Abaixo, uma **tabela de módulos** (uma linha por tabela habilitada em `tools.ts`), agrupada por área:
+## Escopo — Diretor/Gerente (`/manager/*`)
 
-- **Operações**: `service_orders`, `technicians`, `measurements`
-- **CRM / Comercial**: `clients`, `vessels`, `crm_opportunities`, `crm_sales`, `crm_products`, `crm_recurrences`, `crm_tasks`, `crm_buyers`
-- **Suprimentos**: `purchase_requests`
-- **Financeiro**: `finance_payables`, `finance_receivables`
-- **RH**: `hr_employees`, `hr_absences`, `hr_vacation_requests`, `hr_health_exams`
-- **Qualidade**: `quality_ncrs`, `quality_audits`, `quality_documents`, `quality_company_documents`
-- **Corporativo**: `corp_requests`
+| Área | Verificações |
+|---|---|
+| Dashboard | Filtro por coordenador, KPIs consolidados, tendências |
+| Coordenadores | Lista, produtividade, drill-down |
+| Relatórios | `useManagerReports` com filtros de data + coordenador |
+| Ordens de Serviço | Visibilidade total da empresa, edição gated por ownership |
+| Configurações | Acessos administrativos |
+| Aprovações Corporativas | Fluxo direto de aprovação (bypass gerentes) |
 
-Cada linha tem 3 switches: **Criar**, **Editar**, **Excluir** (excluir vem com badge "requer dupla confirmação").
+## Checks Cruzados
 
-Rodapé da aba: 2 botões utilitários — **"Habilitar tudo (leitura + escrita)"** e **"Somente leitura"** (desliga todos os switches de uma vez).
+- **RLS**: coordenador só vê OSs da própria empresa; diretor vê tudo da empresa.
+- **Timezone**: datas exibidas com `formatLocalDate` (sem shift -1).
+- **Roles**: `coordinator` e `director` corretamente resolvidos em `roleRedirects` e sidebars.
+- **Race conditions**: criação de OS + trigger de medição (usar `.maybeSingle()`).
+- **Contagem de coordenadores** em `useManagerReports` bate com `user_roles`.
 
-Ao lado da tabela, um painel lateral com **últimas 20 ações auditadas** deste agente (SELECT em `ai_assistant_actions` filtrado por `agent_id`), mostrando: usuário, tool, tabela, status (sucesso/erro), data. Link "Ver tudo" abre uma futura tela de auditoria (fora deste escopo — só o link fica preparado).
+## Entregáveis
 
-## Como o backend passa a respeitar isso
+1. Relatório por área: ✅ OK / ⚠️ warning / ❌ bug, com screenshot e log.
+2. Lista priorizada de correções (P0 crash, P1 funcional, P2 UX).
+3. Recomendação sobre quais itens corrigir imediatamente vs enfileirar.
 
-Em `supabase/functions/ai-assistant/tools.ts`, dentro das factories `makeCreateTool` / `makeUpdateTool` / `makeDeleteTool`:
+## Detalhes Técnicos
 
-- Antes de executar, ler `agent.scope.write_actions?.[table]?.[action]` (default: `true`, para não quebrar agentes existentes).
-- Se estiver `false`, retornar erro amigável: `"Esta assistente não está autorizada a <ação> em <módulo>. Peça ao super admin para habilitar em Configurações do agente → Ações de Escrita."` — sem tentar chamar o banco.
-- O `ROLE_MODULES` continua controlando o que cada **perfil de usuário** pode acessar; o novo switch controla o que o **agente** pode fazer no geral (interseção com RLS ainda vale).
-
-## Formato salvo em `agent.scope.write_actions`
-
-```json
-{
-  "service_orders": { "create": true, "update": true, "delete": false },
-  "quality_ncrs":   { "create": true, "update": true, "delete": true  }
-}
-```
-
-Módulos ausentes = default `true` (retrocompatível com a Marina atual).
-
-## Arquivos afetados
-
-- `src/pages/super-admin/AIManagement.tsx` — adicionar `<TabsTrigger value="write-actions">` e `<TabsContent>` correspondente; expandir grid para `grid-cols-8`.
-- `src/components/super-admin/ai/WriteActionsTab.tsx` (novo) — tabela de switches + painel de últimas ações.
-- `src/hooks/useAIAssistantActions.ts` (novo) — hook simples para ler `ai_assistant_actions` por `agent_id`.
-- `supabase/functions/ai-assistant/tools.ts` — checagem de `agent.scope.write_actions` nas três factories.
-- `supabase/functions/ai-assistant/index.ts` — garantir que `scope` do agente é passado no `ToolCtx` (hoje já é carregado, só confirmar propagação).
-
-## Validação
-
-1. Abrir `/super-admin/ai-management` → Marina → aba **Ações de Escrita** aparece.
-2. Desligar "Excluir" em `quality_ncrs`, salvar. Pedir à Marina "delete a NCR X" → ela responde que a ação está desabilitada, sem chamar o banco.
-3. Reativar, pedir de novo → fluxo normal de dupla confirmação executa.
-4. Painel lateral mostra a última tentativa (bloqueada) e a exclusão bem-sucedida com timestamps.
-5. Agente sem `scope.write_actions` (Marina hoje) continua funcionando como antes — nada bloqueado por default.
+- Scripts em `/tmp/browser/coord-manager/{admin,manager}/*.py`, headless Chromium, viewport 1280x1800.
+- Restaurar sessão via `LOVABLE_BROWSER_SUPABASE_*` antes de navegar.
+- Consultas de verificação via `supabase--read_query` (ex: `service_orders`, `user_roles`, `measurements`).
+- Logs de edge functions relevantes (`check-critical-orders`, `commercial-ai-insights` se cruzar) via `supabase--edge_function_logs`.
+- Sem alterações de código nesta fase — apenas diagnóstico. Correções entram em plano separado após relatório.
