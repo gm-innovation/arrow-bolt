@@ -310,7 +310,8 @@ const App = () => {
                     <Route path="/admin/technician-locations" element={<TechnicianLocations />} />
                     <Route path="/admin/audit-logs" element={<AuditLogs />} />
                     <Route path="/admin/reservations" element={<TechnicianReservations />} />
-                    <Route path="/admin/leads" element={<AdminLeads />} />
+                    <Route path="/admin/leads" element={<Navigate to="/admin/opportunities?tab=leads" replace />} />
+                    <Route path="/admin/leads/legacy" element={<AdminLeads />} />
                     <Route path="/admin/opportunities" element={<AdminOpportunities />} />
                     <Route path="/admin/chat" element={<Chat />} />
                     <Route path="/admin/install" element={<InstallApp />} />
