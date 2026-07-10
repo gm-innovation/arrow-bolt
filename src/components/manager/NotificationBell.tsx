@@ -13,6 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
+import { getNotificationRoute } from "@/lib/notificationRoutes";
 
 export const ManagerNotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -20,7 +21,13 @@ export const ManagerNotificationBell = () => {
 
   const handleNotificationClick = (notificationId: string, referenceId: string | null, type: string) => {
     markAsRead(notificationId);
-    
+
+    const supportRoute = getNotificationRoute(type);
+    if (supportRoute) {
+      navigate(supportRoute);
+      return;
+    }
+
     // Navigate based on notification type
     if (type === 'service_order' || type === 'service_order_updated' || type === 'critical_os') {
       navigate('/manager/orders');
@@ -31,6 +38,9 @@ export const ManagerNotificationBell = () => {
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
+      case 'support_ticket_created':
+      case 'support_ticket_reply':
+        return '🎫';
       case 'critical_os':
         return '🚨';
       case 'service_order_updated':

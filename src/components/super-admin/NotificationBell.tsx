@@ -13,6 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useNavigate } from "react-router-dom";
+import { getNotificationRoute } from "@/lib/notificationRoutes";
 
 export const NotificationBell = () => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
@@ -20,7 +21,15 @@ export const NotificationBell = () => {
 
   const handleNotificationClick = (notificationId: string, referenceId: string | null, type: string) => {
     markAsRead(notificationId);
-    
+
+    const supportRoute = type === 'support_ticket_reply'
+      ? '/super-admin/support-inbox'
+      : getNotificationRoute(type);
+    if (supportRoute) {
+      navigate(supportRoute);
+      return;
+    }
+
     // Navigate based on notification type
     if (type === 'payment_overdue' || type === 'new_company') {
       navigate('/super-admin/companies');
