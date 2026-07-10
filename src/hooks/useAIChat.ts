@@ -402,6 +402,11 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
         }
       }
 
+      // Fallback: if response body was empty (edge function crashed mid-stream)
+      if (!assistantContent || !assistantContent.trim()) {
+        throw new Error('A Marina não conseguiu responder desta vez. Tente novamente em instantes.');
+      }
+
       // Save assistant message with metadata
       const responseTime = Date.now() - startTime;
       const messageId = await saveMessage(conversationId, 'assistant', assistantContent, {
