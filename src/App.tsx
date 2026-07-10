@@ -61,6 +61,8 @@ const ManagerSettings = lazy(() => import("./pages/manager/Settings"));
 
 const SuperAdminApiDocs = lazy(() => import("./pages/super-admin/ApiDocs"));
 const AIManagement = lazy(() => import("./pages/super-admin/AIManagement"));
+const SupportInbox = lazy(() => import("./pages/super-admin/SupportInbox"));
+const MyTickets = lazy(() => import("./pages/account/MyTickets"));
 
 const TechDashboard = lazy(() => import("./pages/tech/Dashboard"));
 const TechTasks = lazy(() => import("./pages/tech/Tasks"));
@@ -276,6 +278,7 @@ const App = () => {
                     <Route path="/super-admin/install" element={<InstallApp />} />
                     <Route path="/super-admin/api-docs" element={<SuperAdminApiDocs />} />
                     <Route path="/super-admin/ai-management" element={<AIManagement />} />
+                    <Route path="/super-admin/support-inbox" element={<SupportInbox />} />
                   </Route>
 
                   {/* Manager - nested layout route */}
@@ -504,6 +507,7 @@ const App = () => {
                   {/* Account (personal settings) - shared across all roles */}
                   <Route element={<AccountLayoutRoute />}>
                     <Route path="/account/settings" element={<AccountSettings />} />
+                    <Route path="/account/tickets" element={<MyTickets />} />
                   </Route>
 
                   {/* Catch all */}

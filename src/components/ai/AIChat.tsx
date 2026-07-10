@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles, History, X } from 'lucide-react';
+import { Send, Loader2, Sparkles, History, X, LifeBuoy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -142,7 +142,16 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* History toggle */}
-      <div className="flex items-center justify-end px-3 py-1 border-b">
+      <div className="flex items-center justify-between px-3 py-1 border-b">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs gap-1"
+          onClick={() => navigate('/account/tickets')}
+        >
+          <LifeBuoy className="h-3 w-3" />
+          Meus chamados
+        </Button>
         <Button
           variant="ghost"
           size="sm"

@@ -296,6 +296,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
             companyId: context?.companyId || userCompanyId,
             userId: user?.id,
             conversationId,
+            pageUrl: typeof window !== 'undefined' ? window.location.pathname : undefined,
           },
           messages: messages.map(m => ({ role: m.role, content: m.content }))
         }),
@@ -399,6 +400,11 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
             } catch { /* ignore */ }
           }
         }
+      }
+
+      // Fallback: if response body was empty (edge function crashed mid-stream)
+      if (!assistantContent || !assistantContent.trim()) {
+        throw new Error('A Marina não conseguiu responder desta vez. Tente novamente em instantes.');
       }
 
       // Save assistant message with metadata
