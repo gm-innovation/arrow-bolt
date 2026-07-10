@@ -507,6 +507,7 @@ const App = () => {
                   {/* Account (personal settings) - shared across all roles */}
                   <Route element={<AccountLayoutRoute />}>
                     <Route path="/account/settings" element={<AccountSettings />} />
+                    <Route path="/account/tickets" element={<MyTickets />} />
                   </Route>
 
                   {/* Catch all */}
