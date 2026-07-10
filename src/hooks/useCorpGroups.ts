@@ -52,15 +52,23 @@ export const useCorpGroups = (companyId?: string) => {
   const { data: pendingRequests = [] } = useQuery({
     queryKey: ['corp-group-pending-requests', companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: requests, error } = await supabase
         .from('corp_group_join_requests')
-        .select('*, profiles:profiles!corp_group_join_requests_user_id_fkey(id, full_name, avatar_url)')
+        .select('*')
         .eq('status', 'pending');
       if (error) throw error;
-      return data || [];
+      const userIds = Array.from(new Set((requests || []).map((r: any) => r.user_id).filter(Boolean)));
+      if (userIds.length === 0) return requests || [];
+      const { data: profs } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .in('id', userIds);
+      const map = new Map((profs || []).map((p: any) => [p.id, p]));
+      return (requests || []).map((r: any) => ({ ...r, profiles: map.get(r.user_id) || null }));
     },
     enabled: !!user && !!companyId,
   });
+
 
   const requestJoin = useMutation({
     mutationFn: async (groupId: string) => {

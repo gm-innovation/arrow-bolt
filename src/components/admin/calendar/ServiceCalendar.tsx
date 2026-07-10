@@ -62,7 +62,8 @@ export const ServiceCalendar = ({
 
   useEffect(() => {
     fetchServiceOrders();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDate, view]);
 
   const fetchServiceOrders = async () => {
     try {
@@ -77,8 +78,15 @@ export const ServiceCalendar = ({
         .single();
 
       if (!profile?.company_id) return;
-      
       setCompanyId(profile.company_id);
+
+      // Compute date range around current view (±45 days is enough for month view)
+      const rangeStart = new Date(currentDate);
+      rangeStart.setDate(rangeStart.getDate() - 45);
+      const rangeEnd = new Date(currentDate);
+      rangeEnd.setDate(rangeEnd.getDate() + 45);
+      const startStr = format(rangeStart, "yyyy-MM-dd");
+      const endStr = format(rangeEnd, "yyyy-MM-dd");
 
       const { data: orders, error } = await supabase
         .from("service_orders")
@@ -105,74 +113,79 @@ export const ServiceCalendar = ({
         `)
         .eq("company_id", profile.company_id)
         .not("scheduled_date", "is", null)
+        .gte("scheduled_date", startStr)
+        .lte("scheduled_date", endStr)
         .order("service_date_time", { ascending: true });
 
       if (error) {
         console.error("Error fetching service orders:", error);
+        setServiceOrders([]);
         return;
       }
 
-      const formattedOrders: CalendarServiceOrder[] = await Promise.all(
-        (orders || []).map(async (order: any) => {
-          const scheduledDateTime = order.service_date_time 
-            ? new Date(order.service_date_time)
-            : new Date(order.scheduled_date + "T08:00:00");
-
-          // Get visit technicians to determine lead/auxiliary
-          const { data: visitData } = await supabase
-            .from("service_visits")
-            .select(`
-              id,
-              visit_technicians (
-                technician_id,
-                is_lead,
-                technicians (
-                  id,
-                  profiles:user_id (full_name)
-                )
+      const orderIds = (orders || []).map((o: any) => o.id);
+      // Batch-fetch initial visits + technicians in ONE query (no N+1)
+      let visitsByOrder = new Map<string, any>();
+      if (orderIds.length > 0) {
+        const { data: visits } = await supabase
+          .from("service_visits")
+          .select(`
+            service_order_id,
+            visit_number,
+            visit_type,
+            visit_technicians (
+              is_lead,
+              technicians (
+                id,
+                profiles:user_id (full_name)
               )
-            `)
-            .eq("service_order_id", order.id)
-            .eq("visit_type", "initial")
-            .order("visit_number", { ascending: true })
-            .limit(1)
-            .single();
+            )
+          `)
+          .in("service_order_id", orderIds)
+          .eq("visit_type", "initial");
+        (visits || []).forEach((v: any) => {
+          const existing = visitsByOrder.get(v.service_order_id);
+          if (!existing || (v.visit_number || 0) < (existing.visit_number || 0)) {
+            visitsByOrder.set(v.service_order_id, v);
+          }
+        });
+      }
 
-          const leadTech = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
-          const auxiliaryTechs = visitData?.visit_technicians?.filter((vt: any) => !vt.is_lead) || [];
+      const formattedOrders: CalendarServiceOrder[] = (orders || []).map((order: any) => {
+        const scheduledDateTime = order.service_date_time
+          ? new Date(order.service_date_time)
+          : new Date(order.scheduled_date + "T08:00:00");
 
-          const technicianNames: string[] = order.tasks
-            ?.map((task: any) => task.assigned_to?.user?.full_name)
-            .filter((name): name is string => Boolean(name)) || [];
+        const visitData = visitsByOrder.get(order.id);
+        const leadTech = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
+        const auxiliaryTechs = visitData?.visit_technicians?.filter((vt: any) => !vt.is_lead) || [];
 
-          const uniqueTechNames: string[] = [...new Set(technicianNames)];
+        const technicianNames: string[] = order.tasks
+          ?.map((task: any) => task.assigned_to?.user?.full_name)
+          .filter((name: any): name is string => Boolean(name)) || [];
+        const uniqueTechNames: string[] = [...new Set(technicianNames)];
+        const taskTypes = order.tasks?.map((task: any) => task.task_type?.name).filter(Boolean) || [];
+        const auxiliaryNames: string[] = auxiliaryTechs
+          .map((vt: any) => vt.technicians?.profiles?.full_name)
+          .filter((name: any): name is string => Boolean(name));
 
-          const taskTypes = order.tasks
-            ?.map((task: any) => task.task_type?.name)
-            .filter(Boolean) || [];
-
-          const auxiliaryNames: string[] = auxiliaryTechs
-            .map((vt: any) => vt.technicians?.profiles?.full_name)
-            .filter((name): name is string => Boolean(name));
-
-          return {
-            id: order.id,
-            order_number: order.order_number,
-            vessel_name: order.vessels?.name || "Sem embarcação",
-            client_name: order.clients?.name,
-            supervisor_name: order.supervisor?.full_name,
-            status: order.status,
-            scheduled_time: format(scheduledDateTime, "HH:mm"),
-            scheduled_date: scheduledDateTime,
-            task_type: taskTypes[0],
-            description: order.description,
-            location: order.location,
-            technician_names: uniqueTechNames,
-            lead_technician: leadTech?.technicians?.profiles?.full_name,
-            auxiliary_technicians: auxiliaryNames,
-          };
-        })
-      );
+        return {
+          id: order.id,
+          order_number: order.order_number,
+          vessel_name: order.vessels?.name || "Sem embarcação",
+          client_name: order.clients?.name,
+          supervisor_name: order.supervisor?.full_name,
+          status: order.status,
+          scheduled_time: format(scheduledDateTime, "HH:mm"),
+          scheduled_date: scheduledDateTime,
+          task_type: taskTypes[0],
+          description: order.description,
+          location: order.location,
+          technician_names: uniqueTechNames,
+          lead_technician: leadTech?.technicians?.profiles?.full_name,
+          auxiliary_technicians: auxiliaryNames,
+        };
+      });
 
       setServiceOrders(formattedOrders);
     } catch (error) {
@@ -181,6 +194,7 @@ export const ServiceCalendar = ({
       setLoading(false);
     }
   };
+
 
   const handleEventClick = (orderId: string) => {
     navigate(`/admin/orders?id=${orderId}`);
