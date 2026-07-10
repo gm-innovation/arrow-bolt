@@ -1,33 +1,48 @@
-
 ## Objetivo
+Executar uma bateria completa de testes E2E na área do Coordenador (`/admin/*`) via Playwright autenticado, validando as rotas críticas após as últimas mudanças (unificação Leads/Oportunidades, KPIs, papéis manager=coordinator, timezone, medições, etc.).
 
-Eliminar os dois cards grandes (“Últimos leads” e “Oportunidades em aberto”) do dashboard do coordenador e unificar as telas `/admin/leads` e `/admin/opportunities` em uma única página no padrão do Comercial/Marketing (Kanban com aba “Leads do Site” + coluna virtual de leads).
+## Escopo de Testes
 
-## Alterações
+### 1. Autenticação e Roteamento
+- Login como coordenador → redirect para `/admin/dashboard`
+- Verificar que `/manager/*` bloqueia coordenador (só diretor/super_admin)
+- Sidebar exibindo itens corretos (sem "Leads" duplicado, "Leads & Oportunidades" unificado)
 
-### 1. Dashboard do coordenador
-- `src/components/admin/dashboard/CrmDashboardCards.tsx`: remover o bloco `<div grid lg:grid-cols-2>` das linhas 93–157 (os dois cards). Mantém apenas os 4 KPIs clicáveis já refatorados.
+### 2. Dashboard (`/admin/dashboard`)
+- 4 KPIs de Leads (Novos / Em contato / Convertidos 30d / Descartados 30d) clicáveis
+- Ausência dos cards antigos "Últimos leads" e "Oportunidades em aberto"
+- Cards de OS, financeiro, técnicos carregando sem erro
 
-### 2. Unificação Leads ↔ Oportunidades
-- `src/pages/admin/Opportunities.tsx`: substituir o conteúdo por um wrapper que renderiza a mesma página `CommercialOpportunities` (de `src/pages/commercial/Opportunities.tsx`), garantindo:
-  - Kanban com coluna virtual “Leads do site”.
-  - Aba “Leads do Site” (tabela completa).
-  - Modal de detalhes de lead e diálogo de conversão (`ConvertLeadDialog`) já existentes.
-  - Filtro por segmento `service` para respeitar o escopo do coordenador (via prop `segmentScope="service"` a ser aceita pela página comercial; se hoje a página não aceitar, adiciono a prop opcional com default `undefined` e aplico o filtro em `openLeads`/`opportunities`).
-- `src/App.tsx`: rota `/admin/leads` passa a **redirecionar** para `/admin/opportunities?tab=leads` (evita quebrar links salvos e o botão “Ver na aba de Leads” dos KPIs). Mantém `AdminLeads` importado só se ainda houver uso; caso contrário, remove o import.
+### 3. Leads & Oportunidades unificados (`/admin/opportunities`)
+- Kanban completo com colunas atualizadas (Identificada/Qualificada/Proposta/Negociação/Ganha/Perdida)
+- Aba "Leads do Site" abrindo `LeadDetailsDialog`
+- Conversão de lead criando `crm_buyers` + oportunidade
+- Filtros via query param `?tab=leads` e `?status=...`
 
-### 3. Sidebar do coordenador
-- `src/components/DashboardLayout.tsx` (linhas 172–173): remover o item “Leads”. Renomear “Oportunidades” para “Leads & Oportunidades” apontando para `/admin/opportunities`.
+### 4. Ordens de Serviço (`/admin/orders`)
+- Listagem, criação, edição
+- Modal de Medição Final completo (`MeasurementDialog`)
+- Restrição de edição por propriedade (só criador ou admin/diretor)
+- Datas exibidas sem shift de fuso
 
-### 4. Ajustes finos nos KPIs do dashboard
-- `CrmDashboardCards.tsx`: os 4 cards já linkam para `/admin/leads?status=...`. Como a rota agora redireciona para a aba de leads unificada, funciona. Ajustar o texto de rodapé “Ver na aba de Leads” para “Abrir na aba de Leads”.
+### 5. CRM Clientes (`/admin/clients`)
+- Modal unificado `NewClientForm` (múltiplos CNPJs/endereços, lookup CNPJ)
+- Ausência de funcionários na lista de clientes
+- Busca server-side via `crm_client_options`
 
-## Fora de escopo
-- Não altero a página `/admin/leads` original (`src/pages/admin/Leads.tsx`) — passa a ficar órfã e pode ser removida em um passo futuro após confirmar que nada mais a referencia.
-- Sem mudanças de RLS: `useSiteLeads` e `useOpportunities` já são compartilhados com o Comercial.
+### 6. Financeiro, Qualidade, Suprimentos, RH (acessos do coordenador)
+- Rotas carregam sem crash
+- Permissões RLS respeitadas
 
-## Validação
-- Dashboard: só os 4 KPIs finos, sem os dois blocos grandes.
-- `/admin/opportunities`: Kanban idêntico ao Comercial, com coluna “Leads do site” e aba “Leads do Site”.
-- `/admin/leads` (ou clique nos KPIs): abre `/admin/opportunities?tab=leads` diretamente.
-- Menu lateral: apenas um item “Leads & Oportunidades”.
+### 7. Notificações e Feed
+- Sino de notificações carregando `lead_received` e demais
+- Feed corporativo operacional
+
+## Método
+- Playwright headless com sessão Supabase injetada
+- Screenshots por passo em `/tmp/browser/coord-tests/screenshots/`
+- Captura de console errors e network 4xx/5xx
+- Relatório final consolidado com: ✅ passou / ⚠️ atenção / ❌ falha + evidência
+
+## Entregável
+Relatório resumido no chat com lista de rotas testadas, screenshots-chave, bugs encontrados e recomendações de correção priorizadas. Correções propostas em plano separado se necessário.
