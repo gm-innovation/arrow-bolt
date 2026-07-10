@@ -59,7 +59,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         // Pick a primary role. Prefer 'marketing' over the mirrored 'commercial'
         // (marketing users automatically also get the commercial role via a DB trigger).
         const priority = [
-          'super_admin', 'director', 'coordinator', 'admin', 'manager',
+          'super_admin', 'director',
+          // Gerente/Admin/Coordenador são o mesmo nível operacional
+          'coordinator', 'manager', 'admin',
           'hr', 'qualidade', 'financeiro', 'compras', 'marketing',
           'commercial', 'technician',
         ];

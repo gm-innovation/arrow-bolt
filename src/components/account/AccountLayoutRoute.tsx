@@ -18,7 +18,7 @@ type UserType =
 const roleToUserType: Record<string, UserType> = {
   super_admin: "super-admin",
   coordinator: "admin",
-  manager: "director",
+  manager: "admin",
   director: "director",
   technician: "tech",
   hr: "hr",
