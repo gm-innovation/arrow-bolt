@@ -59,9 +59,12 @@ export type AIAgentAppearance = {
   hidden_routes?: string[];
 };
 
+export type AIAgentWriteAction = { create?: boolean; update?: boolean; delete?: boolean };
+
 export type AIAgentScope = {
   roles?: string[];
   routes?: string[];
+  write_actions?: Record<string, AIAgentWriteAction>;
 };
 
 export type AIAgent = {
