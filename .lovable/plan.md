@@ -1,48 +1,56 @@
-## Objetivo
-Executar uma bateria completa de testes E2E na área do Coordenador (`/admin/*`) via Playwright autenticado, validando as rotas críticas após as últimas mudanças (unificação Leads/Oportunidades, KPIs, papéis manager=coordinator, timezone, medições, etc.).
+## Correções Área do Coordenador — 4 bugs
 
-## Escopo de Testes
+### Bug 1 — Embed inválido em `useCorpGroups.ts` (HTTP 400)
+**Causa:** `.select('*, profiles:profiles!corp_group_join_requests_user_id_fkey(...)')` tenta embutir `profiles` via um FK que aponta para `auth.users` (não para `profiles`). PostgREST rejeita com 400.
 
-### 1. Autenticação e Roteamento
-- Login como coordenador → redirect para `/admin/dashboard`
-- Verificar que `/manager/*` bloqueia coordenador (só diretor/super_admin)
-- Sidebar exibindo itens corretos (sem "Leads" duplicado, "Leads & Oportunidades" unificado)
+**Correção:** Trocar o embed por duas etapas:
+1. Buscar apenas `corp_group_join_requests` filtrando por `status='pending'`.
+2. Buscar em paralelo `profiles(id, full_name, avatar_url)` com `.in('id', userIds)` e fazer merge no cliente.
 
-### 2. Dashboard (`/admin/dashboard`)
-- 4 KPIs de Leads (Novos / Em contato / Convertidos 30d / Descartados 30d) clicáveis
-- Ausência dos cards antigos "Últimos leads" e "Oportunidades em aberto"
-- Cards de OS, financeiro, técnicos carregando sem erro
+Alternativa mais limpa: criar view `corp_group_join_requests_with_profile` (LEFT JOIN profiles) — mas o merge no cliente já resolve sem migration.
 
-### 3. Leads & Oportunidades unificados (`/admin/opportunities`)
-- Kanban completo com colunas atualizadas (Identificada/Qualificada/Proposta/Negociação/Ganha/Perdida)
-- Aba "Leads do Site" abrindo `LeadDetailsDialog`
-- Conversão de lead criando `crm_buyers` + oportunidade
-- Filtros via query param `?tab=leads` e `?status=...`
+Arquivo: `src/hooks/useCorpGroups.ts` (linhas ~52-64).
 
-### 4. Ordens de Serviço (`/admin/orders`)
-- Listagem, criação, edição
-- Modal de Medição Final completo (`MeasurementDialog`)
-- Restrição de edição por propriedade (só criador ou admin/diretor)
-- Datas exibidas sem shift de fuso
+---
 
-### 5. CRM Clientes (`/admin/clients`)
-- Modal unificado `NewClientForm` (múltiplos CNPJs/endereços, lookup CNPJ)
-- Ausência de funcionários na lista de clientes
-- Busca server-side via `crm_client_options`
+### Bug 2 — `ServiceCalendar.tsx` — "TypeError: Failed to fetch"
+**Causa provável:** consulta pesada de `service_orders` (join amplo com técnicos) sofrendo statement timeout intermitente do banco, igual ao problema já visto em Medição.
 
-### 6. Financeiro, Qualidade, Suprimentos, RH (acessos do coordenador)
-- Rotas carregam sem crash
-- Permissões RLS respeitadas
+**Correção em 2 frentes:**
+1. **Query enxuta:** reduzir o `select(...)` de `ServiceCalendar.tsx:83+` removendo joins desnecessários; buscar só o range do mês visível (`.gte('scheduled_date', ...).lte(...)`) em vez de tudo.
+2. **Resiliência:** wrap em try/catch com retry exponencial + fallback silencioso (não spamar toast). Log estruturado.
+3. **Índice:** verificar se existe índice em `service_orders(company_id, scheduled_date)`; se não, criar via migration.
 
-### 7. Notificações e Feed
-- Sino de notificações carregando `lead_received` e demais
-- Feed corporativo operacional
+Arquivos: `src/components/admin/calendar/ServiceCalendar.tsx`.
 
-## Método
-- Playwright headless com sessão Supabase injetada
-- Screenshots por passo em `/tmp/browser/coord-tests/screenshots/`
-- Captura de console errors e network 4xx/5xx
-- Relatório final consolidado com: ✅ passou / ⚠️ atenção / ❌ falha + evidência
+---
 
-## Entregável
-Relatório resumido no chat com lista de rotas testadas, screenshots-chave, bugs encontrados e recomendações de correção priorizadas. Correções propostas em plano separado se necessário.
+### Bug 3 — `Clients.tsx:114` — mesmo Failed to fetch
+**Causa:** listagem de clientes carrega todos os registros com joins pesados (vessels/contacts).
+
+**Correção:** paginar (limit 50) + usar a view leve `crm_client_options` para o combo já existente, e para a listagem carregar só colunas essenciais. Não trazer vessels/contacts na lista — só no detalhe.
+
+Arquivo: `src/pages/admin/Clients.tsx` (fetchClients).
+
+---
+
+### Bug 4 — Push notifications VAPID (baixa prioridade)
+**Causa:** edge function `get-vapid-key` falha em fetch inicial (possivelmente sem `VAPID_PUBLIC_KEY` configurada ou função ausente).
+
+**Correção:** verificar `supabase/functions/get-vapid-key` — se secret existe, se está registrada em `config.toml`. Se push não é prioridade, silenciar o erro no cliente (try/catch sem console.error) e desabilitar o registro do service worker até configurar.
+
+Arquivo a investigar: `src/hooks/usePushNotifications.ts` (ou similar).
+
+---
+
+## Ordem de execução
+1. **Bug 1** (1 min, alta prioridade, afeta modais/sino de grupos).
+2. **Bug 3** (paginação clientes — reduz carga do banco imediatamente).
+3. **Bug 2** (calendar — depende de query mais enxuta).
+4. **Bug 4** (silenciar/consertar push).
+
+## Validação
+Ao final, re-rodar a suíte Playwright do coordenador e confirmar:
+- Zero 400 em `corp_group_join_requests`.
+- Zero `Failed to fetch` em `service_orders` e `clients` em 3 recargas seguidas.
+- Console limpo (exceto avisos não-erro).
