@@ -13,6 +13,7 @@ import { Bell, CheckCircle2, Loader2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { useNotifications } from "@/hooks/useNotifications";
+import { getNotificationRoute } from "@/lib/notificationRoutes";
 
 const TechNotifications = () => {
   const navigate = useNavigate();
@@ -50,6 +51,12 @@ const TechNotifications = () => {
     // Mark as read
     if (!notification.read) {
       markAsRead(notification.id);
+    }
+
+    const supportRoute = getNotificationRoute(notification.notification_type);
+    if (supportRoute) {
+      navigate(supportRoute);
+      return;
     }
 
     // Navigate based on type

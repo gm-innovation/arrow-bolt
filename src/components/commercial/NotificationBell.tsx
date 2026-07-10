@@ -8,10 +8,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Bell } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { useNavigate } from "react-router-dom";
+import { getNotificationRoute } from "@/lib/notificationRoutes";
 
 export const CommercialNotificationBell = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
   const { data: notifications = [] } = useQuery({
@@ -48,6 +51,15 @@ export const CommercialNotificationBell = () => {
 
   const unreadCount = notifications.filter((n: any) => !n.read).length;
 
+  const handleNotificationClick = (notification: any) => {
+    if (!notification.read) markRead.mutate(notification.id);
+    const route = getNotificationRoute(notification.notification_type);
+    if (route) {
+      setOpen(false);
+      navigate(route);
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -77,7 +89,7 @@ export const CommercialNotificationBell = () => {
               <div
                 key={n.id}
                 className={`p-3 border-b cursor-pointer hover:bg-muted/50 transition-colors ${!n.read ? "bg-primary/5" : ""}`}
-                onClick={() => !n.read && markRead.mutate(n.id)}
+                onClick={() => handleNotificationClick(n)}
               >
                 <div className="flex items-start justify-between gap-2">
                   <p className="text-sm font-medium">{n.title}</p>
