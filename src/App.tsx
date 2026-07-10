@@ -278,6 +278,7 @@ const App = () => {
                     <Route path="/super-admin/install" element={<InstallApp />} />
                     <Route path="/super-admin/api-docs" element={<SuperAdminApiDocs />} />
                     <Route path="/super-admin/ai-management" element={<AIManagement />} />
+                    <Route path="/super-admin/support-inbox" element={<SupportInbox />} />
                   </Route>
 
                   {/* Manager - nested layout route */}
