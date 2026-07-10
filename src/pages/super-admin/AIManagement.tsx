@@ -12,6 +12,7 @@ import { ToolsModelTab } from "@/components/super-admin/ai/ToolsModelTab";
 import { AppearanceTab } from "@/components/super-admin/ai/AppearanceTab";
 import { TrainingTab } from "@/components/super-admin/ai/TrainingTab";
 import { IntegrationsTab } from "@/components/super-admin/ai/IntegrationsTab";
+import { WriteActionsTab } from "@/components/super-admin/ai/WriteActionsTab";
 import { Save, RotateCcw } from "lucide-react";
 
 export default function AIManagement() {
