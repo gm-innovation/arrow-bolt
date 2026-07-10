@@ -143,10 +143,10 @@ export function CrmDashboardCards() {
                     )}
                   </Link>
                 ))}
-                {stats.oppsValue > 0 && (
+                {oppsValue > 0 && (
                   <div className="text-xs text-muted-foreground pt-2 border-t mt-2 text-right">
                     Total estimado: <strong className="text-foreground font-mono">
-                      R$ {stats.oppsValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      R$ {oppsValue.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                     </strong>
                   </div>
                 )}
