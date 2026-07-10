@@ -106,10 +106,11 @@ export default function AIManagement() {
           {selected ? (
             <Card className="p-4">
               <Tabs defaultValue="identity">
-                <TabsList className="grid grid-cols-7 w-full">
+                <TabsList className="grid grid-cols-8 w-full">
                   <TabsTrigger value="identity">Identidade</TabsTrigger>
                   <TabsTrigger value="behavior">Comportamento</TabsTrigger>
                   <TabsTrigger value="guardrails">Guardrails</TabsTrigger>
+                  <TabsTrigger value="write-actions">Ações de Escrita</TabsTrigger>
                   <TabsTrigger value="tools">Tools & Modelo</TabsTrigger>
                   <TabsTrigger value="appearance">Aparência</TabsTrigger>
                   <TabsTrigger value="training">Treinamento</TabsTrigger>
@@ -124,6 +125,9 @@ export default function AIManagement() {
                   </TabsContent>
                   <TabsContent value="guardrails">
                     <GuardrailsTab agent={selected} draft={draft} setDraft={setDraft} />
+                  </TabsContent>
+                  <TabsContent value="write-actions">
+                    <WriteActionsTab agent={selected} draft={draft} setDraft={setDraft} />
                   </TabsContent>
                   <TabsContent value="tools">
                     <ToolsModelTab agent={selected} draft={draft} setDraft={setDraft} />
