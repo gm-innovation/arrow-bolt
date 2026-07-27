@@ -114,3 +114,6 @@ verify_jwt = true
 
 [functions.commercial-ai-insights]
 verify_jwt = true
+
+[functions.triage-ticket-reply]
+verify_jwt = false
