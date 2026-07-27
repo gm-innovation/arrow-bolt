@@ -121,9 +121,13 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<MarinaAttachment[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { processFiles: processDroppedFiles } = useMarinaAttachments(attachments, setAttachments, 10);
+
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
