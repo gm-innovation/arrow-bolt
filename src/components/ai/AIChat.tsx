@@ -117,7 +117,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   } = useAIChat({ userRole, context });
 
   const [input, setInput] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<MarinaAttachment[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
