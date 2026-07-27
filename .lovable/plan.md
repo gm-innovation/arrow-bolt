@@ -1,49 +1,39 @@
+## Objetivo
+Transformar a lista de colaboradores em `/admin/employee-documents` num **acordeão**: cada colaborador vira uma linha compacta que expande para revelar a tabela de documentos que já existe hoje.
 
-# Simplificação do Compartilhamento de Documentos com Coordenadores
+## Escopo
+Somente `src/pages/admin/EmployeeDocuments.tsx` (componente `Directory`). Nenhuma alteração de dados, hooks, RLS ou fluxo de "Criar pacote".
 
-Hoje o RH precisa ativar o toggle "Compartilhar" documento por documento. Vamos oferecer 3 caminhos combinados para eliminar o trabalho manual.
+## Como fica
 
-## 1. Automático por padrão
+```text
+▸ FILIPE FRANCISCO DE SOUSA       Técnico   6 docs • 2 vencidos     [2 selecionados]
+▸ ADRIANO MOURA VALE              Auxiliar  4 docs                  
+▾ RAYANE SILVA                    RH        5 docs • 1 a vencer     [1 selecionado]
+   ┌─ Tipo ─────── Emissão ── Validade ── Situação ── Ações ─┐
+   │ ASO           2026-01-07 2027-01-05  Disponível  Baixar │
+   │ NR 33         2025-01-24 2026-01-24  Vencido     Baixar │
+   │ ...                                                     │
+   └─────────────────────────────────────────────────────────┘
+```
 
-Todo documento cujo tipo tem `coordinator_shareable = true` no catálogo (ASO, NRs, RG, CPF, CNH) passa a ser visível para os coordenadores **sem precisar do toggle**.
+## Mudanças
 
-- A visibilidade do coordenador deixa de depender da tabela `hr_coordinator_document_grants` e passa a olhar direto o flag do catálogo.
-- O RH configura uma vez em **Tipos & Compartilhamento** quais categorias são "auto-liberadas" — o padrão inicial já vem correto (documentação sensível de viagem/estaleiro liberada; contratos, PIS, escolaridade não).
-- **Bloqueio individual (exceções)**: mantemos a tabela de grants apenas como *lista de exclusão* — se o RH quiser esconder um documento específico de um funcionário, ele desmarca. A UI da ficha vira: toggle ligado por padrão, RH desliga só em casos especiais.
-
-## 2. Botão "Compartilhar tudo" na ficha
-
-Na aba **Docs** do colaborador, ao lado de "Enviar Documento":
-
-- Botão único **"Liberar todos para Coordenadores"** — remove todas as exceções daquele funcionário de uma vez.
-- Botão inverso **"Bloquear todos"** — cria exceção para todos os tipos compartilháveis do funcionário.
-- Contador visível: "5 de 5 tipos liberados".
-
-## 3. Comandos para a Marina
-
-A Marina ganha 3 ferramentas novas:
-
-- `share_employee_documents({ employee_name, action: "release_all" | "block_all" })` — libera/bloqueia todos os documentos de 1 funcionário.
-- `share_bulk_by_role({ role: "technician", action: "release_all" })` — "libere documentos de todos os técnicos para coordenadores".
-- `share_bulk_by_type({ catalog_code: "aso" | "nr35" | ..., value: true | false })` — "ative ASO como compartilhável para toda a equipe".
-
-Cada ação registra auditoria em `ai_assistant_actions` e devolve um resumo ("Liberados 32 documentos de 12 técnicos").
+1. Trocar o `map` que renderiza um `<Card>` por colaborador por um `<Accordion type="multiple">` do shadcn (`@/components/ui/accordion`).
+2. Cada `AccordionItem` (um por colaborador) mostra no **trigger**:
+   - Nome (bold) e cargo em muted à direita.
+   - Badges resumo calculados em memo: total de docs disponíveis, quantos vencidos, quantos "a vencer em 30 dias", quantos "sem arquivo".
+   - Contador de itens selecionados daquele colaborador (quando > 0), para não perder o feedback ao colapsar.
+3. Dentro de `AccordionContent`, renderizar a `<Table>` existente (mesmas colunas, mesmo checkbox, mesmo botão "Baixar", mesma lógica de `getSignedDocUrl` e `toggle`).
+4. Manter busca (`q`), botão "Criar pacote (N)" no topo e o `PackageDialog` como estão.
+5. Comportamento de expansão:
+   - Estado `expanded: string[]` controlado (para permitir que a busca auto-expanda resultados quando `q` não estiver vazio).
+   - Quando `q` vazio: todos colapsados por padrão.
+   - Quando `q` não vazio: expande automaticamente os filtrados.
+6. Estados vazios preservados (loading e "nenhum colaborador com documentos").
 
 ## Detalhes técnicos
-
-- **Backend**:
-  - Nova RPC `hr_coordinator_visible_docs` que retorna documentos vigentes onde `catalog.coordinator_shareable = true` **AND** não exista grant com `revoked_at = null` marcado como `is_block = true`.
-  - Migração: adicionar coluna `is_block boolean default false` em `hr_coordinator_document_grants` para diferenciar "liberação explícita" (legado) de "bloqueio explícito" (novo modelo). Backfill: todos os grants ativos hoje viram `is_block=false` (já significam liberação); o hook novo passa a inserir `is_block=true` para exceções.
-  - Atualizar `useCoordinatorEmployeeDocs` para usar a nova regra.
-- **Frontend**:
-  - `DocumentsTab` na ficha: toggle invertido (padrão ligado se `catalog.coordinator_shareable`, desliga = cria bloqueio).
-  - Botões "Liberar todos" / "Bloquear todos" no header da aba.
-  - `/hr/document-sharing`: página passa a mostrar apenas o catálogo (quais categorias são compartilháveis) — a lista pormenor de exceções vira uma aba secundária.
-- **Marina** (`supabase/functions/ai-assistant/index.ts`):
-  - Registrar as 3 novas tools em `AI_TOOLS`.
-  - Cada handler valida papel do usuário (só `hr`, `director`, `super_admin` podem executar).
-
-## Fora de escopo
-
-- Fluxo de aprovação/pacote (`hr_document_share_packages`) permanece como está — continua sendo usado para envios externos a estaleiros/hotéis.
-- Página `/admin/employee-documents` (visão do coordenador) só precisa refletir a nova regra via hook atualizado — sem mudança de UI.
+- Sem novas dependências: `Accordion`, `AccordionItem`, `AccordionTrigger`, `AccordionContent` já existem em `src/components/ui/accordion.tsx`.
+- `useMemo` para os contadores por colaborador evita recomputar a cada render.
+- Nenhuma mudança no tipo do array retornado por `useCoordinatorEmployeeDocs`.
+- Sem alteração no `EmployeeDetailSheet` (ficha do colaborador do RH).
