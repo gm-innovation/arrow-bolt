@@ -401,12 +401,15 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
 
   const { data: catalog = [] } = useShareableCatalog();
   const { data: docs = [], isLoading } = useEmployeeDocuments(employeeId);
-  const { data: grants = [] } = useEmployeeGrants(employeeId);
+  const { data: blocks = [] } = useEmployeeBlocks(employeeId);
   const upload = useUploadEmployeeDocument();
-  const setGrant = useSetGrant();
+  const setBlock = useSetBlock();
+  const bulk = useBulkSetEmployee();
 
   const catalogById = new Map<string, any>((catalog as any[]).map((c: any) => [c.id, c]));
-  const grantedCatalogIds = new Set(grants.map((g: any) => g.catalog_id));
+  const blockedCatalogIds = new Set(blocks.map((g: any) => g.catalog_id));
+  const shareableCount = (catalog as any[]).filter((c: any) => c.coordinator_shareable).length;
+  const sharedCount = Math.max(0, shareableCount - blockedCatalogIds.size);
 
   // Group current docs by catalog + list historical
   const currentDocs = (docs as any[]).filter((d) => d.is_current);
