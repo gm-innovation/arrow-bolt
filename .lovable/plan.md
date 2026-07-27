@@ -1,103 +1,98 @@
-## Objetivo
+## Contexto
 
-Tornar o comportamento "fora de escopo" da Marina **totalmente configurável** pelo Gerenciamento da IA (`/super-admin/ai-management`), sem nada hard-coded no prompt ou nas Edge Functions. O Super Admin pode editar textos, mapeamentos assunto→setor, e ligar/desligar canais.
+Hoje `hr_employee_documents` só é lido por próprio colaborador, gestor direto, RH, Diretor e Super Admin. Coordenadores precisam acessar documentos de **qualquer colaborador** (técnico, comercial, marketing, engenharia, etc.) para:
+- Autorização de entrada em estaleiros/portos/navios
+- Reserva de passagens/hospedagem
+- Documentação de embarque
 
-## Onde entra a configuração
+Regra: **acesso amplo, mas controlado pelo RH** — nada de vincular a OS/reserva. O RH decide, por colaborador e por tipo de documento, o que pode ser compartilhado com coordenadores.
 
-Estende `ai_agents.behavior` (JSONB já existente) com um novo bloco `out_of_scope`, editado por uma nova aba **"Escopo e Encaminhamento"** no gerenciador do agente. Nada de nova tabela.
+## Arquitetura: Autorização em dois eixos, controlada pelo RH
 
-```ts
-// src/hooks/useAIAgents.ts — AIAgentBehavior
-out_of_scope?: {
-  enabled: boolean;                    // liga/desliga o comportamento
-  policy: "explain_and_offer"          // explica + oferece chamado (padrão)
-        | "explain_only"               // só explica, não encaminha
-        | "refuse"                     // recusa educadamente
-        | "off";                       // não trata (comportamento antigo)
-  explain_template: string;            // texto base p/ explicação alto nível
-  offer_template: string;              // frase que pergunta "posso abrir?"
-  confirmation_template: string;       // resposta pós-criação com nº do chamado
-  refusal_template: string;            // usado quando policy = "refuse"
-  channel: "corp_request"              // padrão
-         | "support_ticket"            // Super Admin
-         | "both";                     // deixa Marina escolher
-  area_routing: Array<{
-    area_key: string;                  // "rh" | "financeiro" | ...
-    label: string;                     // "RH", "Financeiro"
-    department_slug?: string;          // mapeia p/ departments.slug
-    keywords: string[];                // palavras-chave p/ classificar
-    default_request_type_slug?: string;// mapeia p/ corp_request_types.slug
-    default_priority?: "low"|"medium"|"high"|"critical";
-    enabled: boolean;
-  }>;
-};
-```
+O acesso do coordenador a um documento existe **se e somente se** os dois eixos estão marcados como compartilháveis:
 
-Seed inicial (default_agent) traz o mapa atual (RH, Financeiro, Suprimentos, Qualidade, Comercial, Marketing, Coordenação, Diretoria) já preenchido, mas 100% editável.
+1. **Eixo tipo (catálogo)** — `hr_document_catalog.coordinator_shareable` (bool). RH marca globalmente quais tipos podem ser compartilhados (ex.: RG, CPF, CNH, Passaporte, ASO vigente, NRs). Holerite, contrato, exame detalhado nunca são marcados.
+2. **Eixo pessoa (colaborador)** — nova tabela `hr_coordinator_document_grants` mapeando `(employee_id, catalog_id)`. RH decide, por pessoa, quais tipos autorizados do catálogo ficam expostos aos coordenadores. Um colaborador pode ter só RG+CPF liberados; outro pode ter tudo.
 
-## Nova aba na UI: `ScopeRoutingTab.tsx`
+Assim o RH pode, por exemplo, liberar CNH+Passaporte da Ana (engenharia) para viagem e ao mesmo tempo manter todos os documentos do Pedro (marketing) fechados.
 
-Localização: `src/components/super-admin/ai/ScopeRoutingTab.tsx`, plugada em `AIManagement.tsx` como aba entre "Comportamento" e "Ações de Escrita".
+Opcional prático: switch "Liberar todos os tipos compartilháveis deste colaborador" em massa (cria uma linha por catálogo `coordinator_shareable=true`).
 
-Conteúdo:
+### Pacotes de compartilhamento externo (finalidades específicas)
 
-1. **Toggle geral** "Tratar perguntas de outra área" + `Select` de política (`explain_and_offer` / `explain_only` / `refuse` / `off`).
-2. **Canal de encaminhamento** (`corp_request` / `support_ticket` / `both`).
-3. **Templates de resposta** (4 Textareas com placeholders documentados: `{{area}}`, `{{title}}`, `{{ticket_number}}`).
-4. **Tabela editável de áreas** (Add/Remove linha):
-   - `label` (input) · `area_key` (input) · `department_slug` (Combobox de `departments`) · `default_request_type_slug` (Combobox de `corp_request_types`) · `keywords` (TagInput) · `priority` (Select) · `enabled` (Switch).
-5. **Preview de classificação**: input "Simular pergunta" → mostra qual área a Marina classificaria pelas keywords atuais. Puramente client-side (útil pra testar antes de salvar).
+Para documentar **para quem** o coordenador está encaminhando (estaleiro X, cia aérea Y) e ter rastro auditável e temporal, mantém-se a estrutura de "pacotes":
 
-Persistência: usa a mutation `useUpdateAIAgent` já existente, salvando em `behavior.out_of_scope`.
+- Coordenador cria pacote com colaborador(es), finalidade, destinatário, docs escolhidos, expiração e justificativa.
+- **Não exige aprovação do RH** para docs já autorizados nos dois eixos — o RH já pré-autorizou.
+- Se o coordenador escolher um doc **não** autorizado, o pacote entra em `pending` e vai para o RH aprovar. Aprovação cria o grant automaticamente (`persist_grant=true`).
+- Pacote registra acessos e expira automaticamente.
 
-## Consumo no backend
+## Modelo de dados
 
-Em `supabase/functions/ai-assistant/index.ts`:
+**Alteração**
+- `hr_document_catalog`: `+ coordinator_shareable boolean default false`
 
-1. `buildSystemPrompt` recebe `behavior.out_of_scope` e, se `enabled`, injeta um bloco dinâmico no prompt (não mais fixo):
+**Novas tabelas**
+- `hr_coordinator_document_grants` — id, company_id, employee_id (FK profiles), catalog_id (FK catálogo), granted_by (RH), granted_at, revoked_at, note. Unique `(employee_id, catalog_id) where revoked_at is null`.
+- `hr_document_share_packages` — id, company_id, requested_by (coordenador), purpose (enum), recipient_name, recipient_client_id nullable, justification, status (`active`|`pending_review`|`rejected`|`revoked`|`expired`), reviewed_by, reviewed_at, review_notes, expires_at.
+- `hr_document_share_package_targets` — id, package_id, employee_id.
+- `hr_document_share_items` — id, package_id, employee_id, document_id (FK `hr_employee_documents`), catalog_id, requires_grant boolean (docs sem grant prévio).
+- `hr_document_share_access_log` — id, package_id, document_id, accessed_by, action (`view`|`download`|`link_regenerated`), accessed_at, ip.
 
-```ts
-if (oos?.enabled && oos.policy !== "off") {
-  systemPrompt += renderOutOfScopeBlock(oos);
-}
-```
+**Enum novo**: `hr_share_purpose` (shipyard_entry, port_authorization, vessel_boarding, travel_booking, lodging_booking, other).
 
-`renderOutOfScopeBlock` gera o texto a partir dos templates + tabela de áreas configurada. Nenhum texto de setor fica no código; tudo vem do JSON.
+## Segurança e RLS
 
-2. Novas ferramentas registradas dinamicamente **só se a política permitir**:
-   - `create_corp_request({ area_key, title, description, priority? })` — resolve `department_id` e `request_type_id` via `area_routing[area_key]` do agente, insere em `corp_requests`.
-   - `list_my_corp_requests({ status?, limit? })`.
-   - `create_support_ticket` continua como está (é do bloco Super Admin).
+- `hr_coordinator_document_grants`: RH/Diretor/Super Admin CRUD; coordenador SELECT (para saber o que pode pedir); técnico/colaborador SELECT dos próprios (transparência).
+- `hr_employee_documents` SELECT estendido: coordenador pode ler doc **X** de colaborador **E** se:
+  a) existe grant ativo `(E, X.catalog_id)`, **ou**
+  b) doc está em pacote `active` do coordenador que inclui esse doc especificamente.
+- `hr_document_share_packages` e filhas: coordenador vê os próprios; RH/Diretor/Super Admin vê todos da empresa; colaborador vê pacotes que envolvem ele.
+- Bucket `hr-documents`: policy espelha a mesma lógica por path do arquivo (função helper `public.can_coordinator_read_hr_doc(auth.uid(), doc_id)`).
+- Todo `view`/`download` do coordenador grava log via wrapper no frontend + trigger de auditoria.
+- Job `pg_cron` diário marca pacotes vencidos como `expired`.
+- Notificações: colaborador é notificado quando seus documentos são incluídos em pacote (transparência); RH quando pacote entra `pending_review`; coordenador ao aprovar/rejeitar/revogar.
+- Links de download sempre via `createSignedUrl` com TTL curto (10 min) gerado sob demanda — nunca URL pública.
 
-Se `channel = "support_ticket"`, a Marina usa apenas `create_support_ticket`. Se `both`, o prompt orienta a escolher segundo a natureza (pedido operacional × bug/sugestão).
+## UI
 
-3. Toda ação registra em `ai_assistant_actions` (já existe).
+**RH — nova aba em `/hr/documents` "Compartilhamento com Coordenadores"**
+- Sub-aba 1 "Tipos compartilháveis": tabela do catálogo com toggle `coordinator_shareable`.
+- Sub-aba 2 "Autorizações por colaborador": lista de colaboradores da empresa (todos os setores, com filtro por setor/cargo) → drawer com checklist dos tipos `coordinator_shareable` e switch "Liberar todos"; salva grants em massa. Mostra data e responsável pela liberação.
+- Sub-aba 3 "Pacotes pendentes": fila de pacotes com docs sem grant prévio para aprovar/rejeitar (opção de "aprovar e persistir grant").
+- Sub-aba 4 "Histórico de acessos": log filtrando por coordenador, colaborador, período.
 
-## Fluxo de dados resumido
+**Coordenador — nova rota `/admin/employee-documents`**
+- Diretório de **todos os colaboradores** da empresa cujos grants existem, agrupados por setor/cargo (filtros: setor, cargo, nome).
+- Cada colaborador mostra os documentos autorizados (catálogo × grants) com vigência e badge de expiração.
+- Botão "Criar pacote de envio" abre wizard: colaborador(es) → finalidade → destinatário → docs (permitidos + opção "Solicitar outros" que dispara `pending_review`) → expiração → justificativa.
+- Aba "Meus pacotes" com status, dias até expirar, botão de regerar link assinado (loga).
 
-```text
-Super Admin edita aba "Escopo e Encaminhamento"
-        │  (grava em ai_agents.behavior.out_of_scope)
-        ▼
-Edge Function ai-assistant lê behavior.out_of_scope no início da requisição
-        │
-        ▼
-Monta prompt dinâmico + registra ferramentas de encaminhamento adequadas
-        │
-        ▼
-Marina classifica → explica → oferece → cria corp_request/support_ticket
-```
+**Colaborador — em `/corp/my-documents`**
+- Seção "Autorizações vigentes": tipos que o RH liberou aos coordenadores.
+- Seção "Compartilhamentos ativos": pacotes que envolvem docs seus, destinatário e validade.
+
+## Marina (assistente)
+
+Coordenador:
+- `list_shareable_employees({ department?, position? })`
+- `list_employee_shareable_docs({ employee_id })`
+- `create_document_share_package({...})`
+- `list_my_document_packages`
+
+RH:
+- `set_catalog_coordinator_shareable`, `grant_coordinator_document_access`, `revoke_coordinator_document_access`, `approve_document_package`, `reject_document_package`, `revoke_document_package`.
+
+## Fora de escopo
+
+- Marca d'água PDF por destinatário/data (segunda onda).
+- Assinatura eletrônica de responsabilidade do coordenador (segunda onda).
+- Envio automático por e-mail ao destinatário (hoje o coordenador copia o link).
 
 ## Detalhes técnicos
 
-- **Migração**: nenhuma. Apenas um seed opcional para popular `behavior.out_of_scope` do agente default nas empresas existentes (via UPDATE JSONB idempotente).
-- **Validação**: `ScopeRoutingTab` valida `area_key` único, keywords não vazias e existência de `department_slug`/`request_type_slug` antes de habilitar cada linha.
-- **Fallback**: se `out_of_scope` estiver ausente/`enabled=false`, o comportamento atual permanece (só `create_support_ticket` para bug/sugestão).
-- **Auditoria**: mudanças no agente já gravam `updated_at`; nada extra necessário.
-- **Sem hard-code**: o prompt continua com as "regras técnicas mínimas" (não editáveis, como já é hoje), mas todo o texto e mapeamento de áreas passa a vir da configuração.
-
-## Fora deste plano
-
-- Não altera `create_support_ticket` (canal Super Admin) — segue igual.
-- Não altera `modulesForRole` / filtragem de módulos por role.
-- Não cria tabela nova; usa `ai_agents.behavior` + `departments` + `corp_request_types` já existentes.
+- Enum `hr_share_purpose` conforme acima.
+- Índices: `hr_coordinator_document_grants(employee_id) where revoked_at is null`, `(catalog_id) where revoked_at is null`; `hr_document_share_packages(requested_by, status)`, `(status, expires_at) where status='active'`; `hr_document_share_items(document_id)`.
+- Função `public.can_coordinator_read_hr_doc(uid uuid, doc_id uuid) returns bool` `SECURITY DEFINER`, usada nas policies do bucket e reutilizada na policy de `hr_employee_documents` para evitar recursão (segue o padrão `has_role`).
+- Ordem das migrations: enum → alter `hr_document_catalog` → função helper → criar tabelas com GRANT+RLS+policies → estender policy SELECT de `hr_employee_documents` → policies do bucket → `pg_cron` de expiração → seed idempotente marcando tipos "óbvios" (RG, CPF, CNH, Passaporte, ASO) como `coordinator_shareable=true` (RH pode reverter).
+- Trigger de auditoria em `hr_document_share_packages` (status change) e `hr_coordinator_document_grants` (create/revoke).
