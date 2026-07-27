@@ -321,10 +321,13 @@ export default function SupportInbox() {
                         {selected.suggested_area}
                       </Badge>
                     )}
-                    {selected.dev_prompt_status === "pending" && (
+                    {selected.dev_prompt_status === "pending" && !isDevPromptStale(selected) && (
                       <Badge variant="secondary" className="text-xs gap-1">
                         <Loader2 className="h-3 w-3 animate-spin" /> Gerando
                       </Badge>
+                    )}
+                    {selected.dev_prompt_status === "pending" && isDevPromptStale(selected) && (
+                      <Badge variant="destructive" className="text-xs">Interrompido</Badge>
                     )}
                     {selected.dev_prompt_status === "failed" && (
                       <Badge variant="destructive" className="text-xs">Falhou</Badge>
@@ -348,7 +351,10 @@ export default function SupportInbox() {
                       size="sm"
                       variant="outline"
                       onClick={() => regenerateDevPrompt.mutate(selected.id)}
-                      disabled={regenerateDevPrompt.isPending || selected.dev_prompt_status === "pending"}
+                      disabled={
+                        regenerateDevPrompt.isPending ||
+                        (selected.dev_prompt_status === "pending" && !isDevPromptStale(selected))
+                      }
                       className="h-7"
                     >
                       <RefreshCw className={`h-3 w-3 mr-1 ${regenerateDevPrompt.isPending ? "animate-spin" : ""}`} />
@@ -363,8 +369,10 @@ export default function SupportInbox() {
                   </pre>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    {selected.dev_prompt_status === "pending"
+                    {selected.dev_prompt_status === "pending" && !isDevPromptStale(selected)
                       ? "A Marina está interpretando o chamado e escrevendo o prompt..."
+                      : selected.dev_prompt_status === "pending" && isDevPromptStale(selected)
+                      ? "A geração foi interrompida antes de concluir. Clique em Regerar."
                       : "Ainda não há prompt para este chamado. Clique em Gerar."}
                   </p>
                 )}
