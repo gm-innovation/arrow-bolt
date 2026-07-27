@@ -381,18 +381,16 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
       {/* Input */}
       <div className="p-3 border-t">
         <div className="flex gap-2 items-end">
-          {userRole === 'technician' && (
-            <AIPhotoUpload
-              selectedImage={selectedImage}
-              onImageSelect={setSelectedImage}
-            />
-          )}
+          <AIAttachmentUpload
+            attachments={attachments}
+            onChange={setAttachments}
+          />
           <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={selectedImage ? "Descreva o que quer analisar na foto..." : "Digite sua pergunta..."}
+            placeholder={attachments.length > 0 ? "Descreva o que quer que a Marina faça com o(s) anexo(s)..." : "Digite sua pergunta..."}
             className="min-h-[40px] max-h-[120px] resize-none flex-1"
             rows={1}
             disabled={isLoading}
@@ -400,7 +398,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={(!input.trim() && attachments.length === 0) || isLoading}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -412,4 +410,5 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
       </div>
     </div>
   );
+
 }
