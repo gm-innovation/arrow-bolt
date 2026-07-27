@@ -17,6 +17,18 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertCircle, Bug, Lightbulb, HelpCircle, MessageSquare, RefreshCw, Sparkles, Copy, Loader2 } from "lucide-react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+
+// A ticket whose dev_prompt is "pending" for more than this many ms is
+// considered stale — the trigger likely failed silently and we allow retry.
+const STALE_PENDING_MS = 2 * 60 * 1000;
+
+function isDevPromptStale(t: any): boolean {
+  if (t?.dev_prompt_status !== "pending") return false;
+  const ts = t?.updated_at ?? t?.created_at;
+  if (!ts) return false;
+  return Date.now() - new Date(ts).getTime() > STALE_PENDING_MS;
+}
 
 const CATEGORY_META: Record<string, { label: string; icon: any; color: string }> = {
   bug: { label: "Bug", icon: Bug, color: "bg-red-100 text-red-700" },
