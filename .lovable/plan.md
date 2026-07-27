@@ -1,47 +1,26 @@
 ## Problema
 
-O input do chat da Marina fica esmagado (mostrando só "Descr...") quando há um anexo. O chip do arquivo aparece dentro da mesma linha horizontal do Textarea e do botão Enviar.
-
-**Causa:** em `AIChat.tsx` (linha 429), o layout é `flex gap-2 items-end` com três filhos lado a lado:
-1. `<AIAttachmentUpload />` — que internamente é `flex-col` com os **chips dos anexos + botão clipe empilhados**
-2. `<Textarea flex-1 />`
-3. `<Button Send />`
-
-Como os chips dos anexos vivem dentro do primeiro filho (`flex-col`), eles ocupam largura ao lado do textarea, comprimindo-o.
+Na screenshot, com um anexo presente, o placeholder longo ("Descreva o que quer que a Marina faça com o(s) anexo(s)...") quebra em duas linhas, mas o Textarea tem `min-h-[40px]` (≈1 linha), então o texto é cortado verticalmente e cria a sensação de campo "espremido". Há espaço horizontal suficiente — o problema é altura + distribuição vertical, não largura.
 
 ## Correção
 
-Reestruturar a área de input para que os chips dos anexos fiquem em uma **linha superior de largura total**, e a linha inferior contenha apenas [clipe] [Textarea flex-1] [Send]:
+Ajustes visuais mínimos em `src/components/ai/AIChat.tsx` (bloco do input, linhas ~427–456):
 
-```text
-┌────────────────────────────────────────┐
-│ [chip anexo1] [chip anexo2] ...        │  ← linha nova, w-full
-├────────────────────────────────────────┤
-│ 📎  [ Textarea ................... ]  ➤ │  ← linha compacta
-└────────────────────────────────────────┘
-```
+1. **Textarea:** aumentar altura mínima para acomodar 2 linhas confortavelmente e permitir crescer mais:
+   - `min-h-[40px]` → `min-h-[56px]`
+   - `max-h-[120px]` → `max-h-[160px]`
+   - manter `resize-none flex-1`.
 
-### Mudanças
+2. **Alinhamento da linha:** trocar `items-end` por `items-stretch` para que o botão de clipe e o botão Send acompanhem a altura do Textarea, ficando visualmente equilibrados em vez de colados à base.
 
-1. **`src/components/ai/AIAttachmentUpload.tsx`**
-   - Separar a renderização em duas partes exportadas/props ou dividir em dois subcomponentes:
-     - `AttachmentChips` (a lista de chips, renderizada acima)
-     - `AttachmentButton` (só o botão de clipe/paperclip, para ficar ao lado do textarea)
-   - Alternativa mais simples: manter um componente só, mas trocar o `flex-col` por um render em duas regiões controladas pelas props `variant` (`chips` | `button`). Preferir a divisão em dois componentes por ser mais legível.
+3. **Botão do clipe (`AttachmentButton` em `AIAttachmentUpload.tsx`):** trocar `h-10 w-10` por `h-full w-10 self-stretch` (ou remover a altura fixa) para acompanhar o Textarea. O botão Send (`size="icon"`) recebe `className="h-full w-10 self-stretch"` no `AIChat.tsx`.
 
-2. **`src/components/ai/AIChat.tsx` (linhas 427–456)**
-   - Wrap externo: `flex flex-col gap-2`.
-   - Linha 1: `<AttachmentChips ... />` (só renderiza se `attachments.length > 0`).
-   - Linha 2: `flex gap-2 items-end` com `<AttachmentButton />` + `<Textarea className="flex-1 ..." />` + `<Button Send />`.
-   - Manter o placeholder condicional já existente.
-   - Manter o hook `useMarinaAttachments` compartilhado entre os dois subcomponentes via as mesmas props (`attachments`, `onChange`, `max`).
+4. **Padding do container:** manter `p-3 border-t`; sem outras alterações.
 
-3. Preservar todo o comportamento existente: drag-and-drop global no chat, limites (10 arquivos), remoção via X, estados de `uploading`, acessibilidade e tooltips.
-
-Nenhuma outra tela usa `AIAttachmentUpload`, então a mudança é contida ao chat da Marina.
+Nenhuma alteração em lógica, hooks, drag-and-drop, limites de anexos ou envio.
 
 ## Verificação
 
-- Abrir `/admin/dashboard`, anexar 1 e depois 3 arquivos, confirmar que o textarea mantém largura total e o placeholder completo aparece.
-- Testar drag-and-drop e remoção de chip.
-- Enviar mensagem com anexo e sem anexo.
+- Sem anexos: placeholder curto cabe em 1 linha, campo mantém boa altura.
+- Com 1+ anexos: placeholder longo cabe em 2 linhas sem cortar; clipe e Send acompanham a altura.
+- Digitação longa cresce até `max-h-[160px]` e depois rola.
