@@ -547,14 +547,41 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
 
   return (
     <div className="py-4 space-y-3">
+      <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+        <div className="flex items-start gap-2">
+          <Share2 className="h-4 w-4 text-primary mt-0.5" />
+          <div className="text-xs text-muted-foreground flex-1">
+            Documentos de tipos compartilháveis (ASO, NRs, RG, CPF, CNH…) são <b>liberados automaticamente</b> para coordenadores.
+            Use os botões abaixo para agir em massa ou o interruptor de cada documento para exceções.
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <Badge variant="secondary">{sharedCount}/{shareableCount} tipos liberados</Badge>
+          {blockedCatalogIds.size > 0 && (
+            <Badge variant="outline" className="text-destructive border-destructive/40">{blockedCatalogIds.size} bloqueio(s)</Badge>
+          )}
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="outline" disabled={bulk.isPending || blockedCatalogIds.size === 0}
+              onClick={() => bulk.mutate({ employee_id: employeeId, action: "release_all" })}>
+              Liberar tudo
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulk.isPending}
+              onClick={() => bulk.mutate({ employee_id: employeeId, action: "block_all" })}>
+              Bloquear tudo
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center">
         <p className="text-xs text-muted-foreground">
-          {currentDocs.length} documento(s) vigente(s) • {grants.length} compartilhado(s) com coordenadores
+          {currentDocs.length} documento(s) vigente(s)
         </p>
         <Button size="sm" onClick={() => setShowUpload(!showUpload)}>
           <Plus className="h-4 w-4 mr-1" /> Enviar Documento
         </Button>
       </div>
+
 
       {showUpload && (
         <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
