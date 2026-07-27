@@ -128,6 +128,9 @@ export default function AIManagement() {
                   <TabsContent value="guardrails">
                     <GuardrailsTab agent={selected} draft={draft} setDraft={setDraft} />
                   </TabsContent>
+                  <TabsContent value="scope">
+                    <ScopeRoutingTab agent={selected} draft={draft} setDraft={setDraft} />
+                  </TabsContent>
                   <TabsContent value="write-actions">
                     <WriteActionsTab agent={selected} draft={draft} setDraft={setDraft} />
                   </TabsContent>
