@@ -12,6 +12,27 @@ export type AIAgentIdentity = {
   avatar_url?: string;
 };
 
+export type AIAgentOutOfScopeArea = {
+  area_key: string;
+  label: string;
+  department_name?: string;
+  request_type_name?: string;
+  keywords: string[];
+  default_priority?: "low" | "medium" | "high" | "critical";
+  enabled: boolean;
+};
+
+export type AIAgentOutOfScope = {
+  enabled: boolean;
+  policy: "explain_and_offer" | "explain_only" | "refuse" | "off";
+  channel: "corp_request" | "support_ticket" | "both";
+  explain_template: string;
+  offer_template: string;
+  confirmation_template: string;
+  refusal_template: string;
+  area_routing: AIAgentOutOfScopeArea[];
+};
+
 export type AIAgentBehavior = {
   suggested_prompts?: string[];
   role_instructions?: Record<string, string>;
@@ -19,6 +40,31 @@ export type AIAgentBehavior = {
   memory_size?: number;
   handoff_channel?: string;
   handoff_target?: string;
+  out_of_scope?: AIAgentOutOfScope;
+};
+
+export const DEFAULT_OUT_OF_SCOPE: AIAgentOutOfScope = {
+  enabled: true,
+  policy: "explain_and_offer",
+  channel: "corp_request",
+  explain_template:
+    "Isso é tratado pelo setor de {{area}}. Em resumo: {{summary}}.",
+  offer_template:
+    "Quer que eu abra uma solicitação para o {{area}} em seu nome?",
+  confirmation_template:
+    "Solicitação #{{ticket_number}} enviada ao {{area}}. Você acompanha em Corporativo → Minhas Solicitações.",
+  refusal_template:
+    "Esse assunto é do setor de {{area}} e está fora do seu perfil de acesso. Recomendo falar diretamente com o responsável.",
+  area_routing: [
+    { area_key: "rh", label: "RH", department_name: "RH", keywords: ["férias", "folga", "atestado", "exame", "ponto", "benefício", "salário", "admissão", "demissão"], default_priority: "medium", enabled: true },
+    { area_key: "financeiro", label: "Financeiro", department_name: "Financeiro", keywords: ["pagamento", "boleto", "nota fiscal", "reembolso", "conta", "fluxo de caixa"], default_priority: "medium", enabled: true },
+    { area_key: "suprimentos", label: "Suprimentos", department_name: "Suprimentos", keywords: ["compra", "material", "cotação", "fornecedor", "requisição"], default_priority: "medium", enabled: true },
+    { area_key: "qualidade", label: "Qualidade", department_name: "Qualidade", keywords: ["ncr", "auditoria", "iso", "indicador", "documento controlado", "não conformidade"], default_priority: "medium", enabled: true },
+    { area_key: "comercial", label: "Comercial", department_name: "Comercial", keywords: ["lead", "oportunidade", "cliente", "venda", "contrato", "proposta"], default_priority: "medium", enabled: true },
+    { area_key: "marketing", label: "Marketing", department_name: "Marketing", keywords: ["divulgação", "campanha", "site", "redes sociais", "material de marketing"], default_priority: "medium", enabled: true },
+    { area_key: "coordenacao", label: "Coordenação", department_name: "Operacional", keywords: ["escala", "os", "ordem de serviço", "medição", "agendamento", "técnico"], default_priority: "medium", enabled: true },
+    { area_key: "diretoria", label: "Diretoria", department_name: "Diretoria", keywords: ["aprovação estratégica", "orçamento anual", "contratação executiva"], default_priority: "high", enabled: true },
+  ],
 };
 
 export type AIAgentGuardrails = {
