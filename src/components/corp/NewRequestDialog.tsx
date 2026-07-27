@@ -232,7 +232,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   };
 
   const showAmount = ['general', 'subscription', 'reimbursement'].includes(category);
-  const showTarget = ['general', 'document', 'time_off', 'reimbursement'].includes(category);
+  const showTarget = ['general', 'document', 'time_off', 'reimbursement', 'marketing_materials', 'product'].includes(category);
 
   const renderCategoryFields = () => {
     switch (category) {
