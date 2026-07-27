@@ -84,7 +84,7 @@ export function AttachmentButton({ attachments, onChange, max = 10 }: Props) {
         type="button"
         variant="ghost"
         size="icon"
-        className="h-10 w-10 shrink-0"
+        className="h-auto w-10 self-stretch shrink-0"
         onClick={() => inputRef.current?.click()}
         disabled={uploading || attachments.length >= max}
         title={`Anexar arquivos (até ${max}, imagem/PDF/Word/Excel/PPT/TXT/CSV — 20MB cada). Você também pode arrastar e soltar.`}

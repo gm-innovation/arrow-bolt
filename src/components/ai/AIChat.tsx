@@ -428,7 +428,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
       <div className="p-3 border-t">
         <div className="flex flex-col gap-2">
           <AttachmentChips attachments={attachments} onChange={setAttachments} />
-          <div className="flex gap-2 items-end">
+          <div className="flex gap-2 items-stretch">
             <AttachmentButton attachments={attachments} onChange={setAttachments} />
             <Textarea
               ref={textareaRef}
@@ -436,12 +436,13 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={attachments.length > 0 ? "Descreva o que quer que a Marina faça com o(s) anexo(s)..." : "Digite sua pergunta..."}
-              className="min-h-[40px] max-h-[120px] resize-none flex-1"
+              className="min-h-[56px] max-h-[160px] resize-none flex-1"
               rows={1}
               disabled={isLoading}
             />
             <Button
               size="icon"
+              className="h-auto w-10 self-stretch"
               onClick={handleSend}
               disabled={(!input.trim() && attachments.length === 0) || isLoading}
             >
