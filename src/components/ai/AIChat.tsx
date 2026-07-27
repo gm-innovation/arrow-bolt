@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles, History, X, LifeBuoy } from 'lucide-react';
+import { Send, Loader2, Sparkles, History, X, LifeBuoy, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -9,8 +9,10 @@ import { AIMessageFeedback } from './AIMessageFeedback';
 import { AIConversationList } from './AIConversationList';
 import { AIActionButton, detectActionsFromResponse } from './AIActionButton';
 import { AIAttachmentUpload, type MarinaAttachment } from './AIAttachmentUpload';
+import { useMarinaAttachments } from '@/hooks/useMarinaAttachments';
 import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
+
 
 interface AIChatProps {
   userRole: string;
