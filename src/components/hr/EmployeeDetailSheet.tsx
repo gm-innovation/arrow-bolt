@@ -497,7 +497,7 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
   const renderDoc = (doc: any, isHistorical = false) => {
     const cat = catalogById.get(doc.catalog_id);
     const shareable = cat?.coordinator_shareable;
-    const granted = grantedCatalogIds.has(doc.catalog_id);
+    const blocked = blockedCatalogIds.has(doc.catalog_id);
     return (
       <div key={doc.id} className="p-3 border rounded-lg space-y-2 hover:bg-muted/30 transition-colors">
         <div className="flex items-start justify-between gap-3">
@@ -510,6 +510,12 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
                 {reviewBadge(doc.review_status)}
                 {expiryBadge(doc)}
                 {isHistorical && <Badge variant="outline" className="text-xs">Histórico</Badge>}
+                {!isHistorical && shareable && !blocked && (
+                  <Badge variant="secondary" className="gap-1 text-xs"><Share2 className="h-3 w-3" />Compartilhado</Badge>
+                )}
+                {!isHistorical && shareable && blocked && (
+                  <Badge variant="outline" className="gap-1 text-xs text-destructive border-destructive/40"><XCircle className="h-3 w-3" />Bloqueado</Badge>
+                )}
               </div>
             </div>
           </div>
@@ -525,11 +531,13 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
         {!isHistorical && shareable && (
           <div className="flex items-center gap-2 text-xs pt-1 border-t">
             <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="flex-1">Compartilhar com Coordenadores</span>
+            <span className="flex-1">
+              {blocked ? "Bloqueado para coordenadores (exceção)" : "Liberado automaticamente para coordenadores"}
+            </span>
             <Switch
-              checked={granted}
-              onCheckedChange={(v) => setGrant.mutate({ employee_id: employeeId, catalog_id: doc.catalog_id, grant: v })}
-              disabled={setGrant.isPending}
+              checked={!blocked}
+              onCheckedChange={(v) => setBlock.mutate({ employee_id: employeeId, catalog_id: doc.catalog_id, block: !v })}
+              disabled={setBlock.isPending}
             />
           </div>
         )}
