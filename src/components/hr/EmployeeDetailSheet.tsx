@@ -391,123 +391,155 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
 
 function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId: string }) {
   const [showUpload, setShowUpload] = useState(false);
-  const [docTitle, setDocTitle] = useState("");
-  const [docType, setDocType] = useState("general");
+  const [catalogId, setCatalogId] = useState<string>("");
+  const [issueDate, setIssueDate] = useState<string>("");
+  const [expiryDate, setExpiryDate] = useState<string>("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
+  const [showLegacy, setShowLegacy] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: docs = [], isLoading } = useQuery({
-    queryKey: ["employee-docs", employeeId],
-    queryFn: async () => {
-      const { data: corpDocs } = await supabase
-        .from("corp_documents")
-        .select("id, title, file_name, file_url, document_type, created_at")
-        .eq("owner_user_id", employeeId);
+  const { data: catalog = [] } = useShareableCatalog();
+  const { data: docs = [], isLoading } = useEmployeeDocuments(employeeId);
+  const { data: grants = [] } = useEmployeeGrants(employeeId);
+  const upload = useUploadEmployeeDocument();
+  const setGrant = useSetGrant();
 
-      const { data: techProfile } = await supabase
-        .from("technicians").select("id").eq("user_id", employeeId).maybeSingle();
+  const catalogById = new Map<string, any>((catalog as any[]).map((c: any) => [c.id, c]));
+  const grantedCatalogIds = new Set(grants.map((g: any) => g.catalog_id));
 
-      let techDocs: any[] = [];
-      if (techProfile) {
-        const { data } = await supabase
-          .from("technician_documents")
-          .select("id, document_type, file_path, uploaded_at, expiry_date, file_name, certificate_name")
-          .eq("technician_id", techProfile.id);
-        techDocs = (data || []).map((d: any) => ({
-          id: d.id, title: d.certificate_name || d.document_type,
-          file_name: d.file_name || d.file_path?.split("/").pop() || d.document_type,
-          file_url: d.file_path, document_type: d.document_type,
-          created_at: d.uploaded_at, source: "tech",
-        }));
-      }
+  // Group current docs by catalog + list historical
+  const currentDocs = (docs as any[]).filter((d) => d.is_current);
+  const historicalDocs = (docs as any[]).filter((d) => !d.is_current);
 
-      return [
-        ...(corpDocs || []).map((d: any) => ({ ...d, source: "corp" })),
-        ...techDocs,
-      ];
-    },
-  });
-
-  const handleDownload = async (doc: any) => {
+  const handleUpload = async () => {
+    if (!uploadFile || !catalogId) {
+      toast({ title: "Selecione o tipo e o arquivo", variant: "destructive" });
+      return;
+    }
     try {
-      const bucket = doc.source === "tech" ? "technician-documents" : "corp-documents";
-      const path = normalizeStoragePath(doc.file_url || doc.file_path);
-      const { data, error } = await supabase.storage.from(bucket).download(path);
-      if (error) throw error;
-      const blobUrl = URL.createObjectURL(data);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = doc.file_name || "document";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    } catch {
-      toast({ title: "Erro ao baixar documento", variant: "destructive" });
+      const cat = catalogById.get(catalogId);
+      await upload.mutateAsync({
+        employee_id: employeeId,
+        catalog_id: catalogId,
+        catalog_code: cat?.code ?? null,
+        file: uploadFile,
+        issue_date: issueDate || null,
+      });
+      // Optional: patch expiry_date if manually set
+      if (expiryDate) {
+        const { data: latest } = await (supabase as any)
+          .from("hr_employee_documents")
+          .select("id")
+          .eq("employee_id", employeeId)
+          .eq("catalog_id", catalogId)
+          .eq("is_current", true)
+          .maybeSingle();
+        if (latest?.id) {
+          await (supabase as any)
+            .from("hr_employee_documents")
+            .update({ expiry_date: expiryDate })
+            .eq("id", latest.id);
+        }
+      }
+      setCatalogId(""); setIssueDate(""); setExpiryDate(""); setUploadFile(null); setShowUpload(false);
+      queryClient.invalidateQueries({ queryKey: ["hr-employee-documents", employeeId] });
+    } catch (err: any) {
+      toast({ title: "Erro no envio", description: err.message, variant: "destructive" });
     }
   };
 
-  const handleUpload = async () => {
-    if (!uploadFile || !docTitle.trim()) return;
-    setIsUploading(true);
+  const handleDownload = async (doc: any) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-
-      const safeName = sanitizeFileName(uploadFile.name);
-      const storagePath = `${employeeId}/${Date.now()}_${safeName}`;
-
-      const { error: uploadError } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from("corp-documents")
-        .upload(storagePath, uploadFile);
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from("corp-documents").getPublicUrl(storagePath);
-
-      const { error: insertError } = await supabase.from("corp_documents").insert({
-        company_id: companyId,
-        owner_user_id: employeeId,
-        uploaded_by: user.id,
-        title: docTitle.trim(),
-        document_type: docType,
-        file_name: uploadFile.name,
-        file_url: urlData.publicUrl,
-        visibility_level: "private",
-      });
-      if (insertError) throw insertError;
-
-      toast({ title: "Documento enviado com sucesso" });
-      queryClient.invalidateQueries({ queryKey: ["employee-docs", employeeId] });
-      setDocTitle(""); setDocType("general"); setUploadFile(null); setShowUpload(false);
-    } catch (err: any) {
-      toast({ title: "Erro ao enviar documento", description: err.message, variant: "destructive" });
-    } finally {
-      setIsUploading(false);
+        .createSignedUrl(doc.file_path, 300);
+      if (error) throw error;
+      window.open(data.signedUrl, "_blank");
+    } catch {
+      toast({ title: "Erro ao abrir documento", variant: "destructive" });
     }
   };
 
   const handleDelete = async (doc: any) => {
     try {
-      const path = normalizeStoragePath(doc.file_url);
-      await supabase.storage.from("corp-documents").remove([path]);
-      const { error } = await supabase.from("corp_documents").delete().eq("id", doc.id);
+      await supabase.storage.from("corp-documents").remove([doc.file_path]);
+      const { error } = await (supabase as any).from("hr_employee_documents").delete().eq("id", doc.id);
       if (error) throw error;
       toast({ title: "Documento excluído" });
-      queryClient.invalidateQueries({ queryKey: ["employee-docs", employeeId] });
-    } catch {
-      toast({ title: "Erro ao excluir documento", variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ["hr-employee-documents", employeeId] });
+    } catch (err: any) {
+      toast({ title: "Erro ao excluir", description: err.message, variant: "destructive" });
     } finally {
       setDeleteTarget(null);
     }
   };
 
+  const reviewBadge = (status: string) => {
+    if (status === "approved") return <Badge variant="default" className="gap-1"><CheckCircle2 className="h-3 w-3" />Aprovado</Badge>;
+    if (status === "rejected") return <Badge variant="destructive" className="gap-1"><XCircle className="h-3 w-3" />Rejeitado</Badge>;
+    return <Badge variant="secondary" className="gap-1"><Clock3 className="h-3 w-3" />Em revisão</Badge>;
+  };
+
+  const expiryBadge = (doc: any) => {
+    if (!doc.expiry_date) return null;
+    const diff = Math.round((new Date(doc.expiry_date).getTime() - Date.now()) / 86400000);
+    if (diff < 0) return <Badge variant="destructive">Vencido</Badge>;
+    if (diff < 30) return <Badge variant="outline">A vencer em {diff}d</Badge>;
+    return <Badge variant="outline">Válido até {formatLocalDate(doc.expiry_date)}</Badge>;
+  };
+
   if (isLoading) return <p className="py-6 text-center text-muted-foreground">Carregando...</p>;
+
+  const renderDoc = (doc: any, isHistorical = false) => {
+    const cat = catalogById.get(doc.catalog_id);
+    const shareable = cat?.coordinator_shareable;
+    const granted = grantedCatalogIds.has(doc.catalog_id);
+    return (
+      <div key={doc.id} className="p-3 border rounded-lg space-y-2 hover:bg-muted/30 transition-colors">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3 min-w-0 flex-1">
+            <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium truncate">{cat?.name ?? "Documento"}</p>
+              <p className="text-xs text-muted-foreground truncate">{doc.file_name}</p>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {reviewBadge(doc.review_status)}
+                {expiryBadge(doc)}
+                {isHistorical && <Badge variant="outline" className="text-xs">Histórico</Badge>}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)} title="Baixar">
+              <Download className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(doc)} title="Excluir">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        {!isHistorical && shareable && (
+          <div className="flex items-center gap-2 text-xs pt-1 border-t">
+            <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="flex-1">Compartilhar com Coordenadores</span>
+            <Switch
+              checked={granted}
+              onCheckedChange={(v) => setGrant.mutate({ employee_id: employeeId, catalog_id: doc.catalog_id, grant: v })}
+              disabled={setGrant.isPending}
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="py-4 space-y-3">
-      <div className="flex justify-end">
+      <div className="flex justify-between items-center">
+        <p className="text-xs text-muted-foreground">
+          {currentDocs.length} documento(s) vigente(s) • {grants.length} compartilhado(s) com coordenadores
+        </p>
         <Button size="sm" onClick={() => setShowUpload(!showUpload)}>
           <Plus className="h-4 w-4 mr-1" /> Enviar Documento
         </Button>
@@ -515,27 +547,27 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
 
       {showUpload && (
         <div className="border rounded-lg p-4 space-y-3 bg-muted/20">
-          <Input placeholder="Título do documento" value={docTitle} onChange={(e) => setDocTitle(e.target.value)} />
-          <Select value={docType} onValueChange={setDocType}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="general">Geral</SelectItem>
-              <SelectItem value="cpf_doc">CPF</SelectItem>
-              <SelectItem value="rg_doc">RG / Identidade</SelectItem>
-              <SelectItem value="certidao_casamento">Certidão de Casamento</SelectItem>
-              <SelectItem value="certidao_nascimento">Certidão de Nascimento</SelectItem>
-              <SelectItem value="comprovante_residencia">Comprovante de Residência</SelectItem>
-              <SelectItem value="ctps">CTPS</SelectItem>
-              <SelectItem value="titulo_eleitor">Título de Eleitor</SelectItem>
-              <SelectItem value="reservista">Certificado de Reservista</SelectItem>
-              <SelectItem value="cnh">CNH</SelectItem>
-              <SelectItem value="contrato">Contrato</SelectItem>
-              <SelectItem value="atestado">Atestado</SelectItem>
-              <SelectItem value="comprovante">Comprovante</SelectItem>
-              <SelectItem value="certificado">Certificado</SelectItem>
-              <SelectItem value="outro">Outro</SelectItem>
-            </SelectContent>
-          </Select>
+          <div>
+            <label className="text-xs font-medium">Tipo do documento *</label>
+            <Select value={catalogId} onValueChange={setCatalogId}>
+              <SelectTrigger><SelectValue placeholder="Selecionar tipo do catálogo..." /></SelectTrigger>
+              <SelectContent>
+                {(catalog as any[]).map((c: any) => (
+                  <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs font-medium">Data de emissão</label>
+              <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-xs font-medium">Data de validade</label>
+              <Input type="date" value={expiryDate} onChange={(e) => setExpiryDate(e.target.value)} />
+            </div>
+          </div>
           <div className="relative">
             <Button variant="outline" className="w-full justify-start text-muted-foreground">
               {uploadFile ? uploadFile.name : "Selecionar arquivo..."}
@@ -548,40 +580,27 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
           </div>
           <div className="flex gap-2 justify-end">
             <Button variant="outline" size="sm" onClick={() => setShowUpload(false)}>Cancelar</Button>
-            <Button size="sm" onClick={handleUpload} disabled={isUploading || !uploadFile || !docTitle.trim()}>
-              {isUploading ? "Enviando..." : "Enviar"}
+            <Button size="sm" onClick={handleUpload} disabled={upload.isPending || !uploadFile || !catalogId}>
+              {upload.isPending ? "Enviando..." : "Enviar"}
             </Button>
           </div>
         </div>
       )}
 
-      {docs.length === 0 ? (
+      {currentDocs.length === 0 && historicalDocs.length === 0 ? (
         <p className="text-center text-muted-foreground py-6">Nenhum documento encontrado</p>
       ) : (
-        docs.map((doc: any) => (
-          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
-            <div className="flex items-center gap-3 min-w-0">
-              <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{doc.title || doc.file_name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {doc.document_type} • {format(new Date(doc.created_at), "dd/MM/yyyy")}
-                  {doc.source === "tech" && <Badge variant="outline" className="ml-2 text-xs">Técnico</Badge>}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)}>
-                <Download className="h-4 w-4" />
+        <>
+          {currentDocs.map((d) => renderDoc(d, false))}
+          {historicalDocs.length > 0 && (
+            <>
+              <Button variant="ghost" size="sm" className="w-full" onClick={() => setShowLegacy(!showLegacy)}>
+                {showLegacy ? "Ocultar" : "Mostrar"} histórico ({historicalDocs.length})
               </Button>
-              {doc.source === "corp" && (
-                <Button size="icon" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => setDeleteTarget(doc)}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-          </div>
-        ))
+              {showLegacy && historicalDocs.map((d) => renderDoc(d, true))}
+            </>
+          )}
+        </>
       )}
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(v) => !v && setDeleteTarget(null)}>
@@ -589,7 +608,7 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir documento?</AlertDialogTitle>
             <AlertDialogDescription>
-              O documento "{deleteTarget?.title || deleteTarget?.file_name}" será removido permanentemente.
+              O documento "{deleteTarget?.file_name}" será removido permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
