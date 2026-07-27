@@ -8,7 +8,7 @@ import { useAIChat, type ReportFields } from '@/hooks/useAIChat';
 import { AIMessageFeedback } from './AIMessageFeedback';
 import { AIConversationList } from './AIConversationList';
 import { AIActionButton, detectActionsFromResponse } from './AIActionButton';
-import { AIPhotoUpload } from './AIPhotoUpload';
+import { AIAttachmentUpload, type MarinaAttachment } from './AIAttachmentUpload';
 import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
 
@@ -117,7 +117,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   } = useAIChat({ userRole, context });
 
   const [input, setInput] = useState('');
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [attachments, setAttachments] = useState<MarinaAttachment[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -131,11 +131,12 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   }, [messages, isLoading, reportPreview]);
 
   const handleSend = () => {
-    if (!input.trim() || isLoading) return;
-    sendMessage(input, selectedImage || undefined);
+    if ((!input.trim() && attachments.length === 0) || isLoading) return;
+    sendMessage(input || '(anexo)', attachments);
     setInput('');
-    setSelectedImage(null);
+    setAttachments([]);
   };
+
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -336,9 +337,21 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
                             className="max-w-full rounded mb-2"
                           />
                         )}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {msg.attachments.map((a, ai) => a.kind === 'image' ? (
+                              <img key={ai} src={a.dataUrl} alt={a.name} className="max-w-[180px] rounded" />
+                            ) : (
+                              <span key={ai} className="inline-flex items-center gap-1 rounded bg-background/20 px-2 py-0.5 text-xs">
+                                📎 {a.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <span>{msg.content}</span>
                       </div>
                     )}
+
                   </div>
 
                   {/* Feedback for assistant messages */}
@@ -368,18 +381,16 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
       {/* Input */}
       <div className="p-3 border-t">
         <div className="flex gap-2 items-end">
-          {userRole === 'technician' && (
-            <AIPhotoUpload
-              selectedImage={selectedImage}
-              onImageSelect={setSelectedImage}
-            />
-          )}
+          <AIAttachmentUpload
+            attachments={attachments}
+            onChange={setAttachments}
+          />
           <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={selectedImage ? "Descreva o que quer analisar na foto..." : "Digite sua pergunta..."}
+            placeholder={attachments.length > 0 ? "Descreva o que quer que a Marina faça com o(s) anexo(s)..." : "Digite sua pergunta..."}
             className="min-h-[40px] max-h-[120px] resize-none flex-1"
             rows={1}
             disabled={isLoading}
@@ -387,7 +398,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
           <Button
             size="icon"
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            disabled={(!input.trim() && attachments.length === 0) || isLoading}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -399,4 +410,5 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
       </div>
     </div>
   );
+
 }
