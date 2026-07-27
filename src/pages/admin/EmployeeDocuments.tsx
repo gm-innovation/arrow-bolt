@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useCoordinatorEmployeeDocs, useMyPackages, useCreatePackage, getSignedDocUrl, PURPOSE_LABELS } from "@/hooks/useHRDocumentSharing";
 import { Search, Download, FileText, PackagePlus, ShieldAlert, Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -56,6 +57,35 @@ const Directory = () => {
     });
   };
 
+  const selectedByEmp = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const s of selected) m.set(s.employee_id, (m.get(s.employee_id) ?? 0) + 1);
+    return m;
+  }, [selected]);
+
+  const summarize = (items: any[]) => {
+    let available = 0, expired = 0, soon = 0, missing = 0;
+    const now = Date.now();
+    for (const it of items) {
+      const d = it.document;
+      if (!d) { missing++; continue; }
+      available++;
+      if (d.expiry_date) {
+        const t = new Date(d.expiry_date).getTime();
+        const diffDays = Math.round((t - now) / 86400000);
+        if (diffDays < 0) expired++;
+        else if (diffDays <= 30) soon++;
+      }
+    }
+    return { available, expired, soon, missing };
+  };
+
+  const [expanded, setExpanded] = useState<string[]>([]);
+  useEffect(() => {
+    if (q.trim()) setExpanded(filtered.map((e: any) => e.id));
+    else setExpanded([]);
+  }, [q, filtered]);
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -64,87 +94,112 @@ const Directory = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"/>
             <Input placeholder="Buscar colaborador ou cargo…" value={q} onChange={e=>setQ(e.target.value)} className="pl-9"/>
           </div>
-          <Button disabled={selected.length===0} onClick={()=>setPkgOpen(true)}>
-            <PackagePlus className="h-4 w-4 mr-2"/> Criar pacote ({selected.length})
-          </Button>
+          <div className="flex gap-2">
+            {filtered.length > 0 && (
+              <Button variant="outline" size="sm"
+                onClick={() => setExpanded(expanded.length === filtered.length ? [] : filtered.map((e: any) => e.id))}>
+                {expanded.length === filtered.length ? "Recolher todos" : "Expandir todos"}
+              </Button>
+            )}
+            <Button disabled={selected.length===0} onClick={()=>setPkgOpen(true)}>
+              <PackagePlus className="h-4 w-4 mr-2"/> Criar pacote ({selected.length})
+            </Button>
+          </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-2">
         {isLoading && "Carregando…"}
         {!isLoading && filtered.length === 0 && (
           <div className="text-sm text-muted-foreground flex items-center gap-2">
             <ShieldAlert className="h-4 w-4"/> Nenhum colaborador com documentos autorizados pelo RH ainda.
           </div>
         )}
-        {filtered.map((emp: any) => (
-          <Card key={emp.id}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center justify-between">
-                <span>{emp.full_name ?? emp.email ?? "—"}</span>
-                <span className="text-xs font-normal text-muted-foreground">{emp.position ?? ""}</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10"></TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Emissão</TableHead>
-                    <TableHead>Validade</TableHead>
-                    <TableHead>Situação</TableHead>
-                    <TableHead className="w-32">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {emp.items.map((it: any) => {
-                    const doc = it.document;
-                    const cat = it.catalog;
-                    const checked = doc ? selected.some(s => s.document_id === doc.id) : false;
-                    const download = async () => {
-                      if (!doc) return;
-                      try {
-                        const url = await getSignedDocUrl({
-                          document_id: doc.id, file_path: doc.file_path,
-                          action: "download", employee_id: emp.id,
-                        });
-                        window.open(url, "_blank");
-                      } catch (e:any) { toast.error("Erro ao baixar", { description: e.message }); }
-                    };
-                    return (
-                      <TableRow key={cat.id}>
-                        <TableCell>
-                          <Checkbox
-                            disabled={!doc}
-                            checked={checked}
-                            onCheckedChange={()=>doc && toggle({
-                              employee_id: emp.id, document_id: doc.id, catalog_id: cat.id,
-                              requires_grant: false, label: `${emp.full_name} — ${cat.name}`,
-                            })}
-                          />
-                        </TableCell>
-                        <TableCell className="font-medium">{cat.name}</TableCell>
-                        <TableCell className="text-xs">{doc?.issue_date ?? "—"}</TableCell>
-                        <TableCell className="text-xs">{doc?.expiry_date ?? "—"}</TableCell>
-                        <TableCell>
-                          {!doc ? <Badge variant="destructive">Sem arquivo</Badge>
-                            : doc.expiry_date && new Date(doc.expiry_date) < new Date()
-                              ? <Badge variant="destructive">Vencido</Badge>
-                              : <Badge>Disponível</Badge>}
-                        </TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="ghost" disabled={!doc} onClick={download}>
-                            <Download className="h-4 w-4 mr-1"/> Baixar
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        ))}
+        {filtered.length > 0 && (
+          <Accordion type="multiple" value={expanded} onValueChange={setExpanded} className="w-full">
+            {filtered.map((emp: any) => {
+              const s = summarize(emp.items);
+              const selCount = selectedByEmp.get(emp.id) ?? 0;
+              return (
+                <AccordionItem key={emp.id} value={emp.id} className="border rounded-lg mb-2 px-3 data-[state=open]:bg-muted/20">
+                  <AccordionTrigger className="hover:no-underline py-3">
+                    <div className="flex flex-1 items-center gap-3 pr-3 min-w-0">
+                      <div className="min-w-0 flex-1 text-left">
+                        <div className="font-medium truncate">{emp.full_name ?? emp.email ?? "—"}</div>
+                        {emp.position && <div className="text-xs text-muted-foreground truncate">{emp.position}</div>}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 justify-end">
+                        <Badge variant="secondary">{s.available} doc(s)</Badge>
+                        {s.expired > 0 && <Badge variant="destructive">{s.expired} vencido(s)</Badge>}
+                        {s.soon > 0 && <Badge variant="outline" className="border-amber-500 text-amber-600">{s.soon} a vencer</Badge>}
+                        {s.missing > 0 && <Badge variant="outline">{s.missing} sem arquivo</Badge>}
+                        {selCount > 0 && <Badge className="bg-primary">{selCount} selecionado(s)</Badge>}
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-3">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-10"></TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Emissão</TableHead>
+                          <TableHead>Validade</TableHead>
+                          <TableHead>Situação</TableHead>
+                          <TableHead className="w-32">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {emp.items.map((it: any) => {
+                          const doc = it.document;
+                          const cat = it.catalog;
+                          const checked = doc ? selected.some(x => x.document_id === doc.id) : false;
+                          const download = async () => {
+                            if (!doc) return;
+                            try {
+                              const url = await getSignedDocUrl({
+                                document_id: doc.id, file_path: doc.file_path,
+                                action: "download", employee_id: emp.id,
+                              });
+                              window.open(url, "_blank");
+                            } catch (e:any) { toast.error("Erro ao baixar", { description: e.message }); }
+                          };
+                          return (
+                            <TableRow key={cat.id}>
+                              <TableCell>
+                                <Checkbox
+                                  disabled={!doc}
+                                  checked={checked}
+                                  onCheckedChange={()=>doc && toggle({
+                                    employee_id: emp.id, document_id: doc.id, catalog_id: cat.id,
+                                    requires_grant: false, label: `${emp.full_name} — ${cat.name}`,
+                                  })}
+                                />
+                              </TableCell>
+                              <TableCell className="font-medium">{cat.name}</TableCell>
+                              <TableCell className="text-xs">{doc?.issue_date ?? "—"}</TableCell>
+                              <TableCell className="text-xs">{doc?.expiry_date ?? "—"}</TableCell>
+                              <TableCell>
+                                {!doc ? <Badge variant="destructive">Sem arquivo</Badge>
+                                  : doc.expiry_date && new Date(doc.expiry_date) < new Date()
+                                    ? <Badge variant="destructive">Vencido</Badge>
+                                    : <Badge>Disponível</Badge>}
+                              </TableCell>
+                              <TableCell>
+                                <Button size="sm" variant="ghost" disabled={!doc} onClick={download}>
+                                  <Download className="h-4 w-4 mr-1"/> Baixar
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        )}
       </CardContent>
       <PackageDialog open={pkgOpen} onOpenChange={setPkgOpen} items={selected} clear={()=>setSelected([])}/>
     </Card>
