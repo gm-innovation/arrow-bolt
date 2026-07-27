@@ -397,16 +397,30 @@ export default function SupportInbox() {
                 )}
               </div>
 
-              {selected.conversation_excerpt && Array.isArray(selected.conversation_excerpt) && selected.conversation_excerpt.length > 0 && (
-                <details className="text-xs">
-                  <summary className="cursor-pointer text-muted-foreground">
-                    Conversa com Marina (contexto)
-                  </summary>
+              <details className="text-xs" open>
+                <summary className="cursor-pointer text-muted-foreground">
+                  Conversa com Marina (contexto)
+                  {" "}
+                  {Array.isArray(selected.conversation_excerpt) && selected.conversation_excerpt.length > 0 ? (
+                    <span className="text-muted-foreground/70">
+                      · {selected.conversation_excerpt.length} mensagem(ns)
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/70">· vazio</span>
+                  )}
+                </summary>
+                {Array.isArray(selected.conversation_excerpt) && selected.conversation_excerpt.length > 0 ? (
                   <pre className="mt-2 p-2 bg-muted rounded overflow-auto max-h-48">
                     {JSON.stringify(selected.conversation_excerpt, null, 2)}
                   </pre>
-                </details>
-              )}
+                ) : (
+                  <p className="mt-2 p-2 bg-muted rounded text-muted-foreground italic">
+                    Contexto não capturado neste chamado (criado antes do fix ou sem histórico prévio).
+                    Novos chamados registrarão automaticamente as últimas mensagens da conversa.
+                  </p>
+                )}
+              </details>
+
 
               <div className="space-y-2">
                 {messages.map((m) => (
