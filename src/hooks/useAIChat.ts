@@ -258,8 +258,22 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
   }, []);
 
   // Send a message
-  const sendMessage = useCallback(async (messageText: string, image?: string) => {
+  const sendMessage = useCallback(async (
+    messageText: string,
+    imageOrAttachments?: string | MarinaAttachmentPayload[],
+  ) => {
     if (!messageText.trim() || isLoading || !user?.id) return;
+
+    // Backwards compat: legacy callers pass an image data URL as string
+    const attachments: MarinaAttachmentPayload[] = Array.isArray(imageOrAttachments)
+      ? imageOrAttachments
+      : (typeof imageOrAttachments === 'string' && imageOrAttachments
+          ? [{ kind: 'image', name: 'foto.jpg', mime: 'image/jpeg', size: 0, dataUrl: imageOrAttachments }]
+          : []);
+    const firstImage = attachments.find(a => a.kind === 'image') as
+      | Extract<MarinaAttachmentPayload, { kind: 'image' }>
+      | undefined;
+    const legacyImage = firstImage?.dataUrl;
 
     setIsLoading(true);
     let conversationId = currentConversationId;
@@ -276,11 +290,19 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
     }
 
     // Add user message to UI
-    const userMsg: AIMessage = { role: 'user', content: messageText.trim(), image };
+    const userMsg: AIMessage = {
+      role: 'user',
+      content: messageText.trim(),
+      image: legacyImage,
+      attachments: attachments.length ? attachments : undefined,
+    };
     setMessages(prev => [...prev, userMsg]);
 
     // Save user message
-    await saveMessage(conversationId, 'user', messageText.trim(), image ? { has_image: true } : undefined);
+    const savedMeta: Record<string, unknown> = {};
+    if (attachments.length) savedMeta.attachments = attachments;
+    if (legacyImage) savedMeta.has_image = true;
+    await saveMessage(conversationId, 'user', messageText.trim(), Object.keys(savedMeta).length ? savedMeta : undefined);
 
     // Update title if first message
     if (messages.length === 0) {
@@ -303,7 +325,8 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
         },
         body: JSON.stringify({
           message: messageText,
-          image,
+          image: legacyImage,
+          attachments,
           userRole,
           context: {
             ...context,
@@ -315,6 +338,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
           messages: messages.map(m => ({ role: m.role, content: m.content }))
         }),
       });
+
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
