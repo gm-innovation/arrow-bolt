@@ -204,22 +204,49 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
   ];
 
-  const hrMenuItems = [
+  const hrMenuItems: MenuEntry[] = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/hr/dashboard" },
-    { title: "Colaboradores", icon: Users, path: "/hr/employees" },
-    { title: "Controle de Atendimento", icon: History, path: "/hr/time-control" },
-    { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
-    { title: "Documentos", icon: FileText, path: "/hr/documents" },
-    { title: "Conformidade Documental", icon: ShieldCheck, path: "/hr/document-compliance" },
-    { title: "Revisão de Documentos", icon: FileCheck, path: "/hr/document-reviews" },
-    { title: "Compartilhamento com Coordenadores", icon: ShieldCheck, path: "/hr/document-sharing" },
+    {
+      title: "Pessoas",
+      icon: Users,
+      key: "hr-people",
+      children: [
+        { title: "Colaboradores", icon: Users, path: "/hr/employees" },
+        { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
+        { title: "Controle de Atendimento", icon: History, path: "/hr/time-control" },
+        { title: "Férias", icon: Palmtree, path: "/hr/vacations" },
+      ],
+    },
+    {
+      title: "Documentação",
+      icon: FolderOpen,
+      key: "hr-docs",
+      children: [
+        { title: "Documentos", icon: FileText, path: "/hr/documents" },
+        { title: "Conformidade Documental", icon: ShieldCheck, path: "/hr/document-compliance" },
+        { title: "Revisão de Documentos", icon: FileCheck, path: "/hr/document-reviews" },
+        { title: "Compartilhamento com Coordenadores", icon: ShieldCheck, path: "/hr/document-sharing" },
+      ],
+    },
+    {
+      title: "SST",
+      icon: Stethoscope,
+      key: "hr-sst",
+      children: [
+        { title: "Exames Ocupacionais", icon: Stethoscope, path: "/hr/health-exams" },
+        { title: "Gestão de EPI", icon: ClipboardList, path: "/hr/epi" },
+      ],
+    },
+    {
+      title: "Departamento Pessoal",
+      icon: FileBarChart,
+      key: "hr-dp",
+      children: [
+        { title: "Folha de Pagamento", icon: FileBarChart, path: "/hr/payroll-export" },
+        { title: "Parcerias", icon: Inbox, path: "/hr/partnerships" },
+      ],
+    },
     { title: "Recrutamento", icon: Inbox, path: "/hr/recruitment" },
-    { title: "Gestão de EPI", icon: ClipboardList, path: "/hr/epi" },
-    { title: "Exames Ocupacionais", icon: Stethoscope, path: "/hr/health-exams" },
-    { title: "Férias", icon: Palmtree, path: "/hr/vacations" },
-    { title: "Folha de Pagamento", icon: FileBarChart, path: "/hr/payroll-export" },
-
-    { title: "Parcerias", icon: Inbox, path: "/hr/partnerships" },
     { title: "Treinamentos", icon: GraduationCap, path: "/hr/university" },
     { title: "Relatórios", icon: FileBarChart, path: "/hr/reports" },
     { title: "Configurações", icon: Settings, path: "/hr/settings" },
