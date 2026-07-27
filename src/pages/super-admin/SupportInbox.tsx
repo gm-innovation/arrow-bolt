@@ -17,6 +17,18 @@ import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AlertCircle, Bug, Lightbulb, HelpCircle, MessageSquare, RefreshCw, Sparkles, Copy, Loader2 } from "lucide-react";
+import { FunctionsHttpError } from "@supabase/supabase-js";
+
+// A ticket whose dev_prompt is "pending" for more than this many ms is
+// considered stale — the trigger likely failed silently and we allow retry.
+const STALE_PENDING_MS = 2 * 60 * 1000;
+
+function isDevPromptStale(t: any): boolean {
+  if (t?.dev_prompt_status !== "pending") return false;
+  const ts = t?.updated_at ?? t?.created_at;
+  if (!ts) return false;
+  return Date.now() - new Date(ts).getTime() > STALE_PENDING_MS;
+}
 
 const CATEGORY_META: Record<string, { label: string; icon: any; color: string }> = {
   bug: { label: "Bug", icon: Bug, color: "bg-red-100 text-red-700" },
@@ -121,22 +133,35 @@ export default function SupportInbox() {
 
   const regenerateDevPrompt = useMutation({
     mutationFn: async (ticketId: string) => {
-      // Optimistically mark pending
-      await supabase
-        .from("support_tickets")
-        .update({ dev_prompt_status: "pending" })
-        .eq("id", ticketId);
-      qc.invalidateQueries({ queryKey: ["support-tickets"] });
+      // Let the edge function mark 'pending' itself. Invoke and, on failure,
+      // read the real error body so we can surface it and reset the ticket.
       const { error } = await supabase.functions.invoke("generate-ticket-dev-prompt", {
         body: { ticket_id: ticketId },
       });
-      if (error) throw error;
+      if (error) {
+        let detail = error.message;
+        if (error instanceof FunctionsHttpError) {
+          try { detail = await error.context.text(); } catch { /* ignore */ }
+        }
+        // Unstick the ticket so the button becomes clickable again.
+        await supabase
+          .from("support_tickets")
+          .update({
+            dev_prompt_status: "failed",
+            dev_prompt_error: (detail ?? "Falha desconhecida").slice(0, 500),
+          })
+          .eq("id", ticketId);
+        throw new Error(detail);
+      }
     },
     onSuccess: () => {
       toast.success("Prompt gerado");
       qc.invalidateQueries({ queryKey: ["support-tickets"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Falha ao gerar prompt"),
+    onError: (e: any) => {
+      qc.invalidateQueries({ queryKey: ["support-tickets"] });
+      toast.error(e?.message ?? "Falha ao gerar prompt");
+    },
   });
 
   const copyPrompt = (text: string) => {
@@ -296,10 +321,13 @@ export default function SupportInbox() {
                         {selected.suggested_area}
                       </Badge>
                     )}
-                    {selected.dev_prompt_status === "pending" && (
+                    {selected.dev_prompt_status === "pending" && !isDevPromptStale(selected) && (
                       <Badge variant="secondary" className="text-xs gap-1">
                         <Loader2 className="h-3 w-3 animate-spin" /> Gerando
                       </Badge>
+                    )}
+                    {selected.dev_prompt_status === "pending" && isDevPromptStale(selected) && (
+                      <Badge variant="destructive" className="text-xs">Interrompido</Badge>
                     )}
                     {selected.dev_prompt_status === "failed" && (
                       <Badge variant="destructive" className="text-xs">Falhou</Badge>
@@ -323,7 +351,10 @@ export default function SupportInbox() {
                       size="sm"
                       variant="outline"
                       onClick={() => regenerateDevPrompt.mutate(selected.id)}
-                      disabled={regenerateDevPrompt.isPending || selected.dev_prompt_status === "pending"}
+                      disabled={
+                        regenerateDevPrompt.isPending ||
+                        (selected.dev_prompt_status === "pending" && !isDevPromptStale(selected))
+                      }
                       className="h-7"
                     >
                       <RefreshCw className={`h-3 w-3 mr-1 ${regenerateDevPrompt.isPending ? "animate-spin" : ""}`} />
@@ -338,8 +369,10 @@ export default function SupportInbox() {
                   </pre>
                 ) : (
                   <p className="text-xs text-muted-foreground">
-                    {selected.dev_prompt_status === "pending"
+                    {selected.dev_prompt_status === "pending" && !isDevPromptStale(selected)
                       ? "A Marina está interpretando o chamado e escrevendo o prompt..."
+                      : selected.dev_prompt_status === "pending" && isDevPromptStale(selected)
+                      ? "A geração foi interrompida antes de concluir. Clique em Regerar."
                       : "Ainda não há prompt para este chamado. Clique em Gerar."}
                   </p>
                 )}
@@ -364,16 +397,30 @@ export default function SupportInbox() {
                 )}
               </div>
 
-              {selected.conversation_excerpt && Array.isArray(selected.conversation_excerpt) && selected.conversation_excerpt.length > 0 && (
-                <details className="text-xs">
-                  <summary className="cursor-pointer text-muted-foreground">
-                    Conversa com Marina (contexto)
-                  </summary>
+              <details className="text-xs" open>
+                <summary className="cursor-pointer text-muted-foreground">
+                  Conversa com Marina (contexto)
+                  {" "}
+                  {Array.isArray(selected.conversation_excerpt) && selected.conversation_excerpt.length > 0 ? (
+                    <span className="text-muted-foreground/70">
+                      · {selected.conversation_excerpt.length} mensagem(ns)
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground/70">· vazio</span>
+                  )}
+                </summary>
+                {Array.isArray(selected.conversation_excerpt) && selected.conversation_excerpt.length > 0 ? (
                   <pre className="mt-2 p-2 bg-muted rounded overflow-auto max-h-48">
                     {JSON.stringify(selected.conversation_excerpt, null, 2)}
                   </pre>
-                </details>
-              )}
+                ) : (
+                  <p className="mt-2 p-2 bg-muted rounded text-muted-foreground italic">
+                    Contexto não capturado neste chamado (criado antes do fix ou sem histórico prévio).
+                    Novos chamados registrarão automaticamente as últimas mensagens da conversa.
+                  </p>
+                )}
+              </details>
+
 
               <div className="space-y-2">
                 {messages.map((m) => (
