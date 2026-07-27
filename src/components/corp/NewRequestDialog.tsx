@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Package, CreditCard, FileText, CalendarDays, HelpCircle, DollarSign, Trash2 } from 'lucide-react';
+import { Plus, Package, CreditCard, FileText, CalendarDays, HelpCircle, DollarSign, Trash2, Megaphone } from 'lucide-react';
 import { useCorpRequests } from '@/hooks/useCorpRequests';
 import { useCorpRequestTypes } from '@/hooks/useCorpRequestTypes';
 import { useDepartments } from '@/hooks/useDepartments';
