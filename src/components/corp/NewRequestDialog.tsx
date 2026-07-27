@@ -22,6 +22,7 @@ interface NewRequestDialogProps {
 
 const categoryIcons: Record<string, any> = {
   product: Package,
+  marketing_materials: Megaphone,
   subscription: CreditCard,
   document: FileText,
   time_off: CalendarDays,
@@ -31,6 +32,7 @@ const categoryIcons: Record<string, any> = {
 
 const categoryLabels: Record<string, string> = {
   product: 'Produto / Material',
+  marketing_materials: 'Materiais de Marketing',
   subscription: 'Assinatura / Software',
   document: 'Documento',
   time_off: 'Folga / Férias',
