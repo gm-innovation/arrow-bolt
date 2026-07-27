@@ -119,6 +119,33 @@ export default function SupportInbox() {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const regenerateDevPrompt = useMutation({
+    mutationFn: async (ticketId: string) => {
+      // Optimistically mark pending
+      await supabase
+        .from("support_tickets")
+        .update({ dev_prompt_status: "pending" })
+        .eq("id", ticketId);
+      qc.invalidateQueries({ queryKey: ["support-tickets"] });
+      const { error } = await supabase.functions.invoke("generate-ticket-dev-prompt", {
+        body: { ticket_id: ticketId },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Prompt gerado");
+      qc.invalidateQueries({ queryKey: ["support-tickets"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Falha ao gerar prompt"),
+  });
+
+  const copyPrompt = (text: string) => {
+    navigator.clipboard.writeText(text).then(
+      () => toast.success("Prompt copiado"),
+      () => toast.error("Não foi possível copiar")
+    );
+  };
+
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
