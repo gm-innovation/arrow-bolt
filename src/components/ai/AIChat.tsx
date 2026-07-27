@@ -337,9 +337,21 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
                             className="max-w-full rounded mb-2"
                           />
                         )}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {msg.attachments.map((a, ai) => a.kind === 'image' ? (
+                              <img key={ai} src={a.dataUrl} alt={a.name} className="max-w-[180px] rounded" />
+                            ) : (
+                              <span key={ai} className="inline-flex items-center gap-1 rounded bg-background/20 px-2 py-0.5 text-xs">
+                                📎 {a.name}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                         <span>{msg.content}</span>
                       </div>
                     )}
+
                   </div>
 
                   {/* Feedback for assistant messages */}
