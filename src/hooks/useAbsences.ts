@@ -20,6 +20,8 @@ export interface Absence {
   created_by?: string;
   created_at: string;
   updated_at: string;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
   technician?: {
     id: string;
     user_id: string;
@@ -38,6 +40,8 @@ export interface CreateAbsenceData {
   end_time?: string;
   reason?: string;
   notes?: string;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
 }
 
 export const useAbsences = (filters?: { technicianId?: string; startDate?: string; endDate?: string }) => {
