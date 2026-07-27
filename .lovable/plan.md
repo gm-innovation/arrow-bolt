@@ -1,44 +1,47 @@
-# Nova categoria "Materiais de Marketing" + departamento "Marketing"
+## Diagnóstico
 
-## Contexto verificado
+Investiguei a página `/hr/recruitment` (aba "Link público") e o storage:
 
-- Tipos de solicitação vivem em `corp_request_types` com uma coluna `category` (texto). Hoje há 6 categorias hardcoded: `product`, `subscription`, `document`, `time_off`, `reimbursement`, `general`, criadas por `auto_create_corp_request_types_for_company()` em cada nova empresa.
-- O formulário `src/components/corp/NewRequestDialog.tsx` mapeia rótulo/ícone/ordem por categoria (`categoryLabels`, `categoryIcons`, `CATEGORY_ORDER`) e escolhe o departamento destinatário via `useDepartments()` (tabela `departments`).
-- Não existe seed automático de "Marketing" em `departments`. O trigger `auto_assign_department_on_role` mapeia roles → nomes de departamento, mas **não inclui** a role `marketing` (que já existe no enum `app_role`), então usuários de marketing nunca alimentam esse departamento e ele não aparece no dropdown.
+**Causa raiz do bug**: A tabela `companies` só tem política de UPDATE para `super_admin`. Não existe política permitindo que perfis **HR / director / admin** atualizem a própria empresa. Por isso:
 
-## Escopo
+- Salvar "Domínio público do site" (`public_site_base_url`) → falha silenciosa via RLS (linha 91-94 de `Recruitment.tsx`).
+- Upload da logo: o arquivo até sobe para o bucket `company-logos` (as políticas do storage já permitem HR/director/admin), mas o `UPDATE companies SET logo_url = ...` (linha 127-130) é bloqueado pelo RLS. Resultado: a logo fica órfã no bucket e a UI continua mostrando "Sem logo configurada".
 
-### 1. Backend (uma migration)
+**O que já está correto** (não precisa mexer):
+- Bucket `company-logos` existe, é público e tem policies de INSERT/UPDATE/DELETE para HR/director/admin.
+- Componente `Recruitment.tsx` faz as chamadas corretas.
 
-- Atualizar `auto_create_corp_request_types_for_company()` para incluir a nova linha:
-  `('Materiais de Marketing', 'marketing_materials', true, true)`.
-- Backfill: inserir o tipo `marketing_materials` para todas as empresas existentes que ainda não o tenham.
-- Atualizar `auto_assign_department_on_role()` (nos dois blocos CASE, INSERT e cleanup do UPDATE) para mapear `marketing` → `'Marketing'`.
-- Backfill: para cada empresa, criar o departamento `Marketing` se não existir, e popular `department_members` com todos os `user_roles` que tenham role `marketing`.
+## Correção
 
-Sem novas tabelas → nenhum GRANT/RLS novo é necessário (usa infra existente).
+Migration única adicionando policy de UPDATE em `public.companies`:
 
-### 2. Frontend (`src/components/corp/NewRequestDialog.tsx`)
+```sql
+CREATE POLICY "HR/director/admin can update own company"
+ON public.companies FOR UPDATE
+TO authenticated
+USING (
+  id = user_company_id(auth.uid())
+  AND (
+    has_role(auth.uid(), 'hr'::app_role)
+    OR has_role(auth.uid(), 'director'::app_role)
+    OR has_role(auth.uid(), 'admin'::app_role)
+  )
+)
+WITH CHECK (
+  id = user_company_id(auth.uid())
+  AND (
+    has_role(auth.uid(), 'hr'::app_role)
+    OR has_role(auth.uid(), 'director'::app_role)
+    OR has_role(auth.uid(), 'admin'::app_role)
+  )
+);
+```
 
-- Adicionar `marketing_materials` em:
-  - `categoryLabels` → "Materiais de Marketing"
-  - `categoryIcons` → ícone `Megaphone` (lucide-react)
-  - `CATEGORY_ORDER` → posicionar logo após `product` (ex.: product=0, marketing_materials=1, document=2, ...)
-- Incluir `marketing_materials` no array `showTarget` para exibir o seletor de departamento/destinatário (o dropdown de departamentos já mostrará "Marketing" automaticamente após o backfill).
-- Reaproveitar a mesma UX de "Produto / Material" (lista de itens com nome/quantidade/valor/link) para materiais de marketing — condicionar `productItems`/`showAmount` também à categoria `marketing_materials`.
+Escopo: qualquer coluna da própria empresa. Isso destrava tanto o "Salvar domínio" quanto o vínculo `logo_url` do upload da logo, e permite futuras edições de dados da empresa por HR/diretoria sem novas migrations.
 
-### 3. Sem mudanças de tipo TS
+## Validação
 
-`corp_request_types.category` é `text`; nada precisa ser regenerado. O valor `marketing_materials` já é aceito pela coluna.
-
-## Critérios de aceite mapeados
-
-1. Dropdown "Categoria" em `/admin/requests` (Nova Solicitação) mostra "Materiais de Marketing" ✔ — vem do seed/backfill em `corp_request_types` + `categoryLabels`.
-2. Ao selecionar a categoria, o campo "Departamento destinatário" mostra "Marketing" ✔ — vem do backfill em `departments` + `showTarget`.
-3. Persistência: a solicitação salva em `corp_requests` com `request_type_id` apontando para o tipo `marketing_materials` e `department_id` do departamento "Marketing" ✔ — o fluxo de submit atual já cobre.
-
-## Ordem de execução
-
-1. Migration (schema function + backfills de tipos, departamento e membros).
-2. Edit em `NewRequestDialog.tsx` (labels, ícone, ordem, showTarget, condicionais de produto).
-3. Verificação manual rápida no preview: abrir Nova Solicitação, confirmar categoria e departamento.
+Após aplicar a migration:
+1. Login como HR → `/hr/recruitment` → aba "Link público" → editar domínio → **Salvar** → toast "Domínio público atualizado" e valor persiste ao recarregar.
+2. Enviar logo (PNG/JPG ≤2MB) → toast "Logo atualizada", thumbnail aparece, aviso "Sem logo configurada" some.
+3. Sem regressão: super_admin continua com acesso total via policy existente.
