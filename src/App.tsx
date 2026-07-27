@@ -110,6 +110,8 @@ const HRSettings = lazy(() => import("./pages/hr/Settings"));
 const HRDocumentsPage = lazy(() => import("./pages/hr/Documents"));
 const HRDocumentCompliance = lazy(() => import("./pages/hr/DocumentCompliance"));
 const HRDocumentReviews = lazy(() => import("./pages/hr/DocumentReviews"));
+const HRDocumentSharing = lazy(() => import("./pages/hr/DocumentSharing"));
+const AdminEmployeeDocuments = lazy(() => import("./pages/admin/EmployeeDocuments"));
 const HROnboarding = lazy(() => import("./pages/hr/Onboarding"));
 const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"));
 const HREmployees = lazy(() => import("./pages/hr/Employees"));
@@ -313,6 +315,7 @@ const App = () => {
                     <Route path="/admin/technician-locations" element={<TechnicianLocations />} />
                     <Route path="/admin/audit-logs" element={<AuditLogs />} />
                     <Route path="/admin/reservations" element={<TechnicianReservations />} />
+                    <Route path="/admin/employee-documents" element={<AdminEmployeeDocuments />} />
                     <Route path="/admin/leads" element={<Navigate to="/admin/opportunities?tab=leads" replace />} />
                     <Route path="/admin/leads/legacy" element={<AdminLeads />} />
                     <Route path="/admin/opportunities" element={<AdminOpportunities />} />
@@ -350,6 +353,7 @@ const App = () => {
                     <Route path="/hr/documents" element={<HRDocumentsPage />} />
                     <Route path="/hr/document-compliance" element={<HRDocumentCompliance />} />
                     <Route path="/hr/document-reviews" element={<HRDocumentReviews />} />
+                    <Route path="/hr/document-sharing" element={<HRDocumentSharing />} />
                     <Route path="/hr/onboarding" element={<HROnboarding />} />
                     <Route path="/hr/onboarding/settings" element={<HROnboardingSettings />} />
                     <Route path="/hr/recruitment" element={<HRRecruitment />} />
