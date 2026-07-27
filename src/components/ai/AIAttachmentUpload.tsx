@@ -25,10 +25,7 @@ function iconFor(mime: string) {
   return FileIcon;
 }
 
-export function AIAttachmentUpload({ attachments, onChange, max = 10 }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const { processFiles, uploading } = useMarinaAttachments(attachments, onChange, max);
-
+export function AttachmentChips({ attachments, onChange }: Props) {
   const remove = (idx: number) => {
     const item = attachments[idx];
     if (item?.kind === 'file') {
@@ -37,8 +34,41 @@ export function AIAttachmentUpload({ attachments, onChange, max = 10 }: Props) {
     onChange(attachments.filter((_, i) => i !== idx));
   };
 
+  if (attachments.length === 0) return null;
+
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-wrap gap-2">
+      {attachments.map((a, i) => {
+        const Icon = iconFor(a.mime);
+        return (
+          <div key={i} className="relative flex items-center gap-2 rounded border border-border bg-muted/40 pl-2 pr-6 py-1 text-xs max-w-[220px]">
+            {a.kind === 'image' ? (
+              <img src={a.dataUrl} alt={a.name} className="h-6 w-6 rounded object-cover" />
+            ) : (
+              <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+            )}
+            <span className="truncate">{a.name}</span>
+            <button
+              type="button"
+              onClick={() => remove(i)}
+              className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-destructive/20"
+              aria-label={`Remover ${a.name}`}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export function AttachmentButton({ attachments, onChange, max = 10 }: Props) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const { processFiles, uploading } = useMarinaAttachments(attachments, onChange, max);
+
+  return (
+    <>
       <input
         ref={inputRef}
         type="file"
@@ -50,42 +80,27 @@ export function AIAttachmentUpload({ attachments, onChange, max = 10 }: Props) {
           if (inputRef.current) inputRef.current.value = '';
         }}
       />
-      {attachments.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {attachments.map((a, i) => {
-            const Icon = iconFor(a.mime);
-            return (
-              <div key={i} className="relative flex items-center gap-2 rounded border border-border bg-muted/40 pl-2 pr-6 py-1 text-xs max-w-[220px]">
-                {a.kind === 'image' ? (
-                  <img src={a.dataUrl} alt={a.name} className="h-6 w-6 rounded object-cover" />
-                ) : (
-                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                )}
-                <span className="truncate">{a.name}</span>
-                <button
-                  type="button"
-                  onClick={() => remove(i)}
-                  className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 hover:bg-destructive/20"
-                  aria-label={`Remover ${a.name}`}
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="h-8 w-8"
+        className="h-10 w-10 shrink-0"
         onClick={() => inputRef.current?.click()}
         disabled={uploading || attachments.length >= max}
         title={`Anexar arquivos (até ${max}, imagem/PDF/Word/Excel/PPT/TXT/CSV — 20MB cada). Você também pode arrastar e soltar.`}
       >
         {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
       </Button>
+    </>
+  );
+}
+
+/** @deprecated use <AttachmentChips /> above the textarea and <AttachmentButton /> beside it */
+export function AIAttachmentUpload(props: Props) {
+  return (
+    <div className="flex flex-col gap-2">
+      <AttachmentChips {...props} />
+      <AttachmentButton {...props} />
     </div>
   );
 }

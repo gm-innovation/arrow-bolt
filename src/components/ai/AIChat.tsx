@@ -8,7 +8,7 @@ import { useAIChat, type ReportFields } from '@/hooks/useAIChat';
 import { AIMessageFeedback } from './AIMessageFeedback';
 import { AIConversationList } from './AIConversationList';
 import { AIActionButton, detectActionsFromResponse } from './AIActionButton';
-import { AIAttachmentUpload, type MarinaAttachment } from './AIAttachmentUpload';
+import { AttachmentChips, AttachmentButton, type MarinaAttachment } from './AIAttachmentUpload';
 import { useMarinaAttachments } from '@/hooks/useMarinaAttachments';
 import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
@@ -426,32 +426,32 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
 
       {/* Input */}
       <div className="p-3 border-t">
-        <div className="flex gap-2 items-end">
-          <AIAttachmentUpload
-            attachments={attachments}
-            onChange={setAttachments}
-          />
-          <Textarea
-            ref={textareaRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={attachments.length > 0 ? "Descreva o que quer que a Marina faça com o(s) anexo(s)..." : "Digite sua pergunta..."}
-            className="min-h-[40px] max-h-[120px] resize-none flex-1"
-            rows={1}
-            disabled={isLoading}
-          />
-          <Button
-            size="icon"
-            onClick={handleSend}
-            disabled={(!input.trim() && attachments.length === 0) || isLoading}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+        <div className="flex flex-col gap-2">
+          <AttachmentChips attachments={attachments} onChange={setAttachments} />
+          <div className="flex gap-2 items-end">
+            <AttachmentButton attachments={attachments} onChange={setAttachments} />
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={attachments.length > 0 ? "Descreva o que quer que a Marina faça com o(s) anexo(s)..." : "Digite sua pergunta..."}
+              className="min-h-[40px] max-h-[120px] resize-none flex-1"
+              rows={1}
+              disabled={isLoading}
+            />
+            <Button
+              size="icon"
+              onClick={handleSend}
+              disabled={(!input.trim() && attachments.length === 0) || isLoading}
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
