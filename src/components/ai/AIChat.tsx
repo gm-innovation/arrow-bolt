@@ -131,11 +131,12 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   }, [messages, isLoading, reportPreview]);
 
   const handleSend = () => {
-    if (!input.trim() || isLoading) return;
-    sendMessage(input, selectedImage || undefined);
+    if ((!input.trim() && attachments.length === 0) || isLoading) return;
+    sendMessage(input || '(anexo)', attachments);
     setInput('');
-    setSelectedImage(null);
+    setAttachments([]);
   };
+
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
