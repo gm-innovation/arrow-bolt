@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAbsences, CreateAbsenceData } from '@/hooks/useAbsences';
+import AbsenceAttachmentField from './absence/AbsenceAttachmentField';
 
 interface Props {
   open: boolean;
@@ -19,12 +20,15 @@ const NewAbsenceDialog = ({ open, onOpenChange, onSuccess }: Props) => {
   const { user } = useAuth();
   const { createAbsence } = useAbsences();
   const [technicians, setTechnicians] = useState<any[]>([]);
+  const [companyId, setCompanyId] = useState<string>('');
   const [formData, setFormData] = useState<CreateAbsenceData>({
     technician_id: '',
     absence_type: 'day_off',
     start_date: '',
     end_date: '',
     reason: '',
+    attachment_url: null,
+    attachment_name: null,
   });
   const [loading, setLoading] = useState(false);
 
@@ -33,19 +37,40 @@ const NewAbsenceDialog = ({ open, onOpenChange, onSuccess }: Props) => {
       if (!user) return;
       const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
       if (!profile?.company_id) return;
+      setCompanyId(profile.company_id);
       const { data } = await supabase.from('technicians').select('id, profiles:profiles(full_name)').eq('company_id', profile.company_id).eq('active', true);
       setTechnicians(data || []);
     };
     if (open) fetchTechnicians();
   }, [user, open]);
 
+  const showAttachment = formData.absence_type === 'sick_leave' || formData.absence_type === 'medical_exam';
+  const attachmentRequired = formData.absence_type === 'sick_leave';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (attachmentRequired && !formData.attachment_url) {
+      return;
+    }
     setLoading(true);
     try {
-      await createAbsence.mutateAsync(formData);
+      // Clear attachment fields when type doesn't support attachment
+      const payload: CreateAbsenceData = {
+        ...formData,
+        attachment_url: showAttachment ? formData.attachment_url : null,
+        attachment_name: showAttachment ? formData.attachment_name : null,
+      };
+      await createAbsence.mutateAsync(payload);
       onSuccess();
-      setFormData({ technician_id: '', absence_type: 'day_off', start_date: '', end_date: '', reason: '' });
+      setFormData({
+        technician_id: '',
+        absence_type: 'day_off',
+        start_date: '',
+        end_date: '',
+        reason: '',
+        attachment_url: null,
+        attachment_name: null,
+      });
     } finally {
       setLoading(false);
     }
@@ -95,9 +120,23 @@ const NewAbsenceDialog = ({ open, onOpenChange, onSuccess }: Props) => {
             <Label>Motivo</Label>
             <Textarea value={formData.reason || ''} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} />
           </div>
+          {showAttachment && (
+            <AbsenceAttachmentField
+              companyId={companyId}
+              technicianId={formData.technician_id}
+              value={{ url: formData.attachment_url ?? null, name: formData.attachment_name ?? null }}
+              onChange={(v) => setFormData({ ...formData, attachment_url: v.url, attachment_name: v.name })}
+              required={attachmentRequired}
+            />
+          )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-            <Button type="submit" disabled={loading || !formData.technician_id}>{loading ? 'Salvando...' : 'Salvar'}</Button>
+            <Button
+              type="submit"
+              disabled={loading || !formData.technician_id || (attachmentRequired && !formData.attachment_url)}
+            >
+              {loading ? 'Salvando...' : 'Salvar'}
+            </Button>
           </div>
         </form>
       </DialogContent>

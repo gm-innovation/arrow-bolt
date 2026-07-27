@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import AbsenceAttachmentField from './absence/AbsenceAttachmentField';
 
 interface Props {
   absence: Absence | null;
@@ -31,12 +32,15 @@ const EditAbsenceDialog = ({ absence, open, onOpenChange, onSuccess }: Props) =>
   const { user } = useAuth();
   const { updateAbsence, deleteAbsence } = useAbsences();
   const [technicians, setTechnicians] = useState<any[]>([]);
+  const [companyId, setCompanyId] = useState<string>('');
   const [formData, setFormData] = useState({
     technician_id: '',
     absence_type: 'day_off' as Absence['absence_type'],
     start_date: '',
     end_date: '',
     reason: '',
+    attachment_url: null as string | null,
+    attachment_name: null as string | null,
   });
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -49,6 +53,8 @@ const EditAbsenceDialog = ({ absence, open, onOpenChange, onSuccess }: Props) =>
         start_date: absence.start_date,
         end_date: absence.end_date,
         reason: absence.reason || '',
+        attachment_url: absence.attachment_url ?? null,
+        attachment_name: absence.attachment_name ?? null,
       });
     }
   }, [absence]);
@@ -58,18 +64,28 @@ const EditAbsenceDialog = ({ absence, open, onOpenChange, onSuccess }: Props) =>
       if (!user) return;
       const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).single();
       if (!profile?.company_id) return;
+      setCompanyId(profile.company_id);
       const { data } = await supabase.from('technicians').select('id, profiles:profiles(full_name)').eq('company_id', profile.company_id).eq('active', true);
       setTechnicians(data || []);
     };
     if (open) fetchTechnicians();
   }, [user, open]);
 
+  const showAttachment = formData.absence_type === 'sick_leave' || formData.absence_type === 'medical_exam';
+  const attachmentRequired = formData.absence_type === 'sick_leave';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!absence) return;
+    if (attachmentRequired && !formData.attachment_url) return;
     setLoading(true);
     try {
-      await updateAbsence.mutateAsync({ id: absence.id, ...formData });
+      await updateAbsence.mutateAsync({
+        id: absence.id,
+        ...formData,
+        attachment_url: showAttachment ? formData.attachment_url : null,
+        attachment_name: showAttachment ? formData.attachment_name : null,
+      });
       onSuccess();
     } finally {
       setLoading(false);
@@ -133,6 +149,15 @@ const EditAbsenceDialog = ({ absence, open, onOpenChange, onSuccess }: Props) =>
               <Label>Motivo</Label>
               <Textarea value={formData.reason} onChange={(e) => setFormData({ ...formData, reason: e.target.value })} />
             </div>
+            {showAttachment && (
+              <AbsenceAttachmentField
+                companyId={companyId}
+                technicianId={formData.technician_id}
+                value={{ url: formData.attachment_url, name: formData.attachment_name }}
+                onChange={(v) => setFormData({ ...formData, attachment_url: v.url, attachment_name: v.name })}
+                required={attachmentRequired}
+              />
+            )}
             <div className="flex justify-between">
               <Button type="button" variant="destructive" onClick={() => setShowDeleteConfirm(true)} disabled={loading}>
                 <Trash2 className="h-4 w-4 mr-2" />
@@ -140,7 +165,12 @@ const EditAbsenceDialog = ({ absence, open, onOpenChange, onSuccess }: Props) =>
               </Button>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-                <Button type="submit" disabled={loading || !formData.technician_id}>{loading ? 'Salvando...' : 'Salvar'}</Button>
+                <Button
+                  type="submit"
+                  disabled={loading || !formData.technician_id || (attachmentRequired && !formData.attachment_url)}
+                >
+                  {loading ? 'Salvando...' : 'Salvar'}
+                </Button>
               </div>
             </div>
           </form>
