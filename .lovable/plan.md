@@ -1,66 +1,46 @@
 ## Diagnóstico
 
-Confirmei no banco e nos logs:
+O campo de anexo de atestado **não existe** hoje — nem no formulário `NewAbsenceDialog.tsx` (só tem técnico, tipo, datas e motivo), nem na tabela `technician_absences` (não há coluna para URL/caminho do arquivo), nem em bucket dedicado. Portanto, não é problema de visibilidade condicional: a funcionalidade nunca foi implementada.
 
-- Ticket **#1003** (o da tela): `conversation_excerpt = []` (array vazio) e `dev_prompt_status = 'pending'` há 13 dias.
-- Ticket **#1002**: `conversation_excerpt` com 8 mensagens, mas também travado em `'pending'`.
-- A edge function `generate-ticket-dev-prompt` **não tem nenhum log** desde que foi criada — ou seja, nunca foi invocada com sucesso (nem pelo gatilho automático em `tools.ts`, nem pelo botão "Regerar" do Inbox).
+## Plano
 
-### Causa 1 — contexto da conversa vazio (#1003)
-O ajuste que injeta a mensagem atual em `conversationExcerpt` está em `supabase/functions/ai-assistant/index.ts` (linhas 172-174), mas o ticket foi criado sem esse trecho — a função não estava com o fix ativo. Além disso, o painel do Inbox esconde totalmente o bloco quando o array vem vazio (`length > 0` no `SupportInbox.tsx:367`), então o usuário nem vê que houve uma tentativa.
+### 1. Banco de dados
+- Adicionar colunas à tabela `technician_absences`:
+  - `attachment_url text` (caminho no storage)
+  - `attachment_name text` (nome original do arquivo, para exibir)
+- Migração não altera policies existentes (RLS de RH/técnico/admin continua válido).
 
-### Causa 2 — prompt "Gerando" infinito
-Fluxo atual do botão Regerar (`SupportInbox.tsx:122-140`):
-1. Marca `dev_prompt_status = 'pending'` no banco (otimista).
-2. Chama `supabase.functions.invoke("generate-ticket-dev-prompt")`.
-3. Se o invoke falha (erro CORS, função não deployada, throw interno antes do `update`), o `onError` mostra toast mas **o status permanece 'pending' no banco para sempre** → UI fica travada em "Gerando".
+### 2. Storage
+- Criar bucket **privado** `absence-attachments` via `storage_create_bucket`.
+- Policies em `storage.objects`:
+  - Path padrão: `{company_id}/{technician_id}/{timestamp}-{arquivo}`.
+  - RH da empresa: full manage.
+  - Técnico: leitura apenas dos próprios atestados.
+  - Admin/Director/Manager da empresa: leitura.
 
-O mesmo vale para o disparo fire-and-forget em `tools.ts:1067`: se o `fetch` falhar (rede, chave ausente) o `.catch` só imprime no console e o ticket fica pending eterno.
+### 3. UI – `NewAbsenceDialog.tsx` e `EditAbsenceDialog.tsx`
+- Adicionar campo condicional de upload que **só aparece quando `absence_type === 'sick_leave'`** (Atestado) e opcionalmente para `medical_exam`.
+- Usar o padrão de upload nativo do projeto (input `opacity-0 absolute inset-0` sobre botão) — memória já registra esse padrão.
+- Sanitização de nome de arquivo (função `sanitizeFilename` já existe no projeto).
+- Aceitar PDF, JPG, PNG (máx. 10MB).
+- Exibir nome do arquivo após seleção com botão "Remover".
+- No submit: upload primeiro, gravar `attachment_url`/`attachment_name` no insert/update.
+- Em modo edição: mostrar link/preview do anexo existente com botão para substituir ou remover.
 
-Nenhum log da função sugere que ela está sendo chamada, o que aponta para falha no invoke (auth/CORS/deploy) e não para timeout dentro da IA.
+### 4. Listagem – `AbsenceCalendar.tsx` / página `Absences.tsx`
+- Nos cards/linhas de ausências do tipo Atestado, exibir ícone de clipe com link para signed URL do storage.
+- Helper para gerar signed URL sob demanda (60 min).
 
-## Plano de correção
+### 5. Tipos
+- Regenerar tipos após a migração para `CreateAbsenceData` (hook `useAbsences`) incluir os novos campos opcionais `attachment_url?`, `attachment_name?`.
 
-### 1. Robustez do botão "Regerar" (`src/pages/super-admin/SupportInbox.tsx`)
-- Remover o UPDATE otimista para `pending` antes do invoke.
-- Deixar a própria edge function marcar `pending` (já faz na linha 76-79).
-- No `onError` da mutation, marcar `dev_prompt_status = 'failed'` com `dev_prompt_error` = mensagem, para desprender o botão.
-- Ler `error.context.text()` (padrão `FunctionsHttpError`) para trazer a mensagem real da função em vez do genérico "non-2xx".
+### 6. i18n
+- Todos textos em pt-BR: "Anexar atestado", "Selecionar arquivo", "Arquivo anexado", "Remover", "Baixar atestado".
 
-### 2. Auto-recuperação de tickets travados
-- Ao carregar o Inbox, para cada ticket com `dev_prompt_status = 'pending'` cujo `updated_at` seja mais antigo que 2 minutos, exibir badge "Interrompido" + habilitar "Regerar" (hoje o botão fica desabilitado enquanto `status === 'pending'`, o que trava a UI).
-- Alternativa mais forte: uma função SQL/CRON que expira `pending > 5min` para `failed`. Preferência: só ajustar a UI para não ficar em impasse.
+## Fora do escopo
+- Não altero fluxo de aprovação de ausências.
+- Não mexo em RLS da tabela `technician_absences`.
+- Não adiciono OCR/classificação automática — o anexo é apenas evidência.
 
-### 3. Sempre mostrar o bloco "Conversa com Marina" (`SupportInbox.tsx:367`)
-- Renderizar o bloco mesmo com array vazio ou nulo.
-- Quando vazio, exibir mensagem explicativa: *"Contexto não capturado (ticket antigo ou criado antes do fix). Novos chamados registrarão automaticamente as últimas mensagens."*
-- Isso responde à queixa "não aparece o bloco".
-
-### 4. Garantir que novos tickets tenham contexto (`supabase/functions/ai-assistant/index.ts`)
-- Já existe a lógica correta (`priorExcerpt + currentUserExcerpt`). Redepoloy da função para garantir que a versão atual esteja ativa (o Lovable faz auto-deploy quando o arquivo muda; vamos tocar o arquivo com um comentário/versão bump para forçar redeploy).
-- Log adicional em `tools.ts:1053` imprimindo o tamanho do `conversation_excerpt` gravado, para diagnóstico futuro.
-
-### 5. Gatilho automático mais confiável (`supabase/functions/ai-assistant/tools.ts:1062-1076`)
-- Antes do fire-and-forget, marcar o ticket recém-criado com `dev_prompt_status = 'pending'`, `dev_prompt_error = null`.
-- Se `SUPABASE_SERVICE_ROLE_KEY` estiver ausente, imediatamente marcar `'failed'` com erro claro (em vez de continuar silencioso).
-- Envolver o `fetch` em `try/catch` que ao falhar grava `dev_prompt_status = 'failed'` + `dev_prompt_error` no ticket. Assim o Inbox nunca fica em "Gerando" perpétuo.
-- Bump de versão no cabeçalho do arquivo para forçar redeploy.
-
-### 6. Bump/redeploy da `generate-ticket-dev-prompt`
-- Adicionar log no início (`console.log("generate-ticket-dev-prompt invoked", ticket_id)`) para conseguirmos ver via `edge_function_logs` se o próximo Regerar chega até a função.
-- Bump de versão para garantir novo deploy.
-
-## Detalhes técnicos
-
-Arquivos alterados:
-- `src/pages/super-admin/SupportInbox.tsx` — mutation Regerar, badge de interrompido, bloco de contexto sempre visível.
-- `supabase/functions/ai-assistant/tools.ts` — pré-marca pending, error handling do fire-and-forget, bump.
-- `supabase/functions/ai-assistant/index.ts` — bump (força redeploy) + log de tamanho de excerpt.
-- `supabase/functions/generate-ticket-dev-prompt/index.ts` — logs de entrada/saída + bump.
-
-Sem migrations novas (as colunas `dev_prompt*` já existem).
-
-## Verificação
-1. Abrir #1003, clicar Regerar → conferir em `edge_function_logs generate-ticket-dev-prompt` que aparece "invoked" e depois "ready"/"failed".
-2. Se falhar, o toast mostrará a razão real (via `FunctionsHttpError.context.text()`) e o botão volta a ficar clicável.
-3. Criar novo ticket via Marina em qualquer perfil → conferir que `conversation_excerpt` no banco tem `length ≥ 1` e que o bloco aparece no Inbox.
+## Confirmação
+Confirma o escopo? Em especial: (a) manter o campo de upload **condicional a "Atestado"** (e possivelmente "Exame Médico"), ou deixar disponível para qualquer tipo de ausência? (b) tornar o anexo **obrigatório** quando o tipo for Atestado?
