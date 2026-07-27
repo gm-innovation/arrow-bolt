@@ -1,63 +1,66 @@
-# Plano — Contexto da conversa + Prompt de correção automático
+## Diagnóstico
 
-## Parte 1 — Por que "Conversa com Marina (contexto)" aparece vazia (`[]`)
+Confirmei no banco e nos logs:
 
-**Diagnóstico (confirmado por leitura):**
+- Ticket **#1003** (o da tela): `conversation_excerpt = []` (array vazio) e `dev_prompt_status = 'pending'` há 13 dias.
+- Ticket **#1002**: `conversation_excerpt` com 8 mensagens, mas também travado em `'pending'`.
+- A edge function `generate-ticket-dev-prompt` **não tem nenhum log** desde que foi criada — ou seja, nunca foi invocada com sucesso (nem pelo gatilho automático em `tools.ts`, nem pelo botão "Regerar" do Inbox).
 
-- Em `supabase/functions/ai-assistant/tools.ts:1053`, o ticket grava `conversation_excerpt = ctx.conversationExcerpt`.
-- Em `supabase/functions/ai-assistant/index.ts:172`, isso é preenchido com `conversationHistory?.slice(-8)`.
-- Em `src/hooks/useAIChat.ts:301`, o cliente envia `messages: messages.map(...)` — que é o estado **anterior** ao envio (a mensagem atual do usuário e a resposta da Marina que dispara `create_support_ticket` ainda não estão no array).
-- Resultado: quando o usuário abre o chamado logo nas primeiras trocas (caso do ticket #1003, aberto direto na página `/hr/absences`), o array chega vazio e é salvo como `[]`.
+### Causa 1 — contexto da conversa vazio (#1003)
+O ajuste que injeta a mensagem atual em `conversationExcerpt` está em `supabase/functions/ai-assistant/index.ts` (linhas 172-174), mas o ticket foi criado sem esse trecho — a função não estava com o fix ativo. Além disso, o painel do Inbox esconde totalmente o bloco quando o array vem vazio (`length > 0` no `SupportInbox.tsx:367`), então o usuário nem vê que houve uma tentativa.
 
-**Correção:**
+### Causa 2 — prompt "Gerando" infinito
+Fluxo atual do botão Regerar (`SupportInbox.tsx:122-140`):
+1. Marca `dev_prompt_status = 'pending'` no banco (otimista).
+2. Chama `supabase.functions.invoke("generate-ticket-dev-prompt")`.
+3. Se o invoke falha (erro CORS, função não deployada, throw interno antes do `update`), o `onError` mostra toast mas **o status permanece 'pending' no banco para sempre** → UI fica travada em "Gerando".
 
-1. Em `useAIChat.ts`, enviar também a mensagem atual do usuário (`currentUserMessage`) num campo separado do payload — sem alterar a lógica de `messages` que alimenta o modelo.
-2. Em `ai-assistant/index.ts`, montar `conversationExcerpt` como `[...conversationHistory.slice(-8), { role: "user", content: currentUserMessage }]` ao passar para `toolCtx`. Assim o excerto sempre carrega o gatilho do chamado.
-3. Em `tools.ts` (`create_support_ticket`), após inserir o ticket, chamar a Parte 2 (geração do prompt) de forma assíncrona — não bloqueia a resposta ao usuário.
+O mesmo vale para o disparo fire-and-forget em `tools.ts:1067`: se o `fetch` falhar (rede, chave ausente) o `.catch` só imprime no console e o ticket fica pending eterno.
 
-## Parte 2 — Prompt de correção gerado por IA em cada ticket
+Nenhum log da função sugere que ela está sendo chamada, o que aponta para falha no invoke (auth/CORS/deploy) e não para timeout dentro da IA.
 
-**Objetivo:** ao abrir qualquer chamado, um agente interpreta título+descrição+contexto e produz um "prompt de desenvolvimento" pronto para colar no Lovable, descrevendo o que criar/corrigir. Fica visível apenas na Inbox do Super Admin.
+## Plano de correção
 
-**Banco (migration):**
-- `support_tickets`: adicionar colunas
-  - `dev_prompt text` — prompt gerado
-  - `dev_prompt_status text default 'pending'` — pending | ready | failed
-  - `dev_prompt_generated_at timestamptz`
-  - `dev_prompt_model text`
-  - `suggested_area text` — módulo alvo (RH, Comercial, SGQ, etc.), inferido pela IA
-  - `suggested_files jsonb` — lista de arquivos/rotas prováveis, inferida por keyword-match no lado da função
+### 1. Robustez do botão "Regerar" (`src/pages/super-admin/SupportInbox.tsx`)
+- Remover o UPDATE otimista para `pending` antes do invoke.
+- Deixar a própria edge function marcar `pending` (já faz na linha 76-79).
+- No `onError` da mutation, marcar `dev_prompt_status = 'failed'` com `dev_prompt_error` = mensagem, para desprender o botão.
+- Ler `error.context.text()` (padrão `FunctionsHttpError`) para trazer a mensagem real da função em vez do genérico "non-2xx".
 
-**Edge Function `generate-ticket-dev-prompt`:**
-- Trigger: chamada pela `ai-assistant` logo após o insert do ticket (fire-and-forget) e por botão manual "Regerar prompt" na Inbox.
-- Input: `ticket_id`.
-- Lógica:
-  1. Carrega o ticket (título, descrição, categoria, prioridade, `page_url`, `conversation_excerpt`, `user_role`).
-  2. Usa Lovable AI Gateway (`google/gemini-2.5-flash`) com system prompt fixo pedindo saída JSON: `{ suggested_area, suggested_files[], dev_prompt }`.
-  3. `dev_prompt` segue template: contexto do bug/pedido, comportamento esperado, passos de reprodução, arquivos prováveis, critérios de aceite — em pt-BR, tom instrucional para o agente Lovable.
-  4. Grava as colunas e marca `dev_prompt_status='ready'` (ou `'failed'` com mensagem).
-- Registrada em `supabase/config.toml` com `verify_jwt = true`; permite chamada por `service_role` a partir da `ai-assistant`.
+### 2. Auto-recuperação de tickets travados
+- Ao carregar o Inbox, para cada ticket com `dev_prompt_status = 'pending'` cujo `updated_at` seja mais antigo que 2 minutos, exibir badge "Interrompido" + habilitar "Regerar" (hoje o botão fica desabilitado enquanto `status === 'pending'`, o que trava a UI).
+- Alternativa mais forte: uma função SQL/CRON que expira `pending > 5min` para `failed`. Preferência: só ajustar a UI para não ficar em impasse.
 
-**Backfill:** rodar a função uma vez para tickets existentes com `dev_prompt is null` (script `psql` chamando via `curl` a edge function, ou botão "Gerar para todos" na Inbox).
+### 3. Sempre mostrar o bloco "Conversa com Marina" (`SupportInbox.tsx:367`)
+- Renderizar o bloco mesmo com array vazio ou nulo.
+- Quando vazio, exibir mensagem explicativa: *"Contexto não capturado (ticket antigo ou criado antes do fix). Novos chamados registrarão automaticamente as últimas mensagens."*
+- Isso responde à queixa "não aparece o bloco".
 
-**UI — `src/pages/super-admin/SupportInbox.tsx`:**
-- Nova seção no painel de detalhe do ticket, acima do "Conversa com Marina (contexto)":
-  - Título "Prompt sugerido para correção"
-  - Badge com `dev_prompt_status` e `suggested_area`
-  - Bloco `<pre>` com o `dev_prompt` (ou skeleton enquanto `pending`)
-  - Botões: **Copiar prompt** (clipboard), **Regerar** (chama a edge function)
-  - Lista de `suggested_files` como chips clicáveis (só copiam o caminho).
-- Fica visível apenas nesta página (não aparece em `/account/tickets`).
+### 4. Garantir que novos tickets tenham contexto (`supabase/functions/ai-assistant/index.ts`)
+- Já existe a lógica correta (`priorExcerpt + currentUserExcerpt`). Redepoloy da função para garantir que a versão atual esteja ativa (o Lovable faz auto-deploy quando o arquivo muda; vamos tocar o arquivo com um comentário/versão bump para forçar redeploy).
+- Log adicional em `tools.ts:1053` imprimindo o tamanho do `conversation_excerpt` gravado, para diagnóstico futuro.
 
-**Fluxo final:**
-1. Usuário reporta bug → Marina chama `create_support_ticket` com `conversation_excerpt` já corrigido.
-2. `create_support_ticket` insere o ticket e dispara `generate-ticket-dev-prompt` sem esperar resposta.
-3. Segundos depois, na Inbox, o Super Admin abre o ticket e vê o prompt pronto para colar no Lovable.
+### 5. Gatilho automático mais confiável (`supabase/functions/ai-assistant/tools.ts:1062-1076`)
+- Antes do fire-and-forget, marcar o ticket recém-criado com `dev_prompt_status = 'pending'`, `dev_prompt_error = null`.
+- Se `SUPABASE_SERVICE_ROLE_KEY` estiver ausente, imediatamente marcar `'failed'` com erro claro (em vez de continuar silencioso).
+- Envolver o `fetch` em `try/catch` que ao falhar grava `dev_prompt_status = 'failed'` + `dev_prompt_error` no ticket. Assim o Inbox nunca fica em "Gerando" perpétuo.
+- Bump de versão no cabeçalho do arquivo para forçar redeploy.
+
+### 6. Bump/redeploy da `generate-ticket-dev-prompt`
+- Adicionar log no início (`console.log("generate-ticket-dev-prompt invoked", ticket_id)`) para conseguirmos ver via `edge_function_logs` se o próximo Regerar chega até a função.
+- Bump de versão para garantir novo deploy.
 
 ## Detalhes técnicos
 
-- Não altero `notifications`, `ai_conversations`, nem policies existentes de `support_tickets` (as SELECT/UPDATE do super_admin já cobrem as novas colunas).
-- `GRANT`: as novas colunas herdam os grants da tabela; não precisa novo GRANT.
-- Modelo: Gemini 2.5 Flash via Lovable AI Gateway (barato/rápido, sem custo direto de API).
-- Segurança: a função valida que o chamador é `service_role` (invocação da `ai-assistant`) ou usuário com papel `super_admin` (botão "Regerar" na Inbox).
-- Falha na geração não bloqueia a criação do ticket; status `failed` é mostrado com botão de retry.
+Arquivos alterados:
+- `src/pages/super-admin/SupportInbox.tsx` — mutation Regerar, badge de interrompido, bloco de contexto sempre visível.
+- `supabase/functions/ai-assistant/tools.ts` — pré-marca pending, error handling do fire-and-forget, bump.
+- `supabase/functions/ai-assistant/index.ts` — bump (força redeploy) + log de tamanho de excerpt.
+- `supabase/functions/generate-ticket-dev-prompt/index.ts` — logs de entrada/saída + bump.
+
+Sem migrations novas (as colunas `dev_prompt*` já existem).
+
+## Verificação
+1. Abrir #1003, clicar Regerar → conferir em `edge_function_logs generate-ticket-dev-prompt` que aparece "invoked" e depois "ready"/"failed".
+2. Se falhar, o toast mostrará a razão real (via `FunctionsHttpError.context.text()`) e o botão volta a ficar clicável.
+3. Criar novo ticket via Marina em qualquer perfil → conferir que `conversation_excerpt` no banco tem `length ≥ 1` e que o bloco aparece no Inbox.
