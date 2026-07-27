@@ -449,7 +449,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
       const responseTime = Date.now() - startTime;
       const messageId = await saveMessage(conversationId, 'assistant', assistantContent, {
         response_time_ms: responseTime,
-        model: image ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash'
+        model: legacyImage ? 'google/gemini-2.5-pro' : 'google/gemini-2.5-flash'
       });
 
       // Update the message with its ID for feedback
