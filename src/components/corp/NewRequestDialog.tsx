@@ -237,6 +237,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   const renderCategoryFields = () => {
     switch (category) {
       case 'product':
+      case 'marketing_materials':
         return (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
