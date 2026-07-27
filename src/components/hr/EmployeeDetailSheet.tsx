@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmployeeNotes } from "@/hooks/useEmployeeNotes";
-import { useShareableCatalog, useEmployeeGrants, useSetGrant } from "@/hooks/useHRDocumentSharing";
+import { useShareableCatalog, useEmployeeBlocks, useSetBlock, useBulkSetEmployee } from "@/hooks/useHRDocumentSharing";
 import { useEmployeeDocuments, useUploadEmployeeDocument } from "@/hooks/useHRDocumentCompliance";
 import { Switch } from "@/components/ui/switch";
 import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3 } from "lucide-react";
@@ -401,12 +401,15 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
 
   const { data: catalog = [] } = useShareableCatalog();
   const { data: docs = [], isLoading } = useEmployeeDocuments(employeeId);
-  const { data: grants = [] } = useEmployeeGrants(employeeId);
+  const { data: blocks = [] } = useEmployeeBlocks(employeeId);
   const upload = useUploadEmployeeDocument();
-  const setGrant = useSetGrant();
+  const setBlock = useSetBlock();
+  const bulk = useBulkSetEmployee();
 
   const catalogById = new Map<string, any>((catalog as any[]).map((c: any) => [c.id, c]));
-  const grantedCatalogIds = new Set(grants.map((g: any) => g.catalog_id));
+  const blockedCatalogIds = new Set(blocks.map((g: any) => g.catalog_id));
+  const shareableCount = (catalog as any[]).filter((c: any) => c.coordinator_shareable).length;
+  const sharedCount = Math.max(0, shareableCount - blockedCatalogIds.size);
 
   // Group current docs by catalog + list historical
   const currentDocs = (docs as any[]).filter((d) => d.is_current);
@@ -494,7 +497,7 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
   const renderDoc = (doc: any, isHistorical = false) => {
     const cat = catalogById.get(doc.catalog_id);
     const shareable = cat?.coordinator_shareable;
-    const granted = grantedCatalogIds.has(doc.catalog_id);
+    const blocked = blockedCatalogIds.has(doc.catalog_id);
     return (
       <div key={doc.id} className="p-3 border rounded-lg space-y-2 hover:bg-muted/30 transition-colors">
         <div className="flex items-start justify-between gap-3">
@@ -507,6 +510,12 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
                 {reviewBadge(doc.review_status)}
                 {expiryBadge(doc)}
                 {isHistorical && <Badge variant="outline" className="text-xs">Histórico</Badge>}
+                {!isHistorical && shareable && !blocked && (
+                  <Badge variant="secondary" className="gap-1 text-xs"><Share2 className="h-3 w-3" />Compartilhado</Badge>
+                )}
+                {!isHistorical && shareable && blocked && (
+                  <Badge variant="outline" className="gap-1 text-xs text-destructive border-destructive/40"><XCircle className="h-3 w-3" />Bloqueado</Badge>
+                )}
               </div>
             </div>
           </div>
@@ -522,11 +531,13 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
         {!isHistorical && shareable && (
           <div className="flex items-center gap-2 text-xs pt-1 border-t">
             <Share2 className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="flex-1">Compartilhar com Coordenadores</span>
+            <span className="flex-1">
+              {blocked ? "Bloqueado para coordenadores (exceção)" : "Liberado automaticamente para coordenadores"}
+            </span>
             <Switch
-              checked={granted}
-              onCheckedChange={(v) => setGrant.mutate({ employee_id: employeeId, catalog_id: doc.catalog_id, grant: v })}
-              disabled={setGrant.isPending}
+              checked={!blocked}
+              onCheckedChange={(v) => setBlock.mutate({ employee_id: employeeId, catalog_id: doc.catalog_id, block: !v })}
+              disabled={setBlock.isPending}
             />
           </div>
         )}
@@ -536,14 +547,41 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
 
   return (
     <div className="py-4 space-y-3">
+      <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
+        <div className="flex items-start gap-2">
+          <Share2 className="h-4 w-4 text-primary mt-0.5" />
+          <div className="text-xs text-muted-foreground flex-1">
+            Documentos de tipos compartilháveis (ASO, NRs, RG, CPF, CNH…) são <b>liberados automaticamente</b> para coordenadores.
+            Use os botões abaixo para agir em massa ou o interruptor de cada documento para exceções.
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <Badge variant="secondary">{sharedCount}/{shareableCount} tipos liberados</Badge>
+          {blockedCatalogIds.size > 0 && (
+            <Badge variant="outline" className="text-destructive border-destructive/40">{blockedCatalogIds.size} bloqueio(s)</Badge>
+          )}
+          <div className="ml-auto flex gap-2">
+            <Button size="sm" variant="outline" disabled={bulk.isPending || blockedCatalogIds.size === 0}
+              onClick={() => bulk.mutate({ employee_id: employeeId, action: "release_all" })}>
+              Liberar tudo
+            </Button>
+            <Button size="sm" variant="outline" disabled={bulk.isPending}
+              onClick={() => bulk.mutate({ employee_id: employeeId, action: "block_all" })}>
+              Bloquear tudo
+            </Button>
+          </div>
+        </div>
+      </div>
+
       <div className="flex justify-between items-center">
         <p className="text-xs text-muted-foreground">
-          {currentDocs.length} documento(s) vigente(s) • {grants.length} compartilhado(s) com coordenadores
+          {currentDocs.length} documento(s) vigente(s)
         </p>
         <Button size="sm" onClick={() => setShowUpload(!showUpload)}>
           <Plus className="h-4 w-4 mr-1" /> Enviar Documento
         </Button>
       </div>
+
 
       {showUpload && (
         <div className="border rounded-lg p-4 space-y-3 bg-muted/20">

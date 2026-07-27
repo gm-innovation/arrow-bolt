@@ -52,21 +52,26 @@ export type Grant = {
   note: string | null;
 };
 
-export const useEmployeeGrants = (employeeId?: string) => {
+// Retorna BLOQUEIOS ativos (exceções) para o funcionário.
+export const useEmployeeBlocks = (employeeId?: string) => {
   return useQuery({
-    queryKey: ["hr-grants", employeeId],
+    queryKey: ["hr-blocks", employeeId],
     enabled: !!employeeId,
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("hr_coordinator_document_grants")
         .select("*")
         .eq("employee_id", employeeId)
+        .eq("is_block", true)
         .is("revoked_at", null);
       if (error) throw error;
       return (data ?? []) as Grant[];
     },
   });
 };
+
+// Retrocompat: alias antigo continua exportado
+export const useEmployeeGrants = useEmployeeBlocks;
 
 export const useAllActiveGrants = () => {
   return useQuery({
@@ -74,7 +79,7 @@ export const useAllActiveGrants = () => {
     queryFn: async () => {
       const { data, error } = await (supabase as any)
         .from("hr_coordinator_document_grants")
-        .select("id, employee_id, catalog_id, granted_at, granted_by, note")
+        .select("id, employee_id, catalog_id, granted_at, granted_by, note, is_block")
         .is("revoked_at", null);
       if (error) throw error;
       return (data ?? []) as Grant[];
@@ -82,24 +87,25 @@ export const useAllActiveGrants = () => {
   });
 };
 
-export const useSetGrant = () => {
+// Bloquear (true) ou liberar (false) um tipo específico para um funcionário.
+// Semântica nova: liberação é o PADRÃO; a tabela guarda apenas exceções (bloqueios).
+export const useSetBlock = () => {
   const { user, profile } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (p: { employee_id: string; catalog_id: string; grant: boolean; note?: string }) => {
+    mutationFn: async (p: { employee_id: string; catalog_id: string; block: boolean; note?: string }) => {
       if (!user || !profile?.company_id) throw new Error("Sessão inválida");
-      if (p.grant) {
-        // Reactivate any revoked row, else insert new
+      if (p.block) {
         const { data: existing } = await (supabase as any)
           .from("hr_coordinator_document_grants")
-          .select("id, revoked_at")
+          .select("id")
           .eq("employee_id", p.employee_id)
           .eq("catalog_id", p.catalog_id)
           .maybeSingle();
         if (existing?.id) {
           const { error } = await (supabase as any)
             .from("hr_coordinator_document_grants")
-            .update({ revoked_at: null, revoked_by: null, granted_by: user.id, granted_at: new Date().toISOString(), note: p.note ?? null })
+            .update({ is_block: true, revoked_at: null, revoked_by: null, granted_by: user.id, granted_at: new Date().toISOString(), note: p.note ?? null })
             .eq("id", existing.id);
           if (error) throw error;
         } else {
@@ -110,6 +116,7 @@ export const useSetGrant = () => {
               employee_id: p.employee_id,
               catalog_id: p.catalog_id,
               granted_by: user.id,
+              is_block: true,
               note: p.note ?? null,
             });
           if (error) throw error;
@@ -125,6 +132,75 @@ export const useSetGrant = () => {
       }
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["hr-blocks"] });
+      qc.invalidateQueries({ queryKey: ["hr-grants"] });
+      qc.invalidateQueries({ queryKey: ["hr-grants-all"] });
+      qc.invalidateQueries({ queryKey: ["coord-employee-docs"] });
+    },
+    onError: (e: any) => toast.error("Erro", { description: e.message }),
+  });
+};
+
+// Retrocompat: adapta a chamada antiga { grant: boolean } -> { block: !grant }
+export const useSetGrant = () => {
+  const setBlock = useSetBlock();
+  return {
+    ...setBlock,
+    mutate: (p: { employee_id: string; catalog_id: string; grant: boolean; note?: string }, opts?: any) =>
+      setBlock.mutate({ employee_id: p.employee_id, catalog_id: p.catalog_id, block: !p.grant, note: p.note }, opts),
+    mutateAsync: (p: { employee_id: string; catalog_id: string; grant: boolean; note?: string }) =>
+      setBlock.mutateAsync({ employee_id: p.employee_id, catalog_id: p.catalog_id, block: !p.grant, note: p.note }),
+  } as any;
+};
+
+// Libera/bloqueia em massa TODOS os tipos compartilháveis de UM funcionário.
+export const useBulkSetEmployee = () => {
+  const { user, profile } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { employee_id: string; action: "release_all" | "block_all" }) => {
+      if (!user || !profile?.company_id) throw new Error("Sessão inválida");
+      if (p.action === "release_all") {
+        const { error } = await (supabase as any)
+          .from("hr_coordinator_document_grants")
+          .update({ revoked_at: new Date().toISOString(), revoked_by: user.id })
+          .eq("employee_id", p.employee_id)
+          .eq("is_block", true)
+          .is("revoked_at", null);
+        if (error) throw error;
+        return { released: true };
+      } else {
+        const { data: cats } = await (supabase as any)
+          .from("hr_document_catalog")
+          .select("id")
+          .eq("company_id", profile.company_id)
+          .eq("coordinator_shareable", true)
+          .eq("is_active", true);
+        const rows = ((cats ?? []) as any[]).map((c) => ({
+          company_id: profile.company_id,
+          employee_id: p.employee_id,
+          catalog_id: c.id,
+          granted_by: user.id,
+          is_block: true,
+        }));
+        // Reative bloqueios existentes primeiro
+        await (supabase as any)
+          .from("hr_coordinator_document_grants")
+          .update({ is_block: true, revoked_at: null, revoked_by: null, granted_by: user.id, granted_at: new Date().toISOString() })
+          .eq("employee_id", p.employee_id);
+        // Insere os que faltam
+        for (const r of rows) {
+          const { data: exists } = await (supabase as any)
+            .from("hr_coordinator_document_grants")
+            .select("id").eq("employee_id", r.employee_id).eq("catalog_id", r.catalog_id).maybeSingle();
+          if (!exists) await (supabase as any).from("hr_coordinator_document_grants").insert(r);
+        }
+        return { blocked: rows.length };
+      }
+    },
+    onSuccess: (_res, vars) => {
+      toast.success(vars.action === "release_all" ? "Todos os documentos foram liberados" : "Todos os documentos foram bloqueados");
+      qc.invalidateQueries({ queryKey: ["hr-blocks"] });
       qc.invalidateQueries({ queryKey: ["hr-grants"] });
       qc.invalidateQueries({ queryKey: ["hr-grants-all"] });
       qc.invalidateQueries({ queryKey: ["coord-employee-docs"] });
@@ -151,58 +227,52 @@ export const useCompanyEmployees = () => {
   });
 };
 
-// ============ Coordinator view: shareable employees + their authorized docs ============
+// ============ Coordinator view: uses RPC hr_coordinator_visible_docs ============
 export const useCoordinatorEmployeeDocs = () => {
+  const { profile } = useAuth();
+  const companyId = profile?.company_id;
   return useQuery({
-    queryKey: ["coord-employee-docs"],
+    queryKey: ["coord-employee-docs", companyId],
+    enabled: !!companyId,
     queryFn: async () => {
-      const [{ data: grants, error: gErr }, { data: catalog, error: cErr }] = await Promise.all([
-        (supabase as any)
-          .from("hr_coordinator_document_grants")
-          .select("employee_id, catalog_id")
-          .is("revoked_at", null),
-        (supabase as any)
-          .from("hr_document_catalog")
-          .select("id, name, code, category, has_expiry"),
-      ]);
-      if (gErr) throw gErr;
-      if (cErr) throw cErr;
-
-      const empIds = Array.from(new Set(((grants ?? []) as any[]).map((g: any) => g.employee_id)));
-      if (empIds.length === 0) return [];
-
-      const [{ data: profiles, error: pErr }, { data: docs, error: dErr }] = await Promise.all([
-        (supabase as any)
-          .from("profiles")
-          .select("id, full_name, email, position, avatar_url")
-          .in("id", empIds),
-        (supabase as any)
-          .from("hr_employee_documents")
-          .select("id, employee_id, catalog_id, file_name, file_path, issue_date, expiry_date, review_status, is_current, uploaded_at")
-          .in("employee_id", empIds)
-          .eq("is_current", true),
-      ]);
-      if (pErr) throw pErr;
-      if (dErr) throw dErr;
-
-      const catById = new Map((catalog ?? []).map((c: any) => [c.id, c]));
-      const docsByEmpCat = new Map<string, any>();
-      (docs ?? []).forEach((d: any) => docsByEmpCat.set(`${d.employee_id}:${d.catalog_id}`, d));
+      const { data, error } = await (supabase as any).rpc("hr_coordinator_visible_docs", { _company_id: companyId });
+      if (error) throw error;
+      const rows = (data ?? []) as any[];
 
       const byEmp = new Map<string, any>();
-      (profiles ?? []).forEach((p: any) => {
-        byEmp.set(p.id, { ...p, items: [] as any[] });
-      });
-      (grants ?? []).forEach((g: any) => {
-        const emp = byEmp.get(g.employee_id);
-        const cat = catById.get(g.catalog_id);
-        if (!emp || !cat) return;
-        emp.items.push({
-          catalog: cat,
-          document: docsByEmpCat.get(`${g.employee_id}:${g.catalog_id}`) ?? null,
+      for (const r of rows) {
+        if (!byEmp.has(r.employee_id)) {
+          byEmp.set(r.employee_id, {
+            id: r.employee_id,
+            full_name: r.employee_name,
+            position: r.employee_position,
+            avatar_url: r.employee_avatar,
+            items: [] as any[],
+          });
+        }
+        byEmp.get(r.employee_id).items.push({
+          catalog: {
+            id: r.catalog_id,
+            name: r.catalog_name,
+            category: r.catalog_category,
+            code: null,
+            has_expiry: !!r.expiry_date,
+          },
+          document: r.document_id
+            ? {
+                id: r.document_id,
+                file_name: r.file_name,
+                file_path: r.file_path,
+                issue_date: r.issue_date,
+                expiry_date: r.expiry_date,
+                review_status: r.review_status,
+                uploaded_at: r.uploaded_at,
+              }
+            : null,
         });
-      });
-      return Array.from(byEmp.values());
+      }
+      // Retorna só funcionários com pelo menos um documento realmente disponível
+      return Array.from(byEmp.values()).filter((e) => e.items.some((i: any) => i.document));
     },
   });
 };
