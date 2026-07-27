@@ -159,19 +159,27 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
 
       if (error) throw error;
 
-      setMessages(data?.map(m => ({
-        id: m.id,
-        role: m.role as 'user' | 'assistant',
-        content: m.content,
-        metadata: m.metadata as Record<string, unknown> | undefined,
-        created_at: m.created_at || undefined
-      })) || []);
+      setMessages(data?.map(m => {
+        const md = m.metadata as Record<string, unknown> | undefined;
+        const attachments = (md && Array.isArray((md as any).attachments))
+          ? (md as any).attachments as MarinaAttachmentPayload[]
+          : undefined;
+        return {
+          id: m.id,
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+          attachments,
+          metadata: md,
+          created_at: m.created_at || undefined
+        };
+      }) || []);
       setCurrentConversationId(conversationId);
     } catch (error) {
       console.error('Error loading conversation:', error);
       toast.error('Erro ao carregar conversa');
     }
   }, [user?.id]);
+
 
   // Create a new conversation
   const createConversation = useCallback(async (firstMessage?: string): Promise<string | null> => {
