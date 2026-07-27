@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Package, CreditCard, FileText, CalendarDays, HelpCircle, DollarSign, Trash2 } from 'lucide-react';
+import { Plus, Package, CreditCard, FileText, CalendarDays, HelpCircle, DollarSign, Trash2, Megaphone } from 'lucide-react';
 import { useCorpRequests } from '@/hooks/useCorpRequests';
 import { useCorpRequestTypes } from '@/hooks/useCorpRequestTypes';
 import { useDepartments } from '@/hooks/useDepartments';
@@ -22,6 +22,7 @@ interface NewRequestDialogProps {
 
 const categoryIcons: Record<string, any> = {
   product: Package,
+  marketing_materials: Megaphone,
   subscription: CreditCard,
   document: FileText,
   time_off: CalendarDays,
@@ -31,6 +32,7 @@ const categoryIcons: Record<string, any> = {
 
 const categoryLabels: Record<string, string> = {
   product: 'Produto / Material',
+  marketing_materials: 'Materiais de Marketing',
   subscription: 'Assinatura / Software',
   document: 'Documento',
   time_off: 'Folga / Férias',
@@ -84,7 +86,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
 
   const selectedType = requestTypes.find((t: any) => t.id === selectedTypeId);
   const category = selectedType?.category || 'general';
-  const CATEGORY_ORDER: Record<string, number> = { product: 0, document: 1, reimbursement: 2, time_off: 3, subscription: 4, general: 5 };
+  const CATEGORY_ORDER: Record<string, number> = { product: 0, marketing_materials: 1, document: 2, reimbursement: 3, time_off: 4, subscription: 5, general: 6 };
   const activeTypes = requestTypes.filter((t: any) => t.active).sort((a: any, b: any) => (CATEGORY_ORDER[a.category || 'general'] ?? 99) - (CATEGORY_ORDER[b.category || 'general'] ?? 99));
 
   const filteredUsers = useMemo(() => {
@@ -168,14 +170,16 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
 
     const finalDynamic = { ...dynamicData };
 
-    if (category === 'product') {
+    if (category === 'product' || category === 'marketing_materials') {
       finalDynamic.items = productItems.filter(i => i.name.trim());
     }
     if (category === 'document') {
       finalDynamic.documents = documentItems.filter(i => i.type);
     }
 
-    const finalAmount = category === 'product' ? productTotal : amount ? parseFloat(amount) : undefined;
+    const finalAmount = (category === 'product' || category === 'marketing_materials')
+      ? productTotal
+      : amount ? parseFloat(amount) : undefined;
 
     createRequest.mutate({
       company_id: companyId,
@@ -228,11 +232,12 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   };
 
   const showAmount = ['general', 'subscription', 'reimbursement'].includes(category);
-  const showTarget = ['general', 'document', 'time_off', 'reimbursement'].includes(category);
+  const showTarget = ['general', 'document', 'time_off', 'reimbursement', 'marketing_materials', 'product'].includes(category);
 
   const renderCategoryFields = () => {
     switch (category) {
       case 'product':
+      case 'marketing_materials':
         return (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
