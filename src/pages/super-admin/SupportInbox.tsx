@@ -133,22 +133,35 @@ export default function SupportInbox() {
 
   const regenerateDevPrompt = useMutation({
     mutationFn: async (ticketId: string) => {
-      // Optimistically mark pending
-      await supabase
-        .from("support_tickets")
-        .update({ dev_prompt_status: "pending" })
-        .eq("id", ticketId);
-      qc.invalidateQueries({ queryKey: ["support-tickets"] });
+      // Let the edge function mark 'pending' itself. Invoke and, on failure,
+      // read the real error body so we can surface it and reset the ticket.
       const { error } = await supabase.functions.invoke("generate-ticket-dev-prompt", {
         body: { ticket_id: ticketId },
       });
-      if (error) throw error;
+      if (error) {
+        let detail = error.message;
+        if (error instanceof FunctionsHttpError) {
+          try { detail = await error.context.text(); } catch { /* ignore */ }
+        }
+        // Unstick the ticket so the button becomes clickable again.
+        await supabase
+          .from("support_tickets")
+          .update({
+            dev_prompt_status: "failed",
+            dev_prompt_error: (detail ?? "Falha desconhecida").slice(0, 500),
+          })
+          .eq("id", ticketId);
+        throw new Error(detail);
+      }
     },
     onSuccess: () => {
       toast.success("Prompt gerado");
       qc.invalidateQueries({ queryKey: ["support-tickets"] });
     },
-    onError: (e: any) => toast.error(e.message ?? "Falha ao gerar prompt"),
+    onError: (e: any) => {
+      qc.invalidateQueries({ queryKey: ["support-tickets"] });
+      toast.error(e?.message ?? "Falha ao gerar prompt");
+    },
   });
 
   const copyPrompt = (text: string) => {
