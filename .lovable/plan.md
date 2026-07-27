@@ -1,90 +1,49 @@
-## Diagnóstico
 
-Hoje o RH tem 4 áreas de documentação, cada uma escrevendo em uma tabela diferente e mostrando um pedaço da história:
+# Simplificação do Compartilhamento de Documentos com Coordenadores
 
-| Área | Fonte | O que faz |
-|---|---|---|
-| Colaboradores → ficha → **Docs** | `technician_documents` (122 docs) | Upload livre, é o que o RH já usa de fato |
-| **Gestão de Documentos** (`/hr/documents`) | `corp_documents` (6) | Duplica a aba Docs, sem ganho |
-| **Conformidade Documental** | `hr_employee_documents` (0) | Painel agregado por catálogo |
-| **Revisão de Documentos** | `hr_employee_documents` (0) | Fila de aprovação |
-| **Compartilhamento com Coordenadores** | `hr_document_catalog` (0) + grants | Configura o que o Coordenador vê |
+Hoje o RH precisa ativar o toggle "Compartilhar" documento por documento. Vamos oferecer 3 caminhos combinados para eliminar o trabalho manual.
 
-Concordo com o diagnóstico: fica bagunçado e a tela de Compartilhamento nem lista nada porque o catálogo está vazio.
+## 1. Automático por padrão
 
-## Objetivo
+Todo documento cujo tipo tem `coordinator_shareable = true` no catálogo (ASO, NRs, RG, CPF, CNH) passa a ser visível para os coordenadores **sem precisar do toggle**.
 
-Uma única porta de entrada: **Colaboradores → ficha → aba Docs**. Tudo o que hoje está espalhado (upload, tipo, validade, revisão, toggle de compartilhamento) acontece ali. Painéis agregados (Conformidade, Revisão, Histórico de acessos) permanecem, mas como *visões* do mesmo dado, não como locais para gerir documentos individuais.
+- A visibilidade do coordenador deixa de depender da tabela `hr_coordinator_document_grants` e passa a olhar direto o flag do catálogo.
+- O RH configura uma vez em **Tipos & Compartilhamento** quais categorias são "auto-liberadas" — o padrão inicial já vem correto (documentação sensível de viagem/estaleiro liberada; contratos, PIS, escolaridade não).
+- **Bloqueio individual (exceções)**: mantemos a tabela de grants apenas como *lista de exclusão* — se o RH quiser esconder um documento específico de um funcionário, ele desmarca. A UI da ficha vira: toggle ligado por padrão, RH desliga só em casos especiais.
 
-## Nova estrutura da sidebar do RH — Documentação
+## 2. Botão "Compartilhar tudo" na ficha
 
-```text
-Documentação
-  ├─ Colaboradores            (ficha > Docs = fonte única)
-  ├─ Conformidade Documental  (dashboard por cargo/vencimento)
-  └─ Revisão de Documentos    (fila de aprovação)
-```
+Na aba **Docs** do colaborador, ao lado de "Enviar Documento":
 
-Removidos do menu:
-- **Gestão de Documentos** (`/hr/documents`) — funcionalidade absorvida pela aba Docs.
-- **Compartilhamento com Coordenadores** (`/hr/document-sharing`) — toggles migram para dentro da ficha.
+- Botão único **"Liberar todos para Coordenadores"** — remove todas as exceções daquele funcionário de uma vez.
+- Botão inverso **"Bloquear todos"** — cria exceção para todos os tipos compartilháveis do funcionário.
+- Contador visível: "5 de 5 tipos liberados".
 
-## Aba "Docs" reformulada (na ficha do colaborador)
+## 3. Comandos para a Marina
 
-Cada linha de documento passa a mostrar/editar num só lugar:
+A Marina ganha 3 ferramentas novas:
 
-- Arquivo + nome
-- **Tipo do catálogo** (dropdown; se ainda não existe, o RH cria inline)
-- Data de emissão, validade
-- Status de revisão (aprovado / pendente / rejeitado) + botão de aprovar/rejeitar para RH
-- **Toggle "Compartilhar com Coordenadores"** por documento (ou por linha do catálogo daquele colaborador, ver "Detalhes técnicos")
-- Botão baixar / substituir / excluir
+- `share_employee_documents({ employee_name, action: "release_all" | "block_all" })` — libera/bloqueia todos os documentos de 1 funcionário.
+- `share_bulk_by_role({ role: "technician", action: "release_all" })` — "libere documentos de todos os técnicos para coordenadores".
+- `share_bulk_by_type({ catalog_code: "aso" | "nr35" | ..., value: true | false })` — "ative ASO como compartilhável para toda a equipe".
 
-Cabeçalho da aba ganha 2 atalhos discretos:
-- "Ver todos os acessos deste colaborador" → abre drawer com o log de compartilhamento (o que hoje é a aba "Histórico de acessos").
-- "Configurar tipos" → drawer que edita o catálogo (o que hoje é `/hr/settings` → Catálogo). Fica no mesmo lugar de sempre também.
-
-## Migração de dados
-
-Unificar tudo em `hr_employee_documents` (a tabela que já tem catálogo, revisão, validade, current/histórico):
-
-1. **Seed do catálogo** por empresa: ASO, NR 06/10/11/12/33/34/35, RG, CPF, CNH, PIS, CTPS, Comprovante de residência, Escolaridade, Outros. `coordinator_shareable` inicial: ASO, NR*, RG, CPF, CNH = true; demais = false.
-2. **Backfill `technician_documents` (122) → `hr_employee_documents`**, mapeando `certificate_name` por regex ao catálogo; sobra vai para "Outros". `review_status = approved`, `is_current = true`, `notes` guarda o id de origem.
-3. **`corp_documents` de RH (6)** — os que têm `owner_user_id` idem; os sem dono ficam intocados (são de outros fluxos, não HR docs).
-4. `technician_documents` e `corp_documents` **não são apagados**; apenas as escritas do RH deixam de mirar neles.
-
-## Aba Docs = fonte única de leitura/escrita
-
-- **Leitura**: consulta `hr_employee_documents` (novo). Se por algum motivo houver docs órfãos em `technician_documents` de um colaborador, mostrar num bloco "Legado" com botão "Vincular ao catálogo".
-- **Escrita**: todos os uploads passam a criar linha em `hr_employee_documents` com `catalog_id`.
-- Componente `EmployeeDocumentsTab` recebe: seletor de tipo (catálogo), toggle de compartilhamento, aprovar/rejeitar.
-
-## Conformidade e Revisão
-
-Permanecem como *páginas de visão agregada* — mas ambas passam a linkar para a ficha do colaborador em vez de terem seus próprios uploads:
-- **Conformidade**: cada linha vermelha ("faltando") tem botão "Abrir ficha".
-- **Revisão**: cada pendência abre a ficha já na aba Docs, com o item destacado para aprovar/rejeitar inline.
-
-Isso mantém o valor gerencial (visão macro) sem duplicar o local onde se opera.
-
-## Coordenador (`/admin/employee-documents`)
-
-Continua existindo — é a tela *dele*, não do RH. Passa a listar exatamente o que o RH marcou como compartilhável na ficha de cada colaborador. Nada muda aqui além de a fonte agora estar preenchida.
+Cada ação registra auditoria em `ai_assistant_actions` e devolve um resumo ("Liberados 32 documentos de 12 técnicos").
 
 ## Detalhes técnicos
 
-- Toggle de compartilhamento: mais simples é gravar em `hr_coordinator_document_grants` no par (colaborador × catalog_id) — assim vale para todas as versões atuais/futuras daquele tipo de documento e não obriga o RH a re-marcar a cada substituição. O catálogo continua com `coordinator_shareable` como *default global* (ex.: ASO já vem compartilhável se o RH mantiver esse padrão).
-- `/hr/document-sharing` e `/hr/documents`: rotas removidas do menu. Os arquivos das páginas podem ser deletados após a migração validar.
-- `EmployeeDocumentsTab` (hoje escreve em `technician_documents`) é o único componente que muda de escrita — passa a usar os hooks de `useHRDocumentCompliance` / `useHRDocumentSharing`.
-- Backfill em migração idempotente (upsert por `notes = 'legacy:{origem}'`).
+- **Backend**:
+  - Nova RPC `hr_coordinator_visible_docs` que retorna documentos vigentes onde `catalog.coordinator_shareable = true` **AND** não exista grant com `revoked_at = null` marcado como `is_block = true`.
+  - Migração: adicionar coluna `is_block boolean default false` em `hr_coordinator_document_grants` para diferenciar "liberação explícita" (legado) de "bloqueio explícito" (novo modelo). Backfill: todos os grants ativos hoje viram `is_block=false` (já significam liberação); o hook novo passa a inserir `is_block=true` para exceções.
+  - Atualizar `useCoordinatorEmployeeDocs` para usar a nova regra.
+- **Frontend**:
+  - `DocumentsTab` na ficha: toggle invertido (padrão ligado se `catalog.coordinator_shareable`, desliga = cria bloqueio).
+  - Botões "Liberar todos" / "Bloquear todos" no header da aba.
+  - `/hr/document-sharing`: página passa a mostrar apenas o catálogo (quais categorias são compartilháveis) — a lista pormenor de exceções vira uma aba secundária.
+- **Marina** (`supabase/functions/ai-assistant/index.ts`):
+  - Registrar as 3 novas tools em `AI_TOOLS`.
+  - Cada handler valida papel do usuário (só `hr`, `director`, `super_admin` podem executar).
 
 ## Fora de escopo
 
-- Reformular Conformidade e Revisão visualmente — só passam a linkar de volta para a ficha.
-- Mexer no fluxo do Coordenador além de ele finalmente ver documentos reais.
-- Apagar `technician_documents`/`corp_documents` — só congelar escritas.
-
-## Perguntas / decisões que preciso confirmar
-
-1. **Toggle de compartilhamento**: por **tipo** do colaborador (ex.: "RG do João é sempre compartilhável"), ou por **documento individual** (ex.: só o RG de 2024, não o antigo)? Recomendo por tipo — mais simples e mais fiel ao uso real.
-2. **Conformidade e Revisão**: mantenho as duas páginas ou funde tudo em uma só ("Documentação — visão gerencial") com abas Conformidade / Fila de revisão / Histórico de acessos? Recomendo fundir.
+- Fluxo de aprovação/pacote (`hr_document_share_packages`) permanece como está — continua sendo usado para envios externos a estaleiros/hotéis.
+- Página `/admin/employee-documents` (visão do coordenador) só precisa refletir a nova regra via hook atualizado — sem mudança de UI.
