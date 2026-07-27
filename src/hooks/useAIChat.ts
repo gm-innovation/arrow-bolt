@@ -4,14 +4,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
 
+export type MarinaAttachmentPayload =
+  | { kind: 'image'; name: string; mime: string; size: number; dataUrl: string }
+  | { kind: 'file'; name: string; mime: string; size: number; path: string };
+
 export interface AIMessage {
   id?: string;
   role: 'user' | 'assistant';
   content: string;
   image?: string;
+  attachments?: MarinaAttachmentPayload[];
   metadata?: Record<string, unknown>;
   created_at?: string;
 }
+
 
 export interface AIConversation {
   id: string;
