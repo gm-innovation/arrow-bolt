@@ -222,10 +222,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       icon: FolderOpen,
       key: "hr-docs",
       children: [
-        { title: "Documentos", icon: FileText, path: "/hr/documents" },
         { title: "Conformidade Documental", icon: ShieldCheck, path: "/hr/document-compliance" },
         { title: "Revisão de Documentos", icon: FileCheck, path: "/hr/document-reviews" },
-        { title: "Compartilhamento com Coordenadores", icon: ShieldCheck, path: "/hr/document-sharing" },
+        { title: "Tipos & Compartilhamento", icon: FolderOpen, path: "/hr/document-sharing" },
       ],
     },
     {
