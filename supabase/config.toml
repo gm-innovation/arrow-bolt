@@ -12,6 +12,9 @@ verify_jwt = true
 [functions.ai-assistant]
 verify_jwt = false
 
+[functions.generate-ticket-dev-prompt]
+verify_jwt = false
+
 [functions.generate-embeddings]
 verify_jwt = false
 

@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertCircle, Bug, Lightbulb, HelpCircle, MessageSquare, RefreshCw } from "lucide-react";
+import { AlertCircle, Bug, Lightbulb, HelpCircle, MessageSquare, RefreshCw, Sparkles, Copy, Loader2 } from "lucide-react";
 
 const CATEGORY_META: Record<string, { label: string; icon: any; color: string }> = {
   bug: { label: "Bug", icon: Bug, color: "bg-red-100 text-red-700" },
@@ -118,6 +118,33 @@ export default function SupportInbox() {
     },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const regenerateDevPrompt = useMutation({
+    mutationFn: async (ticketId: string) => {
+      // Optimistically mark pending
+      await supabase
+        .from("support_tickets")
+        .update({ dev_prompt_status: "pending" })
+        .eq("id", ticketId);
+      qc.invalidateQueries({ queryKey: ["support-tickets"] });
+      const { error } = await supabase.functions.invoke("generate-ticket-dev-prompt", {
+        body: { ticket_id: ticketId },
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Prompt gerado");
+      qc.invalidateQueries({ queryKey: ["support-tickets"] });
+    },
+    onError: (e: any) => toast.error(e.message ?? "Falha ao gerar prompt"),
+  });
+
+  const copyPrompt = (text: string) => {
+    navigator.clipboard.writeText(text).then(
+      () => toast.success("Prompt copiado"),
+      () => toast.error("Não foi possível copiar")
+    );
+  };
 
   return (
     <div className="p-6 space-y-4">
@@ -259,7 +286,85 @@ export default function SupportInbox() {
                 {selected.description}
               </div>
 
-              {selected.conversation_excerpt && (
+              <div className="border rounded-md p-3 bg-primary/5 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-semibold">Prompt sugerido para correção</span>
+                    {selected.suggested_area && (
+                      <Badge variant="secondary" className="text-xs">
+                        {selected.suggested_area}
+                      </Badge>
+                    )}
+                    {selected.dev_prompt_status === "pending" && (
+                      <Badge variant="secondary" className="text-xs gap-1">
+                        <Loader2 className="h-3 w-3 animate-spin" /> Gerando
+                      </Badge>
+                    )}
+                    {selected.dev_prompt_status === "failed" && (
+                      <Badge variant="destructive" className="text-xs">Falhou</Badge>
+                    )}
+                    {selected.dev_prompt_status === "ready" && (
+                      <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">Pronto</Badge>
+                    )}
+                  </div>
+                  <div className="flex gap-1">
+                    {selected.dev_prompt && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => copyPrompt(selected.dev_prompt)}
+                        className="h-7"
+                      >
+                        <Copy className="h-3 w-3 mr-1" /> Copiar
+                      </Button>
+                    )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => regenerateDevPrompt.mutate(selected.id)}
+                      disabled={regenerateDevPrompt.isPending || selected.dev_prompt_status === "pending"}
+                      className="h-7"
+                    >
+                      <RefreshCw className={`h-3 w-3 mr-1 ${regenerateDevPrompt.isPending ? "animate-spin" : ""}`} />
+                      {selected.dev_prompt ? "Regerar" : "Gerar"}
+                    </Button>
+                  </div>
+                </div>
+
+                {selected.dev_prompt ? (
+                  <pre className="whitespace-pre-wrap text-xs bg-background border rounded p-2 max-h-72 overflow-auto">
+                    {selected.dev_prompt}
+                  </pre>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    {selected.dev_prompt_status === "pending"
+                      ? "A Marina está interpretando o chamado e escrevendo o prompt..."
+                      : "Ainda não há prompt para este chamado. Clique em Gerar."}
+                  </p>
+                )}
+
+                {selected.dev_prompt_error && (
+                  <p className="text-xs text-destructive">{selected.dev_prompt_error}</p>
+                )}
+
+                {Array.isArray(selected.suggested_files) && selected.suggested_files.length > 0 && (
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {selected.suggested_files.map((f: string, i: number) => (
+                      <button
+                        key={i}
+                        onClick={() => copyPrompt(f)}
+                        className="text-[10px] font-mono bg-muted hover:bg-muted/70 px-2 py-0.5 rounded border"
+                        title="Copiar caminho"
+                      >
+                        {f}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {selected.conversation_excerpt && Array.isArray(selected.conversation_excerpt) && selected.conversation_excerpt.length > 0 && (
                 <details className="text-xs">
                   <summary className="cursor-pointer text-muted-foreground">
                     Conversa com Marina (contexto)
