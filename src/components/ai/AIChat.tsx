@@ -198,8 +198,48 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
     );
   }
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (isLoading) return;
+    if (!Array.from(e.dataTransfer.types || []).includes('Files')) return;
+    e.preventDefault();
+    dragCounter.current += 1;
+    setIsDragging(true);
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setIsDragging(false);
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    if (isLoading) return;
+    if (!Array.from(e.dataTransfer.types || []).includes('Files')) return;
+    e.preventDefault();
+  };
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    if (isLoading) return;
+    const files = e.dataTransfer.files;
+    if (files && files.length) await processDroppedFiles(files);
+  };
+
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div
+      className="flex flex-col flex-1 min-h-0 relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm">
+          <Upload className="h-8 w-8 text-primary" />
+          <p className="text-sm font-medium text-primary">Solte para anexar à Marina</p>
+          <p className="text-xs text-muted-foreground">Até 10 arquivos, 20MB cada</p>
+        </div>
+      )}
+
       {/* History toggle */}
       <div className="flex items-center justify-between px-3 py-1 border-b">
         <Button
