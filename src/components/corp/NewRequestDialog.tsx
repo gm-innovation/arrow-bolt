@@ -170,14 +170,16 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
 
     const finalDynamic = { ...dynamicData };
 
-    if (category === 'product') {
+    if (category === 'product' || category === 'marketing_materials') {
       finalDynamic.items = productItems.filter(i => i.name.trim());
     }
     if (category === 'document') {
       finalDynamic.documents = documentItems.filter(i => i.type);
     }
 
-    const finalAmount = category === 'product' ? productTotal : amount ? parseFloat(amount) : undefined;
+    const finalAmount = (category === 'product' || category === 'marketing_materials')
+      ? productTotal
+      : amount ? parseFloat(amount) : undefined;
 
     createRequest.mutate({
       company_id: companyId,
