@@ -16,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { AlertCircle, Bug, Lightbulb, HelpCircle, MessageSquare, RefreshCw } from "lucide-react";
+import { AlertCircle, Bug, Lightbulb, HelpCircle, MessageSquare, RefreshCw, Sparkles, Copy, Loader2 } from "lucide-react";
 
 const CATEGORY_META: Record<string, { label: string; icon: any; color: string }> = {
   bug: { label: "Bug", icon: Bug, color: "bg-red-100 text-red-700" },
