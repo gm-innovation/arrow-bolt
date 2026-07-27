@@ -14,7 +14,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmployeeNotes } from "@/hooks/useEmployeeNotes";
-import { useShareableCatalog, useEmployeeGrants, useSetGrant } from "@/hooks/useHRDocumentSharing";
+import { useShareableCatalog, useEmployeeBlocks, useSetBlock, useBulkSetEmployee } from "@/hooks/useHRDocumentSharing";
 import { useEmployeeDocuments, useUploadEmployeeDocument } from "@/hooks/useHRDocumentCompliance";
 import { Switch } from "@/components/ui/switch";
 import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3 } from "lucide-react";
