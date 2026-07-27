@@ -8,7 +8,7 @@ import { useAIChat, type ReportFields } from '@/hooks/useAIChat';
 import { AIMessageFeedback } from './AIMessageFeedback';
 import { AIConversationList } from './AIConversationList';
 import { AIActionButton, detectActionsFromResponse } from './AIActionButton';
-import { AIPhotoUpload } from './AIPhotoUpload';
+import { AIAttachmentUpload, type MarinaAttachment } from './AIAttachmentUpload';
 import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
 
