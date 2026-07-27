@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Sparkles, History, X, LifeBuoy } from 'lucide-react';
+import { Send, Loader2, Sparkles, History, X, LifeBuoy, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -9,8 +9,10 @@ import { AIMessageFeedback } from './AIMessageFeedback';
 import { AIConversationList } from './AIConversationList';
 import { AIActionButton, detectActionsFromResponse } from './AIActionButton';
 import { AIAttachmentUpload, type MarinaAttachment } from './AIAttachmentUpload';
+import { useMarinaAttachments } from '@/hooks/useMarinaAttachments';
 import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
+
 
 interface AIChatProps {
   userRole: string;
@@ -119,9 +121,13 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   const [input, setInput] = useState('');
   const [attachments, setAttachments] = useState<MarinaAttachment[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounter = useRef(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { processFiles: processDroppedFiles } = useMarinaAttachments(attachments, setAttachments, 10);
+
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -192,8 +198,48 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
     );
   }
 
+  const handleDragEnter = (e: React.DragEvent) => {
+    if (isLoading) return;
+    if (!Array.from(e.dataTransfer.types || []).includes('Files')) return;
+    e.preventDefault();
+    dragCounter.current += 1;
+    setIsDragging(true);
+  };
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = Math.max(0, dragCounter.current - 1);
+    if (dragCounter.current === 0) setIsDragging(false);
+  };
+  const handleDragOver = (e: React.DragEvent) => {
+    if (isLoading) return;
+    if (!Array.from(e.dataTransfer.types || []).includes('Files')) return;
+    e.preventDefault();
+  };
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current = 0;
+    setIsDragging(false);
+    if (isLoading) return;
+    const files = e.dataTransfer.files;
+    if (files && files.length) await processDroppedFiles(files);
+  };
+
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div
+      className="flex flex-col flex-1 min-h-0 relative"
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {isDragging && (
+        <div className="pointer-events-none absolute inset-0 z-50 flex flex-col items-center justify-center gap-2 rounded-md border-2 border-dashed border-primary bg-primary/10 backdrop-blur-sm">
+          <Upload className="h-8 w-8 text-primary" />
+          <p className="text-sm font-medium text-primary">Solte para anexar à Marina</p>
+          <p className="text-xs text-muted-foreground">Até 10 arquivos, 20MB cada</p>
+        </div>
+      )}
+
       {/* History toggle */}
       <div className="flex items-center justify-between px-3 py-1 border-b">
         <Button
