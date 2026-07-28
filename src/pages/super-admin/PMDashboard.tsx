@@ -327,7 +327,7 @@ function StrategyTab() {
               ))}
               {(nsm.data ?? []).length === 0 && !nsm.isLoading && (
                 <div className="col-span-full text-center text-muted-foreground py-8">
-                  Nenhuma métrica cadastrada. Ex: "Tempo médio de acesso por tripulante".
+                  Nenhuma métrica cadastrada. Ex.: "OS concluídas no prazo", "Tempo médio de fechamento de OS", "Aderência documental SGQ", "Conformidade ASO ativa".
                 </div>
               )}
             </div>
