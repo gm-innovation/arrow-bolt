@@ -104,7 +104,7 @@ export const WalkthroughOverlay = () => {
 
     const run = async () => {
       // If action is auto_click, click the primary selector, then wait for post_action_selector
-      if (step.action === "auto_click" if (step.action === "auto_click" && step.selector) {if (step.action === "auto_click" && step.selector) { step.selector && lastClickedStepRef.current !== step.id) {
+      if (step.action === "auto_click" && step.selector && lastClickedStepRef.current !== step.id) {
         lastClickedStepRef.current = step.id;
         const clickTarget = await findEl(step.selector, 2000);
         clickTarget?.click();
