@@ -15,7 +15,7 @@ interface Props {
   setDraft: (d: Partial<AIAgent>) => void;
 }
 
-const ROLES = ["technician", "coordinator", "manager", "director", "hr", "commercial", "financeiro", "qualidade", "compras"];
+const ROLES = ["super_admin", "director", "manager", "coordinator", "technician", "hr", "commercial", "financeiro", "qualidade", "compras", "marketing"];
 const FLOWS = [
   { key: "detect_report", label: "Detectar intenção de gerar relatório" },
   { key: "availability", label: "Sugerir técnicos disponíveis" },
