@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   X,
@@ -54,6 +54,9 @@ export const WalkthroughOverlay = () => {
   const { active, script, steps, index, next, prev, skip, pause, complete } = useWalkthrough();
   const [rect, setRect] = useState<Rect>(null);
   const [agent, setAgent] = useState<{ name?: string; avatar_url?: string } | null>(null);
+  const bubbleRef = useRef<HTMLDivElement | null>(null);
+  const [bubbleH, setBubbleH] = useState(320);
+  const prevStepRef = useRef<any>(null);
 
   useEffect(() => {
     if (!active) return;
@@ -69,6 +72,18 @@ export const WalkthroughOverlay = () => {
   }, [active]);
 
   const step: any = active ? steps[index] : null;
+
+  // Handle close_on_exit when leaving a step that opened a modal
+  useEffect(() => {
+    const previous = prevStepRef.current;
+    if (previous && previous !== step && previous.close_on_exit) {
+      // Try Escape first; fall back to clicking [data-radix-focus-guard] siblings' close
+      document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbleable: true } as any));
+      const btn = document.querySelector<HTMLElement>('[role="dialog"] [aria-label="Close"], [role="dialog"] [data-dismiss]');
+      btn?.click();
+    }
+    prevStepRef.current = step;
+  }, [step]);
 
   useLayoutEffect(() => {
     if (!step) {
@@ -86,15 +101,27 @@ export const WalkthroughOverlay = () => {
       el.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
     };
 
-    findEl(step.selector).then((found) => {
+    const run = async () => {
+      // If action is auto_click, click the primary selector, then wait for post_action_selector
+      if (step.action === "auto_click" && step.selector) {
+        const clickTarget = await findEl(step.selector, 2000);
+        clickTarget?.click();
+        if (step.post_action_selector) {
+          el = await findEl(step.post_action_selector, 4000);
+        } else {
+          el = clickTarget;
+        }
+      } else {
+        el = await findEl(step.selector);
+      }
       if (cancelled) return;
-      el = found;
       compute();
       if (el && "ResizeObserver" in window) {
         ro = new ResizeObserver(compute);
         ro.observe(el);
       }
-    });
+    };
+    void run();
 
     window.addEventListener("scroll", compute, true);
     window.addEventListener("resize", compute);
@@ -106,6 +133,13 @@ export const WalkthroughOverlay = () => {
     };
   }, [step]);
 
+  // Measure bubble height for smart positioning
+  useLayoutEffect(() => {
+    if (!bubbleRef.current) return;
+    const h = bubbleRef.current.getBoundingClientRect().height;
+    if (h && Math.abs(h - bubbleH) > 4) setBubbleH(h);
+  });
+
   if (!active || !step) return null;
 
   const avatarUrl = agent?.avatar_url || (defaultAvatar as any).url;
@@ -114,26 +148,45 @@ export const WalkthroughOverlay = () => {
   const isLast = index === total - 1;
 
   const BUBBLE_W = 440;
-  const bubbleStyle: React.CSSProperties = rect
-    ? {
-        position: "fixed",
-        top: Math.min(window.innerHeight - 360, Math.max(16, rect.top + rect.height + 12)),
-        left: Math.min(window.innerWidth - BUBBLE_W - 16, Math.max(16, rect.left)),
-        width: BUBBLE_W,
-        maxWidth: "calc(100vw - 32px)",
-        maxHeight: "min(80vh, 640px)",
-        zIndex: 10000,
-      }
-    : {
-        position: "fixed",
-        top: "50%",
-        left: "50%",
-        transform: "translate(-50%, -50%)",
-        width: BUBBLE_W,
-        maxWidth: "calc(100vw - 32px)",
-        maxHeight: "min(80vh, 640px)",
-        zIndex: 10000,
-      };
+  const GAP = 12;
+  const MARGIN = 16;
+  const vw = typeof window !== "undefined" ? window.innerWidth : 1280;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 800;
+
+  // Decide whether the bubble fits below, above, or should be centered.
+  let top = vh / 2 - bubbleH / 2;
+  let left = vw / 2 - BUBBLE_W / 2;
+  let maxHeight = Math.min(vh - MARGIN * 2, 640);
+
+  if (rect) {
+    const spaceBelow = vh - (rect.top + rect.height) - GAP - MARGIN;
+    const spaceAbove = rect.top - GAP - MARGIN;
+    if (spaceBelow >= Math.min(bubbleH, 220)) {
+      top = rect.top + rect.height + GAP;
+      maxHeight = Math.max(220, spaceBelow);
+    } else if (spaceAbove >= Math.min(bubbleH, 220)) {
+      top = Math.max(MARGIN, rect.top - GAP - Math.min(bubbleH, spaceAbove));
+      maxHeight = Math.max(220, spaceAbove);
+    } else {
+      // Not enough space either way — pin bubble to right side of the viewport
+      top = MARGIN;
+      left = Math.max(MARGIN, vw - BUBBLE_W - MARGIN);
+      maxHeight = vh - MARGIN * 2;
+    }
+    if (left === vw / 2 - BUBBLE_W / 2) {
+      left = Math.min(vw - BUBBLE_W - MARGIN, Math.max(MARGIN, rect.left));
+    }
+  }
+
+  const bubbleStyle: React.CSSProperties = {
+    position: "fixed",
+    top,
+    left,
+    width: BUBBLE_W,
+    maxWidth: "calc(100vw - 32px)",
+    maxHeight,
+    zIndex: 10000,
+  };
 
   const pad = 8;
   const spotlightBox: React.CSSProperties | null = rect
@@ -204,6 +257,7 @@ export const WalkthroughOverlay = () => {
       )}
       {spotlightBox && <div style={spotlightBox} />}
       <div
+        ref={bubbleRef}
         style={bubbleStyle}
         className="rounded-xl border bg-background shadow-2xl animate-in fade-in slide-in-from-bottom-2 flex flex-col overflow-hidden"
       >
