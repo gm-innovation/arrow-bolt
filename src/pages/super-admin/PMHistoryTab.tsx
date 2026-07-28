@@ -9,7 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { History, Package, Bug, Sparkles, Database, Bot, Cloud, Tag, FileText } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { History, Package, Database, Bot, Cloud, Tag, FileText, ChevronDown } from "lucide-react";
 import { formatLocalDate } from "@/lib/utils";
 import {
   usePMTickets,
