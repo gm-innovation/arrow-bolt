@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
-import { History, Package, Bug, Sparkles } from "lucide-react";
+import { History, Package, Bug, Sparkles, Database, Bot, Cloud, Tag, FileText } from "lucide-react";
 import { formatLocalDate } from "@/lib/utils";
 import {
   usePMTickets,
@@ -17,66 +17,104 @@ import {
   usePublishVersion,
   type PMTicket,
 } from "@/hooks/usePMDashboard";
+import { usePMActivityLog, type ActivityLogItem, type ActivitySource } from "@/hooks/usePMActivityLog";
 
-const TYPE_LABEL: Record<string, { label: string; icon: any; className: string }> = {
-  bug: { label: "Correção", icon: Bug, className: "bg-red-500/10 text-red-700 border-red-300" },
-  feature_request: { label: "Feature", icon: Sparkles, className: "bg-blue-500/10 text-blue-700 border-blue-300" },
-  improvement: { label: "Melhoria", icon: Sparkles, className: "bg-emerald-500/10 text-emerald-700 border-emerald-300" },
-  suggestion: { label: "Sugestão", icon: Sparkles, className: "bg-amber-500/10 text-amber-700 border-amber-300" },
+const SOURCE_META: Record<ActivitySource, { label: string; icon: any; className: string }> = {
+  ticket:        { label: "Ticket",     icon: Tag,      className: "bg-blue-500/10 text-blue-700 border-blue-300" },
+  changelog:     { label: "Versão",     icon: Package,  className: "bg-emerald-500/10 text-emerald-700 border-emerald-300" },
+  migration:     { label: "Migração",   icon: Database, className: "bg-slate-500/10 text-slate-700 border-slate-300" },
+  marina_action: { label: "Marina",     icon: Bot,      className: "bg-purple-500/10 text-purple-700 border-purple-300" },
+  edge_function: { label: "Função",     icon: Cloud,    className: "bg-amber-500/10 text-amber-700 border-amber-300" },
+  manual:        { label: "Manual",     icon: FileText, className: "bg-gray-500/10 text-gray-700 border-gray-300" },
+};
+
+const CATEGORY_LABEL: Record<string, string> = {
+  bug: "Correção",
+  feature_request: "Feature",
+  improvement: "Melhoria",
+  suggestion: "Sugestão",
+  release: "Release",
+  infra: "Infra",
+  ai: "IA",
 };
 
 export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
-  const { data: tickets = [], isLoading } = usePMTickets();
-  const changelog = useChangelog();
-  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [moduleFilter, setModuleFilter] = useState<string>("all");
+  const [search, setSearch] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
 
-  const resolved = useMemo(
-    () =>
-      tickets
-        .filter((t) => t.status === "resolved" || t.status === "closed")
-        .filter((t) => typeFilter === "all" || t.category === typeFilter)
-        .filter((t) => moduleFilter === "all" || (t.impacted_module ?? t.suggested_area) === moduleFilter)
-        .sort((a, b) => new Date(b.resolved_at ?? b.created_at).getTime() - new Date(a.resolved_at ?? a.created_at).getTime()),
-    [tickets, typeFilter, moduleFilter],
-  );
+  const activity = usePMActivityLog({
+    sources: sourceFilter === "all" ? undefined : [sourceFilter as ActivitySource],
+    module: moduleFilter === "all" ? null : moduleFilter,
+    search: search || null,
+  });
+  const tickets = usePMTickets();
+  const changelog = useChangelog();
+
+  const items = activity.data ?? [];
+  const ticketsById = useMemo(() => {
+    const m = new Map<string, PMTicket>();
+    (tickets.data ?? []).forEach((t) => m.set(t.id, t));
+    return m;
+  }, [tickets.data]);
 
   const modules = useMemo(() => {
     const s = new Set<string>();
-    tickets.forEach((t) => {
-      const m = t.impacted_module ?? t.suggested_area;
-      if (m) s.add(m);
-    });
+    items.forEach((i) => i.module && s.add(i.module));
     return Array.from(s).sort();
-  }, [tickets]);
+  }, [items]);
 
-  // Group by version (if linked) or by week
+  // Group by version (if the item is a ticket linked to a changelog id) or by week
   const grouped = useMemo(() => {
     const versionsById = new Map(changelog.data?.map((v) => [v.id, v]) ?? []);
-    const groups: Record<string, { label: string; version?: any; items: PMTicket[] }> = {};
-    for (const t of resolved) {
+    const groups: Record<string, { label: string; version?: any; items: ActivityLogItem[] }> = {};
+    for (const it of items) {
       let key: string;
       let label: string;
       let version: any = undefined;
-      if (t.pm_changelog_id && versionsById.has(t.pm_changelog_id)) {
-        version = versionsById.get(t.pm_changelog_id);
-        key = `v:${t.pm_changelog_id}`;
-        label = version.version ? `v${version.version} — ${version.title}` : version.title;
+
+      const pmChangelogId = it.source === "ticket" ? (it.metadata?.pm_changelog_id as string | null) : null;
+      const changelogRefId = it.source === "changelog" ? it.ref_id : null;
+
+      if (pmChangelogId && versionsById.has(pmChangelogId)) {
+        version = versionsById.get(pmChangelogId);
+        key = `v:${pmChangelogId}`;
+        label = version.version ? `v${version.version}${version.title ? ` — ${version.title}` : ""}` : version.title;
+      } else if (changelogRefId && versionsById.has(changelogRefId)) {
+        version = versionsById.get(changelogRefId);
+        key = `v:${changelogRefId}`;
+        label = version.version ? `v${version.version}${version.title ? ` — ${version.title}` : ""}` : version.title;
       } else {
-        const d = new Date(t.resolved_at ?? t.created_at);
+        const d = new Date(it.occurred_at);
         const monday = new Date(d);
         monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
         key = `w:${monday.toISOString().slice(0, 10)}`;
         label = `Semana de ${formatLocalDate(monday.toISOString())}`;
       }
       if (!groups[key]) groups[key] = { label, version, items: [] };
-      groups[key].items.push(t);
+      groups[key].items.push(it);
     }
-    return Object.entries(groups);
-  }, [resolved, changelog.data]);
+    // Sort groups: versions first (by their date), weeks by date desc
+    return Object.entries(groups).sort((a, b) => {
+      const ad = new Date(a[1].items[0].occurred_at).getTime();
+      const bd = new Date(b[1].items[0].occurred_at).getTime();
+      return bd - ad;
+    });
+  }, [items, changelog.data]);
 
-  const unlinked = resolved.filter((t) => !t.pm_changelog_id);
+  const unlinkedResolvedTickets = useMemo(
+    () => (tickets.data ?? []).filter((t) => (t.status === "resolved" || t.status === "closed") && !t.pm_changelog_id),
+    [tickets.data],
+  );
+
+  const handleClick = (it: ActivityLogItem) => {
+    if (it.source === "ticket" && it.ref_id) {
+      const t = ticketsById.get(it.ref_id);
+      if (t) return onOpen(t);
+    }
+    // For other sources we currently only show inline info; extendable later.
+  };
 
   return (
     <>
@@ -84,26 +122,28 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
         <CardHeader className="flex-row justify-between items-start gap-4">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <History className="h-5 w-5" /> Histórico de entregas
+              <History className="h-5 w-5" /> Histórico do sistema
             </CardTitle>
             <CardDescription>
-              Correções e melhorias já entregues, agrupadas por versão publicada ou por semana.
+              Timeline unificado: tickets resolvidos, versões publicadas, migrações no banco e ações da Marina.
             </CardDescription>
           </div>
-          <Button size="sm" onClick={() => setPublishOpen(true)} disabled={unlinked.length === 0}>
-            <Package className="h-4 w-4 mr-1" /> Publicar versão ({unlinked.length})
+          <Button size="sm" onClick={() => setPublishOpen(true)} disabled={unlinkedResolvedTickets.length === 0}>
+            <Package className="h-4 w-4 mr-1" /> Publicar versão ({unlinkedResolvedTickets.length})
           </Button>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
-              <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <Select value={sourceFilter} onValueChange={setSourceFilter}>
+              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos os tipos</SelectItem>
-                <SelectItem value="bug">Correções</SelectItem>
-                <SelectItem value="feature_request">Features</SelectItem>
-                <SelectItem value="improvement">Melhorias</SelectItem>
-                <SelectItem value="suggestion">Sugestões</SelectItem>
+                <SelectItem value="all">Todas as origens</SelectItem>
+                <SelectItem value="ticket">Tickets</SelectItem>
+                <SelectItem value="changelog">Versões</SelectItem>
+                <SelectItem value="migration">Migrações</SelectItem>
+                <SelectItem value="marina_action">Marina</SelectItem>
+                <SelectItem value="edge_function">Funções</SelectItem>
+                <SelectItem value="manual">Manuais</SelectItem>
               </SelectContent>
             </Select>
             <Select value={moduleFilter} onValueChange={setModuleFilter}>
@@ -113,13 +153,19 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
                 {modules.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}
               </SelectContent>
             </Select>
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar no histórico..."
+              className="w-64"
+            />
           </div>
 
-          {isLoading ? (
+          {activity.isLoading ? (
             <Skeleton className="h-40 w-full" />
           ) : grouped.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
-              Nenhum ticket resolvido ainda. Ao encerrar um ticket, ele aparecerá aqui.
+              Nenhum registro para os filtros selecionados.
             </div>
           ) : (
             <div className="space-y-6">
@@ -133,30 +179,45 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
                     <p className="text-xs text-muted-foreground mb-2">{g.version.description}</p>
                   )}
                   <div className="space-y-2">
-                    {g.items.map((t) => {
-                      const info = TYPE_LABEL[t.category] ?? { label: t.category, icon: Sparkles, className: "" };
-                      const Icon = info.icon;
+                    {g.items.map((it) => {
+                      const meta = SOURCE_META[it.source] ?? SOURCE_META.manual;
+                      const Icon = meta.icon;
+                      const isTicket = it.source === "ticket" && it.ref_id && ticketsById.has(it.ref_id);
+                      const catLabel = it.category ? (CATEGORY_LABEL[it.category] ?? it.category) : null;
                       return (
                         <button
-                          key={t.id}
-                          onClick={() => onOpen(t)}
-                          className="w-full text-left p-3 border rounded hover:bg-muted/40 transition"
+                          key={it.id}
+                          onClick={() => handleClick(it)}
+                          disabled={!isTicket}
+                          className={`w-full text-left p-3 border rounded transition ${
+                            isTicket ? "hover:bg-muted/40 cursor-pointer" : "cursor-default"
+                          }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <span className="font-mono text-[10px] text-muted-foreground">#{t.ticket_number}</span>
-                                <Badge variant="outline" className={`text-[10px] ${info.className}`}>
-                                  <Icon className="h-3 w-3 mr-1" /> {info.label}
+                                <Badge variant="outline" className={`text-[10px] ${meta.className}`}>
+                                  <Icon className="h-3 w-3 mr-1" /> {meta.label}
                                 </Badge>
-                                {(t.impacted_module || t.suggested_area) && (
-                                  <Badge variant="outline" className="text-[10px]">{t.impacted_module || t.suggested_area}</Badge>
+                                {catLabel && (
+                                  <Badge variant="outline" className="text-[10px]">{catLabel}</Badge>
+                                )}
+                                {it.module && (
+                                  <Badge variant="outline" className="text-[10px]">{it.module}</Badge>
+                                )}
+                                {it.source === "ticket" && it.metadata?.ticket_number && (
+                                  <span className="font-mono text-[10px] text-muted-foreground">
+                                    #{it.metadata.ticket_number}
+                                  </span>
                                 )}
                               </div>
-                              <div className="text-sm font-medium truncate">{t.title}</div>
+                              <div className="text-sm font-medium truncate">{it.title}</div>
+                              {it.description && (
+                                <div className="text-xs text-muted-foreground line-clamp-2">{it.description}</div>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground shrink-0">
-                              {formatLocalDate(t.resolved_at ?? t.created_at)}
+                              {formatLocalDate(it.occurred_at)}
                             </div>
                           </div>
                         </button>
@@ -170,7 +231,11 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
         </CardContent>
       </Card>
 
-      <PublishVersionDialog open={publishOpen} onOpenChange={setPublishOpen} candidates={unlinked} />
+      <PublishVersionDialog
+        open={publishOpen}
+        onOpenChange={setPublishOpen}
+        candidates={unlinkedResolvedTickets}
+      />
     </>
   );
 }
