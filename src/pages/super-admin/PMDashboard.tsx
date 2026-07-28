@@ -356,7 +356,7 @@ function StrategyTab() {
 
 function OSTTree({ nodes, onEdit }: { nodes: OSTNode[]; onEdit: (n: OSTNode) => void }) {
   const roots = nodes.filter((n) => !n.parent_id);
-  if (nodes.length === 0) return <div className="text-center text-muted-foreground py-8">Árvore vazia. Comece pelo objetivo (Outcome).</div>;
+  if (nodes.length === 0) return <div className="text-center text-muted-foreground py-8">Árvore vazia. Comece por um Outcome do Arrow (ex.: "Aumentar OS entregues no prazo" ou "Reduzir retrabalho documental no SGQ").</div>;
   return <ul className="space-y-2">{roots.map((r) => <OSTBranch key={r.id} node={r} all={nodes} onEdit={onEdit} depth={0} />)}</ul>;
 }
 
