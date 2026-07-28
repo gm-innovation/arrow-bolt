@@ -157,14 +157,7 @@ export default function Walkthroughs() {
     setEditingStep(null);
     qc.invalidateQueries({ queryKey: ["wt-steps", selectedId] });
   };
-    const { error } = form.id
-      ? await (supabase as any).from("walkthrough_steps").update(payload).eq("id", form.id)
-      : await (supabase as any).from("walkthrough_steps").insert(payload);
-    if (error) return toast.error(error.message);
-    toast.success("Passo salvo");
-    setEditingStep(null);
-    qc.invalidateQueries({ queryKey: ["wt-steps", selectedId] });
-  };
+
 
   const deleteStep = async (id: string) => {
     if (!confirm("Excluir este passo?")) return;
