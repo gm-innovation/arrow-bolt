@@ -276,7 +276,7 @@ export const useOSTNodes = () => {
 
 // ---------- Changelog ----------
 export interface ChangelogEntry {
-  id: string;
+  version: string | null;
   title: string;
   description: string | null;
   released_at: string;
