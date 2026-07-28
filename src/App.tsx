@@ -26,7 +26,7 @@ const Companies = lazy(() => import("./pages/super-admin/Companies"));
 const SuperAdminUsers = lazy(() => import("./pages/super-admin/Users"));
 const Subscriptions = lazy(() => import("./pages/super-admin/Subscriptions"));
 const Settings = lazy(() => import("./pages/super-admin/Settings"));
-const SuperAdminReports = lazy(() => import("./pages/super-admin/Reports"));
+
 const SuperAdminProfile = lazy(() => import("./pages/super-admin/Profile"));
 
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
@@ -276,7 +276,7 @@ const App = () => {
                     <Route path="/super-admin/subscriptions" element={<Subscriptions />} />
                     <Route path="/super-admin/settings" element={<Settings />} />
                     <Route path="/super-admin/profile" element={<SuperAdminProfile />} />
-                    <Route path="/super-admin/reports" element={<SuperAdminReports />} />
+                    <Route path="/super-admin/reports" element={<Navigate to="/super-admin/dashboard" replace />} />
                     <Route path="/super-admin/chat" element={<Chat />} />
                     <Route path="/super-admin/install" element={<InstallApp />} />
                     <Route path="/super-admin/api-docs" element={<SuperAdminApiDocs />} />
