@@ -1,62 +1,85 @@
-# Walkthrough v2 — Profundidade e Correção de Layout
+# Walkthrough — Sub-passos por Elemento
 
-## Problemas identificados
+## Problema
 
-1. **Conteúdo raso** — cada passo do walkthrough hoje descreve apenas "o que é a página", sem mostrar botões internos, campos, fluxos de uso, ou o que esperar ao clicar. Passa em cima da tela e sai.
-2. **Botão "Próximo" fora do balão** — o balão tem 400 px de largura fixa e a linha de ações empilha 4 botões (`Voltar`, `Pausar`, `Pular`, `Próximo/Concluir`) numa única `flex` sem `flex-wrap`, então o "Próximo" transborda no CSS zoom atual (dpr 0.9).
+Hoje cada passo do walkthrough lista **todos os elementos da tela dentro de um único balão** (o card mostra "Botão Novo Usuário", "Filtros", "Tabela", "Ações da linha" numa lista). O usuário quer o oposto: **o spotlight deve mover-se de elemento em elemento**, com um balão dedicado por elemento explicando aquele item específico.
 
-## O que muda
+Ou seja: em `/super-admin/users`, em vez de 1 passo com 4 bullets, teremos:
 
-### 1. Correção do balão (`WalkthroughOverlay.tsx`)
+1. Passo-pai "Usuários" (contexto geral rápido, aponta pra página)
+2. Sub-passo → destaca **botão Novo Usuário**
+3. Sub-passo → destaca **filtros**
+4. Sub-passo → destaca **tabela**
+5. Sub-passo → destaca **ações da linha**
+6. Volta ao próximo passo-pai (ex: Empresas)
 
-- Reorganizar a barra de ações em **duas linhas**:
-  - Linha 1 (secundária, esquerda): `Voltar` · `Pausar` · `Pular` com `text-xs`.
-  - Linha 2 (primária, direita): `Próximo` / `Concluir` ocupando largura confortável.
-- Adicionar `flex-wrap` como fallback e trocar largura fixa 400 px por `min(420px, calc(100vw - 32px))`.
-- Aumentar altura máxima do balão e permitir scroll interno quando o corpo for longo (`max-h-[70vh] overflow-y-auto` no bloco de conteúdo).
+## Mudanças
 
-### 2. Aprofundamento dos passos
+### 1. Schema (`walkthrough_steps`)
 
-Estender o schema de `walkthrough_steps` para suportar conteúdo rico sem quebrar o que já existe:
+Adicionar via migration:
+- `parent_step_id uuid` — referência ao passo-pai (null = passo-pai).
+- `is_substep boolean default false`.
+- Nada mais muda (o `selector`, `route`, `title`, `intro`, `expected_outcome`, `tips` já existem e passam a ser usados **por elemento**).
 
-- Novas colunas opcionais:
-  - `intro` (text) — 1 frase de contexto ("Aqui você faz X").
-  - `highlights` (jsonb) — lista de `{ label, description }` explicando botões/campos/áreas visíveis na tela.
-  - `how_to_use` (jsonb) — lista ordenada de instruções passo-a-passo ("1. Clique em Nova Empresa … 2. Preencha CNPJ …").
-  - `expected_outcome` (text) — o que o usuário deve esperar/ver depois.
-  - `tips` (jsonb) — dicas, atalhos, cuidados.
-- Renderização no `WalkthroughOverlay`:
-  - Se houver campos novos, renderizar seções tituladas (`Sobre`, `Nesta tela você vê`, `Como usar`, `O que esperar`, `Dicas`) com ícones pequenos.
-  - Manter compatibilidade com passos legados que só têm `body`.
+Os campos `highlights` e `how_to_use` deixam de ser usados para listar elementos da tela (essa era a fonte do problema). Ficam disponíveis apenas para casos onde faz sentido listar micro-detalhes de um único elemento.
 
-### 3. Sub-passos por elemento
+### 2. `data-tour` nos elementos
 
-Hoje um passo aponta para a página inteira via seletor da sidebar. Vamos permitir **sub-passos internos** para os elementos-chave:
+Adicionar atributos `data-tour="users-new"`, `data-tour="users-filters"`, `data-tour="users-table"`, `data-tour="users-row-actions"` etc. nos componentes das páginas cobertas, começando pelo Super Admin:
 
-- Adicionar `parent_step_id` (uuid, nullable) e `is_substep` (boolean) em `walkthrough_steps`.
-- Ao entrar num passo com sub-passos, o overlay percorre pai → sub-passos → próximo pai, com o spotlight se movendo entre os elementos internos (ex.: em `/super-admin/companies`: card de métricas → botão "Nova Empresa" → filtros → tabela → ações da linha).
-- Requer `data-tour` nos elementos internos das páginas cobertas — adicionaremos progressivamente começando pelas rotas do Super Admin, que é onde o usuário está testando.
+- `/super-admin/dashboard` — KPIs, gráficos, atalhos
+- `/super-admin/companies` — botão nova empresa, filtros, tabela, ações
+- `/super-admin/users` — botão novo, filtros, tabela, ações
+- `/super-admin/pm-dashboard` — abas Overview, OST, IA & Impacto, Histórico
+- `/super-admin/roadmap` — colunas, cards, drag
+- `/super-admin/walkthroughs` — lista, editor
+- `/super-admin/ai-management` — abas Identidade, Treinamento, Escopo, Ações
+- `/super-admin/subscriptions`, `/super-admin/settings`, `/super-admin/profile`
 
-### 4. Reescrita do conteúdo (Super Admin primeiro)
+Seletores dos sub-passos usam `[data-tour="..."]`.
 
-Reescrever os 12 passos do roteiro `super_admin` como piloto, com `intro`, `highlights`, `how_to_use`, `expected_outcome`, `tips` preenchidos + sub-passos para os elementos internos de cada página. Depois estender aos outros 9 papéis em ondas.
+### 3. `WalkthroughContext` — ordem achatada
 
-### 5. Editor do Super Admin
+Ao carregar `walkthrough_steps` de um script, montar a sequência: para cada passo-pai (na `order_index`), inserir os sub-passos (filtrados por `parent_step_id` e ordenados). O overlay já itera linearmente pela lista, então **nada muda no overlay** além de renderizar sub-passos com um estilo levemente mais compacto.
 
-Atualizar `/super-admin/walkthroughs` para editar os novos campos (textareas para `intro`/`expected_outcome`, editores de lista simples para `highlights`/`how_to_use`/`tips`, gestão de sub-passos aninhados).
+### 4. Overlay
+
+- Sub-passo mostra breadcrumb pequeno "Usuários › Botão Novo Usuário" no topo.
+- Corpo: `intro` (uma frase) + opcional `expected_outcome` / `tips`. Sem mais listas de "Nesta tela você vê".
+- Contador continua "Passo N de Total" (contando pai+sub-passos).
+
+### 5. Editor Super Admin (`/super-admin/walkthroughs`)
+
+- Cada passo-pai renderiza uma seção com seus sub-passos aninhados abaixo.
+- Botão "Adicionar sub-passo" dentro do pai.
+- Reordenação dentro do escopo (pai só entre pais, sub-passo só entre seus irmãos).
+- Campos por sub-passo: `title`, `selector` (com sugestão `[data-tour="..."]`), `intro`, `expected_outcome`, `tips`.
+
+### 6. Reescrita do roteiro `super_admin`
+
+Repopular via migration:
+- 10 passos-pai (um por rota do Super Admin).
+- ~4-6 sub-passos por rota, um por elemento visível relevante.
+- Total estimado: ~55 passos (contra 12 atuais).
+
+Os outros 9 roteiros permanecem com o formato antigo (passo-pai só, sem sub-passos) até serem reescritos em ondas seguintes.
 
 ## Detalhes técnicos
 
-- Migration adiciona colunas com `default null` — nenhum passo existente quebra.
-- `WalkthroughContext` passa a expor a lista achatada pai+sub-passos na ordem correta.
-- `WalkthroughOverlay` recebe um `StepContent` component que decide entre render legado (`body`) e render rico.
-- Sem mudança em RLS/grants (colunas novas herdam a policy da tabela).
+- Migration nova (adiciona colunas + reescreve steps do script `super_admin`). Steps antigos do super_admin são deletados antes da reinserção.
+- Sub-passos herdam `route` do pai por padrão; podem sobrescrever se necessário.
+- Se um sub-passo não encontrar o `data-tour` no DOM em 3s, é pulado silenciosamente (evita travar o tour).
+- Nada muda em RLS/grants — colunas novas herdam as policies existentes.
 
 ## Escopo desta entrega
 
-1. Fix do layout do balão (imediato).
-2. Migration + render rico + editor.
-3. Reescrita completa do roteiro `super_admin` (12 passos com sub-passos internos das telas Dashboard, Empresas, Inbox, Dashboard PM, Walkthroughs, Feed, Solicitações etc.).
-4. Os demais 9 roteiros continuam funcionando com o conteúdo raso atual e serão reescritos em ondas seguintes (posso enfileirar tudo agora se você preferir).
+1. Migration (colunas + reescrita `super_admin`).
+2. `data-tour` em todas as páginas do Super Admin.
+3. Ajuste no `WalkthroughContext` para achatar pai+sub-passos.
+4. Ajustes visuais no `WalkthroughOverlay` (breadcrumb, sem listas grandes).
+5. Editor com aninhamento pai/sub-passo.
 
-Confirma seguir com esse escopo (Super Admin como piloto) ou quer que eu reescreva os 10 roteiros de uma vez?
+Os 9 outros roteiros ficam para ondas seguintes.
+
+Confirma seguir?
