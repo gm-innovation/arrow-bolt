@@ -203,6 +203,115 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
   );
 }
 
+function ActivityLogRow({
+  item,
+  isTicket,
+  onOpenTicket,
+}: {
+  item: ActivityLogItem;
+  isTicket: boolean;
+  onOpenTicket: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const meta = SOURCE_META[item.source] ?? SOURCE_META.manual;
+  const Icon = meta.icon;
+  const catLabel = item.category ? (CATEGORY_LABEL[item.category] ?? item.category) : null;
+  const objects = Array.isArray(item.metadata?.objects) ? (item.metadata!.objects as string[]) : [];
+  const fields = Array.isArray(item.metadata?.fields) ? (item.metadata!.fields as string[]) : [];
+  const sqlPreview: string | undefined = item.metadata?.sql_preview;
+  const versionRef: string | undefined =
+    item.source === "migration" ? (item.metadata?.version ?? item.ref_id ?? undefined) : undefined;
+  const ticketNumber = item.metadata?.ticket_number;
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className="border rounded">
+        <CollapsibleTrigger asChild>
+          <button className="w-full text-left p-3 hover:bg-muted/40 transition">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap mb-1">
+                  <Badge variant="outline" className={`text-[10px] ${meta.className}`}>
+                    <Icon className="h-3 w-3 mr-1" /> {meta.label}
+                  </Badge>
+                  {catLabel && <Badge variant="outline" className="text-[10px]">{catLabel}</Badge>}
+                  {item.module && <Badge variant="outline" className="text-[10px]">{item.module}</Badge>}
+                  {ticketNumber && (
+                    <span className="font-mono text-[10px] text-muted-foreground">#{ticketNumber}</span>
+                  )}
+                  {versionRef && (
+                    <span className="font-mono text-[10px] text-muted-foreground">{versionRef}</span>
+                  )}
+                </div>
+                <div className="text-sm font-medium">{item.title}</div>
+                {item.description && (
+                  <div className="text-xs text-muted-foreground line-clamp-2">{item.description}</div>
+                )}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="text-xs text-muted-foreground">{formatLocalDate(item.occurred_at)}</div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition ${open ? "rotate-180" : ""}`} />
+              </div>
+            </div>
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="border-t p-3 space-y-2 bg-muted/20">
+            {objects.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                <span className="text-[11px] text-muted-foreground mr-1">Objetos:</span>
+                {objects.slice(0, 20).map((o) => (
+                  <Badge key={o} variant="secondary" className="text-[10px] font-mono">{o}</Badge>
+                ))}
+                {objects.length > 20 && (
+                  <span className="text-[10px] text-muted-foreground">+{objects.length - 20}</span>
+                )}
+              </div>
+            )}
+            {fields.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                <span className="text-[11px] text-muted-foreground mr-1">Campos alterados:</span>
+                {fields.map((f) => (
+                  <Badge key={f} variant="secondary" className="text-[10px]">{f}</Badge>
+                ))}
+              </div>
+            )}
+            {item.source === "ticket" && (item.metadata?.from || item.metadata?.to) && (
+              <div className="text-xs text-muted-foreground">
+                <span className="font-mono">{String(item.metadata?.from ?? "-")}</span>
+                {" → "}
+                <span className="font-mono">{String(item.metadata?.to ?? "-")}</span>
+              </div>
+            )}
+            {item.source === "marina_action" && item.metadata?.tool_name && (
+              <div className="text-xs">
+                <span className="text-muted-foreground">Ferramenta: </span>
+                <span className="font-mono">{String(item.metadata.tool_name)}</span>
+                {item.metadata?.success === false && item.metadata?.error_message && (
+                  <div className="text-red-600 mt-1">Erro: {String(item.metadata.error_message)}</div>
+                )}
+              </div>
+            )}
+            {sqlPreview && (
+              <div>
+                <div className="text-[11px] text-muted-foreground mb-1">SQL:</div>
+                <pre className="text-[11px] bg-background border rounded p-2 max-h-64 overflow-auto whitespace-pre-wrap">
+                  {sqlPreview}
+                </pre>
+              </div>
+            )}
+            {isTicket && (
+              <Button size="sm" variant="outline" onClick={onOpenTicket}>
+                Abrir ticket
+              </Button>
+            )}
+          </div>
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
+  );
+}
+
 function PublishVersionDialog({
   open,
   onOpenChange,
