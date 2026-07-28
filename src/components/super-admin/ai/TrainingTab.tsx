@@ -232,7 +232,7 @@ export function TrainingTab({ agent }: Props) {
         : file.name.toLowerCase().endsWith(".docx") ? "docx" : "txt";
       const { data, error } = await supabase.from("ai_knowledge_sources" as any).insert({
         agent_id: agent.id,
-        company_id: agent.company_id,
+        company_id: resolvedCompanyId(),
         source_type: sourceType,
         title: title || file.name,
         storage_path: path,
