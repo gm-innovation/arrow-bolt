@@ -1,36 +1,41 @@
-## Diagnóstico
+# Plano — Popular a Opportunity Solution Tree com o que já temos
 
-O card "Backlog de tickets abertos" mostra **2**, mas o banco tem **24** tickets em `open`/`in_progress` (20 open + 4 in_progress).
+A árvore está vazia hoje, mas o sistema já possui sinais suficientes para gerar uma primeira versão útil, sem inventar dados: **North Star Metrics**, **support_tickets** (~24 abertos, com `category`, `impacted_module`, `rice_score` e itens de roadmap) e o próprio **backlog do roadmap** (que hoje vive dentro de `support_tickets` prefixados com `[Roadmap]`).
 
-Causa: os cards do PM Dashboard leem `current_value` da tabela `pm_north_star_metrics`, que só é atualizada quando a Edge Function `pm-product-metrics-refresh` roda. O último refresh foi às 12:20 de hoje; **22 dos tickets foram criados às 13:16**, depois do refresh. A função em si está correta (filtra `status in ('open','triaging','in_progress')`), o valor apenas ficou defasado. O mesmo problema afeta `tickets_new_7d`, `tickets_bug_7d` e `ticket_resolution_days`.
+## O que semear (mapeamento direto a partir dos dados reais)
 
-## Solução
+Estrutura padrão da OST: `outcome → opportunity → solution → experiment`.
 
-Fazer os KPIs de tickets serem **live** (lidos direto de `support_tickets`), em vez de dependerem do snapshot manual.
+1. **Outcomes (raízes)** — 1 por North Star Metric ativo em `pm_north_star_metrics`. Título = nome da métrica, `north_star_metric_id` vinculado. Se não houver NSM, criar 3 outcomes padrão a partir dos módulos com mais tickets abertos (Plataforma, RH, IA, PM) — apenas como fallback.
 
-### 1. Card de tickets ler contagem em tempo real
-No componente que renderiza os cards de métricas do PM Dashboard (arquivo em `src/pages/super-admin/` ou `src/components/super-admin/pm/*` — confirmar no build), para as métricas com `metric_key` iniciando em `tickets_` / `ticket_`:
-- Substituir o `current_value` da NSM por uma query própria a `support_tickets`:
-  - `tickets_open` → `count` com `status in ('open','triaging','in_progress')`
-  - `tickets_new_7d` → `count` com `created_at >= now()-7d`
-  - `tickets_bug_7d` → `count` com `category='bug' and created_at >= now()-7d`
-  - `ticket_resolution_days` → média de `resolved_at - created_at` (30d)
-- Manter o rótulo/target/descrição vindos de `pm_north_star_metrics` — só o número passa a ser live.
+2. **Opportunities (nível 2)** — 1 por `impacted_module` distinto dos tickets abertos/in_progress. Exemplos reais que aparecem hoje: RH, IA, PM, SGQ, CRM, Financeiro, Universidade, Notificações, Integrações, Corporativo, Plataforma, AI_Copilot, Product Health Dashboard, HR, Recursos Humanos. Consolidar sinônimos (`RH`/`HR`/`Recursos Humanos` → RH; `IA`/`AI_Copilot` → IA). Descrição = contagem de tickets + categorias.
 
-### 2. Auto-refresh das demais métricas ao abrir o dashboard
-Disparar `pm-product-metrics-refresh` automaticamente ao montar o PM Dashboard se `updated_at` da métrica mais recente for anterior às últimas 6h (evita chamada em toda navegação). Manter o botão manual atual.
+3. **Solutions (nível 3)** — 1 por ticket `category = 'feature_request'` aberto/in_progress, filho da opportunity do seu módulo. Título = título do ticket (removendo o prefixo `[Roadmap] `). Descrição = descrição do ticket. Já cria vínculo em `pm_ticket_ost_links`.
 
-### 3. Atualização otimista após ações da Marina
-Ao criar/editar ticket via `ai-assistant` ou pelo formulário de ticket, invalidar a query dos cards (`react-query` `invalidateQueries(['pm-nsm'])` e a nova query de tickets) para o card refletir imediatamente.
+4. **Experiments** — não gerar automaticamente nesta primeira passada; ficam para o usuário/Marina adicionarem quando um solution virar teste.
 
-## Detalhes técnicos
+Não migrar bugs para a OST (bugs não pertencem à árvore de descoberta) — o único bug atual (`Recursos Humanos`) fica apenas ligado por `pm_ticket_ost_links` à opportunity RH, sem virar nó.
 
-- Arquivos afetados (front): componente de cards do PM Dashboard e `usePMDashboard.ts` (adicionar hook `usePMTicketLiveCounts`).
-- Sem migração de banco. Sem alteração da Edge Function.
-- Roles: query direta usa cliente Supabase autenticado; RLS de `support_tickets` já permite leitura por `super_admin` (confirmar rapidamente na implementação; caso contrário, adicionar RPC `security definer` para contagem).
-- Cache: `staleTime` de 60s para não sobrecarregar.
+## Como o usuário controla
 
-## Fora do escopo
+- Botão **"Sugerir a partir de tickets/métricas"** no card da OST em `/super-admin/pm-dashboard` (aba Estratégia). Abre um dialog de pré-visualização listando outcomes/opportunities/solutions que serão criados, com checkboxes para desmarcar itens. Só grava após confirmação — nada é criado silenciosamente.
+- Idempotência: antes de inserir, deduplica por `(node_type, title, parent_id)`. Rodar de novo não gera duplicatas; apenas adiciona o que faltar.
+- Cada nó criado vira também um evento em `pm_activity_log` (já coberto pelo trigger existente).
 
-- Cron server-side (pode ser considerado em uma próxima onda; a auto-refresh no mount + invalidação já resolvem o sintoma).
-- Alterar as demais métricas (WAU/MAU/adoção) — permanecem no fluxo de snapshot.
+## Marina — reforço opcional (mesmo turno)
+
+Adicionar ferramenta `suggest_ost_from_signals` na Edge Function `ai-assistant` (só `super_admin`): lê NSMs + tickets abertos e propõe no chat a mesma lista, aplicando via `create_ost_node` (já implícita através de `pm_ost_nodes`) após confirmação textual. Isso responde ao roadmap item já existente "pm-insights-suggest — Marina propõe OST".
+
+## Entregáveis técnicos
+
+- Edge Function nova `pm-ost-seed` (POST): monta o preview (dry-run por padrão) e aplica quando `apply: true`. Regras acima. Retorna JSON com contagens.
+- Hook `useOSTSeed` em `src/hooks/usePMDashboard.ts` + dialog `OSTSeedDialog.tsx`.
+- Botão "Sugerir a partir de sinais" ao lado do "+ Novo nó" em `StrategyTab` (`PMDashboard.tsx`).
+- Ferramenta `suggest_ost_from_signals` em `supabase/functions/ai-assistant/tools.ts` + registro no prompt em `index.ts`.
+- Sem migração de schema — a estrutura de `pm_ost_nodes` e `pm_ticket_ost_links` já suporta tudo.
+
+## Fora de escopo
+
+- Auto-scoring RICE de nós OST (já existe em tickets; pode ser puxado por join na UI depois).
+- Geração automática de experiments.
+- Movimentação/reordenação drag&drop dentro da OST (a UI atual já lista; reordenação fica para depois).
