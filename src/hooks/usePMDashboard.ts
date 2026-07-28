@@ -79,6 +79,83 @@ export const useUpdateTicketPM = () => {
   });
 };
 
+// Reordena/movimenta um ticket entre horizontes do roadmap
+export const useMoveRoadmapTicket = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, horizon, position }: { id: string; horizon: string; position: number }) => {
+      const { error } = await supabase
+        .from("support_tickets")
+        .update({ roadmap_horizon: horizon, roadmap_position: position } as any)
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: async ({ id, horizon, position }) => {
+      await qc.cancelQueries({ queryKey: ["pm-tickets"] });
+      const prev = qc.getQueryData<PMTicket[]>(["pm-tickets"]);
+      if (prev) {
+        qc.setQueryData<PMTicket[]>(["pm-tickets"], prev.map((t) =>
+          t.id === id ? { ...t, roadmap_horizon: horizon, roadmap_position: position } : t,
+        ));
+      }
+      return { prev };
+    },
+    onError: (e: any, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(["pm-tickets"], ctx.prev);
+      toast({ title: "Erro ao mover", description: e.message, variant: "destructive" });
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["pm-tickets"] }),
+  });
+};
+
+// Gera prompt de dev para um ticket (reusa Edge Function existente)
+export const useGenerateDevPrompt = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ticket_id: string) => {
+      const { data, error } = await supabase.functions.invoke("generate-ticket-dev-prompt", {
+        body: { ticket_id },
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pm-tickets"] });
+      toast({ title: "Prompt gerado" });
+    },
+    onError: (e: any) => toast({ title: "Falha ao gerar prompt", description: e.message, variant: "destructive" }),
+  });
+};
+
+// Publica uma versão: agrupa tickets resolvidos sem changelog em uma nova entrada
+export const usePublishVersion = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ version, title, description, ticket_ids }: { version: string; title: string; description?: string; ticket_ids: string[] }) => {
+      const { data: entry, error } = await supabase
+        .from("pm_changelog" as any)
+        .insert({ version, title, description: description ?? null, released_at: new Date().toISOString(), related_ticket_ids: ticket_ids } as any)
+        .select()
+        .single();
+      if (error) throw error;
+      if (ticket_ids.length > 0) {
+        const { error: linkErr } = await supabase
+          .from("support_tickets")
+          .update({ pm_changelog_id: (entry as any).id } as any)
+          .in("id", ticket_ids);
+        if (linkErr) throw linkErr;
+      }
+      return entry;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pm-tickets"] });
+      qc.invalidateQueries({ queryKey: ["pm-changelog"] });
+      toast({ title: "Versão publicada" });
+    },
+    onError: (e: any) => toast({ title: "Erro ao publicar", description: e.message, variant: "destructive" }),
+  });
+};
+
 // ---------- North Star Metrics ----------
 export interface NorthStarMetric {
   id: string;
