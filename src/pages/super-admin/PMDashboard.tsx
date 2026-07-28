@@ -483,6 +483,7 @@ function PriorityTab() {
   const { data: tickets = [], isLoading } = usePMTickets();
   const recalc = useRecalcRice();
   const update = useUpdateTicketPM();
+  const [selected, setSelected] = useState<PMTicket | null>(null);
 
   const scored = useMemo(
     () => tickets.filter((t) => t.rice_score != null).sort((a, b) => (b.rice_score ?? 0) - (a.rice_score ?? 0)),
