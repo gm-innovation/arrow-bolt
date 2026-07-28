@@ -268,11 +268,12 @@ const Users = () => {
                       {user.active ? "Ativo" : "Inativo"}
                     </div>
                   </TableCell>
-                  <TableCell data-tour="users-row-actions">
+                  <TableCell>
 
                     {format(new Date(user.created_at), "dd/MM/yyyy")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-tour="users-row-actions">
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
