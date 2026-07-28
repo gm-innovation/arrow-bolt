@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { History, Package, Database, Bot, Cloud, Tag, FileText, ChevronDown } from "lucide-react";
+import { History, Package, Database, Bot, Cloud, Tag, FileText, ChevronDown, Code2 } from "lucide-react";
 import { formatLocalDate } from "@/lib/utils";
 import {
   usePMTickets,
@@ -119,7 +119,7 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
               <History className="h-5 w-5" /> Histórico do sistema
             </CardTitle>
             <CardDescription>
-              Timeline unificado: tickets resolvidos, versões publicadas, migrações no banco e ações da Marina.
+              Timeline unificado: alterações de código, correções, melhorias, versões publicadas, migrações no banco e ações da Marina.
             </CardDescription>
           </div>
           <Button size="sm" onClick={() => setPublishOpen(true)} disabled={unlinkedResolvedTickets.length === 0}>
@@ -173,19 +173,20 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
                     <p className="text-xs text-muted-foreground mb-2">{g.version.description}</p>
                   )}
                   <div className="space-y-2">
-                    {g.items.map((it) => (
-                      <ActivityLogRow
-                        key={it.id}
-                        item={it}
-                        isTicket={it.source === "ticket" && !!it.ref_id && ticketsById.has(it.ref_id!)}
-                        onOpenTicket={() => {
-                          if (it.source === "ticket" && it.ref_id) {
-                            const t = ticketsById.get(it.ref_id);
-                            if (t) onOpen(t);
-                          }
-                        }}
-                      />
-                    ))}
+                    {g.items.map((it) => {
+                      const ticketRef = it.source === "ticket" ? String(it.metadata?.ticket_id ?? it.ref_id ?? "") : "";
+                      const linkedTicket = ticketRef ? ticketsById.get(ticketRef) : undefined;
+                      return (
+                        <ActivityLogRow
+                          key={it.id}
+                          item={it}
+                          isTicket={!!linkedTicket}
+                          onOpenTicket={() => {
+                            if (linkedTicket) onOpen(linkedTicket);
+                          }}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               ))}
@@ -219,6 +220,7 @@ function ActivityLogRow({
   const objects = Array.isArray(item.metadata?.objects) ? (item.metadata!.objects as string[]) : [];
   const fields = Array.isArray(item.metadata?.fields) ? (item.metadata!.fields as string[]) : [];
   const sqlPreview: string | undefined = item.metadata?.sql_preview;
+  const isCodeChange = item.metadata?.code_change_registered === true;
   const versionRef: string | undefined =
     item.source === "migration" ? (item.metadata?.version ?? item.ref_id ?? undefined) : undefined;
   const ticketNumber = item.metadata?.ticket_number;
@@ -234,6 +236,11 @@ function ActivityLogRow({
                   <Badge variant="outline" className={`text-[10px] ${meta.className}`}>
                     <Icon className="h-3 w-3 mr-1" /> {meta.label}
                   </Badge>
+                  {isCodeChange && (
+                    <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-700 border-emerald-300">
+                      <Code2 className="h-3 w-3 mr-1" /> Código alterado
+                    </Badge>
+                  )}
                   {catLabel && <Badge variant="outline" className="text-[10px]">{catLabel}</Badge>}
                   {item.module && <Badge variant="outline" className="text-[10px]">{item.module}</Badge>}
                   {ticketNumber && (
@@ -281,6 +288,11 @@ function ActivityLogRow({
                 <span className="font-mono">{String(item.metadata?.from ?? "-")}</span>
                 {" → "}
                 <span className="font-mono">{String(item.metadata?.to ?? "-")}</span>
+              </div>
+            )}
+            {isCodeChange && (
+              <div className="text-xs text-muted-foreground">
+                Código alterado e registrado no histórico sem depender da resolução do ticket.
               </div>
             )}
             {item.source === "marina_action" && item.metadata?.tool_name && (

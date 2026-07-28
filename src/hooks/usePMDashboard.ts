@@ -79,6 +79,51 @@ export const useUpdateTicketPM = () => {
   });
 };
 
+export const useRegisterCodeChange = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (ticket: PMTicket) => {
+      const { data: authData } = await supabase.auth.getUser();
+      const occurredAt = new Date().toISOString();
+      const moduleName = ticket.impacted_module ?? ticket.suggested_area ?? null;
+      const titlePrefix = ticket.category === "bug" ? "Correção implementada" : "Alteração implementada";
+
+      const { error } = await supabase
+        .from("pm_activity_log" as any)
+        .upsert({
+          occurred_at: occurredAt,
+          source: "ticket",
+          category: ticket.category,
+          module: moduleName,
+          title: `${titlePrefix} — Ticket #${ticket.ticket_number}`,
+          description: `${ticket.title}\n\nCódigo alterado e aguardando validação do usuário.`,
+          ref_table: "support_tickets_code_change",
+          ref_id: ticket.id,
+          author_id: authData.user?.id ?? null,
+          metadata: {
+            ticket_id: ticket.id,
+            ticket_number: ticket.ticket_number,
+            ticket_title: ticket.title,
+            status_at_registration: ticket.status,
+            code_change_registered: true,
+            registered_from: "pm_dashboard",
+            category: ticket.category,
+            priority: ticket.priority,
+            horizon: ticket.roadmap_horizon,
+          },
+        } as any, { onConflict: "source,ref_table,ref_id" });
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pm-activity-log"] });
+      qc.invalidateQueries({ queryKey: ["pm-tickets"] });
+      toast({ title: "Alteração de código registrada" });
+    },
+    onError: (e: any) => toast({ title: "Erro ao registrar alteração", description: e.message, variant: "destructive" }),
+  });
+};
+
 // Reordena/movimenta um ticket entre horizontes do roadmap
 export const useMoveRoadmapTicket = () => {
   const qc = useQueryClient();

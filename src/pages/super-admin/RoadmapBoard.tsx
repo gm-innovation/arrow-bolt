@@ -31,6 +31,8 @@ const HORIZONS = [
   { value: "icebox", label: "Gelo", color: "bg-slate-500/10 text-slate-700 border-slate-300" },
 ];
 
+const ROADMAP_CATEGORIES = new Set(["feature_request", "improvement", "suggestion"]);
+
 export function RoadmapBoard({
   tickets,
   onOpen,
@@ -43,6 +45,7 @@ export function RoadmapBoard({
   const byHorizon = useMemo(() => {
     const map: Record<string, PMTicket[]> = { now: [], next: [], later: [], icebox: [] };
     for (const t of tickets) {
+      if (!ROADMAP_CATEGORIES.has(t.category)) continue;
       const h = t.roadmap_horizon ?? "icebox";
       if (!map[h]) map[h] = [];
       map[h].push(t);
