@@ -86,14 +86,15 @@ function ScopeChip({ value }: { value: ScopeValue }) {
 
 // Editor de escopo — usado no formulário e no popover de edição inline
 function ScopeEditor({ value, onChange }: { value: ScopeValue; onChange: (v: ScopeValue) => void }) {
-  const mode: ScopeMode = useMemo(() => {
+  const initialMode: ScopeMode = (() => {
     const r = value.roles.length > 0;
     const m = value.modules.length > 0;
     if (r && m) return "both";
     if (r) return "roles";
     if (m) return "modules";
     return "global";
-  }, [value]);
+  })();
+  const [mode, setMode] = useState<ScopeMode>(initialMode);
 
   const toggle = (list: string[], v: string) =>
     list.includes(v) ? list.filter(x => x !== v) : [...list, v];
@@ -103,6 +104,7 @@ function ScopeEditor({ value, onChange }: { value: ScopeValue; onChange: (v: Sco
       <RadioGroup
         value={mode}
         onValueChange={(m: ScopeMode) => {
+          setMode(m);
           if (m === "global") onChange({ roles: [], modules: [] });
           else if (m === "roles") onChange({ roles: value.roles, modules: [] });
           else if (m === "modules") onChange({ roles: [], modules: value.modules });
@@ -169,6 +171,7 @@ function ScopeEditor({ value, onChange }: { value: ScopeValue; onChange: (v: Sco
     </div>
   );
 }
+
 
 function statusBadge(status: string) {
   const map: Record<string, { label: string; variant: any }> = {
