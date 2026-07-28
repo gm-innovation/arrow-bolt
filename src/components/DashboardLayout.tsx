@@ -169,6 +169,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Agente de IA", icon: Bot, path: "/super-admin/ai-management" },
     { title: "Inbox de Suporte", icon: MessageSquare, path: "/super-admin/support-inbox" },
     { title: "Dashboard PM", icon: Layers, path: "/super-admin/pm-dashboard" },
+    { title: "Walkthroughs", icon: Compass, path: "/super-admin/walkthroughs" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
