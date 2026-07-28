@@ -42,36 +42,40 @@ const SuperAdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
+      <div data-tour="dashboard-header" className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Dashboard Global</h1>
           <p className="text-muted-foreground">Visão geral do sistema</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 w-full sm:w-auto">
-          <Button onClick={handleNewCompany} className="w-full sm:w-auto">
+          <Button data-tour="dashboard-new-company" onClick={handleNewCompany} className="w-full sm:w-auto">
             <PlusCircle className="mr-2 h-4 w-4" />
             Nova Empresa
           </Button>
-          <Button variant="outline" onClick={handleManageSubscriptions} className="w-full sm:w-auto">
+          <Button data-tour="dashboard-subscriptions" variant="outline" onClick={handleManageSubscriptions} className="w-full sm:w-auto">
             <CreditCard className="mr-2 h-4 w-4" />
             Assinaturas
           </Button>
-          <Button variant="ghost" onClick={handleSettings} className="w-full sm:w-auto">
+          <Button data-tour="dashboard-settings" variant="ghost" onClick={handleSettings} className="w-full sm:w-auto">
             <Settings className="mr-2 h-4 w-4" />
             Configurações
           </Button>
         </div>
       </div>
 
-      <SuperAdminStats stats={stats} isLoading={isLoading} />
+      <div data-tour="dashboard-kpis">
+        <SuperAdminStats stats={stats} isLoading={isLoading} />
+      </div>
 
-      <SuperAdminCharts
-        companyGrowth={companyGrowth}
-        companyUsage={companyUsage}
-        isLoading={isLoading}
-      />
+      <div data-tour="dashboard-charts">
+        <SuperAdminCharts
+          companyGrowth={companyGrowth}
+          companyUsage={companyUsage}
+          isLoading={isLoading}
+        />
+      </div>
 
-      <Card>
+      <Card data-tour="dashboard-summary">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-primary" />
