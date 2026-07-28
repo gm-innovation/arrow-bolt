@@ -150,6 +150,8 @@ export default function Walkthroughs() {
       action: form.action || "none",
       checkpoint: !!form.checkpoint,
       optional: !!form.optional,
+      parent_step_id: form.parent_step_id || null,
+      is_substep: !!form.parent_step_id,
     };
     const { error } = form.id
       ? await (supabase as any).from("walkthrough_steps").update(payload).eq("id", form.id)
