@@ -22,7 +22,7 @@ const ROLES = [
 type Script = any;
 type Step = any;
 
-const emptyStep = (script_id: string, order_index: number): Step => ({
+const emptyStep = (script_id: string, order_index: number, parent_step_id: string | null = null): Step => ({
   script_id,
   order_index,
   route: "/",
@@ -37,6 +37,8 @@ const emptyStep = (script_id: string, order_index: number): Step => ({
   action: "none",
   checkpoint: false,
   optional: false,
+  parent_step_id,
+  is_substep: !!parent_step_id,
 });
 
 const parseLines = (s: string) =>
