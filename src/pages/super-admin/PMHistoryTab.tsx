@@ -180,50 +180,19 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
                     <p className="text-xs text-muted-foreground mb-2">{g.version.description}</p>
                   )}
                   <div className="space-y-2">
-                    {g.items.map((it) => {
-                      const meta = SOURCE_META[it.source] ?? SOURCE_META.manual;
-                      const Icon = meta.icon;
-                      const isTicket = it.source === "ticket" && it.ref_id && ticketsById.has(it.ref_id);
-                      const catLabel = it.category ? (CATEGORY_LABEL[it.category] ?? it.category) : null;
-                      return (
-                        <button
-                          key={it.id}
-                          onClick={() => handleClick(it)}
-                          disabled={!isTicket}
-                          className={`w-full text-left p-3 border rounded transition ${
-                            isTicket ? "hover:bg-muted/40 cursor-pointer" : "cursor-default"
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2 flex-wrap mb-1">
-                                <Badge variant="outline" className={`text-[10px] ${meta.className}`}>
-                                  <Icon className="h-3 w-3 mr-1" /> {meta.label}
-                                </Badge>
-                                {catLabel && (
-                                  <Badge variant="outline" className="text-[10px]">{catLabel}</Badge>
-                                )}
-                                {it.module && (
-                                  <Badge variant="outline" className="text-[10px]">{it.module}</Badge>
-                                )}
-                                {it.source === "ticket" && it.metadata?.ticket_number && (
-                                  <span className="font-mono text-[10px] text-muted-foreground">
-                                    #{it.metadata.ticket_number}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-sm font-medium truncate">{it.title}</div>
-                              {it.description && (
-                                <div className="text-xs text-muted-foreground line-clamp-2">{it.description}</div>
-                              )}
-                            </div>
-                            <div className="text-xs text-muted-foreground shrink-0">
-                              {formatLocalDate(it.occurred_at)}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
+                    {g.items.map((it) => (
+                      <ActivityLogRow
+                        key={it.id}
+                        item={it}
+                        isTicket={it.source === "ticket" && !!it.ref_id && ticketsById.has(it.ref_id!)}
+                        onOpenTicket={() => {
+                          if (it.source === "ticket" && it.ref_id) {
+                            const t = ticketsById.get(it.ref_id);
+                            if (t) onOpen(t);
+                          }
+                        }}
+                      />
+                    ))}
                   </div>
                 </div>
               ))}
