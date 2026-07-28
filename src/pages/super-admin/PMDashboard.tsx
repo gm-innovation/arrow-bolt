@@ -17,6 +17,7 @@ import {
 import {
   usePMTickets, useRecalcRice, useUpdateTicketPM,
   useNorthStarMetrics, useOSTNodes, useChangelog, useAIPerformance,
+  useRefreshProductMetrics,
   type PMTicket, type NorthStarMetric, type OSTNode, type ChangelogEntry,
 } from "@/hooks/usePMDashboard";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
@@ -204,6 +205,7 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
               <Input value={ticket.impacted_module ?? ticket.suggested_area ?? ""}
                 onChange={(e) => update.mutate({ id: ticket.id, patch: { impacted_module: e.target.value } })}
                 placeholder="ex.: OS, RH/DP, Comercial/CRM, SGQ, Financeiro, Suprimentos, Corporativo, Marina (IA)" />
+
             </div>
             <div>
               <Label>Horizonte Roadmap</Label>
@@ -297,6 +299,7 @@ function StatCard({ label, value, icon: Icon, accent }: { label: string; value: 
 function StrategyTab() {
   const nsm = useNorthStarMetrics();
   const ost = useOSTNodes();
+  const refresh = useRefreshProductMetrics();
   const [openMetric, setOpenMetric] = useState<Partial<NorthStarMetric> | null>(null);
   const [openNode, setOpenNode] = useState<Partial<OSTNode> | null>(null);
 
@@ -305,17 +308,28 @@ function StrategyTab() {
       <Card>
         <CardHeader className="flex-row justify-between items-center">
           <div>
-            <CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" /> Métricas North Star</CardTitle>
-            <CardDescription>Indicadores principais de sucesso do produto</CardDescription>
+            <CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" /> Saúde do produto — North Star</CardTitle>
+            <CardDescription>
+              Métricas de adoção, engajamento e confiabilidade do Arrow. Não confundir com KPIs operacionais dos clientes.
+            </CardDescription>
           </div>
-          <Button size="sm" onClick={() => setOpenMetric({})}><Plus className="h-4 w-4 mr-1" /> Nova métrica</Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${refresh.isPending ? "animate-spin" : ""}`} />
+              {refresh.isPending ? "Atualizando..." : "Atualizar com Marina"}
+            </Button>
+            <Button size="sm" onClick={() => setOpenMetric({})}><Plus className="h-4 w-4 mr-1" /> Nova métrica</Button>
+          </div>
         </CardHeader>
         <CardContent>
           {nsm.isLoading ? <Skeleton className="h-24 w-full" /> : (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {(nsm.data ?? []).map((m) => (
                 <button key={m.id} onClick={() => setOpenMetric(m)} className="text-left p-4 border rounded-lg hover:bg-muted/40 transition">
-                  <div className="text-sm text-muted-foreground">{m.name}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-muted-foreground flex-1">{m.name}</div>
+                    {m.metric_key && <Badge variant="outline" className="text-[10px]">auto</Badge>}
+                  </div>
                   <div className="text-2xl font-bold mt-1">
                     {m.current_value ?? "—"}<span className="text-sm text-muted-foreground ml-1">{m.unit}</span>
                   </div>
@@ -327,7 +341,7 @@ function StrategyTab() {
               ))}
               {(nsm.data ?? []).length === 0 && !nsm.isLoading && (
                 <div className="col-span-full text-center text-muted-foreground py-8">
-                  Nenhuma métrica cadastrada. Ex.: "OS concluídas no prazo", "Tempo médio de fechamento de OS", "Aderência documental SGQ", "Conformidade ASO ativa".
+                  Nenhuma métrica cadastrada. Ex.: "Usuários Ativos Semanais (WAU)", "Stickiness (WAU/MAU)", "Bugs reportados (7d)", "Adoção do módulo SGQ".
                 </div>
               )}
             </div>
@@ -356,7 +370,7 @@ function StrategyTab() {
 
 function OSTTree({ nodes, onEdit }: { nodes: OSTNode[]; onEdit: (n: OSTNode) => void }) {
   const roots = nodes.filter((n) => !n.parent_id);
-  if (nodes.length === 0) return <div className="text-center text-muted-foreground py-8">Árvore vazia. Comece por um Outcome do Arrow (ex.: "Aumentar OS entregues no prazo" ou "Reduzir retrabalho documental no SGQ").</div>;
+  if (nodes.length === 0) return <div className="text-center text-muted-foreground py-8">Árvore vazia. Comece por um Outcome de produto (ex.: "Elevar Stickiness a 40%" ou "Reduzir bugs por 100 sessões").</div>;
   return <ul className="space-y-2">{roots.map((r) => <OSTBranch key={r.id} node={r} all={nodes} onEdit={onEdit} depth={0} />)}</ul>;
 }
 
@@ -397,11 +411,11 @@ function MetricDialog({ value, onClose, nsm }: { value: Partial<NorthStarMetric>
           <div><Label>Nome</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
           <div><Label>Descrição</Label><Textarea value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           <div className="grid grid-cols-3 gap-2">
-            <div><Label>Unidade</Label><Input value={form.unit ?? ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="%, dias, OS/mês, R$, ..." /></div>
+            <div><Label>Unidade</Label><Input value={form.unit ?? ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="%, usuários, tickets, dias, ..." /></div>
             <div><Label>Atual</Label><Input type="number" value={form.current_value ?? ""} onChange={(e) => setForm({ ...form, current_value: e.target.value === "" ? null : Number(e.target.value) })} /></div>
             <div><Label>Meta</Label><Input type="number" value={form.target ?? ""} onChange={(e) => setForm({ ...form, target: e.target.value === "" ? null : Number(e.target.value) })} /></div>
           </div>
-          <div><Label>Fórmula/Notas</Label><Textarea value={form.formula_notes ?? ""} onChange={(e) => setForm({ ...form, formula_notes: e.target.value })} placeholder='ex.: COUNT(service_orders WHERE completed_date <= due_date) / COUNT total no período' /></div>
+          <div><Label>Fórmula/Notas</Label><Textarea value={form.formula_notes ?? ""} onChange={(e) => setForm({ ...form, formula_notes: e.target.value })} placeholder='ex.: COUNT(DISTINCT auth.users) com last_sign_in nos últimos 7 dias' /></div>
         </div>
         <DialogFooter className="gap-2">
           {value.id && <Button variant="destructive" onClick={() => { nsm.remove.mutate(value.id!); onClose(); }}><Trash2 className="h-4 w-4 mr-1" /> Excluir</Button>}

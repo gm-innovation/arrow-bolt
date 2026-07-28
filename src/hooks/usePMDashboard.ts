@@ -79,6 +79,7 @@ export const useUpdateTicketPM = () => {
 // ---------- North Star Metrics ----------
 export interface NorthStarMetric {
   id: string;
+  metric_key: string | null;
   name: string;
   description: string | null;
   unit: string | null;
@@ -87,6 +88,22 @@ export interface NorthStarMetric {
   formula_notes: string | null;
   updated_at: string;
 }
+
+export const useRefreshProductMetrics = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("pm-product-metrics-refresh", { body: {} });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pm-nsm"] });
+      toast({ title: "Métricas atualizadas", description: "Marina recalculou a saúde do produto." });
+    },
+    onError: (e: any) => toast({ title: "Falha ao atualizar", description: e.message, variant: "destructive" }),
+  });
+};
 
 export const useNorthStarMetrics = () => {
   const qc = useQueryClient();
