@@ -397,11 +397,11 @@ function MetricDialog({ value, onClose, nsm }: { value: Partial<NorthStarMetric>
           <div><Label>Nome</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
           <div><Label>Descrição</Label><Textarea value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           <div className="grid grid-cols-3 gap-2">
-            <div><Label>Unidade</Label><Input value={form.unit ?? ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="min, %, ..." /></div>
+            <div><Label>Unidade</Label><Input value={form.unit ?? ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="%, dias, OS/mês, R$, ..." /></div>
             <div><Label>Atual</Label><Input type="number" value={form.current_value ?? ""} onChange={(e) => setForm({ ...form, current_value: e.target.value === "" ? null : Number(e.target.value) })} /></div>
             <div><Label>Meta</Label><Input type="number" value={form.target ?? ""} onChange={(e) => setForm({ ...form, target: e.target.value === "" ? null : Number(e.target.value) })} /></div>
           </div>
-          <div><Label>Fórmula/Notas</Label><Textarea value={form.formula_notes ?? ""} onChange={(e) => setForm({ ...form, formula_notes: e.target.value })} /></div>
+          <div><Label>Fórmula/Notas</Label><Textarea value={form.formula_notes ?? ""} onChange={(e) => setForm({ ...form, formula_notes: e.target.value })} placeholder='ex.: COUNT(service_orders WHERE completed_date <= due_date) / COUNT total no período' /></div>
         </div>
         <DialogFooter className="gap-2">
           {value.id && <Button variant="destructive" onClick={() => { nsm.remove.mutate(value.id!); onClose(); }}><Trash2 className="h-4 w-4 mr-1" /> Excluir</Button>}
