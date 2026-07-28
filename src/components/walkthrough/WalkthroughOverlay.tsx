@@ -50,6 +50,18 @@ const findEl = (selector: string | null, timeoutMs = 3000): Promise<HTMLElement 
   });
 };
 
+const closeOpenLayer = () => {
+  const esc = new KeyboardEvent("keydown", { key: "Escape", code: "Escape", bubbles: true, cancelable: true });
+  document.dispatchEvent(esc);
+  window.dispatchEvent(esc);
+
+  const closeButton = document.querySelector<HTMLElement>(
+    '[role="dialog"] button[aria-label="Close"], [role="dialog"] button[aria-label="Fechar"], [role="dialog"] [data-dismiss], [data-radix-popper-content-wrapper] [role="menuitem"]'
+  );
+  closeButton?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+  document.body.style.pointerEvents = "";
+};
+
 export const WalkthroughOverlay = () => {
   const { active, script, steps, index, next, prev, skip, pause, complete } = useWalkthrough();
   const [rect, setRect] = useState<Rect>(null);
@@ -78,10 +90,7 @@ export const WalkthroughOverlay = () => {
   useEffect(() => {
     const previous = prevStepRef.current;
     if (previous && previous !== step && previous.close_on_exit) {
-      // Try Escape first; fall back to clicking [data-radix-focus-guard] siblings' close
-      document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true } as any));
-      const btn = document.querySelector<HTMLElement>('[role="dialog"] [aria-label="Close"], [role="dialog"] [data-dismiss]');
-      btn?.click();
+      closeOpenLayer();
     }
     prevStepRef.current = step;
   }, [step]);
@@ -97,19 +106,20 @@ export const WalkthroughOverlay = () => {
 
     const compute = () => {
       if (!el) return setRect(null);
+      el.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
       const r = el.getBoundingClientRect();
       setRect({ top: r.top, left: r.left, width: r.width, height: r.height });
-      el.scrollIntoView({ block: "center", inline: "center", behavior: "smooth" });
     };
 
     const run = async () => {
       // If action is auto_click, click the primary selector, then wait for post_action_selector
       if (step.action === "auto_click" && step.selector && lastClickedStepRef.current !== step.id) {
         lastClickedStepRef.current = step.id;
-        const clickTarget = await findEl(step.selector, 2000);
-        clickTarget?.click();
+        const clickTarget = await findEl(step.selector, 3000);
+        clickTarget?.scrollIntoView({ block: "center", inline: "center", behavior: "auto" });
+        clickTarget?.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
         if (step.post_action_selector) {
-          el = await findEl(step.post_action_selector, 4000);
+          el = (await findEl(step.post_action_selector, 5000)) ?? clickTarget;
         } else {
           el = clickTarget;
         }
@@ -201,7 +211,7 @@ export const WalkthroughOverlay = () => {
         borderRadius: 12,
         boxShadow: "0 0 0 9999px rgba(15,23,42,0.65)",
         border: "2px solid hsl(var(--primary))",
-        pointerEvents: step.action === "click" ? "none" : "auto",
+        pointerEvents: "none",
         zIndex: 9999,
         transition: "all 200ms ease",
       }

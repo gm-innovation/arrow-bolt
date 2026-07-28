@@ -39,7 +39,7 @@ export const NotificationBell = () => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
+        <Button variant="ghost" size="icon" className="relative" data-tour="notifications-bell">
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
             <Badge 
@@ -56,6 +56,7 @@ export const NotificationBell = () => {
           <h4 className="font-semibold text-sm">Notificações</h4>
           {unreadCount > 0 && (
             <Button
+              data-tour="notifications-mark-read"
               variant="ghost"
               size="sm"
               onClick={() => markAllAsRead()}
@@ -74,6 +75,7 @@ export const NotificationBell = () => {
           ) : (
             notifications.map((notification) => (
               <DropdownMenuItem
+                data-tour="notifications-item"
                 key={notification.id}
                 className="flex flex-col items-start p-3 cursor-pointer"
                 onClick={() => handleNotificationClick(

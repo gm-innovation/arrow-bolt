@@ -77,7 +77,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="focus:outline-none focus:ring-2 focus:ring-primary rounded-full">
+        <button className="focus:outline-none focus:ring-2 focus:ring-primary rounded-full" data-tour="user-menu-trigger">
           <Avatar className="h-8 w-8 cursor-pointer">
             {avatarUrl && (
               <AvatarImage src={avatarUrl} alt="Avatar" className="object-cover" />
@@ -88,7 +88,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
           </Avatar>
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
+      <DropdownMenuContent align="end" className="w-56" data-tour="user-menu-content">
         <DropdownMenuLabel>
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">
@@ -103,15 +103,15 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => navigate(getProfilePath())}>
+        <DropdownMenuItem data-tour="user-menu-profile" onClick={() => navigate(getProfilePath())}>
           <User className="mr-2 h-4 w-4" />
           <span>Perfil</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => navigate("/account/settings")}>
+        <DropdownMenuItem data-tour="user-menu-account" onClick={() => navigate("/account/settings")}>
           <Settings className="mr-2 h-4 w-4" />
           <span>Minha Conta</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => startWalkthrough()}>
+        <DropdownMenuItem data-tour="user-menu-start-tour" onClick={() => startWalkthrough()}>
           <Compass className="mr-2 h-4 w-4" />
           <span>Iniciar tour guiado</span>
         </DropdownMenuItem>

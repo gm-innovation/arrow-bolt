@@ -480,6 +480,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
           return (
             <Button
               key={entry.key}
+              data-tour={`nav-group:${entry.key}`}
               variant="ghost"
               className={cn(
                 "w-full transition-all duration-200 h-10 px-2 justify-center",
@@ -498,6 +499,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         return (
           <div key={entry.key}>
             <Button
+              data-tour={`nav-group:${entry.key}`}
               variant="ghost"
               className={cn(
                 "w-full transition-all duration-200 h-10 justify-start gap-3",
@@ -630,7 +632,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         <div className={cn(
           "relative flex-shrink-0 flex flex-col h-full transition-all duration-300 ease-in-out bg-white border-r border-gray-200",
           collapsed ? "w-16" : "w-64"
-        )}>
+        )} data-tour="sidebar">
           {/* Header */}
           <div className={cn(
             "flex items-center gap-3 p-4 bg-gradient-to-r border-b", 
@@ -641,6 +643,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
               <span className="text-xs text-white/80 truncate">{getUserTitle()}</span>
             )}
             <Button 
+              data-tour="sidebar-toggle"
               variant="ghost" 
               size="icon" 
               className="ml-auto text-white hover:bg-white/20 flex-shrink-0"
@@ -680,6 +683,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
           {collapsed && (
             <div className="absolute -right-3 top-1/2 transform -translate-y-1/2">
               <Button
+                data-tour="sidebar-expand"
                 size="icon"
                 variant="outline"
                 className="h-6 w-6 rounded-full bg-white border-gray-300 shadow-sm hover:bg-gray-50"
@@ -703,6 +707,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
             <div className="flex items-center gap-3 min-w-0">
               {isMobile && (
                 <Button 
+                  data-tour="mobile-menu-trigger"
                   variant="ghost" 
                   size="icon"
                   className="flex-shrink-0"
@@ -722,8 +727,8 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
               </h1>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
-              <OfflineSyncIndicator />
-              <ChatButton userType={userType} />
+              <div data-tour="topbar-offline-sync"><OfflineSyncIndicator /></div>
+              <div data-tour="topbar-marina"><ChatButton userType={userType} /></div>
               {userType === "super-admin" ? (
                 <NotificationBell />
               ) : userType === "admin" ? (

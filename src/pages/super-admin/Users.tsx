@@ -276,20 +276,22 @@ const Users = () => {
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" data-tour="users-actions-trigger">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditUser(user)}>
+                        <DropdownMenuItem onClick={() => setEditUser(user)} data-tour="users-action-edit">
                           Editar
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          data-tour="users-action-toggle"
                           onClick={() => handleToggleStatus(user.id, user.active)}
                         >
                           {user.active ? "Desativar" : "Ativar"}
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          data-tour="users-action-delete"
                           className="text-destructive"
                           onClick={() => setDeleteUserId(user.id)}
                         >

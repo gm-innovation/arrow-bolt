@@ -73,7 +73,7 @@ export default function AIManagement() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" data-tour="ai-header">
         <div>
           <h1 className="text-2xl font-bold">Agente de IA</h1>
           <p className="text-muted-foreground text-sm">
@@ -82,10 +82,10 @@ export default function AIManagement() {
         </div>
         {Object.keys(draft).length > 0 && (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setDraft({})}>
+            <Button variant="outline" onClick={() => setDraft({})} data-tour="ai-discard-changes">
               <RotateCcw className="h-4 w-4 mr-1" /> Descartar
             </Button>
-            <Button onClick={handleSave} disabled={update.isPending}>
+            <Button onClick={handleSave} disabled={update.isPending} data-tour="ai-save-changes">
               <Save className="h-4 w-4 mr-1" /> Salvar alterações
             </Button>
           </div>
@@ -93,7 +93,7 @@ export default function AIManagement() {
       </div>
 
       <div className="grid grid-cols-12 gap-4">
-        <div className="col-span-3">
+        <div className="col-span-3" data-tour="ai-agent-selector">
           <AgentSelector
             agents={agents ?? []}
             selectedId={selectedId}
@@ -105,18 +105,18 @@ export default function AIManagement() {
 
         <div className="col-span-9">
           {selected ? (
-            <Card className="p-4">
+            <Card className="p-4" data-tour="ai-config-panel">
               <Tabs defaultValue="identity">
-                <TabsList className="grid grid-cols-9 w-full">
-                  <TabsTrigger value="identity">Identidade</TabsTrigger>
-                  <TabsTrigger value="behavior">Comportamento</TabsTrigger>
-                  <TabsTrigger value="guardrails">Guardrails</TabsTrigger>
-                  <TabsTrigger value="scope">Escopo</TabsTrigger>
-                  <TabsTrigger value="write-actions">Ações de Escrita</TabsTrigger>
-                  <TabsTrigger value="tools">Tools & Modelo</TabsTrigger>
-                  <TabsTrigger value="appearance">Aparência</TabsTrigger>
-                  <TabsTrigger value="training">Treinamento</TabsTrigger>
-                  <TabsTrigger value="integrations">Integrações</TabsTrigger>
+                <TabsList className="grid grid-cols-9 w-full" data-tour="ai-tabs">
+                  <TabsTrigger value="identity" data-tour="ai-tab-identity">Identidade</TabsTrigger>
+                  <TabsTrigger value="behavior" data-tour="ai-tab-behavior">Comportamento</TabsTrigger>
+                  <TabsTrigger value="guardrails" data-tour="ai-tab-guardrails">Guardrails</TabsTrigger>
+                  <TabsTrigger value="scope" data-tour="ai-tab-scope">Escopo</TabsTrigger>
+                  <TabsTrigger value="write-actions" data-tour="ai-tab-write-actions">Ações de Escrita</TabsTrigger>
+                  <TabsTrigger value="tools" data-tour="ai-tab-tools">Tools & Modelo</TabsTrigger>
+                  <TabsTrigger value="appearance" data-tour="ai-tab-appearance">Aparência</TabsTrigger>
+                  <TabsTrigger value="training" data-tour="ai-tab-training">Treinamento</TabsTrigger>
+                  <TabsTrigger value="integrations" data-tour="ai-tab-integrations">Integrações</TabsTrigger>
                 </TabsList>
                 <div className="mt-4">
                   <TabsContent value="identity">

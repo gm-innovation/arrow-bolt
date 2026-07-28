@@ -15,10 +15,10 @@ interface Props {
 
 export function AgentSelector({ agents, selectedId, onSelect, onCreate, onDelete }: Props) {
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-tour="ai-agent-list">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Agentes</h3>
-        <Button size="sm" variant="outline" onClick={onCreate}>
+        <Button size="sm" variant="outline" onClick={onCreate} data-tour="ai-agent-new">
           <Plus className="h-3 w-3 mr-1" /> Novo
         </Button>
       </div>
@@ -26,6 +26,7 @@ export function AgentSelector({ agents, selectedId, onSelect, onCreate, onDelete
         {agents.map((a) => (
           <Card
             key={a.id}
+            data-tour="ai-agent-item"
             className={cn(
               "p-3 cursor-pointer hover:bg-accent transition-colors",
               selectedId === a.id && "border-primary bg-accent"
@@ -45,6 +46,7 @@ export function AgentSelector({ agents, selectedId, onSelect, onCreate, onDelete
               </div>
               {onDelete && !a.is_default && (
                 <Button
+                  data-tour="ai-agent-delete"
                   size="icon"
                   variant="ghost"
                   className="h-6 w-6"

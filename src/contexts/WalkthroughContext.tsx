@@ -131,8 +131,11 @@ export const WalkthroughProvider = ({ children }: { children: React.ReactNode })
       }
       const steps: any[] = [];
       for (const p of parents) {
-        steps.push({ ...p, is_substep: false, parent_title: null });
         const subs = (byParent.get(p.id) ?? []).sort((a, b) => a.order_index - b.order_index);
+        const parentHasOwnTarget = Boolean(p.selector) || p.action !== "none" || subs.length === 0;
+        if (parentHasOwnTarget) {
+          steps.push({ ...p, is_substep: false, parent_title: null });
+        }
         for (const sub of subs) {
           steps.push({
             ...sub,
