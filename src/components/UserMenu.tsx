@@ -21,6 +21,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { avatarUrl } = useUserAvatar();
+  const { startWalkthrough } = useWalkthrough();
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || "Usuário";
 
