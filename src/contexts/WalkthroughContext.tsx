@@ -14,6 +14,9 @@ export type WalkthroughStep = {
   action: "none" | "click" | "navigate" | "wait";
   checkpoint: boolean;
   optional: boolean;
+  parent_step_id?: string | null;
+  is_substep?: boolean;
+  parent_title?: string | null;
 };
 
 export type WalkthroughScript = {
