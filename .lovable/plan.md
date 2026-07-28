@@ -1,83 +1,80 @@
+# Documento Executivo: "O que é o Arrow"
 
-# Reorientar o PM Dashboard para métricas de produto
+Vou gerar um PDF institucional/executivo consolidando toda a visão do sistema, para uso comercial, apresentação a investidores, onboarding de novos usuários e material de referência interno.
 
-## Correção de rumo
+## Formato de entrega
 
-O dashboard atual (e o plano anterior) confundia **operação** com **produto**. "OS concluídas no prazo" ou "Conformidade ASO" são KPIs de negócio dos clientes — se caem, provavelmente é o técnico ou o processo do cliente, não o Arrow. Um PM Dashboard deve responder: **o Arrow está sendo adotado, é confiável, e está resolvendo as dores certas?**
+- **Arquivo**: `Arrow_Visao_Completa_v1.pdf` em `/mnt/documents/`
+- **Identidade visual**: Lecsor Technology (mesma paleta dos manuais anteriores — azul-marinho profundo, acentos em ciano, tipografia limpa)
+- **Extensão estimada**: 18–22 páginas A4
+- **Idioma**: Português (Brasil)
 
-## Novo foco: 4 dimensões de saúde do produto
+## Estrutura do documento
 
-### 1. Adoção & engajamento (o produto está sendo usado?)
-- **WAU / MAU** — usuários ativos únicos (`auth.users` last_sign_in, ou eventos).
-- **Stickiness** — WAU/MAU.
-- **Adoção por módulo** — % de empresas/usuários que usaram cada módulo (OS, SGQ, RH, CRM, Financeiro, Marina) nos últimos 30d.
-- **Feature adoption** — quantos usuários usaram funcionalidades-chave lançadas recentemente (ex.: compartilhamento de docs, chat Marina, upload de anexos).
+**1. Capa + Sumário Executivo (1 pág)**
+Pitch de 1 parágrafo: o que o Arrow é em uma frase, para quem serve, qual problema resolve.
 
-### 2. Confiabilidade & qualidade (o produto funciona?)
-- **Volume de tickets de bug** vs **melhoria** vs **dúvida** (`support_tickets.category`).
-- **Tickets abertos / resolvidos** por semana; backlog de bugs.
-- **Tempo médio de resolução de tickets**.
-- **Bugs por módulo** (`impacted_module`) — mostra onde o produto está frágil.
-- **Reincidência** — tickets reabertos via `triage-ticket-reply`.
+**2. O que é o Arrow (2 págs)**
+- Definição: ERP + PSA + SGQ + RH/DP + CRM operados por uma copiloto de IA (Marina)
+- Origem: nascido da operação real de serviços técnicos marítimos/industriais
+- Filosofia: "um sistema, uma linguagem, uma IA que conhece o negócio inteiro"
 
-### 3. Descoberta & voz do usuário (o que os usuários pedem?)
-- **Top dores** — clusters de `support_tickets` por módulo × categoria × role.
-- **Feedback da Marina** — `ai_feedback` positivos/negativos.
-- **NPS interno leve** (se surgir) — opcional futuro.
-- **Ideias/sugestões** — tickets categoria "sugestão/melhoria" agrupados.
+**3. Para quem é (1 pág)**
+- Perfil de empresa-alvo: prestadoras de serviço técnico especializado (marítimo, industrial, laboratorial, calibração, engenharia de campo)
+- Perfis de usuário: Diretor, Coordenador/Admin, Técnico, RH, Comercial, Financeiro, Qualidade, Compras, Marketing, Super Admin
+- Casos de uso reais (docagens, OS técnicas, medições, homologações)
 
-### 4. Entrega & impacto (estamos entregando o que importa?)
-- **Velocidade** — releases no changelog / mês, tickets fechados / semana.
-- **Cobertura RICE** — % de tickets pontuados; distribuição do backlog por RICE.
-- **Cycle time** — tempo de criação → resolução de tickets.
-- **Impacto pós-release** — variação nas métricas das 3 dimensões acima após entradas no changelog (antes/depois).
+**4. Como funciona — os módulos (6–8 págs)**
+Bloco por módulo, com "o que resolve" e "como se conecta com o resto":
+- Ordens de Serviço + Medições + Docagens
+- CRM Comercial (Leads → Oportunidades → Vendas → Recorrências)
+- RH/DP (ASO, férias, documentos por cargo, onboarding público, hierarquia)
+- SGQ ISO 9001 (documentos, NCRs, auditorias, riscos, SWOT, partes interessadas)
+- Suprimentos (compras, homologação de fornecedores)
+- Financeiro (contas a pagar/receber, reembolsos)
+- Universidade Corporativa (trilhas, certificados, gamificação)
+- Feed Corporativo + Solicitações + Gamificação (XP/Badges)
+- Integrações (Omie ERP, Eva medições, e-mail, WhatsApp roadmap)
 
-## North Star candidatas (a decidir com você)
-Métricas de **produto**, não de operação:
-- **% de empresas ativas semanalmente** (empresa com ≥1 usuário ativo em ≥2 módulos/semana).
-- **Módulos usados por empresa (média)** — indicador de amplitude de adoção.
-- **Tickets de bug por 100 sessões** — inverso da confiabilidade.
-- **Taxa de resolução de tickets em 7d**.
+**5. A Marina — copiloto de IA (3 págs)**
+- O que ela é: assistente operacional com escrita auditada, não um chatbot decorativo
+- O que ela faz hoje: consulta dados, cria/edita registros com confirmação, sugere ações contextuais por papel, lê anexos (PDF/Word/Excel), abre chamados para o Super Admin
+- Como opera com segurança: filtro por RLS + escopo configurável em `/super-admin/ai-management` + log em `ai_assistant_actions`
+- Canal bidirecional Marina ↔ Super Admin: tickets com contexto técnico + prompt de correção auto-gerado
+- RAG sobre manuais: responde dúvidas de uso citando o próprio manual do Arrow
+- Roadmap: sugestão de OST/Roadmap de produto, refresh automático de métricas
 
-Você escolhe uma; as outras viram *supporting metrics*.
+**6. Diferenciais de mercado (2 págs)**
+- Contra ERPs tradicionais (Omie, TOTVS, Sankhya): o Arrow é operacional + estratégico, não só fiscal/financeiro
+- Contra PSAs genéricos: modelado para serviço técnico com medição por HH/materiais/despesas/deslocamento, docagens multi-atividade, ASO obrigatório por embarque
+- Contra "IA plugada": Marina não é wrapper de ChatGPT — ela age dentro do sistema com permissões reais
+- Multi-empresa nativo com RLS
+- Dashboard de PM próprio: o produto se mede continuamente
 
-## Como a Marina alimenta isso
+**7. Governança, segurança e conformidade (1 pág)**
+- RLS em todas as tabelas
+- Papéis segregados (Diretor ≠ Coordenador ≠ Super Admin)
+- Auditoria de ações da IA e de documentos
+- LGPD: PII segregada em RPCs
 
-### Fontes de dados que já existem no Arrow
-- `auth.users` (last_sign_in), `profiles` — adoção/atividade.
-- `support_tickets` — bugs, dores, categorias, RICE, módulo.
-- `ai_messages`, `ai_feedback`, `ai_conversations` — engajamento Marina.
-- `notifications`, `corp_feed_posts`, `crm_opportunities`, `service_orders`, etc. — sinais de uso por módulo (contagem de criações/updates por semana, **não** de resultado operacional).
-- `pm_changelog` — releases para antes/depois.
+**8. Roadmap resumido (1 pág)**
+As ondas de RH pendentes, expansão de canais (e-mail/WhatsApp), PM Dashboard fase 2 (OST-suggest + cron), etc.
 
-### Edge Functions novas
-1. **`pm-product-metrics-refresh`** — roda queries de adoção, confiabilidade, velocidade; grava em `pm_metric_snapshots`. Agendada diária via `pg_cron`.
-2. **`pm-insights-suggest`** — Marina lê tickets recentes + snapshots e sugere:
-   - clusters de dor ("15 tickets sobre upload de arquivos no SGQ este mês");
-   - Outcomes/Opportunities para o OST;
-   - hipóteses de causa (bug vs. UX vs. treinamento).
-   Grava sugestões que o PM aceita → `pm_ost_nodes` + `pm_ticket_ost_links`.
-3. **`pm-rice-score`** (já existe) — mantém, agora com botão "pontuar em lote".
+**9. Contato / próximos passos (1 pág)**
 
-### Ferramentas da Marina no chat (`ai_assistant_actions`)
-- `pm_refresh_product_metrics`
-- `pm_cluster_tickets` — devolve top clusters de dor.
-- `pm_suggest_ost` — propostas de OST vinculadas a métrica-alvo.
-- `pm_score_tickets_bulk`
-- `pm_add_changelog` — pré-preenche antes/depois pegando snapshots.
+## Como será gerado
 
-## Mudanças de UI no `PMDashboard.tsx`
-- **Aba 1 "Saúde do produto"** (nova): cards de WAU/MAU, adoção por módulo, tickets/bugs por semana, top dores.
-- **Aba 2 "OST & North Star"**: catálogo de métricas de produto (não operacionais), botão "Sugerir com Marina".
-- **Aba 3 "Backlog & RICE"**: fila de tickets com RICE, filtros por módulo/categoria, "pontuar pendentes".
-- **Aba 4 "Releases & Impacto"**: changelog com delta de métricas antes/depois.
-- Remover placeholders operacionais ("OS no prazo", "Conformidade ASO", "Fechamento de OS") — substituir por exemplos de produto ("WAU", "Adoção do módulo SGQ", "Bugs/100 sessões").
+- Script Python com **reportlab** + fonte **DejaVu Sans** (acentos PT-BR)
+- Paleta e diagramação alinhadas aos manuais anteriores da Lecsor
+- Ícones/box de destaque via shapes (sem imagens externas para não quebrar)
+- Diagrama simples da arquitetura modular (blocos ligando módulos à Marina no centro)
+- Todas as páginas renderizadas em JPG e inspecionadas antes da entrega (QA obrigatório)
 
-## Fora de escopo
-- Nada de KPIs operacionais dos clientes. Esses continuam vivendo nos dashboards de cada módulo.
-- Sem mudança nas tabelas PM já criadas — só uso.
+## Detalhes técnicos
 
-## Perguntas antes de eu executar
-1. **Quer uma única North Star agora** (minha sugestão: *% de empresas ativas semanalmente em ≥2 módulos*) ou prefere deixar em branco e cadastrar você mesmo?
-2. **"Ativo" = login nos últimos 7d** ou **executou ≥1 ação de escrita em 7d** (mais rigoroso, mais fiel)?
-3. Quer que eu execute tudo (métricas + insights Marina + UI) numa leva só, ou prefere fatiar em: (a) métricas + refresh + cron, (b) clusters/OST da Marina, (c) UI reformada?
+- Skill `pdf` para geração e QA visual página a página
+- Cabeçalho/rodapé fixo com "Arrow por Lecsor Technology — Visão Completa v1"
+- Numeração de páginas e sumário clicável (bookmarks)
+- Após render, converter para JPG (`pdftoppm -r 150`) e revisar cada página; corrigir overflow/contraste antes de entregar
+
+Se aprovar, gero o `Arrow_Visao_Completa_v1.pdf` já com QA visual completo.
