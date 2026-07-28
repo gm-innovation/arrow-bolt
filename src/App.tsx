@@ -276,7 +276,7 @@ const App = () => {
                     <Route path="/super-admin/subscriptions" element={<Subscriptions />} />
                     <Route path="/super-admin/settings" element={<Settings />} />
                     <Route path="/super-admin/profile" element={<SuperAdminProfile />} />
-                    <Route path="/super-admin/reports" element={<SuperAdminReports />} />
+                    <Route path="/super-admin/reports" element={<Navigate to="/super-admin/dashboard" replace />} />
                     <Route path="/super-admin/chat" element={<Chat />} />
                     <Route path="/super-admin/install" element={<InstallApp />} />
                     <Route path="/super-admin/api-docs" element={<SuperAdminApiDocs />} />
