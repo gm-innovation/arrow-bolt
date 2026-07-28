@@ -508,6 +508,7 @@ export default function Walkthroughs() {
                     <SelectContent>
                       <SelectItem value="none">Nenhuma</SelectItem>
                       <SelectItem value="click">Clique</SelectItem>
+                      <SelectItem value="auto_click">Clique automático (abre modal/menu)</SelectItem>
                       <SelectItem value="navigate">Navegar</SelectItem>
                       <SelectItem value="wait">Aguardar</SelectItem>
                     </SelectContent>
@@ -522,6 +523,27 @@ export default function Walkthroughs() {
                   <Label>Opcional</Label>
                 </div>
               </div>
+
+              {editingStep.action === "auto_click" && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 rounded-md border p-3 bg-muted/30">
+                  <div>
+                    <Label>Seletor para aguardar após o clique</Label>
+                    <Input
+                      placeholder='ex: [role="dialog"]'
+                      value={editingStep.post_action_selector ?? ""}
+                      onChange={(e) => setEditingStep({ ...editingStep, post_action_selector: e.target.value })}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-6">
+                    <Switch
+                      checked={!!editingStep.close_on_exit}
+                      onCheckedChange={(v) => setEditingStep({ ...editingStep, close_on_exit: v })}
+                    />
+                    <Label>Fechar modal ao sair deste passo</Label>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
           <DialogFooter>
