@@ -106,6 +106,7 @@ const collectPaths = (e: MenuEntry): string[] =>
 
 
 const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps) => {
+  useWalkthroughAutoStart();
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
