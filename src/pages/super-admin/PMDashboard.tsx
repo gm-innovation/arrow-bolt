@@ -298,6 +298,7 @@ function StatCard({ label, value, icon: Icon, accent }: { label: string; value: 
 function StrategyTab() {
   const nsm = useNorthStarMetrics();
   const ost = useOSTNodes();
+  const refresh = useRefreshProductMetrics();
   const [openMetric, setOpenMetric] = useState<Partial<NorthStarMetric> | null>(null);
   const [openNode, setOpenNode] = useState<Partial<OSTNode> | null>(null);
 
@@ -306,17 +307,28 @@ function StrategyTab() {
       <Card>
         <CardHeader className="flex-row justify-between items-center">
           <div>
-            <CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" /> Métricas North Star</CardTitle>
-            <CardDescription>Indicadores principais de sucesso do produto</CardDescription>
+            <CardTitle className="flex items-center gap-2"><Target className="h-5 w-5" /> Saúde do produto — North Star</CardTitle>
+            <CardDescription>
+              Métricas de adoção, engajamento e confiabilidade do Arrow. Não confundir com KPIs operacionais dos clientes.
+            </CardDescription>
           </div>
-          <Button size="sm" onClick={() => setOpenMetric({})}><Plus className="h-4 w-4 mr-1" /> Nova métrica</Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${refresh.isPending ? "animate-spin" : ""}`} />
+              {refresh.isPending ? "Atualizando..." : "Atualizar com Marina"}
+            </Button>
+            <Button size="sm" onClick={() => setOpenMetric({})}><Plus className="h-4 w-4 mr-1" /> Nova métrica</Button>
+          </div>
         </CardHeader>
         <CardContent>
           {nsm.isLoading ? <Skeleton className="h-24 w-full" /> : (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               {(nsm.data ?? []).map((m) => (
                 <button key={m.id} onClick={() => setOpenMetric(m)} className="text-left p-4 border rounded-lg hover:bg-muted/40 transition">
-                  <div className="text-sm text-muted-foreground">{m.name}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm text-muted-foreground flex-1">{m.name}</div>
+                    {m.metric_key && <Badge variant="outline" className="text-[10px]">auto</Badge>}
+                  </div>
                   <div className="text-2xl font-bold mt-1">
                     {m.current_value ?? "—"}<span className="text-sm text-muted-foreground ml-1">{m.unit}</span>
                   </div>
@@ -328,7 +340,7 @@ function StrategyTab() {
               ))}
               {(nsm.data ?? []).length === 0 && !nsm.isLoading && (
                 <div className="col-span-full text-center text-muted-foreground py-8">
-                  Nenhuma métrica cadastrada. Ex.: "OS concluídas no prazo", "Tempo médio de fechamento de OS", "Aderência documental SGQ", "Conformidade ASO ativa".
+                  Nenhuma métrica cadastrada. Ex.: "Usuários Ativos Semanais (WAU)", "Stickiness (WAU/MAU)", "Bugs reportados (7d)", "Adoção do módulo SGQ".
                 </div>
               )}
             </div>
