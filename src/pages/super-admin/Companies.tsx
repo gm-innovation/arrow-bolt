@@ -162,7 +162,7 @@ const Companies = () => {
         </div>
       </div>
 
-      <div className="flex gap-4 items-end">
+      <div className="flex gap-4 items-end" data-tour="companies-filters">
         <div className="flex-1">
           <Input
             placeholder="Buscar por nome da empresa..."
@@ -208,7 +208,7 @@ const Companies = () => {
         )}
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg" data-tour="companies-table">
         <Table>
           <TableHeader>
             <TableRow>
