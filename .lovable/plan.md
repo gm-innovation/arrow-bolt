@@ -1,80 +1,67 @@
-# Documento Executivo: "O que é o Arrow"
+## Contexto
 
-Vou gerar um PDF institucional/executivo consolidando toda a visão do sistema, para uso comercial, apresentação a investidores, onboarding de novos usuários e material de referência interno.
+O card **Roadmap — Now / Next / Later** do PM Dashboard lê de `support_tickets` filtrando por `roadmap_horizon` (`now` | `next` | `later` | `icebox`). Hoje só existem 2 tickets no banco e nenhum tem horizonte definido — por isso os 4 quadrantes aparecem "Vazio".
 
-## Formato de entrega
+Para alimentar o roadmap sem mudar a UI, vou inserir **tickets estratégicos** (um por iniciativa) já classificados por horizonte, marcados com uma categoria dedicada (`roadmap_initiative`) para não se misturarem ao backlog de bugs/pedidos de usuário.
 
-- **Arquivo**: `Arrow_Visao_Completa_v1.pdf` em `/mnt/documents/`
-- **Identidade visual**: Lecsor Technology (mesma paleta dos manuais anteriores — azul-marinho profundo, acentos em ciano, tipografia limpa)
-- **Extensão estimada**: 18–22 páginas A4
-- **Idioma**: Português (Brasil)
+## Distribuição proposta
 
-## Estrutura do documento
+### Agora (em execução no momento)
+1. **PM Dashboard — Saúde do Produto (fase 1)** — refresh manual das 13 métricas via Marina; falta cron diário + gráficos de tendência. *Módulo: PM.*
+2. **Marina Copiloto — escrita auditada + suporte** — triagem bidirecional de tickets, contexto técnico, sugestões contextuais. *Módulo: IA.*
+3. **RH Onda 2 — Revisão documental & compliance** — página `/hr/document-reviews`, obsolescência, uploads Office. *Módulo: RH.*
+4. **SGQ V3 — Marcas d'água, Conscientizações, SWOT** — em finalização. *Módulo: SGQ.*
 
-**1. Capa + Sumário Executivo (1 pág)**
-Pitch de 1 parágrafo: o que o Arrow é em uma frase, para quem serve, qual problema resolve.
+### Próximo (fila imediata, semanas)
+5. **Walkthrough guiado pela Marina** — tour interativo por papel (Diretor, Coordenador, Técnico, RH, Comercial, Financeiro, Qualidade, Compras) para onboarding e reintrodução após updates. Marina apresenta cada módulo em contexto, com passos clicáveis e checkpoints ("Já conheço", "Me mostra"). *Módulo: IA + Plataforma.*
+6. **Central de novidades in-app ("O que há de novo")** — toda entrada de `pm_changelog` com impacto em uso/UX/produtividade vira um card visível no app: modal na primeira visita pós-release, badge no menu do usuário, e post automático no Feed Corporativo. Marcação de "lido" por usuário. *Módulo: Plataforma + Feed.*
+7. **Notificações mais efetivas (multi-superfície)** — além do sino: (a) toast persistente para notificações críticas, (b) drawer lateral com fila agrupada por tipo, (c) badge no ícone do módulo afetado na sidebar, (d) push web (já temos infra) ativado por padrão para eventos críticos, (e) resumo diário no topo do dashboard. Preferências por usuário. *Módulo: Notificações.*
+8. **`pm-insights-suggest`** — Marina propõe nós de OST a partir de clusters de tickets.
+9. **Cron diário `pm-product-metrics-refresh`** + série histórica em `pm_metric_snapshots` para tendências.
+10. **Ferramentas de chat Marina para PM** — perguntas em linguagem natural sobre saúde do produto.
+11. **RH Onda 3 — Dashboard RH & Self-service** — indicadores de conformidade, portal consolidado.
 
-**2. O que é o Arrow (2 págs)**
-- Definição: ERP + PSA + SGQ + RH/DP + CRM operados por uma copiloto de IA (Marina)
-- Origem: nascido da operação real de serviços técnicos marítimos/industriais
-- Filosofia: "um sistema, uma linguagem, uma IA que conhece o negócio inteiro"
+### Depois (próximos ciclos)
+12. **RH Onda 4 — E-mail transacional** (ASO, férias, docs vencendo).
+13. **RH Onda 5 — WhatsApp** — canal de notificação e coleta de docs.
+14. **CRM — Recorrências e renovações automáticas** com Marina.
+15. **Universidade Corporativa — trilhas obrigatórias por cargo** integradas ao SGQ.
+16. **PM Dashboard fase 2 — OST-suggest automático + changelog auto-preenchido a partir de releases.**
+17. **Walkthrough Marina fase 2** — modo "coach" contínuo: Marina detecta uso subótimo (ex.: coordenador nunca abriu o Kanban de leads) e oferece um mini-tour direcionado.
 
-**3. Para quem é (1 pág)**
-- Perfil de empresa-alvo: prestadoras de serviço técnico especializado (marítimo, industrial, laboratorial, calibração, engenharia de campo)
-- Perfis de usuário: Diretor, Coordenador/Admin, Técnico, RH, Comercial, Financeiro, Qualidade, Compras, Marketing, Super Admin
-- Casos de uso reais (docagens, OS técnicas, medições, homologações)
+### Gelo (ideias válidas, sem prioridade)
+18. **App mobile nativo (técnicos).**
+19. **Marketplace de integrações** (Zapier/Make público).
+20. **Módulo Financeiro avançado** — DRE gerencial, fluxo de caixa projetado.
+21. **BI embarcado / dashboards customizáveis pelo cliente.**
+22. **Multi-idioma (EN/ES).**
 
-**4. Como funciona — os módulos (6–8 págs)**
-Bloco por módulo, com "o que resolve" e "como se conecta com o resto":
-- Ordens de Serviço + Medições + Docagens
-- CRM Comercial (Leads → Oportunidades → Vendas → Recorrências)
-- RH/DP (ASO, férias, documentos por cargo, onboarding público, hierarquia)
-- SGQ ISO 9001 (documentos, NCRs, auditorias, riscos, SWOT, partes interessadas)
-- Suprimentos (compras, homologação de fornecedores)
-- Financeiro (contas a pagar/receber, reembolsos)
-- Universidade Corporativa (trilhas, certificados, gamificação)
-- Feed Corporativo + Solicitações + Gamificação (XP/Badges)
-- Integrações (Omie ERP, Eva medições, e-mail, WhatsApp roadmap)
+## Execução técnica
 
-**5. A Marina — copiloto de IA (3 págs)**
-- O que ela é: assistente operacional com escrita auditada, não um chatbot decorativo
-- O que ela faz hoje: consulta dados, cria/edita registros com confirmação, sugere ações contextuais por papel, lê anexos (PDF/Word/Excel), abre chamados para o Super Admin
-- Como opera com segurança: filtro por RLS + escopo configurável em `/super-admin/ai-management` + log em `ai_assistant_actions`
-- Canal bidirecional Marina ↔ Super Admin: tickets com contexto técnico + prompt de correção auto-gerado
-- RAG sobre manuais: responde dúvidas de uso citando o próprio manual do Arrow
-- Roadmap: sugestão de OST/Roadmap de produto, refresh automático de métricas
+Migração única que insere 22 linhas em `support_tickets`:
 
-**6. Diferenciais de mercado (2 págs)**
-- Contra ERPs tradicionais (Omie, TOTVS, Sankhya): o Arrow é operacional + estratégico, não só fiscal/financeiro
-- Contra PSAs genéricos: modelado para serviço técnico com medição por HH/materiais/despesas/deslocamento, docagens multi-atividade, ASO obrigatório por embarque
-- Contra "IA plugada": Marina não é wrapper de ChatGPT — ela age dentro do sistema com permissões reais
-- Multi-empresa nativo com RLS
-- Dashboard de PM próprio: o produto se mede continuamente
+```sql
+insert into support_tickets
+  (title, description, category, priority, status, user_role,
+   impacted_module, roadmap_horizon)
+values
+  ('PM Dashboard — Saúde do Produto (fase 1)', '...', 'roadmap_initiative', 'high', 'in_progress', 'super_admin', 'PM', 'now'),
+  ...
+  ('Walkthrough guiado pela Marina', '...', 'roadmap_initiative', 'high', 'open', 'super_admin', 'IA', 'next'),
+  ('Central de novidades in-app', '...', 'roadmap_initiative', 'high', 'open', 'super_admin', 'Plataforma', 'next'),
+  ('Notificações mais efetivas (multi-superfície)', '...', 'roadmap_initiative', 'high', 'open', 'super_admin', 'Notificações', 'next'),
+  ...
+  ('Multi-idioma (EN/ES)', '...', 'roadmap_initiative', 'low', 'open', 'super_admin', 'Plataforma', 'icebox');
+```
 
-**7. Governança, segurança e conformidade (1 pág)**
-- RLS em todas as tabelas
-- Papéis segregados (Diretor ≠ Coordenador ≠ Super Admin)
-- Auditoria de ações da IA e de documentos
-- LGPD: PII segregada em RPCs
+- `category = 'roadmap_initiative'` isola essas linhas do backlog de bugs/pedidos.
+- Nenhum RICE é calculado — iniciativas estratégicas não passam pelo scoring.
+- UI não muda: os quadrantes já lêem `roadmap_horizon` e populam automaticamente.
 
-**8. Roadmap resumido (1 pág)**
-As ondas de RH pendentes, expansão de canais (e-mail/WhatsApp), PM Dashboard fase 2 (OST-suggest + cron), etc.
+## Fora do escopo desta fatia
 
-**9. Contato / próximos passos (1 pág)**
+- Implementar de fato o Walkthrough, a Central de Novidades e a nova estrutura de notificações — cada um é uma fatia própria depois que o roadmap for aprovado.
+- Reformar o Roadmap para ler de `pm_ost_nodes`.
+- Cron, `pm-insights-suggest`, gráficos de tendência.
 
-## Como será gerado
-
-- Script Python com **reportlab** + fonte **DejaVu Sans** (acentos PT-BR)
-- Paleta e diagramação alinhadas aos manuais anteriores da Lecsor
-- Ícones/box de destaque via shapes (sem imagens externas para não quebrar)
-- Diagrama simples da arquitetura modular (blocos ligando módulos à Marina no centro)
-- Todas as páginas renderizadas em JPG e inspecionadas antes da entrega (QA obrigatório)
-
-## Detalhes técnicos
-
-- Skill `pdf` para geração e QA visual página a página
-- Cabeçalho/rodapé fixo com "Arrow por Lecsor Technology — Visão Completa v1"
-- Numeração de páginas e sumário clicável (bookmarks)
-- Após render, converter para JPG (`pdftoppm -r 150`) e revisar cada página; corrigir overflow/contraste antes de entregar
-
-Se aprovar, gero o `Arrow_Visao_Completa_v1.pdf` já com QA visual completo.
+Se aprovar, executo a migração e valido no dashboard.
