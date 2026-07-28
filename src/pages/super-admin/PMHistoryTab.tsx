@@ -109,13 +109,6 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
     [tickets.data],
   );
 
-  const handleClick = (it: ActivityLogItem) => {
-    if (it.source === "ticket" && it.ref_id) {
-      const t = ticketsById.get(it.ref_id);
-      if (t) return onOpen(t);
-    }
-    // For other sources we currently only show inline info; extendable later.
-  };
 
   return (
     <>
