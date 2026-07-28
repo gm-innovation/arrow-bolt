@@ -1,66 +1,62 @@
-# Roadmap: prompt de dev, roteamento automático, drag & drop e histórico
+## Objetivo
 
-Consolidando os dois pedidos: (1) prompt de dev nos itens do Roadmap e (2) melhorias que entram como ticket devem cair automaticamente em "Gelo", com drag & drop entre colunas e uma visão de histórico/versionamento.
+Configurar a Marina para o perfil **super_admin** com comportamento próprio, e dar a ela ferramentas para inserir/mover itens no Roadmap, registrar changelog, métricas e nós de OST — para que você possa conversar sobre novas funcionalidades e ela alimente o Dashboard de PM.
 
-## 1. Prompt para Lovable em cada item do Roadmap
+## 1) Habilitar `super_admin` no painel "AI Management"
 
-Local: `src/pages/super-admin/PMDashboard.tsx`, dentro do `AccordionContent`, após o bloco "Defesa".
+Hoje o array `ROLES` em `BehaviorTab.tsx` não inclui `super_admin`, então não há campo para você digitar instruções específicas.
 
-- Reutilizar a Edge Function `generate-ticket-dev-prompt` (mesma dos tickets) — nenhum backend novo.
-- Persistir em `support_tickets.dev_prompt` (coluna já existente).
-- Se existir: `<pre>` com scroll + botões **Copiar** e **Regenerar**.
-- Se não existir: botão **Gerar prompt para Lovable** com spinner; ao concluir, inserir inline.
-- Hook `useGenerateRoadmapPrompt` invalida a query do roadmap.
+- `src/components/super-admin/ai/BehaviorTab.tsx`: adicionar `super_admin` ao `ROLES` (topo da lista), com placeholder específico ("Instruções quando o usuário for Super Admin — foco em PM, roadmap, changelog…").
+- Mesma inclusão em qualquer outro seletor de role que hoje omita `super_admin` (Guardrails/Aparência se aplicável).
 
-## 2. Roteamento automático: melhorias → Gelo
+## 2) Seed do agente Marina para super_admin
 
-Regra: todo ticket cuja categoria não seja bug/correção (ou seja, `feature_request`, `improvement`, `suggestion`) deve entrar no Roadmap na coluna "Gelo" e virar item arrastável.
+Migração `insert` (não schema) na linha do agente `is_default = true, company_id IS NULL`:
 
-Implementação backend (uma migração):
-- Adicionar coluna `roadmap_horizon` em `support_tickets` (`text` com CHECK em `now|next|later|icebox|null`) e `roadmap_position` (`integer`, para ordenação).
-- Trigger `BEFORE INSERT` em `support_tickets`: se `category IN ('feature_request','improvement','suggestion')` e `roadmap_horizon IS NULL`, setar `roadmap_horizon = 'icebox'` e prefixar título com `[Roadmap]` quando ainda não tiver o prefixo.
-- Backfill: itens `[Roadmap]` existentes recebem horizonte derivado do estado atual (já implícito no código) — feito via `UPDATE` no insert tool após a migração.
-- Ajustar a query do `usePMDashboard` para agrupar por `roadmap_horizon` em vez de heurística por título.
+- `behavior.role_instructions.super_admin`: prompt orientando a Marina a agir como copiloto de PM — pode listar tickets do roadmap, propor novo item (chama `create_roadmap_item`), mover entre horizontes, resumir métricas de saúde, sugerir defesa/prompt de dev, e registrar entrada de changelog quando pedido.
+- `behavior.suggested_prompts`: acrescentar prompts contextuais para super admin ("Adicione ao Gelo a ideia X", "Mova o ticket #NN para Próximo", "Publique versão 1.4 com estes itens", "Resuma o backlog por módulo").
+- `scope.write_actions`: habilitar `create/update` para os módulos novos abaixo (`roadmap_items`, `pm_changelog`, `pm_north_star_metrics`, `pm_ost_nodes`).
 
-## 3. Drag & drop entre colunas do Roadmap
+## 3) Novas ferramentas na edge function (super_admin)
 
-- Usar **@dnd-kit/core** + **@dnd-kit/sortable** (leves, acessíveis, sem conflito com Radix).
-- Cada coluna vira um `<SortableContext>` (droppable) e cada `AccordionItem` vira `useSortable` com handle discreto (ícone `GripVertical` no topo do item).
-- Ao soltar:
-  - Se mudou de coluna → `UPDATE roadmap_horizon` no ticket.
-  - Se mudou de posição → `UPDATE roadmap_position` nos afetados (recalcular a coluna).
-  - Otimista via `queryClient.setQueryData`, rollback em erro, toast de confirmação.
-- Restrição: apenas `super_admin` pode arrastar (checado no hook e via RLS existente para UPDATE de tickets).
-- Não interferir com o clique do acordeão: o drag só inicia via handle (activation constraint `distance: 8`).
+Editar `supabase/functions/ai-assistant/tools.ts`:
 
-## 4. Histórico e versionamento
+- Novo `Module` `roadmap` (com `pm_changelog`, `pm_metrics`, `pm_ost` como submódulos ou tools separadas).
+- Restringir por role: só entram no catálogo quando `role === "super_admin"`.
+- Tools SELECT (leitura):
+  - `query_roadmap_items` → `support_tickets` onde `category IN ('feature_request','improvement','suggestion')` ou `roadmap_horizon IS NOT NULL`, com filtros `horizon`, `module`, `search`.
+  - `query_pm_changelog`, `query_pm_metrics`, `query_pm_ost_nodes`.
+- Tools de escrita (com auditoria em `ai_assistant_actions` como as demais):
+  - `create_roadmap_item({title, description, module, horizon='icebox', rationale?})` → insere em `support_tickets` já com prefixo `[Roadmap]`, `category='feature_request'`, `roadmap_horizon`, `created_by = ctx.userId`.
+  - `move_roadmap_item({ticket_id, horizon, position?})` → update de `roadmap_horizon` e `roadmap_position`.
+  - `set_roadmap_rationale({ticket_id, rationale})` → grava `rice_rationale`.
+  - `generate_roadmap_dev_prompt({ticket_id})` → chama a edge `generate-ticket-dev-prompt` existente (via fetch service-role) e retorna o prompt salvo.
+  - `publish_pm_version({version, notes, ticket_ids[]})` → insere em `pm_changelog` e vincula tickets (`pm_changelog_id`, marca `status='resolved'`).
+  - `upsert_north_star_metric({...})` e `create_ost_node({...})` — leitura obrigatória, escrita opcional (deixar somente se o usuário confirmar mais tarde; por ora entregar leitura + roadmap writes).
 
-Nova aba **"Histórico"** no `PMDashboard` (`/super-admin/pm-dashboard`).
+Todas as writes passam pelo mesmo pipeline de `write_actions` já existente, então respeitam o toggle na aba "Ações de Escrita".
 
-Fonte de dados:
-- `pm_changelog` (já existente) para versões publicadas/entregas.
-- `support_tickets` filtrados por `status IN ('resolved','closed')` e/ou `category IN ('bug','improvement','feature_request')`, ordenados por `resolved_at` desc.
+## 4) UI de "Ações de Escrita" e "Escopo"
 
-UI:
-- Filtros no topo: tipo (Correção / Melhoria / Feature), período, módulo.
-- Timeline agrupada por **semana** (ou por versão do changelog quando houver `pm_changelog.version` associado).
-- Cada card mostra: número do ticket, título, tipo (badge), módulo, data de resolução, autor, e um "Ver detalhes" abrindo o `TicketDetailDialog`.
-- Botão **"Publicar versão"** (super_admin): abre modal para agrupar tickets resolvidos desde o último changelog em uma nova entrada `pm_changelog` (número de versão, resumo, destaques). Isso conecta tickets → versão.
-- Adicionar coluna `pm_changelog_id` (nullable) em `support_tickets` para vincular ao changelog publicado; preenchida no ato da publicação da versão.
+- `src/components/super-admin/ai/WriteActionsTab.tsx`: adicionar grupo **PM / Roadmap** com linhas `roadmap_items`, `pm_changelog`, `pm_north_star_metrics`, `pm_ost_nodes` — ligado ao mesmo `scope.write_actions` do agente.
+- Nenhuma mudança no schema; só nomes de "tabela lógica" que o tool loop já usa como chave.
 
-## Detalhes técnicos
+## 5) Contexto de página
 
-- Migração única cobrindo: `roadmap_horizon`, `roadmap_position`, `pm_changelog_id`, trigger de roteamento, índices em `(roadmap_horizon, roadmap_position)` e `(pm_changelog_id)`.
-- Após a migração, `insert` para popular `roadmap_horizon` dos 22 itens `[Roadmap]` existentes conforme distribuição atual.
-- Instalar `@dnd-kit/core` e `@dnd-kit/sortable`.
-- Refatorar `usePMDashboard.ts` para expor `moveTicket(ticketId, toHorizon, toIndex)`.
-- Novo componente `RoadmapColumn.tsx` para encapsular droppable + acordeão sortable.
-- Nova página/aba `PMHistoryTab.tsx` reaproveitando `TicketDetailDialog`.
-- Sem mudanças na Marina; a Edge `generate-ticket-dev-prompt` permanece igual.
+`AIAssistant` já envia `context.currentScreen`. Ao entrar em `/super-admin/pm-dashboard`, o `AIChat` deve mandar `context.pageUrl` (já manda) — a Marina usa isso no prompt "Você está no Dashboard de PM" para priorizar as tools de roadmap. Ajustar apenas o system prompt no edge para acrescentar essa dica quando `pageUrl` contém `/super-admin/pm-dashboard`.
 
 ## Verificação
 
-- Criar um ticket via suporte com categoria "melhoria" → aparece em Gelo com `[Roadmap]` no título.
-- Arrastar um item de Gelo para Próximo → persistir após refresh.
-- Expandir item → gerar prompt → copiar → verificar cache no reabrir.
-- Resolver um ticket → aparecer na aba Histórico → publicar versão → itens ficam agrupados sob a nova entrada de changelog.
+1. Abrir `/super-admin/ai-management` → aba **Comportamento**: campo "super_admin" visível e editável.
+2. Aba **Ações de Escrita**: grupo PM / Roadmap listado com toggles.
+3. Abrir chat da Marina como super_admin e testar:
+   - "Adicione ao Gelo: Central de novidades v2, módulo pm" → aparece novo card em Gelo no `/super-admin/pm-dashboard`.
+   - "Mova o ticket #1010 para Próximo" → card muda de coluna.
+   - "Publique a versão 1.4 com os tickets X, Y" → entrada em `pm_changelog` e tickets vinculados.
+4. Rodar a migration/insert do seed do agente e confirmar que `behavior.role_instructions.super_admin` está gravado.
+
+## Detalhes técnicos
+
+- Escritas usam `userSupabase` (JWT do super_admin) para respeitar RLS — políticas de `support_tickets` e `pm_changelog` já permitem super_admin.
+- Auditoria: cada write registra em `ai_assistant_actions` (tabela existente).
+- Sem novas migrations de schema; apenas um `insert/update` no agente default e código nas tools + UI.
