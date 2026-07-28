@@ -435,6 +435,24 @@ export default function Walkthroughs() {
                 </div>
               </div>
               <div>
+                <Label>Passo-pai (deixe vazio para criar um passo principal)</Label>
+                <Select
+                  value={editingStep.parent_step_id ?? "__none__"}
+                  onValueChange={(v) => setEditingStep({ ...editingStep, parent_step_id: v === "__none__" ? null : v })}
+                >
+                  <SelectTrigger><SelectValue placeholder="Nenhum (passo principal)" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Nenhum (passo principal)</SelectItem>
+                    {steps
+                      .filter((s: any) => !s.parent_step_id && s.id !== editingStep.id)
+                      .sort((a: any, b: any) => a.order_index - b.order_index)
+                      .map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>{p.order_index}. {p.title}</SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label>Título</Label>
                 <Input value={editingStep.title} onChange={(e) => setEditingStep({ ...editingStep, title: e.target.value })} />
               </div>
