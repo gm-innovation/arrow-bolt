@@ -62,6 +62,7 @@ const ManagerSettings = lazy(() => import("./pages/manager/Settings"));
 const SuperAdminApiDocs = lazy(() => import("./pages/super-admin/ApiDocs"));
 const AIManagement = lazy(() => import("./pages/super-admin/AIManagement"));
 const SupportInbox = lazy(() => import("./pages/super-admin/SupportInbox"));
+const PMDashboard = lazy(() => import("./pages/super-admin/PMDashboard"));
 const MyTickets = lazy(() => import("./pages/account/MyTickets"));
 
 const TechDashboard = lazy(() => import("./pages/tech/Dashboard"));
@@ -281,6 +282,7 @@ const App = () => {
                     <Route path="/super-admin/api-docs" element={<SuperAdminApiDocs />} />
                     <Route path="/super-admin/ai-management" element={<AIManagement />} />
                     <Route path="/super-admin/support-inbox" element={<SupportInbox />} />
+                    <Route path="/super-admin/pm-dashboard" element={<PMDashboard />} />
                   </Route>
 
                   {/* Manager - nested layout route */}
