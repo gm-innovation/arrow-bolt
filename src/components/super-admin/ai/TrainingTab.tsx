@@ -331,7 +331,7 @@ export function TrainingTab({ agent }: Props) {
     mutationFn: async () => {
       const { error } = await supabase.from("ai_training_examples" as any).insert({
         agent_id: agent.id,
-        company_id: agent.company_id,
+        company_id: resolvedCompanyId(),
         question: exQ,
         ideal_answer: exA,
         tags: scopeToTags(exScope),
