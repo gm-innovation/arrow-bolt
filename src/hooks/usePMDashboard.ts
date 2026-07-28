@@ -310,6 +310,47 @@ export const useOSTNodes = () => {
   return { ...query, upsert, remove };
 };
 
+// ---------- OST Seed (suggest from tickets + NSMs) ----------
+export interface OSTSeedPlan {
+  outcomes: Array<{ title: string; description: string | null; nsm_id: string | null; existing_id?: string }>;
+  opportunities: Array<{ title: string; description: string; parent_outcome_title: string; existing_id?: string }>;
+  solutions: Array<{ title: string; description: string | null; parent_opportunity_title: string; ticket_id: string; existing_id?: string; will_link: boolean }>;
+}
+export interface OSTSeedCounts {
+  outcomes_new: number; outcomes_existing: number;
+  opportunities_new: number; opportunities_existing: number;
+  solutions_new: number; solutions_existing: number;
+  tickets_total: number;
+}
+
+export const useOSTSeed = () => {
+  const qc = useQueryClient();
+  const preview = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("pm-ost-seed", { body: { apply: false } });
+      if (error) throw error;
+      return data as { apply: false; plan: OSTSeedPlan; counts: OSTSeedCounts };
+    },
+    onError: (e: any) => toast({ title: "Erro ao gerar sugestão", description: e.message, variant: "destructive" }),
+  });
+  const apply = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("pm-ost-seed", { body: { apply: true } });
+      if (error) throw error;
+      return data as { apply: true; counts: OSTSeedCounts; links_created: number };
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ["pm-ost"] });
+      toast({
+        title: "OST atualizada",
+        description: `Criados ${data.counts.outcomes_new} outcomes, ${data.counts.opportunities_new} opportunities, ${data.counts.solutions_new} solutions e ${data.links_created} vínculos com tickets.`,
+      });
+    },
+    onError: (e: any) => toast({ title: "Erro ao aplicar", description: e.message, variant: "destructive" }),
+  });
+  return { preview, apply };
+};
+
 // ---------- Changelog ----------
 export interface ChangelogEntry {
   id: string;
