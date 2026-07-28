@@ -18,10 +18,11 @@ import {
 import {
   usePMTickets, useRecalcRice, useUpdateTicketPM,
   useNorthStarMetrics, useOSTNodes, useChangelog, useAIPerformance,
-  useRefreshProductMetrics, usePMTicketLiveCounts, useOSTSeed,
+  useRefreshProductMetrics, usePMTicketLiveCounts, useOSTSeed, useSeedChangelog,
   type PMTicket, type NorthStarMetric, type OSTNode, type ChangelogEntry, type OSTSeedPlan,
+  type AIPerfWindow,
 } from "@/hooks/usePMDashboard";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
 import { toast } from "@/hooks/use-toast";
 import { formatLocalDate } from "@/lib/utils";
 import { RoadmapBoard } from "./RoadmapBoard";
@@ -765,48 +766,129 @@ function PriorityTab() {
 
 // ==================== TAB 4: AI & Changelog ====================
 function ImpactTab() {
-  const { data: perf, isLoading } = useAIPerformance();
+  const [window, setWindow] = useState<AIPerfWindow>("30d");
+  const { data: perf, isLoading } = useAIPerformance(window);
   const cl = useChangelog();
+  const seed = useSeedChangelog();
   const nsm = useNorthStarMetrics();
   const [openEntry, setOpenEntry] = useState<Partial<ChangelogEntry> | null>(null);
+
+  const windowLabel = window === "30d" ? "30 dias" : window === "90d" ? "90 dias" : "todo o período";
 
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2"><BrainCircuit className="h-5 w-5" /> Performance da IA (30d)</CardTitle>
-          <CardDescription>Monitoramento da Marina e do agente de leads</CardDescription>
+        <CardHeader className="flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle className="flex items-center gap-2"><BrainCircuit className="h-5 w-5" /> Performance da IA ({windowLabel})</CardTitle>
+            <CardDescription>Monitoramento da Marina e demais agentes — dados reais das conversas, feedback e ações executadas</CardDescription>
+          </div>
+          <Select value={window} onValueChange={(v) => setWindow(v as AIPerfWindow)}>
+            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="30d">Últimos 30 dias</SelectItem>
+              <SelectItem value="90d">Últimos 90 dias</SelectItem>
+              <SelectItem value="all">Todo o período</SelectItem>
+            </SelectContent>
+          </Select>
         </CardHeader>
         <CardContent>
           {isLoading ? <Skeleton className="h-24 w-full" /> : (
-            <div className="grid gap-3 md:grid-cols-4">
-              <StatCard label="Mensagens IA" value={perf?.totalMessages ?? 0} icon={BrainCircuit} accent="text-primary" />
-              <StatCard label="Feedbacks" value={perf?.totalFeedback ?? 0} icon={Sparkles} />
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Resolutividade</CardTitle></CardHeader>
-                <CardContent><div className="text-2xl font-bold text-green-600">{(perf?.resolutionRate ?? 0).toFixed(1)}%</div></CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Feedback negativo</CardTitle></CardHeader>
-                <CardContent><div className="text-2xl font-bold text-red-600">{perf?.negativeFeedback ?? 0}</div></CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Ações executadas</CardTitle></CardHeader>
-                <CardContent><div className="text-2xl font-bold">{perf?.actionsExecuted ?? 0}</div></CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Ações falhas</CardTitle></CardHeader>
-                <CardContent><div className="text-2xl font-bold text-amber-600">{perf?.actionsFailed ?? 0}</div></CardContent>
-              </Card>
-              <Card className="md:col-span-2">
-                <CardHeader className="pb-2"><CardTitle className="text-sm">Agentes ativos</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-1">
-                    {(perf?.agents ?? []).map((a: any) => <Badge key={a.id} variant="outline">{a.name}</Badge>)}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <>
+              <div className="grid gap-3 md:grid-cols-4">
+                <StatCard label="Mensagens IA" value={perf?.totalMessages ?? 0} icon={BrainCircuit} accent="text-primary" />
+                <StatCard label="Conversas" value={perf?.totalConversations ?? 0} icon={Sparkles} />
+                <StatCard label="Usuários únicos" value={perf?.uniqueUsers ?? 0} icon={Trophy} />
+                <StatCard label="Ações totais" value={perf?.totalActions ?? 0} icon={Zap} />
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Sucesso das ações</CardTitle></CardHeader>
+                  <CardContent><div className="text-2xl font-bold text-green-600">{(perf?.actionSuccessRate ?? 0).toFixed(1)}%</div>
+                    <div className="text-xs text-muted-foreground mt-1">{perf?.actionsExecuted ?? 0} ok · {perf?.actionsFailed ?? 0} falhas</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Resolutividade</CardTitle></CardHeader>
+                  <CardContent><div className="text-2xl font-bold text-green-600">{(perf?.resolutionRate ?? 0).toFixed(1)}%</div>
+                    <div className="text-xs text-muted-foreground mt-1">{perf?.positiveFeedback ?? 0} 👍 · {perf?.negativeFeedback ?? 0} 👎</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Feedback total</CardTitle></CardHeader>
+                  <CardContent><div className="text-2xl font-bold">{perf?.totalFeedback ?? 0}</div>
+                    {(perf?.totalFeedback ?? 0) === 0 && <div className="text-xs text-muted-foreground mt-1">Sem feedback ainda — coletado após 👍/👎 no chat</div>}
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Agentes ativos</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-1">
+                      {(perf?.agents ?? []).map((a: any) => <Badge key={a.id} variant="outline">{a.name}</Badge>)}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {(perf?.messagesByDay?.length ?? 0) > 0 && (
+                <Card className="mt-4">
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Mensagens por dia</CardTitle></CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={180}>
+                      <AreaChart data={perf?.messagesByDay ?? []}>
+                        <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
+                        <XAxis dataKey="date" tick={{ fontSize: 11 }} />
+                        <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="count" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              )}
+
+              <div className="grid md:grid-cols-2 gap-3 mt-4">
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Top ferramentas usadas pela Marina</CardTitle></CardHeader>
+                  <CardContent>
+                    {(perf?.topTools?.length ?? 0) === 0 ? (
+                      <div className="text-sm text-muted-foreground">Nenhuma ação registrada nesta janela.</div>
+                    ) : (
+                      <table className="w-full text-sm">
+                        <thead className="text-xs text-muted-foreground">
+                          <tr><th className="text-left py-1">Ferramenta</th><th className="text-right">Uso</th><th className="text-right">Sucesso</th></tr>
+                        </thead>
+                        <tbody>
+                          {(perf?.topTools ?? []).map((t) => (
+                            <tr key={t.tool_name} className="border-t">
+                              <td className="py-1 font-mono text-xs">{t.tool_name}</td>
+                              <td className="text-right">{t.total}</td>
+                              <td className="text-right">{t.rate.toFixed(0)}%</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader className="pb-2"><CardTitle className="text-sm">Mensagens por agente</CardTitle></CardHeader>
+                  <CardContent>
+                    {(perf?.messagesByAgent?.length ?? 0) === 0 ? (
+                      <div className="text-sm text-muted-foreground">Sem mensagens nesta janela.</div>
+                    ) : (
+                      <div className="space-y-2">
+                        {(perf?.messagesByAgent ?? []).map((a) => (
+                          <div key={a.agent_id} className="flex items-center justify-between text-sm">
+                            <span className="truncate">{a.name}</span>
+                            <Badge variant="outline">{a.count}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -817,7 +899,12 @@ function ImpactTab() {
             <CardTitle>Changelog de Impacto</CardTitle>
             <CardDescription>Cada implementação vinculada à métrica que ela deveria mover</CardDescription>
           </div>
-          <Button size="sm" onClick={() => setOpenEntry({ released_at: new Date().toISOString() })}><Plus className="h-4 w-4 mr-1" /> Nova entrada</Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={seed.isPending} onClick={() => seed.mutate()}>
+              <RefreshCw className={`h-4 w-4 mr-1 ${seed.isPending ? "animate-spin" : ""}`} /> Sincronizar do histórico
+            </Button>
+            <Button size="sm" onClick={() => setOpenEntry({ released_at: new Date().toISOString() })}><Plus className="h-4 w-4 mr-1" /> Nova entrada</Button>
+          </div>
         </CardHeader>
         <CardContent>
           {cl.isLoading ? <Skeleton className="h-40 w-full" /> : (
@@ -827,20 +914,27 @@ function ImpactTab() {
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="font-medium">{e.title}</div>
-                      {e.description && <div className="text-sm text-muted-foreground mt-1">{e.description}</div>}
-                      {e.metric_before != null && e.metric_after != null && (
-                        <div className="text-xs mt-2 flex items-center gap-2">
-                          <TrendingUp className="h-3 w-3" />
-                          <span>{e.metric_before} → <strong className="text-primary">{e.metric_after}</strong></span>
-                        </div>
-                      )}
+                      {e.description && <div className="text-sm text-muted-foreground mt-1 whitespace-pre-line line-clamp-4">{e.description}</div>}
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        {(e.impacted_modules ?? []).map((m) => (
+                          <Badge key={m} variant="secondary" className="text-xs">{m}</Badge>
+                        ))}
+                        {(e.related_ticket_ids?.length ?? 0) > 0 && (
+                          <Badge variant="outline" className="text-xs">{e.related_ticket_ids!.length} ticket(s) vinculado(s)</Badge>
+                        )}
+                        {e.metric_before != null && e.metric_after != null && (
+                          <span className="text-xs flex items-center gap-1"><TrendingUp className="h-3 w-3" />{e.metric_before} → <strong className="text-primary">{e.metric_after}</strong></span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">{formatLocalDate(e.released_at)}</div>
+                    <div className="text-xs text-muted-foreground whitespace-nowrap">{formatLocalDate(e.released_at)}</div>
                   </div>
                 </button>
               ))}
               {(cl.data ?? []).length === 0 && !cl.isLoading && (
-                <div className="text-center text-muted-foreground py-8">Nenhuma entrada. Registre a primeira release do Arrow com o impacto observado nas métricas.</div>
+                <div className="text-center text-muted-foreground py-8">
+                  Nenhuma entrada. Clique em <strong>"Sincronizar do histórico"</strong> para gerar releases a partir do log de atividades, ou crie uma manualmente.
+                </div>
               )}
             </div>
           )}
