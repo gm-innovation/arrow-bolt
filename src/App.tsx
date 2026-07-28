@@ -26,7 +26,7 @@ const Companies = lazy(() => import("./pages/super-admin/Companies"));
 const SuperAdminUsers = lazy(() => import("./pages/super-admin/Users"));
 const Subscriptions = lazy(() => import("./pages/super-admin/Subscriptions"));
 const Settings = lazy(() => import("./pages/super-admin/Settings"));
-const SuperAdminReports = lazy(() => import("./pages/super-admin/Reports"));
+
 const SuperAdminProfile = lazy(() => import("./pages/super-admin/Profile"));
 
 const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
