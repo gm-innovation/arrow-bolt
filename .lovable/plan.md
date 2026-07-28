@@ -1,41 +1,55 @@
-# Plano — Popular a Opportunity Solution Tree com o que já temos
+## Aba "IA & Impacto" — enriquecimento com dados reais
 
-A árvore está vazia hoje, mas o sistema já possui sinais suficientes para gerar uma primeira versão útil, sem inventar dados: **North Star Metrics**, **support_tickets** (~24 abertos, com `category`, `impacted_module`, `rice_score` e itens de roadmap) e o próprio **backlog do roadmap** (que hoje vive dentro de `support_tickets` prefixados com `[Roadmap]`).
+Hoje a aba mostra quase tudo zerado por três motivos concretos:
 
-## O que semear (mapeamento direto a partir dos dados reais)
+1. `useAIPerformance` filtra `ai_assistant_actions.status`, mas a coluna real é `success boolean` → "Ações executadas" e "Ações falhas" ficam sempre em 0.
+2. A janela é fixa em 30d — só 4 mensagens caem aí. Existem **76 mensagens** desde dez/2025 e **20 conversas** que nunca aparecem.
+3. `pm_changelog` está vazio, mas o `pm_activity_log` tem **326 eventos** (migrations, tickets, roadmap, ações da Marina) que podem semear releases automaticamente. `support_tickets` tem 24 registros (23 feature_requests, 1 bug) prontos para vincular a releases.
 
-Estrutura padrão da OST: `outcome → opportunity → solution → experiment`.
+### O que vamos fazer (somente frontend + hooks + 1 edge function de seed)
 
-1. **Outcomes (raízes)** — 1 por North Star Metric ativo em `pm_north_star_metrics`. Título = nome da métrica, `north_star_metric_id` vinculado. Se não houver NSM, criar 3 outcomes padrão a partir dos módulos com mais tickets abertos (Plataforma, RH, IA, PM) — apenas como fallback.
+**1. Corrigir e ampliar `useAIPerformance` (`src/hooks/usePMDashboard.ts`)**
+- Trocar `status` por `success` (fix do bug de 0 ações).
+- Aceitar janela `30d | 90d | all` e devolver, além do que já tem:
+  - `totalConversations` (de `ai_conversations`)
+  - `uniqueUsers` (distinct `user_id` em `ai_messages`)
+  - `messagesByDay` (série para gráfico)
+  - `topTools` (top 8 `tool_name` de `ai_assistant_actions` com taxa de sucesso)
+  - `messagesByAgent` (join com `ai_agents.name`)
+  - `feedbackByAgent`
 
-2. **Opportunities (nível 2)** — 1 por `impacted_module` distinto dos tickets abertos/in_progress. Exemplos reais que aparecem hoje: RH, IA, PM, SGQ, CRM, Financeiro, Universidade, Notificações, Integrações, Corporativo, Plataforma, AI_Copilot, Product Health Dashboard, HR, Recursos Humanos. Consolidar sinônimos (`RH`/`HR`/`Recursos Humanos` → RH; `IA`/`AI_Copilot` → IA). Descrição = contagem de tickets + categorias.
+**2. Reformular o bloco "Performance da IA" no `ImpactTab` (`src/pages/super-admin/PMDashboard.tsx`)**
+- Toggle 30d / 90d / Todo o período no topo do card.
+- Nova linha de KPIs: Conversas, Usuários únicos, Mensagens, Ações OK, Taxa de sucesso das ações, Feedback +/−.
+- Mini-gráfico de área "Mensagens IA por dia" (recharts, já usado no projeto).
+- Tabela "Top ferramentas usadas pela Marina" com contagem e % sucesso.
+- Chips "Mensagens por agente".
 
-3. **Solutions (nível 3)** — 1 por ticket `category = 'feature_request'` aberto/in_progress, filho da opportunity do seu módulo. Título = título do ticket (removendo o prefixo `[Roadmap] `). Descrição = descrição do ticket. Já cria vínculo em `pm_ticket_ost_links`.
+**3. Auto-popular o Changelog de Impacto a partir do histórico existente**
+- Nova edge function `pm-changelog-seed` que:
+  - Lê `pm_activity_log` do tipo `migration` (agrupadas por dia, título já amigável via `pm_summarize_migration`), das últimas ~180d.
+  - Cria entradas em `pm_changelog` (uma por dia com migrations), preenchendo `title`, `description` (bullets das migrations do dia), `released_at`, `impacted_modules` (deduzidos dos títulos), `related_ticket_ids` (tickets fechados/atualizados no mesmo dia).
+  - Idempotente: ignora dias que já têm entrada com o mesmo título/data.
+- Botão **"Sincronizar do histórico"** no header do card "Changelog de Impacto" chamando essa função + toast com "N entradas criadas".
+- Cada entrada da lista passa a mostrar: versão (se houver), badges de módulos impactados e nº de tickets vinculados.
 
-4. **Experiments** — não gerar automaticamente nesta primeira passada; ficam para o usuário/Marina adicionarem quando um solution virar teste.
+**4. Vincular releases às métricas**
+- Ao abrir/editar uma entrada, se `north_star_metric_id` estiver setado e `metric_before/after` vazios, pré-preencher `metric_before` com o valor atual da NSM no momento da release e destacar delta.
 
-Não migrar bugs para a OST (bugs não pertencem à árvore de descoberta) — o único bug atual (`Recursos Humanos`) fica apenas ligado por `pm_ticket_ost_links` à opportunity RH, sem virar nó.
+**5. Detalhes de UX**
+- Estados vazios explicando o próximo passo ("Sem feedback ainda — a Marina passa a coletar automaticamente após avaliações 👍/👎").
+- Skeletons quando `all-time` demorar.
 
-## Como o usuário controla
+### Fora de escopo (não mexer neste ciclo)
+- Nenhuma mudança em RLS, schema (exceto a edge function) ou em outras abas do dashboard.
+- Sem novas tabelas — reutilizamos `ai_messages`, `ai_conversations`, `ai_assistant_actions`, `ai_feedback`, `pm_activity_log`, `pm_changelog`, `pm_north_star_metrics`.
 
-- Botão **"Sugerir a partir de tickets/métricas"** no card da OST em `/super-admin/pm-dashboard` (aba Estratégia). Abre um dialog de pré-visualização listando outcomes/opportunities/solutions que serão criados, com checkboxes para desmarcar itens. Só grava após confirmação — nada é criado silenciosamente.
-- Idempotência: antes de inserir, deduplica por `(node_type, title, parent_id)`. Rodar de novo não gera duplicatas; apenas adiciona o que faltar.
-- Cada nó criado vira também um evento em `pm_activity_log` (já coberto pelo trigger existente).
+### Arquivos que serão tocados
+- `src/hooks/usePMDashboard.ts` — expandir `useAIPerformance` + novo `useSeedChangelog`.
+- `src/pages/super-admin/PMDashboard.tsx` — reescrever `ImpactTab`.
+- `supabase/functions/pm-changelog-seed/index.ts` — nova função (verify_jwt padrão).
 
-## Marina — reforço opcional (mesmo turno)
-
-Adicionar ferramenta `suggest_ost_from_signals` na Edge Function `ai-assistant` (só `super_admin`): lê NSMs + tickets abertos e propõe no chat a mesma lista, aplicando via `create_ost_node` (já implícita através de `pm_ost_nodes`) após confirmação textual. Isso responde ao roadmap item já existente "pm-insights-suggest — Marina propõe OST".
-
-## Entregáveis técnicos
-
-- Edge Function nova `pm-ost-seed` (POST): monta o preview (dry-run por padrão) e aplica quando `apply: true`. Regras acima. Retorna JSON com contagens.
-- Hook `useOSTSeed` em `src/hooks/usePMDashboard.ts` + dialog `OSTSeedDialog.tsx`.
-- Botão "Sugerir a partir de sinais" ao lado do "+ Novo nó" em `StrategyTab` (`PMDashboard.tsx`).
-- Ferramenta `suggest_ost_from_signals` em `supabase/functions/ai-assistant/tools.ts` + registro no prompt em `index.ts`.
-- Sem migração de schema — a estrutura de `pm_ost_nodes` e `pm_ticket_ost_links` já suporta tudo.
-
-## Fora de escopo
-
-- Auto-scoring RICE de nós OST (já existe em tickets; pode ser puxado por join na UI depois).
-- Geração automática de experiments.
-- Movimentação/reordenação drag&drop dentro da OST (a UI atual já lista; reordenação fica para depois).
+### Detalhes técnicos
+- `ai_assistant_actions.success bool`: `executed = success = true`, `failed = success = false`.
+- Janela "all": sem filtro de data; usar `count: 'exact', head: true` para KPIs grandes; paginar `ai_messages` por dia via RPC leve ou reduzir client-side (76 linhas hoje, cresce devagar).
+- Módulos impactados no seed: regex nos títulos de migration (`^adicionar|criar|atualizar (\w+)`) + mapa manual (`quality_* → SGQ`, `hr_*|profiles → RH`, `crm_*|leads → Comercial`, `service_orders|measurements → OS`, `pm_*|support_tickets → PM`, `ai_* → IA`).
