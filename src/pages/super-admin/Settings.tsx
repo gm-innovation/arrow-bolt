@@ -34,7 +34,7 @@ const Settings = () => {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+        <Card data-tour="settings-notifications-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Bell className="h-5 w-5" />
@@ -45,6 +45,7 @@ const Settings = () => {
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="notifications">Notificações do Sistema</Label>
               <Switch 
+                data-tour="settings-system-notifications"
                 id="notifications" 
                 checked={settings.notifications_enabled?.enabled || false}
                 onCheckedChange={(checked) => 
@@ -55,6 +56,7 @@ const Settings = () => {
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="email-notifications">Notificações por Email</Label>
               <Switch 
+                data-tour="settings-email-notifications"
                 id="email-notifications" 
                 checked={settings.email_notifications_enabled?.enabled || false}
                 onCheckedChange={(checked) => 
@@ -65,7 +67,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="settings-whatsapp-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Smartphone className="h-5 w-5" />
@@ -76,6 +78,7 @@ const Settings = () => {
             <div className="space-y-2">
               <Label>API Key WhatsApp</Label>
               <Input 
+                data-tour="settings-whatsapp-api-key"
                 type="password" 
                 placeholder="Digite a API key"
                 value={settings.whatsapp_api_key?.key || ''}
@@ -92,7 +95,7 @@ const Settings = () => {
                   updateSetting({ key: 'whatsapp_schedule', value: { schedule: value } })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger data-tour="settings-whatsapp-schedule">
                   <SelectValue placeholder="Selecione o horário" />
                 </SelectTrigger>
                 <SelectContent>
@@ -105,7 +108,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="settings-theme-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-5 w-5" />
@@ -121,7 +124,7 @@ const Settings = () => {
                   updateSetting({ key: 'theme', value: { theme: value } })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger data-tour="settings-theme-select">
                   <SelectValue placeholder="Selecione o tema" />
                 </SelectTrigger>
                 <SelectContent>
@@ -139,7 +142,7 @@ const Settings = () => {
                   updateSetting({ key: 'primary_color', value: { color: value } })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger data-tour="settings-primary-color">
                   <SelectValue placeholder="Selecione a cor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -152,7 +155,7 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tour="settings-audit-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Shield className="h-5 w-5" />
@@ -163,6 +166,7 @@ const Settings = () => {
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="audit-logs">Registrar Logs de Auditoria</Label>
               <Switch 
+                data-tour="settings-audit-switch"
                 id="audit-logs" 
                 checked={settings.audit_logs_enabled?.enabled || false}
                 onCheckedChange={(checked) => 
@@ -178,7 +182,7 @@ const Settings = () => {
                   updateSetting({ key: 'audit_retention_period', value: { days: parseInt(value) } })
                 }
               >
-                <SelectTrigger>
+                <SelectTrigger data-tour="settings-audit-retention">
                   <SelectValue placeholder="Selecione o período" />
                 </SelectTrigger>
                 <SelectContent>
@@ -188,14 +192,16 @@ const Settings = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button variant="outline" className="w-full" onClick={exportAuditLogs}>
+            <Button variant="outline" className="w-full" onClick={exportAuditLogs} data-tour="settings-export-logs">
               Exportar Logs
             </Button>
           </CardContent>
         </Card>
       </div>
 
-      <OmieSettingsTab />
+      <div data-tour="settings-omie">
+        <OmieSettingsTab />
+      </div>
     </div>
   );
 };

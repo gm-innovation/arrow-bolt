@@ -138,14 +138,14 @@ const Subscriptions = () => {
           </p>
         </div>
         <div className="flex gap-4">
-          <Button variant="outline" onClick={handleExport}>
+          <Button variant="outline" onClick={handleExport} data-tour="subscriptions-export">
             <Download className="mr-2 h-4 w-4" />
             Exportar Lista
           </Button>
         </div>
       </div>
 
-      <div className="flex gap-4 items-end">
+      <div className="flex gap-4 items-end" data-tour="subscriptions-filters">
         <div className="flex-1">
           <Input
             placeholder="Buscar por empresa..."
@@ -191,7 +191,7 @@ const Subscriptions = () => {
         )}
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg" data-tour="subscriptions-table">
         <Table>
           <TableHeader>
             <TableRow>
@@ -259,25 +259,28 @@ const Subscriptions = () => {
                   <TableCell>
                     {format(new Date(subscription.created_at), "dd/MM/yyyy")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-tour="subscriptions-row-actions">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" data-tour="subscriptions-actions-trigger">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
+                          data-tour="subscriptions-action-plan"
                           onClick={() => setChangePlanSub(subscription)}
                         >
                           Alterar Plano
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          data-tour="subscriptions-action-status"
                           onClick={() => setChangeStatusSub(subscription)}
                         >
                           Alterar Status de Pagamento
                         </DropdownMenuItem>
                         <DropdownMenuItem
+                          data-tour="subscriptions-action-cancel"
                           className="text-destructive"
                           onClick={() => setCancelSubId(subscription.id)}
                         >
@@ -309,7 +312,7 @@ const Subscriptions = () => {
         open={!!cancelSubId}
         onOpenChange={(open) => !open && setCancelSubId(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent data-tour="subscriptions-cancel-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Cancelamento</AlertDialogTitle>
             <AlertDialogDescription>

@@ -134,6 +134,7 @@ function RoadmapColumn({
   return (
     <div
       ref={setNodeRef}
+      data-tour={`pm-roadmap-column-${horizon.value}`}
       className={`border rounded-lg p-3 ${horizon.color} ${isOver ? "ring-2 ring-primary/50" : ""}`}
     >
       <div className="font-semibold mb-2 flex items-center justify-between">
@@ -171,6 +172,7 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
       ref={setNodeRef}
       style={style}
       value={ticket.id}
+      data-tour="pm-roadmap-item"
       className="bg-background rounded border-0 px-2"
     >
       <div className="flex items-start">
@@ -179,6 +181,7 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
           {...listeners}
           className="p-1.5 mt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
           aria-label="Arrastar"
+          data-tour="pm-roadmap-drag-handle"
           onClick={(e) => e.stopPropagation()}
         >
           <GripVertical className="h-3.5 w-3.5" />
@@ -217,6 +220,7 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
             <div className="flex gap-1">
               {ticket.dev_prompt && (
                 <Button
+                  data-tour="pm-roadmap-copy-prompt"
                   size="sm"
                   variant="ghost"
                   className="h-6 px-2 text-[10px]"
@@ -229,6 +233,7 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
                 </Button>
               )}
               <Button
+                data-tour="pm-roadmap-generate-prompt"
                 size="sm"
                 variant="ghost"
                 className="h-6 px-2 text-[10px]"
@@ -241,14 +246,14 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
             </div>
           </div>
           {ticket.dev_prompt ? (
-            <Textarea readOnly value={ticket.dev_prompt} className="font-mono text-[10px] h-40" />
+            <Textarea readOnly value={ticket.dev_prompt} className="font-mono text-[10px] h-40" data-tour="pm-roadmap-dev-prompt" />
           ) : (
             <p className="text-[10px] text-muted-foreground italic">
               Nenhum prompt gerado. Clique em "Gerar" para que a Marina prepare instruções para o Lovable.
             </p>
           )}
         </div>
-        <Button size="sm" variant="outline" className="w-full h-7 text-[11px]" onClick={() => onOpen(ticket)}>
+        <Button size="sm" variant="outline" className="w-full h-7 text-[11px]" onClick={() => onOpen(ticket)} data-tour="pm-roadmap-open-details">
           Abrir detalhes
         </Button>
       </AccordionContent>

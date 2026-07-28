@@ -75,7 +75,7 @@ export function ChangeStatusDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" data-tour="subscriptions-status-dialog">
         <DialogHeader>
           <DialogTitle>Alterar Status de Pagamento</DialogTitle>
         </DialogHeader>
@@ -94,7 +94,7 @@ export function ChangeStatusDialog({
                   <FormLabel>Novo Status</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger data-tour="subscriptions-status-select">
                         <SelectValue placeholder="Selecione um status" />
                       </SelectTrigger>
                     </FormControl>
@@ -132,7 +132,7 @@ export function ChangeStatusDialog({
               >
                 Cancelar
               </Button>
-              <Button type="submit">Alterar Status</Button>
+              <Button type="submit" data-tour="subscriptions-status-submit">Alterar Status</Button>
             </div>
           </form>
         </Form>

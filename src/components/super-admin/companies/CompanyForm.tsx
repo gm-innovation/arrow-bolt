@@ -149,7 +149,7 @@ export const CompanyForm = ({ company, onSuccess }: CompanyFormProps) => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Logo Upload */}
-        <div className="space-y-2">
+        <div className="space-y-2" data-tour="company-form-logo">
           <FormLabel>Logo da Empresa</FormLabel>
           <div className="flex items-center gap-4">
             {logoPreview ? (
@@ -193,7 +193,7 @@ export const CompanyForm = ({ company, onSuccess }: CompanyFormProps) => {
               <FormItem className="md:col-span-2">
                 <FormLabel>Nome da Empresa *</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="Razão social" />
+                  <Input {...field} placeholder="Razão social" data-tour="company-form-name" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -207,7 +207,7 @@ export const CompanyForm = ({ company, onSuccess }: CompanyFormProps) => {
               <FormItem>
                 <FormLabel>CNPJ</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="00.000.000/0000-00" />
+                  <Input {...field} placeholder="00.000.000/0000-00" data-tour="company-form-cnpj" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -235,7 +235,7 @@ export const CompanyForm = ({ company, onSuccess }: CompanyFormProps) => {
               <FormItem className="md:col-span-2">
                 <FormLabel>Endereço</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="Endereço completo" />
+                  <Input {...field} placeholder="Endereço completo" data-tour="company-form-address" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -278,7 +278,7 @@ export const CompanyForm = ({ company, onSuccess }: CompanyFormProps) => {
                 <FormLabel>Plano *</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger data-tour="company-form-plan">
                       <SelectValue placeholder="Selecione o plano" />
                     </SelectTrigger>
                   </FormControl>
@@ -301,7 +301,7 @@ export const CompanyForm = ({ company, onSuccess }: CompanyFormProps) => {
                 <FormLabel>Status de Pagamento *</FormLabel>
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger data-tour="company-form-payment-status">
                       <SelectValue placeholder="Selecione o status" />
                     </SelectTrigger>
                   </FormControl>
@@ -318,7 +318,7 @@ export const CompanyForm = ({ company, onSuccess }: CompanyFormProps) => {
         </div>
 
         <div className="flex gap-4 justify-end pt-4">
-          <Button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading} data-tour="company-form-submit">
             {loading ? "Salvando..." : company ? "Salvar Alterações" : "Criar Empresa"}
           </Button>
         </div>

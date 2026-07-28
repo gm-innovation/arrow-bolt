@@ -88,7 +88,7 @@ export function ChangePlanDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" data-tour="subscriptions-plan-dialog">
         <DialogHeader>
           <DialogTitle>Alterar Plano de Assinatura</DialogTitle>
         </DialogHeader>
@@ -107,7 +107,7 @@ export function ChangePlanDialog({
                   <FormLabel>Novo Plano</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger data-tour="subscriptions-plan-select">
                         <SelectValue placeholder="Selecione um plano" />
                       </SelectTrigger>
                     </FormControl>
@@ -151,7 +151,7 @@ export function ChangePlanDialog({
               >
                 Cancelar
               </Button>
-              <Button type="submit">Alterar Plano</Button>
+              <Button type="submit" data-tour="subscriptions-plan-submit">Alterar Plano</Button>
             </div>
           </form>
         </Form>

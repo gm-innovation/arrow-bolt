@@ -173,7 +173,7 @@ export default function SupportInbox() {
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between" data-tour="support-header">
         <div>
           <h1 className="text-2xl font-bold">Inbox de Suporte</h1>
           <p className="text-sm text-muted-foreground">
@@ -181,6 +181,7 @@ export default function SupportInbox() {
           </p>
         </div>
         <Button
+          data-tour="support-refresh"
           variant="outline"
           size="sm"
           onClick={() => qc.invalidateQueries({ queryKey: ["support-tickets"] })}
@@ -189,9 +190,9 @@ export default function SupportInbox() {
         </Button>
       </div>
 
-      <div className="flex gap-3">
+      <div className="flex gap-3" data-tour="support-filters">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
+          <SelectTrigger className="w-48" data-tour="support-status-filter">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -204,6 +205,7 @@ export default function SupportInbox() {
           </SelectContent>
         </Select>
         <Input
+          data-tour="support-search"
           placeholder="Buscar por título ou descrição..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -212,7 +214,7 @@ export default function SupportInbox() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-4">
-        <Card className="max-h-[calc(100vh-260px)] overflow-hidden">
+        <Card className="max-h-[calc(100vh-260px)] overflow-hidden" data-tour="support-ticket-list">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">
               {isLoading ? "Carregando..." : `${tickets.length} ticket(s)`}
@@ -226,6 +228,7 @@ export default function SupportInbox() {
               return (
                 <button
                   key={t.id}
+                  data-tour="support-ticket-item"
                   onClick={() => setSelectedId(t.id)}
                   className={`w-full text-left p-3 border-b hover:bg-accent transition-colors ${
                     active ? "bg-accent" : ""
@@ -270,7 +273,7 @@ export default function SupportInbox() {
         </Card>
 
         {selected ? (
-          <Card className="max-h-[calc(100vh-260px)] overflow-hidden flex flex-col">
+          <Card className="max-h-[calc(100vh-260px)] overflow-hidden flex flex-col" data-tour="support-ticket-detail">
             <CardHeader>
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -293,7 +296,7 @@ export default function SupportInbox() {
                     updateStatus.mutate({ id: selected.id, status: v })
                   }
                 >
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-44" data-tour="support-ticket-status">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -307,11 +310,11 @@ export default function SupportInbox() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4 overflow-y-auto flex-1">
-              <div className="p-3 border rounded-md bg-muted/50 whitespace-pre-wrap text-sm">
+              <div className="p-3 border rounded-md bg-muted/50 whitespace-pre-wrap text-sm" data-tour="support-ticket-description">
                 {selected.description}
               </div>
 
-              <div className="border rounded-md p-3 bg-primary/5 space-y-2">
+              <div className="border rounded-md p-3 bg-primary/5 space-y-2" data-tour="support-dev-prompt-panel">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
@@ -339,6 +342,7 @@ export default function SupportInbox() {
                   <div className="flex gap-1">
                     {selected.dev_prompt && (
                       <Button
+                        data-tour="support-copy-prompt"
                         size="sm"
                         variant="outline"
                         onClick={() => copyPrompt(selected.dev_prompt)}
@@ -348,6 +352,7 @@ export default function SupportInbox() {
                       </Button>
                     )}
                     <Button
+                      data-tour="support-generate-prompt"
                       size="sm"
                       variant="outline"
                       onClick={() => regenerateDevPrompt.mutate(selected.id)}
@@ -397,7 +402,7 @@ export default function SupportInbox() {
                 )}
               </div>
 
-              <details className="text-xs" open>
+              <details className="text-xs" open data-tour="support-conversation-context">
                 <summary className="cursor-pointer text-muted-foreground">
                   Conversa com Marina (contexto)
                   {" "}
@@ -422,7 +427,7 @@ export default function SupportInbox() {
               </details>
 
 
-              <div className="space-y-2">
+              <div className="space-y-2" data-tour="support-message-thread">
                 {messages.map((m) => (
                   <div
                     key={m.id}
@@ -444,8 +449,9 @@ export default function SupportInbox() {
                 ))}
               </div>
 
-              <div className="pt-2 border-t space-y-2">
+              <div className="pt-2 border-t space-y-2" data-tour="support-reply-box">
                 <Textarea
+                  data-tour="support-reply-input"
                   placeholder="Escreva uma resposta ao usuário..."
                   value={reply}
                   onChange={(e) => setReply(e.target.value)}
@@ -453,6 +459,7 @@ export default function SupportInbox() {
                 />
                 <div className="flex justify-end">
                   <Button
+                    data-tour="support-send-reply"
                     onClick={() => sendReply.mutate(reply)}
                     disabled={!reply.trim() || sendReply.isPending}
                   >

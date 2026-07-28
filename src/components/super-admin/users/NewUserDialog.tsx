@@ -74,12 +74,12 @@ export function NewUserDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button data-tour="users-new">
           <Plus className="mr-2 h-4 w-4" />
           Novo Usuário
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" data-tour="users-new-dialog">
         <DialogHeader>
           <DialogTitle>Criar Novo Usuário</DialogTitle>
         </DialogHeader>
@@ -92,7 +92,7 @@ export function NewUserDialog() {
                 <FormItem>
                   <FormLabel>Nome Completo</FormLabel>
                   <FormControl>
-                    <Input placeholder="João Silva" {...field} />
+                    <Input placeholder="João Silva" {...field} data-tour="user-form-name" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -106,7 +106,7 @@ export function NewUserDialog() {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="joao@example.com" {...field} />
+                    <Input type="email" placeholder="joao@example.com" {...field} data-tour="user-form-email" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -149,7 +149,7 @@ export function NewUserDialog() {
                   <FormLabel>Empresa</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger data-tour="user-form-company">
                         <SelectValue placeholder="Selecione uma empresa" />
                       </SelectTrigger>
                     </FormControl>
@@ -174,7 +174,7 @@ export function NewUserDialog() {
                   <FormLabel>Função</FormLabel>
                   <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger data-tour="user-form-role">
                         <SelectValue placeholder="Selecione uma função" />
                       </SelectTrigger>
                     </FormControl>
@@ -205,7 +205,7 @@ export function NewUserDialog() {
               >
                 Cancelar
               </Button>
-              <Button type="submit">Criar Usuário</Button>
+              <Button type="submit" data-tour="user-form-submit">Criar Usuário</Button>
             </div>
           </form>
         </Form>

@@ -260,15 +260,15 @@ const Companies = () => {
 
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
+                        <Button variant="ghost" size="icon" data-tour="companies-actions-trigger">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(company)}>
+                        <DropdownMenuItem onClick={() => handleEdit(company)} data-tour="companies-action-edit">
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(company)}>
+                        <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteClick(company)} data-tour="companies-action-delete">
                           Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>

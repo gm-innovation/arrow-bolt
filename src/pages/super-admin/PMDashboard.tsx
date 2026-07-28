@@ -47,7 +47,7 @@ const NODE_TYPES = [
 export default function PMDashboard() {
   return (
     <div className="space-y-6">
-      <div>
+      <div data-tour="pm-header">
         <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
           <Layers className="h-7 w-7 text-primary" />
           Dashboard de PM
@@ -58,12 +58,12 @@ export default function PMDashboard() {
       </div>
 
       <Tabs defaultValue="tickets" className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
-          <TabsTrigger value="tickets">Tickets & Contexto</TabsTrigger>
-          <TabsTrigger value="strategy">OST & North Star</TabsTrigger>
-          <TabsTrigger value="priority">RICE & Roadmap</TabsTrigger>
-          <TabsTrigger value="history">Histórico</TabsTrigger>
-          <TabsTrigger value="impact">IA & Impacto</TabsTrigger>
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full" data-tour="pm-tabs">
+          <TabsTrigger value="tickets" data-tour="pm-tab-tickets">Tickets & Contexto</TabsTrigger>
+          <TabsTrigger value="strategy" data-tour="pm-tab-strategy">OST & North Star</TabsTrigger>
+          <TabsTrigger value="priority" data-tour="pm-tab-priority">RICE & Roadmap</TabsTrigger>
+          <TabsTrigger value="history" data-tour="pm-tab-history">Histórico</TabsTrigger>
+          <TabsTrigger value="impact" data-tour="pm-tab-impact">IA & Impacto</TabsTrigger>
         </TabsList>
 
         <TabsContent value="tickets" className="space-y-4">
@@ -122,7 +122,7 @@ function TicketsTab() {
         <StatCard label="Com prompt IA" value={tickets.filter((t) => t.dev_prompt_status === "ready").length} icon={Sparkles} accent="text-primary" />
       </div>
 
-      <Card>
+      <Card data-tour="pm-north-star-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5" /> Blast Radius — módulos mais impactados
@@ -206,7 +206,7 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
 
   return (
     <Dialog open={!!ticket} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto" data-tour="pm-ticket-detail-dialog">
         <DialogHeader>
           <DialogTitle>#{ticket.ticket_number} — {ticket.title}</DialogTitle>
           <DialogDescription className="flex gap-2 flex-wrap pt-1">
@@ -373,11 +373,11 @@ function StrategyTab() {
             </CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => refresh.mutate()} disabled={refresh.isPending}>
+            <Button size="sm" variant="outline" onClick={() => refresh.mutate()} disabled={refresh.isPending} data-tour="pm-refresh-marina">
               <RefreshCw className={`h-4 w-4 mr-1 ${refresh.isPending ? "animate-spin" : ""}`} />
               {refresh.isPending ? "Atualizando..." : "Atualizar com Marina"}
             </Button>
-            <Button size="sm" onClick={() => setOpenMetric({})}><Plus className="h-4 w-4 mr-1" /> Nova métrica</Button>
+            <Button size="sm" onClick={() => setOpenMetric({})} data-tour="pm-new-metric"><Plus className="h-4 w-4 mr-1" /> Nova métrica</Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -388,7 +388,7 @@ function StrategyTab() {
                 const displayVal = liveVal !== undefined ? liveVal : m.current_value;
                 const isLive = liveVal !== undefined;
                 return (
-                <button key={m.id} onClick={() => setOpenMetric(m)} className="text-left p-4 border rounded-lg hover:bg-muted/40 transition">
+                <button key={m.id} data-tour="pm-north-star-metric" onClick={() => setOpenMetric(m)} className="text-left p-4 border rounded-lg hover:bg-muted/40 transition">
                   <div className="flex items-center gap-2">
                     <div className="text-sm text-muted-foreground flex-1">{m.name}</div>
                     {isLive ? (
@@ -418,17 +418,17 @@ function StrategyTab() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="pm-ost-card">
         <CardHeader className="flex-row justify-between items-center">
           <div>
             <CardTitle className="flex items-center gap-2"><GitBranch className="h-5 w-5" /> Opportunity Solution Tree</CardTitle>
             <CardDescription>Conecte objetivos, dores dos usuários e soluções</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => setSeedOpen(true)}>
+            <Button size="sm" variant="outline" onClick={() => setSeedOpen(true)} data-tour="pm-ost-suggest">
               <Sparkles className="h-4 w-4 mr-1" /> Sugerir a partir de sinais
             </Button>
-            <Button size="sm" onClick={() => setOpenNode({ node_type: "outcome" })}><Plus className="h-4 w-4 mr-1" /> Novo nó</Button>
+            <Button size="sm" onClick={() => setOpenNode({ node_type: "outcome" })} data-tour="pm-ost-new-node"><Plus className="h-4 w-4 mr-1" /> Novo nó</Button>
           </div>
         </CardHeader>
         <CardContent>
@@ -501,7 +501,7 @@ function OSTSeedDialog({ open, onClose }: { open: boolean; onClose: () => void }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl" data-tour="pm-ost-seed-dialog">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" /> Sugerir OST a partir de sinais
@@ -598,7 +598,7 @@ function OSTSeedDialog({ open, onClose }: { open: boolean; onClose: () => void }
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={apply.isPending}>Cancelar</Button>
-          <Button onClick={handleApply} disabled={!plan || apply.isPending}>
+          <Button onClick={handleApply} disabled={!plan || apply.isPending} data-tour="pm-ost-apply-suggestion">
             {apply.isPending ? <><RefreshCw className="h-4 w-4 animate-spin mr-1" /> Aplicando...</> : "Aplicar sugestão"}
           </Button>
         </DialogFooter>
@@ -614,11 +614,11 @@ function MetricDialog({ value, onClose, nsm }: { value: Partial<NorthStarMetric>
   if (!value) return null;
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent data-tour="pm-metric-dialog">
         <DialogHeader><DialogTitle>{value.id ? "Editar Métrica" : "Nova Métrica"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div><Label>Nome</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
-          <div><Label>Descrição</Label><Textarea value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          <div><Label>Nome</Label><Input data-tour="pm-metric-name" value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+          <div><Label>Descrição</Label><Textarea data-tour="pm-metric-description" value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           <div className="grid grid-cols-3 gap-2">
             <div><Label>Unidade</Label><Input value={form.unit ?? ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="%, usuários, tickets, dias, ..." /></div>
             <div><Label>Atual</Label><Input type="number" value={form.current_value ?? ""} onChange={(e) => setForm({ ...form, current_value: e.target.value === "" ? null : Number(e.target.value) })} /></div>
@@ -628,7 +628,7 @@ function MetricDialog({ value, onClose, nsm }: { value: Partial<NorthStarMetric>
         </div>
         <DialogFooter className="gap-2">
           {value.id && <Button variant="destructive" onClick={() => { nsm.remove.mutate(value.id!); onClose(); }}><Trash2 className="h-4 w-4 mr-1" /> Excluir</Button>}
-          <Button onClick={() => { nsm.upsert.mutate(form, { onSuccess: onClose }); }}>Salvar</Button>
+          <Button onClick={() => { nsm.upsert.mutate(form, { onSuccess: onClose }); }} data-tour="pm-metric-save">Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -642,18 +642,18 @@ function OSTNodeDialog({ value, onClose, ost, metrics }: { value: Partial<OSTNod
   const possibleParents = (ost.data ?? []).filter((n) => n.id !== value.id);
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent data-tour="pm-ost-node-dialog">
         <DialogHeader><DialogTitle>{value.id ? "Editar Nó" : "Novo Nó da OST"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div>
             <Label>Tipo</Label>
             <Select value={form.node_type} onValueChange={(v: any) => setForm({ ...form, node_type: v })}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger data-tour="pm-ost-node-type"><SelectValue /></SelectTrigger>
               <SelectContent>{NODE_TYPES.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div><Label>Título</Label><Input value={form.title ?? ""} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-          <div><Label>Descrição</Label><Textarea value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
+          <div><Label>Título</Label><Input data-tour="pm-ost-node-title" value={form.title ?? ""} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
+          <div><Label>Descrição</Label><Textarea data-tour="pm-ost-node-description" value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           <div>
             <Label>Nó pai (opcional)</Label>
             <Select value={form.parent_id ?? "none"} onValueChange={(v) => setForm({ ...form, parent_id: v === "none" ? null : v })}>
@@ -679,7 +679,7 @@ function OSTNodeDialog({ value, onClose, ost, metrics }: { value: Partial<OSTNod
         </div>
         <DialogFooter className="gap-2">
           {value.id && <Button variant="destructive" onClick={() => { ost.remove.mutate(value.id!); onClose(); }}><Trash2 className="h-4 w-4 mr-1" /> Excluir</Button>}
-          <Button onClick={() => { ost.upsert.mutate(form, { onSuccess: onClose }); }}>Salvar</Button>
+          <Button onClick={() => { ost.upsert.mutate(form, { onSuccess: onClose }); }} data-tour="pm-ost-node-save">Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -709,14 +709,14 @@ function PriorityTab() {
 
   return (
     <>
-      <Card>
+      <Card data-tour="pm-rice-card">
         <CardHeader className="flex-row justify-between items-center">
           <div>
             <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5" /> Priorização RICE</CardTitle>
             <CardDescription>Reach × Impact × Confidence ÷ Effort — Quick Wins destacados</CardDescription>
           </div>
           {unscored.length > 0 && (
-            <Button size="sm" variant="outline" onClick={async () => {
+            <Button size="sm" variant="outline" data-tour="pm-rice-calculate-pending" onClick={async () => {
               toast({ title: `Calculando ${unscored.length} tickets...` });
               for (const t of unscored.slice(0, 10)) {
                 try { await recalc.mutateAsync(t.id); } catch { /* skip */ }
@@ -726,7 +726,7 @@ function PriorityTab() {
             </Button>
           )}
         </CardHeader>
-        <CardContent className="p-0">
+        <CardContent className="p-0" data-tour="pm-rice-table">
           <ScrollArea className="h-[400px]">
             <table className="w-full text-sm">
               <thead className="sticky top-0 bg-muted/60 backdrop-blur">
@@ -779,7 +779,7 @@ function PriorityTab() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="pm-roadmap-card">
         <CardHeader>
           <CardTitle>Roadmap — Now / Next / Later</CardTitle>
           <CardDescription>
@@ -787,7 +787,9 @@ function PriorityTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RoadmapBoard tickets={roadmapTickets} onOpen={setSelected} />
+          <div data-tour="pm-roadmap-board">
+            <RoadmapBoard tickets={roadmapTickets} onOpen={setSelected} />
+          </div>
         </CardContent>
       </Card>
       <TicketDetailDialog ticket={selected} onClose={() => setSelected(null)} />
@@ -808,7 +810,7 @@ function ImpactTab() {
 
   return (
     <>
-      <Card>
+      <Card data-tour="pm-changelog-card">
         <CardHeader className="flex-row items-start justify-between gap-4">
           <div>
             <CardTitle className="flex items-center gap-2"><BrainCircuit className="h-5 w-5" /> Performance da IA ({windowLabel})</CardTitle>
@@ -931,17 +933,17 @@ function ImpactTab() {
             <CardDescription>Cada implementação vinculada à métrica que ela deveria mover</CardDescription>
           </div>
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" disabled={seed.isPending} onClick={() => seed.mutate()}>
+            <Button size="sm" variant="outline" disabled={seed.isPending} onClick={() => seed.mutate()} data-tour="pm-changelog-sync">
               <RefreshCw className={`h-4 w-4 mr-1 ${seed.isPending ? "animate-spin" : ""}`} /> Sincronizar do histórico
             </Button>
-            <Button size="sm" onClick={() => setOpenEntry({ released_at: new Date().toISOString() })}><Plus className="h-4 w-4 mr-1" /> Nova entrada</Button>
+            <Button size="sm" onClick={() => setOpenEntry({ released_at: new Date().toISOString() })} data-tour="pm-changelog-new"><Plus className="h-4 w-4 mr-1" /> Nova entrada</Button>
           </div>
         </CardHeader>
         <CardContent>
           {cl.isLoading ? <Skeleton className="h-40 w-full" /> : (
             <div className="space-y-3">
               {(cl.data ?? []).map((e) => (
-                <button key={e.id} onClick={() => setOpenEntry(e)} className="w-full text-left border rounded-lg p-4 hover:bg-muted/40">
+                <button key={e.id} data-tour="pm-changelog-entry" onClick={() => setOpenEntry(e)} className="w-full text-left border rounded-lg p-4 hover:bg-muted/40">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <div className="font-medium">{e.title}</div>
@@ -983,7 +985,7 @@ function ChangelogDialog({ value, onClose, cl, metrics }: { value: Partial<Chang
   if (!value) return null;
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl" data-tour="pm-changelog-dialog">
         <DialogHeader><DialogTitle>{value.id ? "Editar entrada" : "Nova entrada"}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           <div><Label>Título</Label><Input value={form.title ?? ""} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
@@ -1015,7 +1017,7 @@ function ChangelogDialog({ value, onClose, cl, metrics }: { value: Partial<Chang
         </div>
         <DialogFooter className="gap-2">
           {value.id && <Button variant="destructive" onClick={() => { cl.remove.mutate(value.id!); onClose(); }}><Trash2 className="h-4 w-4 mr-1" /> Excluir</Button>}
-          <Button onClick={() => cl.upsert.mutate(form, { onSuccess: onClose })}>Salvar</Button>
+          <Button onClick={() => cl.upsert.mutate(form, { onSuccess: onClose })} data-tour="pm-changelog-save">Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

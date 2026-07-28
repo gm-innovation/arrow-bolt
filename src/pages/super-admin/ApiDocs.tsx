@@ -90,9 +90,9 @@ function NewKeyDialog({ companies, onCreated }: { companies: Company[]; onCreate
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) reset(); }}>
       <DialogTrigger asChild>
-        <Button><Plus className="w-4 h-4 mr-2" />Nova integração</Button>
+        <Button data-tour="api-new-integration"><Plus className="w-4 h-4 mr-2" />Nova integração</Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md" data-tour="api-new-integration-dialog">
         <DialogHeader>
           <DialogTitle>{generatedKey ? "Chave gerada" : "Nova API key"}</DialogTitle>
           <DialogDescription>
@@ -105,6 +105,7 @@ function NewKeyDialog({ companies, onCreated }: { companies: Company[]; onCreate
             <div>
               <Label>Empresa</Label>
               <select
+                data-tour="api-key-company-select"
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={companyId}
                 onChange={(e) => setCompanyId(e.target.value)}
@@ -117,15 +118,15 @@ function NewKeyDialog({ companies, onCreated }: { companies: Company[]; onCreate
             </div>
             <div>
               <Label>Nome</Label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Site institucional" />
+              <Input data-tour="api-key-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Site institucional" />
             </div>
             <div>
               <Label>Descrição (opcional)</Label>
-              <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+              <Textarea data-tour="api-key-description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
             </div>
             <div>
               <Label>Escopos</Label>
-              <div className="space-y-2 mt-2">
+              <div className="space-y-2 mt-2" data-tour="api-key-scopes">
                 {ALL_SCOPES.map((s) => (
                   <div key={s.id} className="flex items-center gap-2">
                     <Checkbox
@@ -164,7 +165,7 @@ function NewKeyDialog({ companies, onCreated }: { companies: Company[]; onCreate
 
         <DialogFooter>
           {!generatedKey ? (
-            <Button onClick={submit} disabled={loading}>{loading ? "Gerando..." : "Gerar chave"}</Button>
+            <Button onClick={submit} disabled={loading} data-tour="api-key-submit">{loading ? "Gerando..." : "Gerar chave"}</Button>
           ) : (
             <Button onClick={() => setOpen(false)}>Concluído</Button>
           )}
@@ -219,7 +220,7 @@ function IntegrationsTab() {
   };
 
   return (
-    <div className="space-y-4">
+      <div className="space-y-4" data-tour="api-integrations-panel">
       <div className="flex justify-between items-center gap-3">
         <div>
           <h2 className="text-lg font-semibold">API keys</h2>
@@ -227,6 +228,7 @@ function IntegrationsTab() {
         </div>
         <div className="flex gap-2 items-center">
           <select
+            data-tour="api-integrations-company-filter"
             className="h-9 rounded-md border border-input bg-background px-2 text-sm"
             value={filterCompany}
             onChange={(e) => setFilterCompany(e.target.value)}
@@ -240,7 +242,7 @@ function IntegrationsTab() {
         </div>
       </div>
 
-      <Card>
+      <Card data-tour="api-integrations-table">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -279,9 +281,9 @@ function IntegrationsTab() {
                     <Badge variant={i.status === "active" ? "default" : "outline"}>{i.status === "active" ? "Ativa" : "Revogada"}</Badge>
                   </TableCell>
                   <TableCell className="text-right space-x-2">
-                    <Button variant="outline" size="sm" onClick={() => showLogs(i)}>Logs</Button>
+                    <Button variant="outline" size="sm" onClick={() => showLogs(i)} data-tour="api-integration-logs">Logs</Button>
                     {i.status === "active" && (
-                      <Button variant="ghost" size="icon" onClick={() => revoke(i.id)}><Trash2 className="w-4 h-4" /></Button>
+                       <Button variant="ghost" size="icon" onClick={() => revoke(i.id)} data-tour="api-integration-revoke"><Trash2 className="w-4 h-4" /></Button>
                     )}
                   </TableCell>
                 </TableRow>
@@ -292,7 +294,7 @@ function IntegrationsTab() {
       </Card>
 
       <Dialog open={!!logsFor} onOpenChange={(v) => !v && setLogsFor(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-w-3xl" data-tour="api-logs-dialog">
           <DialogHeader>
             <DialogTitle>Logs — {logsFor?.name}</DialogTitle>
             <DialogDescription>Últimas 100 chamadas.</DialogDescription>
@@ -412,7 +414,7 @@ function PublicIntakeTab() {
 
   return (
     <div className="space-y-4">
-      <Card>
+      <Card data-tour="api-public-endpoint-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5" />Captação pública via site</CardTitle>
           <CardDescription>
@@ -424,14 +426,14 @@ function PublicIntakeTab() {
           <div className="flex items-center gap-2">
             <Label className="w-32">URL do endpoint</Label>
             <Input readOnly value={INTAKE_URL} className="font-mono text-xs" />
-            <Button variant="outline" size="icon" onClick={() => copy(INTAKE_URL, "URL")}>
+             <Button variant="outline" size="icon" onClick={() => copy(INTAKE_URL, "URL")} data-tour="api-public-copy-url">
               <Copy className="w-4 h-4" />
             </Button>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card data-tour="api-public-intake-table">
         <CardContent className="p-0">
           <Table>
             <TableHeader>
@@ -454,16 +456,18 @@ function PublicIntakeTab() {
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Input
+                          data-tour="api-public-slug-input"
                           value={slugVal}
                           onChange={(e) => setEditing((p) => ({ ...p, [r.id]: e.target.value }))}
                           placeholder="ex.: minha-empresa"
                           className="font-mono text-xs max-w-xs"
                         />
-                        {dirty && <Button size="sm" onClick={() => saveSlug(r.id)}>Salvar</Button>}
+                        {dirty && <Button size="sm" onClick={() => saveSlug(r.id)} data-tour="api-public-save-slug">Salvar</Button>}
                       </div>
                     </TableCell>
                     <TableCell>
                       <Switch
+                        data-tour="api-public-intake-switch"
                         checked={r.public_intake_enabled}
                         onCheckedChange={(v) => toggle(r.id, v)}
                         disabled={!r.public_site_slug}
@@ -471,6 +475,7 @@ function PublicIntakeTab() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Button
+                        data-tour="api-public-copy-code"
                         variant="outline"
                         size="sm"
                         disabled={!r.public_site_slug}
@@ -502,13 +507,13 @@ export default function ApiDocs() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab} storageKey="super-admin-api-docs">
-        <TabsList>
-          <TabsTrigger value="docs">Documentação</TabsTrigger>
-          <TabsTrigger value="integrations">Integrações (B2B)</TabsTrigger>
-          <TabsTrigger value="public-intake">Captação pelo site</TabsTrigger>
+        <TabsList data-tour="api-tabs">
+          <TabsTrigger value="docs" data-tour="api-tab-docs">Documentação</TabsTrigger>
+          <TabsTrigger value="integrations" data-tour="api-tab-integrations">Integrações (B2B)</TabsTrigger>
+          <TabsTrigger value="public-intake" data-tour="api-tab-public-intake">Captação pelo site</TabsTrigger>
         </TabsList>
         <TabsContent value="docs" className="mt-4">
-          <Card>
+          <Card data-tour="api-openapi-card">
             <CardHeader>
               <CardTitle>Referência da API (OpenAPI 3.1)</CardTitle>
               <CardDescription>
