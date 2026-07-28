@@ -14,6 +14,9 @@ export type WalkthroughStep = {
   action: "none" | "click" | "navigate" | "wait";
   checkpoint: boolean;
   optional: boolean;
+  parent_step_id?: string | null;
+  is_substep?: boolean;
+  parent_title?: string | null;
 };
 
 export type WalkthroughScript = {
@@ -100,13 +103,39 @@ export const WalkthroughProvider = ({ children }: { children: React.ReactNode })
       const script = (scripts as WalkthroughScript[] | null)?.[0];
       if (!script) return;
 
-      const { data: steps } = await (supabase as any)
+      const { data: rawSteps } = await (supabase as any)
         .from("walkthrough_steps")
         .select("*")
         .eq("script_id", script.id)
         .order("order_index");
 
-      if (!steps?.length) return;
+      if (!rawSteps?.length) return;
+
+      // Flatten: for each parent (parent_step_id is null), append its substeps
+      const all = rawSteps as any[];
+      const parents = all.filter((s) => !s.parent_step_id).sort((a, b) => a.order_index - b.order_index);
+      const byParent = new Map<string, any[]>();
+      for (const s of all) {
+        if (s.parent_step_id) {
+          const arr = byParent.get(s.parent_step_id) ?? [];
+          arr.push(s);
+          byParent.set(s.parent_step_id, arr);
+        }
+      }
+      const steps: any[] = [];
+      for (const p of parents) {
+        steps.push({ ...p, is_substep: false, parent_title: null });
+        const subs = (byParent.get(p.id) ?? []).sort((a, b) => a.order_index - b.order_index);
+        for (const sub of subs) {
+          steps.push({
+            ...sub,
+            is_substep: true,
+            parent_title: p.title,
+            route: sub.route || p.route,
+          });
+        }
+      }
+
 
       let startIndex = 0;
       if (!opts?.preview) {

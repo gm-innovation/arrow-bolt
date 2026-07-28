@@ -151,18 +151,18 @@ const Companies = () => {
           </p>
         </div>
         <div className="flex gap-4">
-          <Button onClick={() => setNewDialogOpen(true)}>
+          <Button onClick={() => setNewDialogOpen(true)} data-tour="companies-new">
             <Plus className="mr-2 h-4 w-4" />
             Nova Empresa
           </Button>
-          <Button variant="outline" onClick={handleExport} disabled={filteredCompanies.length === 0}>
+          <Button variant="outline" onClick={handleExport} disabled={filteredCompanies.length === 0} data-tour="companies-export">
             <Download className="mr-2 h-4 w-4" />
             Exportar Lista
           </Button>
         </div>
       </div>
 
-      <div className="flex gap-4 items-end">
+      <div className="flex gap-4 items-end" data-tour="companies-filters">
         <div className="flex-1">
           <Input
             placeholder="Buscar por nome da empresa..."
@@ -208,7 +208,7 @@ const Companies = () => {
         )}
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg" data-tour="companies-table">
         <Table>
           <TableHeader>
             <TableRow>
@@ -256,7 +256,8 @@ const Companies = () => {
                   <TableCell>
                     {format(new Date(company.created_at), "dd/MM/yyyy")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-tour="companies-row-actions">
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">

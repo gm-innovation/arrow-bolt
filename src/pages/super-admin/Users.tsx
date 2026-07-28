@@ -127,16 +127,18 @@ const Users = () => {
             Gerencie todos os usuários do sistema
           </p>
         </div>
-        <div className="flex gap-4">
-          <NewUserDialog />
-          <Button variant="outline" onClick={handleExport}>
+        <div className="flex gap-4" data-tour="users-actions">
+          <div data-tour="users-new">
+            <NewUserDialog />
+          </div>
+          <Button variant="outline" onClick={handleExport} data-tour="users-export">
             <Download className="mr-2 h-4 w-4" />
             Exportar Lista
           </Button>
         </div>
       </div>
 
-      <div className="flex gap-4 items-end">
+      <div className="flex gap-4 items-end" data-tour="users-filters">
         <div className="flex-1">
           <Input
             placeholder="Buscar por nome do usuário..."
@@ -189,7 +191,7 @@ const Users = () => {
         )}
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg" data-tour="users-table">
         <Table>
           <TableHeader>
             <TableRow>
@@ -266,7 +268,8 @@ const Users = () => {
                       {user.active ? "Ativo" : "Inativo"}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-tour="users-row-actions">
+
                     {format(new Date(user.created_at), "dd/MM/yyyy")}
                   </TableCell>
                   <TableCell>

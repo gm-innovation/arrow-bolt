@@ -216,6 +216,7 @@ export const WalkthroughOverlay = () => {
           <div className="flex-1 min-w-0">
             <p className="text-xs text-muted-foreground truncate">
               {agentName} • {script?.title}
+              {step.is_substep && step.parent_title ? ` › ${step.parent_title}` : ""}
             </p>
             <h4 className="text-base font-semibold leading-tight">{step.title}</h4>
           </div>
