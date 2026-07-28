@@ -387,7 +387,7 @@ function OSTBranch({ node, all, onEdit, depth }: { node: OSTNode; all: OSTNode[]
 
 function MetricDialog({ value, onClose, nsm }: { value: Partial<NorthStarMetric> | null; onClose: () => void; nsm: ReturnType<typeof useNorthStarMetrics> }) {
   const [form, setForm] = useState<Partial<NorthStarMetric>>({});
-  useMemo(() => setForm(value ?? {}), [value]);
+  useEffect(() => { setForm(value ?? {}); }, [value]);
   if (!value) return null;
   return (
     <Dialog open onOpenChange={onClose}>
@@ -414,7 +414,7 @@ function MetricDialog({ value, onClose, nsm }: { value: Partial<NorthStarMetric>
 
 function OSTNodeDialog({ value, onClose, ost, metrics }: { value: Partial<OSTNode> | null; onClose: () => void; ost: ReturnType<typeof useOSTNodes>; metrics: NorthStarMetric[] }) {
   const [form, setForm] = useState<Partial<OSTNode>>({});
-  useMemo(() => setForm(value ?? {}), [value]);
+  useEffect(() => { setForm(value ?? {}); }, [value]);
   if (!value) return null;
   const possibleParents = (ost.data ?? []).filter((n) => n.id !== value.id);
   return (
@@ -675,7 +675,7 @@ function ImpactTab() {
 
 function ChangelogDialog({ value, onClose, cl, metrics }: { value: Partial<ChangelogEntry> | null; onClose: () => void; cl: ReturnType<typeof useChangelog>; metrics: NorthStarMetric[] }) {
   const [form, setForm] = useState<Partial<ChangelogEntry>>({});
-  useMemo(() => setForm(value ?? {}), [value]);
+  useEffect(() => { setForm(value ?? {}); }, [value]);
   if (!value) return null;
   return (
     <Dialog open onOpenChange={onClose}>
