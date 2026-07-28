@@ -46,7 +46,7 @@ export default function PMDashboard() {
           Dashboard de PM
         </h1>
         <p className="text-muted-foreground">
-          Inteligência de produto, priorização e impacto — powered by IA
+          Inteligência de produto do Arrow: priorização, descoberta e impacto — powered by Marina
         </p>
       </div>
 
@@ -203,7 +203,7 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
               <Label>Módulo impactado</Label>
               <Input value={ticket.impacted_module ?? ticket.suggested_area ?? ""}
                 onChange={(e) => update.mutate({ id: ticket.id, patch: { impacted_module: e.target.value } })}
-                placeholder="ex.: RH, Comercial, SGQ..." />
+                placeholder="ex.: OS, RH/DP, Comercial/CRM, SGQ, Financeiro, Suprimentos, Corporativo, Marina (IA)" />
             </div>
             <div>
               <Label>Horizonte Roadmap</Label>
@@ -327,7 +327,7 @@ function StrategyTab() {
               ))}
               {(nsm.data ?? []).length === 0 && !nsm.isLoading && (
                 <div className="col-span-full text-center text-muted-foreground py-8">
-                  Nenhuma métrica cadastrada. Ex: "Tempo médio de acesso por tripulante".
+                  Nenhuma métrica cadastrada. Ex.: "OS concluídas no prazo", "Tempo médio de fechamento de OS", "Aderência documental SGQ", "Conformidade ASO ativa".
                 </div>
               )}
             </div>
@@ -356,7 +356,7 @@ function StrategyTab() {
 
 function OSTTree({ nodes, onEdit }: { nodes: OSTNode[]; onEdit: (n: OSTNode) => void }) {
   const roots = nodes.filter((n) => !n.parent_id);
-  if (nodes.length === 0) return <div className="text-center text-muted-foreground py-8">Árvore vazia. Comece pelo objetivo (Outcome).</div>;
+  if (nodes.length === 0) return <div className="text-center text-muted-foreground py-8">Árvore vazia. Comece por um Outcome do Arrow (ex.: "Aumentar OS entregues no prazo" ou "Reduzir retrabalho documental no SGQ").</div>;
   return <ul className="space-y-2">{roots.map((r) => <OSTBranch key={r.id} node={r} all={nodes} onEdit={onEdit} depth={0} />)}</ul>;
 }
 
@@ -397,11 +397,11 @@ function MetricDialog({ value, onClose, nsm }: { value: Partial<NorthStarMetric>
           <div><Label>Nome</Label><Input value={form.name ?? ""} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
           <div><Label>Descrição</Label><Textarea value={form.description ?? ""} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
           <div className="grid grid-cols-3 gap-2">
-            <div><Label>Unidade</Label><Input value={form.unit ?? ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="min, %, ..." /></div>
+            <div><Label>Unidade</Label><Input value={form.unit ?? ""} onChange={(e) => setForm({ ...form, unit: e.target.value })} placeholder="%, dias, OS/mês, R$, ..." /></div>
             <div><Label>Atual</Label><Input type="number" value={form.current_value ?? ""} onChange={(e) => setForm({ ...form, current_value: e.target.value === "" ? null : Number(e.target.value) })} /></div>
             <div><Label>Meta</Label><Input type="number" value={form.target ?? ""} onChange={(e) => setForm({ ...form, target: e.target.value === "" ? null : Number(e.target.value) })} /></div>
           </div>
-          <div><Label>Fórmula/Notas</Label><Textarea value={form.formula_notes ?? ""} onChange={(e) => setForm({ ...form, formula_notes: e.target.value })} /></div>
+          <div><Label>Fórmula/Notas</Label><Textarea value={form.formula_notes ?? ""} onChange={(e) => setForm({ ...form, formula_notes: e.target.value })} placeholder='ex.: COUNT(service_orders WHERE completed_date <= due_date) / COUNT total no período' /></div>
         </div>
         <DialogFooter className="gap-2">
           {value.id && <Button variant="destructive" onClick={() => { nsm.remove.mutate(value.id!); onClose(); }}><Trash2 className="h-4 w-4 mr-1" /> Excluir</Button>}
@@ -661,7 +661,7 @@ function ImpactTab() {
                 </button>
               ))}
               {(cl.data ?? []).length === 0 && !cl.isLoading && (
-                <div className="text-center text-muted-foreground py-8">Nenhuma entrada. Registre a primeira implementação!</div>
+                <div className="text-center text-muted-foreground py-8">Nenhuma entrada. Registre a primeira release do Arrow com o impacto observado nas métricas.</div>
               )}
             </div>
           )}
