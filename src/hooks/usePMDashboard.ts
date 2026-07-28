@@ -90,7 +90,7 @@ export const useRegisterCodeChange = () => {
 
       const { error } = await supabase
         .from("pm_activity_log" as any)
-        .upsert({
+        .insert({
           occurred_at: occurredAt,
           source: "ticket",
           category: ticket.category,
@@ -98,7 +98,7 @@ export const useRegisterCodeChange = () => {
           title: `${titlePrefix} — Ticket #${ticket.ticket_number}`,
           description: `${ticket.title}\n\nCódigo alterado e aguardando validação do usuário.`,
           ref_table: "support_tickets_code_change",
-          ref_id: ticket.id,
+          ref_id: `${ticket.id}:${occurredAt}`,
           author_id: authData.user?.id ?? null,
           metadata: {
             ticket_id: ticket.id,
@@ -111,7 +111,7 @@ export const useRegisterCodeChange = () => {
             priority: ticket.priority,
             horizon: ticket.roadmap_horizon,
           },
-        } as any, { onConflict: "source,ref_table,ref_id" });
+        } as any);
 
       if (error) throw error;
     },
