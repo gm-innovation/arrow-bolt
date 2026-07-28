@@ -450,6 +450,140 @@ function OSTBranch({ node, all, onEdit, depth }: { node: OSTNode; all: OSTNode[]
   );
 }
 
+function OSTSeedDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { preview, apply } = useOSTSeed();
+  const [plan, setPlan] = useState<OSTSeedPlan | null>(null);
+  const [counts, setCounts] = useState<any>(null);
+
+  useEffect(() => {
+    if (open) {
+      setPlan(null);
+      setCounts(null);
+      preview.mutate(undefined, {
+        onSuccess: (d) => {
+          setPlan(d.plan);
+          setCounts(d.counts);
+        },
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  const handleApply = () => {
+    apply.mutate(undefined, {
+      onSuccess: () => onClose(),
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5" /> Sugerir OST a partir de sinais
+          </DialogTitle>
+          <DialogDescription>
+            Gera uma árvore inicial a partir das North Star Metrics e dos tickets em aberto. Nada é criado até você confirmar.
+          </DialogDescription>
+        </DialogHeader>
+
+        {preview.isPending || !plan ? (
+          <div className="py-8 text-center text-muted-foreground">
+            <RefreshCw className="h-5 w-5 animate-spin inline mr-2" />
+            Analisando sinais...
+          </div>
+        ) : (
+          <>
+            {counts && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+                <div className="border rounded p-2">
+                  <div className="text-muted-foreground">Outcomes</div>
+                  <div className="font-semibold">
+                    +{counts.outcomes_new} novos <span className="text-muted-foreground">({counts.outcomes_existing} já existem)</span>
+                  </div>
+                </div>
+                <div className="border rounded p-2">
+                  <div className="text-muted-foreground">Opportunities</div>
+                  <div className="font-semibold">
+                    +{counts.opportunities_new} novos <span className="text-muted-foreground">({counts.opportunities_existing} já existem)</span>
+                  </div>
+                </div>
+                <div className="border rounded p-2">
+                  <div className="text-muted-foreground">Solutions</div>
+                  <div className="font-semibold">
+                    +{counts.solutions_new} novos <span className="text-muted-foreground">({counts.solutions_existing} já existem)</span>
+                  </div>
+                </div>
+                <div className="border rounded p-2">
+                  <div className="text-muted-foreground">Tickets analisados</div>
+                  <div className="font-semibold">{counts.tickets_total}</div>
+                </div>
+              </div>
+            )}
+
+            <ScrollArea className="max-h-[50vh] pr-3">
+              <div className="space-y-4 text-sm">
+                <section>
+                  <div className="font-medium mb-1 flex items-center gap-1"><Target className="h-4 w-4" /> Outcomes</div>
+                  <ul className="space-y-1">
+                    {plan.outcomes.map((o, i) => (
+                      <li key={i} className="border rounded p-2 flex items-start gap-2">
+                        {o.existing_id ? <Badge variant="secondary" className="text-[10px]">existe</Badge> : <Badge className="text-[10px]">novo</Badge>}
+                        <span className="flex-1"><span className="font-medium">{o.title}</span>{o.description && <span className="text-muted-foreground"> — {o.description}</span>}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+
+                <section>
+                  <div className="font-medium mb-1 flex items-center gap-1"><Sparkles className="h-4 w-4" /> Opportunities (por módulo)</div>
+                  <ul className="space-y-1">
+                    {plan.opportunities.map((o, i) => (
+                      <li key={i} className="border rounded p-2 flex items-start gap-2">
+                        {o.existing_id ? <Badge variant="secondary" className="text-[10px]">existe</Badge> : <Badge className="text-[10px]">novo</Badge>}
+                        <span className="flex-1"><span className="font-medium">{o.title}</span> <span className="text-muted-foreground">— {o.description}</span></span>
+                      </li>
+                    ))}
+                    {plan.opportunities.length === 0 && (
+                      <li className="text-muted-foreground">Nenhum ticket em aberto para agrupar por módulo.</li>
+                    )}
+                  </ul>
+                </section>
+
+                <section>
+                  <div className="font-medium mb-1 flex items-center gap-1"><Zap className="h-4 w-4" /> Solutions (a partir de feature requests)</div>
+                  <ul className="space-y-1">
+                    {plan.solutions.map((s, i) => (
+                      <li key={i} className="border rounded p-2 flex items-start gap-2">
+                        {s.existing_id ? <Badge variant="secondary" className="text-[10px]">existe</Badge> : <Badge className="text-[10px]">novo</Badge>}
+                        <span className="flex-1">
+                          <span className="font-medium">{s.title}</span>
+                          <span className="text-muted-foreground"> → {s.parent_opportunity_title}</span>
+                        </span>
+                      </li>
+                    ))}
+                    {plan.solutions.length === 0 && (
+                      <li className="text-muted-foreground">Nenhuma feature request aberta.</li>
+                    )}
+                  </ul>
+                </section>
+              </div>
+            </ScrollArea>
+          </>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={apply.isPending}>Cancelar</Button>
+          <Button onClick={handleApply} disabled={!plan || apply.isPending}>
+            {apply.isPending ? <><RefreshCw className="h-4 w-4 animate-spin mr-1" /> Aplicando...</> : "Aplicar sugestão"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+
 function MetricDialog({ value, onClose, nsm }: { value: Partial<NorthStarMetric> | null; onClose: () => void; nsm: ReturnType<typeof useNorthStarMetrics> }) {
   const [form, setForm] = useState<Partial<NorthStarMetric>>({});
   useEffect(() => { setForm(value ?? {}); }, [value]);
