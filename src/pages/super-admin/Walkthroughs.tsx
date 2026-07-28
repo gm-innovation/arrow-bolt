@@ -275,9 +275,11 @@ export default function Walkthroughs() {
                 </Button>
               </div>
 
-              <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-                {steps.map((step) => (
-                  <div key={step.id} className="border rounded-md p-3 flex items-start gap-3">
+              {(() => {
+                const parents = steps.filter((s: any) => !s.parent_step_id).sort((a: any, b: any) => a.order_index - b.order_index);
+                const subsOf = (pid: string) => steps.filter((s: any) => s.parent_step_id === pid).sort((a: any, b: any) => a.order_index - b.order_index);
+                const renderRow = (step: any, isSub: boolean) => (
+                  <div key={step.id} className={`border rounded-md p-3 flex items-start gap-3 ${isSub ? "ml-8 bg-muted/30" : ""}`}>
                     <div className="flex flex-col gap-1">
                       <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => moveStep(step, -1)}>
                         <ChevronUp className="h-3 w-3" />
@@ -289,17 +291,36 @@ export default function Walkthroughs() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
+                        {isSub && <Badge variant="outline" className="text-[10px]">sub-passo</Badge>}
                         <span className="font-medium text-sm">{step.title}</span>
                         {step.checkpoint && <Badge variant="secondary" className="text-[10px]">checkpoint</Badge>}
                         {step.optional && <Badge variant="outline" className="text-[10px]">opcional</Badge>}
                         <Badge variant="outline" className="text-[10px] font-mono">{step.route}</Badge>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">{step.body}</p>
+                      {step.intro && <p className="text-xs text-muted-foreground mt-1">{step.intro}</p>}
                       {step.selector && (
                         <p className="text-[10px] font-mono text-muted-foreground mt-1">selector: {step.selector}</p>
                       )}
                     </div>
                     <div className="flex flex-col gap-1">
+                      {!isSub && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-7 w-7"
+                          title="Adicionar sub-passo"
+                          onClick={() => {
+                            const currentSubs = subsOf(step.id);
+                            const nextIdx = (currentSubs[currentSubs.length - 1]?.order_index ?? -1) + 1;
+                            setEditingStep({
+                              ...emptyStep(selectedScript.id, nextIdx, step.id),
+                              route: step.route,
+                            });
+                          }}
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setEditingStep(step)}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
@@ -308,9 +329,19 @@ export default function Walkthroughs() {
                       </Button>
                     </div>
                   </div>
-                ))}
-                {!steps.length && <p className="text-sm text-muted-foreground">Nenhum passo cadastrado.</p>}
-              </div>
+                );
+                return (
+                  <div className="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                    {parents.map((p: any) => (
+                      <div key={p.id} className="space-y-2">
+                        {renderRow(p, false)}
+                        {subsOf(p.id).map((sub: any) => renderRow(sub, true))}
+                      </div>
+                    ))}
+                    {!steps.length && <p className="text-sm text-muted-foreground">Nenhum passo cadastrado.</p>}
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         )}
