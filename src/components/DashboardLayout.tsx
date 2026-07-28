@@ -72,6 +72,7 @@ import { useWhatsAppAutoNotifier } from "@/hooks/useWhatsAppAutoNotifier";
 import { AIAssistant } from "@/components/ai/AIAssistant";
 import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useWalkthroughAutoStart } from "@/hooks/useWalkthroughAutoStart";
 
 const ContentSkeleton = () => (
   <div className="space-y-6">
