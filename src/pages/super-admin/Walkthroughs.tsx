@@ -29,10 +29,39 @@ const emptyStep = (script_id: string, order_index: number): Step => ({
   selector: null,
   title: "",
   body: "",
+  intro: "",
+  highlights: [],
+  how_to_use: [],
+  expected_outcome: "",
+  tips: [],
   action: "none",
   checkpoint: false,
   optional: false,
 });
+
+const parseLines = (s: string) =>
+  s
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => {
+      const idx = l.indexOf(":");
+      if (idx > 0 && idx < 60) {
+        return { label: l.slice(0, idx).trim(), description: l.slice(idx + 1).trim() };
+      }
+      return { description: l };
+    });
+
+const stringifyList = (v: any): string => {
+  if (!Array.isArray(v)) return "";
+  return v
+    .map((h) => {
+      if (typeof h === "string") return h;
+      if (h?.label && h?.description) return `${h.label}: ${h.description}`;
+      return h?.description || h?.label || "";
+    })
+    .join("\n");
+};
 
 export default function Walkthroughs() {
   const qc = useQueryClient();
