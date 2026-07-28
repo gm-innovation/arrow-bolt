@@ -406,19 +406,28 @@ export const useChangelog = () => {
 };
 
 // ---------- AI Performance ----------
-export const useAIPerformance = () => {
-  return useQuery({
-    queryKey: ["pm-ai-perf"],
-    queryFn: async () => {
-      const since = new Date();
-      since.setDate(since.getDate() - 30);
-      const sinceIso = since.toISOString();
+export type AIPerfWindow = "30d" | "90d" | "all";
 
-      const [feedback, messages, actions, agents] = await Promise.all([
-        supabase.from("ai_feedback").select("rating, created_at").gte("created_at", sinceIso),
-        supabase.from("ai_messages").select("id, created_at").gte("created_at", sinceIso),
-        supabase.from("ai_assistant_actions").select("id, status, created_at, agent_id").gte("created_at", sinceIso),
+export const useAIPerformance = (window: AIPerfWindow = "30d") => {
+  return useQuery({
+    queryKey: ["pm-ai-perf", window],
+    queryFn: async () => {
+      let sinceIso: string | null = null;
+      if (window !== "all") {
+        const days = window === "30d" ? 30 : 90;
+        const d = new Date();
+        d.setDate(d.getDate() - days);
+        sinceIso = d.toISOString();
+      }
+
+      const withRange = (q: any) => (sinceIso ? q.gte("created_at", sinceIso) : q);
+
+      const [feedback, messages, actions, agents, convs] = await Promise.all([
+        withRange(supabase.from("ai_feedback").select("rating, agent_id, created_at")),
+        withRange(supabase.from("ai_messages").select("id, created_at, conversation_id, role")),
+        withRange(supabase.from("ai_assistant_actions").select("id, success, created_at, agent_id, tool_name")),
         supabase.from("ai_agents").select("id, name, slug"),
+        withRange(supabase.from("ai_conversations").select("id, user_id, agent_id, created_at")),
       ]);
 
       const fb = feedback.data ?? [];
@@ -426,19 +435,90 @@ export const useAIPerformance = () => {
       const negatives = fb.filter((f: any) => f.rating < 0).length;
       const total = fb.length;
 
-      const acts = actions.data ?? [];
-      const executed = acts.filter((a: any) => a.status === "executed" || a.status === "success").length;
-      const failed = acts.filter((a: any) => a.status === "failed" || a.status === "error").length;
+      const acts = (actions.data ?? []) as any[];
+      const executed = acts.filter((a) => a.success === true).length;
+      const failed = acts.filter((a) => a.success === false).length;
+      const totalActions = acts.length;
+
+      const agentsList = (agents.data ?? []) as any[];
+      const agentName = (id: string | null) => agentsList.find((a) => a.id === id)?.name ?? "—";
+
+      // messages by day (last N days of the window; for "all" use last 60)
+      const msgs = (messages.data ?? []) as any[];
+      const dayKey = (iso: string) => iso.slice(0, 10);
+      const daysMap = new Map<string, number>();
+      msgs.forEach((m) => daysMap.set(dayKey(m.created_at), (daysMap.get(dayKey(m.created_at)) ?? 0) + 1));
+      const messagesByDay = Array.from(daysMap.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([date, count]) => ({ date, count }));
+
+      // top tools
+      const toolMap = new Map<string, { total: number; ok: number }>();
+      acts.forEach((a) => {
+        const key = a.tool_name ?? "—";
+        const t = toolMap.get(key) ?? { total: 0, ok: 0 };
+        t.total += 1;
+        if (a.success) t.ok += 1;
+        toolMap.set(key, t);
+      });
+      const topTools = Array.from(toolMap.entries())
+        .map(([tool_name, v]) => ({ tool_name, total: v.total, ok: v.ok, rate: v.total ? (v.ok / v.total) * 100 : 0 }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 8);
+
+      // messages by agent (via conversation.agent_id)
+      const convsList = (convs.data ?? []) as any[];
+      const convAgent = new Map<string, string | null>();
+      convsList.forEach((c) => convAgent.set(c.id, c.agent_id ?? null));
+      const agentMsgMap = new Map<string, number>();
+      msgs.forEach((m) => {
+        const aid = convAgent.get(m.conversation_id) ?? null;
+        const key = aid ?? "unknown";
+        agentMsgMap.set(key, (agentMsgMap.get(key) ?? 0) + 1);
+      });
+      const messagesByAgent = Array.from(agentMsgMap.entries())
+        .map(([agent_id, count]) => ({ agent_id, name: agent_id === "unknown" ? "Sem agente" : agentName(agent_id), count }))
+        .sort((a, b) => b.count - a.count);
+
+      const uniqueUsers = new Set(convsList.map((c) => c.user_id).filter(Boolean)).size;
 
       return {
-        totalMessages: messages.data?.length ?? 0,
+        totalMessages: msgs.length,
+        totalConversations: convsList.length,
+        uniqueUsers,
         totalFeedback: total,
         resolutionRate: total > 0 ? (positives / total) * 100 : 0,
+        positiveFeedback: positives,
         negativeFeedback: negatives,
         actionsExecuted: executed,
         actionsFailed: failed,
-        agents: agents.data ?? [],
+        totalActions,
+        actionSuccessRate: totalActions > 0 ? (executed / totalActions) * 100 : 0,
+        agents: agentsList,
+        messagesByDay,
+        topTools,
+        messagesByAgent,
       };
     },
+  });
+};
+
+// ---------- Changelog seed ----------
+export const useSeedChangelog = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("pm-changelog-seed", { body: {} });
+      if (error) throw error;
+      return data as { created: number; skipped: number; total_days: number };
+    },
+    onSuccess: (d) => {
+      qc.invalidateQueries({ queryKey: ["pm-changelog"] });
+      toast({
+        title: "Changelog sincronizado",
+        description: `${d.created} entrada(s) criada(s), ${d.skipped} já existiam.`,
+      });
+    },
+    onError: (e: any) => toast({ title: "Erro ao sincronizar", description: e.message, variant: "destructive" }),
   });
 };
