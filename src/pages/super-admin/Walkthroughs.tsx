@@ -382,7 +382,7 @@ export default function Walkthroughs() {
 
       {/* Step editor */}
       <Dialog open={!!editingStep} onOpenChange={(open) => !open && setEditingStep(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingStep?.id ? "Editar passo" : "Novo passo"}</DialogTitle>
             <DialogDescription>Conteúdo apresentado pela Marina.</DialogDescription>
@@ -404,13 +404,49 @@ export default function Walkthroughs() {
                 <Input value={editingStep.title} onChange={(e) => setEditingStep({ ...editingStep, title: e.target.value })} />
               </div>
               <div>
-                <Label>Mensagem</Label>
-                <Textarea rows={5} value={editingStep.body} onChange={(e) => setEditingStep({ ...editingStep, body: e.target.value })} />
+                <Label>Introdução (1 frase de contexto)</Label>
+                <Textarea rows={2} value={editingStep.intro ?? ""} onChange={(e) => setEditingStep({ ...editingStep, intro: e.target.value })} placeholder="Aqui você faz X..." />
+              </div>
+              <div>
+                <Label>Destaques da tela (um por linha — use "Rótulo: descrição")</Label>
+                <Textarea
+                  rows={4}
+                  value={stringifyList(editingStep.highlights)}
+                  onChange={(e) => setEditingStep({ ...editingStep, highlights: parseLines(e.target.value) })}
+                  placeholder={`Botão Nova Empresa: cria uma nova empresa cliente\nFiltros: refinam a lista por plano e status`}
+                />
+              </div>
+              <div>
+                <Label>Como usar (um passo por linha)</Label>
+                <Textarea
+                  rows={4}
+                  value={stringifyList(editingStep.how_to_use)}
+                  onChange={(e) => setEditingStep({ ...editingStep, how_to_use: parseLines(e.target.value) })}
+                  placeholder={`Clique em "Nova Empresa"\nPreencha CNPJ e nome fantasia\nEscolha o plano contratado`}
+                />
+              </div>
+              <div>
+                <Label>O que esperar</Label>
+                <Textarea rows={2} value={editingStep.expected_outcome ?? ""} onChange={(e) => setEditingStep({ ...editingStep, expected_outcome: e.target.value })} placeholder="Depois de salvar, a empresa aparece na lista com status Pendente." />
+              </div>
+              <div>
+                <Label>Dicas (uma por linha)</Label>
+                <Textarea
+                  rows={3}
+                  value={stringifyList(editingStep.tips)}
+                  onChange={(e) => setEditingStep({ ...editingStep, tips: parseLines(e.target.value) })}
+                  placeholder={`Use o filtro "Todos os planos" para segmentar\nAtalho Cmd+K abre a busca global`}
+                />
+              </div>
+              <div>
+                <Label>Nota interna (opcional — legado)</Label>
+                <Textarea rows={2} value={editingStep.body} onChange={(e) => setEditingStep({ ...editingStep, body: e.target.value })} />
               </div>
               <div>
                 <Label>Seletor CSS (opcional)</Label>
                 <Input placeholder='ex: [data-tour="my-target"]' value={editingStep.selector ?? ""} onChange={(e) => setEditingStep({ ...editingStep, selector: e.target.value })} />
               </div>
+
               <div className="grid grid-cols-3 gap-2 items-center">
                 <div>
                   <Label>Ação</Label>
