@@ -257,7 +257,7 @@ export function TrainingTab({ agent }: Props) {
     mutationFn: async () => {
       const { data, error } = await supabase.from("ai_knowledge_sources" as any).insert({
         agent_id: agent.id,
-        company_id: agent.company_id,
+        company_id: resolvedCompanyId(),
         source_type: "manual",
         title: title || "Texto manual",
         raw_text: manualText,
