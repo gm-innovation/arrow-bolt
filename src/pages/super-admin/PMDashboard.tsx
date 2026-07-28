@@ -400,7 +400,12 @@ function StrategyTab() {
             <CardTitle className="flex items-center gap-2"><GitBranch className="h-5 w-5" /> Opportunity Solution Tree</CardTitle>
             <CardDescription>Conecte objetivos, dores dos usuários e soluções</CardDescription>
           </div>
-          <Button size="sm" onClick={() => setOpenNode({ node_type: "outcome" })}><Plus className="h-4 w-4 mr-1" /> Novo nó</Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => setSeedOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-1" /> Sugerir a partir de sinais
+            </Button>
+            <Button size="sm" onClick={() => setOpenNode({ node_type: "outcome" })}><Plus className="h-4 w-4 mr-1" /> Novo nó</Button>
+          </div>
         </CardHeader>
         <CardContent>
           {ost.isLoading ? <Skeleton className="h-40 w-full" /> : <OSTTree nodes={ost.data ?? []} onEdit={setOpenNode} />}
@@ -409,6 +414,7 @@ function StrategyTab() {
 
       <MetricDialog value={openMetric} onClose={() => setOpenMetric(null)} nsm={nsm} />
       <OSTNodeDialog value={openNode} onClose={() => setOpenNode(null)} ost={ost} metrics={nsm.data ?? []} />
+      <OSTSeedDialog open={seedOpen} onClose={() => setSeedOpen(false)} />
     </>
   );
 }
