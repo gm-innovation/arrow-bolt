@@ -661,7 +661,7 @@ function ImpactTab() {
                 </button>
               ))}
               {(cl.data ?? []).length === 0 && !cl.isLoading && (
-                <div className="text-center text-muted-foreground py-8">Nenhuma entrada. Registre a primeira implementação!</div>
+                <div className="text-center text-muted-foreground py-8">Nenhuma entrada. Registre a primeira release do Arrow com o impacto observado nas métricas.</div>
               )}
             </div>
           )}
