@@ -522,6 +522,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       return (
         <Button
           key={entry.path}
+          data-tour={`nav:${entry.path}`}
           variant="ghost"
           className={cn(
             "w-full transition-all duration-200",
