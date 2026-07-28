@@ -507,7 +507,7 @@ function PriorityTab() {
   );
   const unscored = tickets.filter((t) => t.rice_score == null);
 
-  const byHorizon = (h: string) => tickets.filter((t) => t.roadmap_horizon === h);
+  
 
   const isQuickWin = (t: PMTicket) => (t.impact ?? 0) >= 4 && (t.effort ?? 5) <= 2;
 
