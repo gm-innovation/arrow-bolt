@@ -195,6 +195,20 @@ export function TrainingTab({ agent }: Props) {
   const [exScope, setExScope] = useState<ScopeValue>({ roles: [], modules: [] });
   const [filter, setFilter] = useState<string>("all");
 
+  // company_id do usuário logado — usado quando o agente é global (company_id null)
+  const myCompany = useQuery({
+    queryKey: ["my-company-id"],
+    queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id;
+      if (!uid) return null;
+      const { data } = await supabase.from("profiles").select("company_id").eq("id", uid).maybeSingle();
+      return (data as any)?.company_id ?? null;
+    },
+  });
+  const resolvedCompanyId = () => agent.company_id ?? myCompany.data ?? null;
+
+
   // ===== Sources =====
   const sources = useQuery({
     queryKey: ["ai-knowledge-sources", agent.id],
