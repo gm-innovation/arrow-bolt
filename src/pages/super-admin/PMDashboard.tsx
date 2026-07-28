@@ -358,21 +358,31 @@ function StrategyTab() {
         <CardContent>
           {nsm.isLoading ? <Skeleton className="h-24 w-full" /> : (
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {(nsm.data ?? []).map((m) => (
+              {(nsm.data ?? []).map((m) => {
+                const liveVal = m.metric_key && liveTickets.data ? liveTickets.data[m.metric_key] : undefined;
+                const displayVal = liveVal !== undefined ? liveVal : m.current_value;
+                const isLive = liveVal !== undefined;
+                return (
                 <button key={m.id} onClick={() => setOpenMetric(m)} className="text-left p-4 border rounded-lg hover:bg-muted/40 transition">
                   <div className="flex items-center gap-2">
                     <div className="text-sm text-muted-foreground flex-1">{m.name}</div>
-                    {m.metric_key && <Badge variant="outline" className="text-[10px]">auto</Badge>}
+                    {isLive ? (
+                      <Badge variant="outline" className="text-[10px] border-emerald-400 text-emerald-700">live</Badge>
+                    ) : m.metric_key && (
+                      <Badge variant="outline" className="text-[10px]">auto</Badge>
+                    )}
                   </div>
                   <div className="text-2xl font-bold mt-1">
-                    {m.current_value ?? "—"}<span className="text-sm text-muted-foreground ml-1">{m.unit}</span>
+                    {displayVal ?? "—"}<span className="text-sm text-muted-foreground ml-1">{m.unit}</span>
                   </div>
                   {m.target != null && (
                     <div className="text-xs text-muted-foreground mt-1">Meta: {m.target} {m.unit}</div>
                   )}
                   {m.description && <div className="text-xs mt-2 line-clamp-2">{m.description}</div>}
                 </button>
-              ))}
+                );
+              })}
+
               {(nsm.data ?? []).length === 0 && !nsm.isLoading && (
                 <div className="col-span-full text-center text-muted-foreground py-8">
                   Nenhuma métrica cadastrada. Ex.: "Usuários Ativos Semanais (WAU)", "Stickiness (WAU/MAU)", "Bugs reportados (7d)", "Adoção do módulo SGQ".
