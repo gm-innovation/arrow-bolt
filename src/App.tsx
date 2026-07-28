@@ -260,7 +260,9 @@ const App = () => {
             <Route path="*" element={
               <AuthProvider>
                 <SidebarProvider>
-                  <ErrorBoundary fallback={<ErrorFallback />}>
+                  <WalkthroughProvider>
+                    <WalkthroughOverlay />
+                    <ErrorBoundary fallback={<ErrorFallback />}>
                     <Routes>
                       {/* Auth routes - keep Suspense with spinner */}
                       <Route path="/" element={<AuthLanding />} />
