@@ -51,6 +51,12 @@ const GROUPS: Group[] = [
   { area: "Corporativo", items: [
     { table: "corp_requests", label: "Solicitações internas" },
   ]},
+  { area: "PM / Roadmap (Super Admin)", items: [
+    { table: "roadmap_items", label: "Itens do Roadmap (support_tickets)" },
+    { table: "pm_changelog", label: "Changelog / versões" },
+    { table: "pm_north_star_metrics", label: "North Star Metrics" },
+    { table: "pm_ost_nodes", label: "Nós de OST" },
+  ]},
 ];
 
 const ALL_TABLES = GROUPS.flatMap(g => g.items.map(i => i.table));
