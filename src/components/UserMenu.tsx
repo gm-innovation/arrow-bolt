@@ -1,4 +1,4 @@
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User, Settings, Compass } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
+import { useWalkthrough } from "@/contexts/WalkthroughContext";
 
 interface UserMenuProps {
   userType: string;
