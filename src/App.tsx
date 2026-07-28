@@ -65,6 +65,7 @@ const SuperAdminApiDocs = lazy(() => import("./pages/super-admin/ApiDocs"));
 const AIManagement = lazy(() => import("./pages/super-admin/AIManagement"));
 const SupportInbox = lazy(() => import("./pages/super-admin/SupportInbox"));
 const PMDashboard = lazy(() => import("./pages/super-admin/PMDashboard"));
+const Walkthroughs = lazy(() => import("./pages/super-admin/Walkthroughs"));
 const MyTickets = lazy(() => import("./pages/account/MyTickets"));
 
 const TechDashboard = lazy(() => import("./pages/tech/Dashboard"));
