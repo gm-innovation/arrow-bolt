@@ -525,6 +525,7 @@ const App = () => {
                 </Routes>
               </ErrorBoundary>
               <OfflineIndicator />
+                  </WalkthroughProvider>
             </SidebarProvider>
           </AuthProvider>
             } />
