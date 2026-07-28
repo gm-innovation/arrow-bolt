@@ -46,7 +46,7 @@ export default function PMDashboard() {
           Dashboard de PM
         </h1>
         <p className="text-muted-foreground">
-          Inteligência de produto, priorização e impacto — powered by IA
+          Inteligência de produto do Arrow: priorização, descoberta e impacto — powered by Marina
         </p>
       </div>
 
