@@ -56,6 +56,7 @@ export const WalkthroughOverlay = () => {
   const [agent, setAgent] = useState<{ name?: string; avatar_url?: string } | null>(null);
   const bubbleRef = useRef<HTMLDivElement | null>(null);
   const [bubbleH, setBubbleH] = useState(320);
+  const lastClickedStepRef = useRef<string | null>(null);
   const prevStepRef = useRef<any>(null);
 
   useEffect(() => {
@@ -78,7 +79,7 @@ export const WalkthroughOverlay = () => {
     const previous = prevStepRef.current;
     if (previous && previous !== step && previous.close_on_exit) {
       // Try Escape first; fall back to clicking [data-radix-focus-guard] siblings' close
-      document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbleable: true } as any));
+      document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true } as any));
       const btn = document.querySelector<HTMLElement>('[role="dialog"] [aria-label="Close"], [role="dialog"] [data-dismiss]');
       btn?.click();
     }
@@ -103,7 +104,8 @@ export const WalkthroughOverlay = () => {
 
     const run = async () => {
       // If action is auto_click, click the primary selector, then wait for post_action_selector
-      if (step.action === "auto_click" && step.selector) {
+      if (step.action === "auto_click" if (step.action === "auto_click" && step.selector) {if (step.action === "auto_click" && step.selector) { step.selector && lastClickedStepRef.current !== step.id) {
+        lastClickedStepRef.current = step.id;
         const clickTarget = await findEl(step.selector, 2000);
         clickTarget?.click();
         if (step.post_action_selector) {

@@ -11,12 +11,19 @@ export type WalkthroughStep = {
   selector: string | null;
   title: string;
   body: string;
-  action: "none" | "click" | "navigate" | "wait";
+  action: "none" | "click" | "navigate" | "wait" | "auto_click";
   checkpoint: boolean;
   optional: boolean;
   parent_step_id?: string | null;
   is_substep?: boolean;
   parent_title?: string | null;
+  intro?: string | null;
+  highlights?: any[] | null;
+  how_to_use?: any[] | null;
+  expected_outcome?: string | null;
+  tips?: any[] | null;
+  post_action_selector?: string | null;
+  close_on_exit?: boolean;
 };
 
 export type WalkthroughScript = {

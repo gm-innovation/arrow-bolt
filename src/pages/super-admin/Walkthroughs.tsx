@@ -151,6 +151,8 @@ export default function Walkthroughs() {
       checkpoint: !!form.checkpoint,
       optional: !!form.optional,
       parent_step_id: form.parent_step_id || null,
+      post_action_selector: form.post_action_selector || null,
+      close_on_exit: !!form.close_on_exit,
       is_substep: !!form.parent_step_id,
     };
     const { error } = form.id
