@@ -140,10 +140,23 @@ export default function Walkthroughs() {
       selector: form.selector || null,
       title: form.title,
       body: form.body,
+      intro: form.intro || null,
+      highlights: form.highlights?.length ? form.highlights : null,
+      how_to_use: form.how_to_use?.length ? form.how_to_use : null,
+      expected_outcome: form.expected_outcome || null,
+      tips: form.tips?.length ? form.tips : null,
       action: form.action || "none",
       checkpoint: !!form.checkpoint,
       optional: !!form.optional,
     };
+    const { error } = form.id
+      ? await (supabase as any).from("walkthrough_steps").update(payload).eq("id", form.id)
+      : await (supabase as any).from("walkthrough_steps").insert(payload);
+    if (error) return toast.error(error.message);
+    toast.success("Passo salvo");
+    setEditingStep(null);
+    qc.invalidateQueries({ queryKey: ["wt-steps", selectedId] });
+  };
     const { error } = form.id
       ? await (supabase as any).from("walkthrough_steps").update(payload).eq("id", form.id)
       : await (supabase as any).from("walkthrough_steps").insert(payload);
