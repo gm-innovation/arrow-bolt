@@ -224,6 +224,42 @@ export const useNorthStarMetrics = () => {
   return { ...query, upsert, remove };
 };
 
+// ---------- Live ticket counts (bypass NSM snapshot staleness) ----------
+export const usePMTicketLiveCounts = () => {
+  return useQuery({
+    queryKey: ["pm-ticket-live-counts"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const past7 = new Date(Date.now() - 7 * 86400_000).toISOString();
+      const past30 = new Date(Date.now() - 30 * 86400_000).toISOString();
+
+      const [openRes, new7Res, bug7Res, resolvedRes] = await Promise.all([
+        supabase.from("support_tickets").select("id", { count: "exact", head: true })
+          .in("status", ["open", "triaging", "in_progress"]),
+        supabase.from("support_tickets").select("id", { count: "exact", head: true })
+          .gte("created_at", past7),
+        supabase.from("support_tickets").select("id", { count: "exact", head: true })
+          .eq("category", "bug").gte("created_at", past7),
+        supabase.from("support_tickets").select("created_at, resolved_at")
+          .not("resolved_at", "is", null).gte("resolved_at", past30).limit(5000),
+      ]);
+
+      const resolved = (resolvedRes.data ?? []) as any[];
+      const avgDays = resolved.length > 0
+        ? +(resolved.reduce((acc, t) => acc + (new Date(t.resolved_at).getTime() - new Date(t.created_at).getTime()), 0) / resolved.length / 86400_000).toFixed(2)
+        : 0;
+
+      return {
+        tickets_open: openRes.count ?? 0,
+        tickets_new_7d: new7Res.count ?? 0,
+        tickets_bug_7d: bug7Res.count ?? 0,
+        ticket_resolution_days: avgDays,
+      } as Record<string, number>;
+    },
+  });
+};
+
+
 // ---------- OST Nodes ----------
 export interface OSTNode {
   id: string;
