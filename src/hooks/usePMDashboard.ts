@@ -28,6 +28,9 @@ export interface PMTicket {
   rice_score: number | null;
   rice_rationale: string | null;
   roadmap_horizon: string | null;
+  roadmap_position: number | null;
+  pm_changelog_id: string | null;
+  resolved_at: string | null;
   created_at: string;
 }
 
