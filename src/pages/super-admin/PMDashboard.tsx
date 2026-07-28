@@ -582,71 +582,12 @@ function PriorityTab() {
       <Card>
         <CardHeader>
           <CardTitle>Roadmap — Now / Next / Later</CardTitle>
-          <CardDescription>Horizontes em vez de datas rígidas. Clique num item para ver a descrição e a defesa.</CardDescription>
+          <CardDescription>
+            Arraste itens entre os horizontes. Expanda para ver descrição, defesa e o prompt pronto para o Lovable.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-4">
-            {HORIZONS.map((h) => {
-              const items = byHorizon(h.value);
-              return (
-                <div key={h.value} className={`border rounded-lg p-3 ${h.color}`}>
-                  <div className="font-semibold mb-2 flex items-center justify-between">
-                    <span>{h.label}</span>
-                    <Badge variant="outline">{items.length}</Badge>
-                  </div>
-                  <div className="max-h-[32rem] overflow-y-auto pr-1">
-                    {items.length === 0 && <div className="text-xs text-muted-foreground italic">Vazio</div>}
-                    <Accordion type="multiple" className="space-y-2">
-                      {items.map((t) => (
-                        <AccordionItem
-                          key={t.id}
-                          value={t.id}
-                          className="bg-background rounded border-0 px-2"
-                        >
-                          <AccordionTrigger className="py-2 hover:no-underline">
-                            <div className="flex flex-col items-start gap-1 text-left w-full pr-2">
-                              <div className="flex items-center justify-between w-full gap-2">
-                                <span className="font-mono text-[10px] text-muted-foreground">#{t.ticket_number}</span>
-                                {t.rice_score != null && (
-                                  <span className="text-[10px] font-bold text-primary">RICE {t.rice_score}</span>
-                                )}
-                              </div>
-                              <div className="text-xs font-medium leading-snug">{t.title}</div>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-3 space-y-2 text-xs">
-                            {t.impacted_module && (
-                              <Badge variant="secondary" className="text-[10px]">{t.impacted_module}</Badge>
-                            )}
-                            {t.description && (
-                              <div>
-                                <div className="font-semibold text-muted-foreground uppercase tracking-wide text-[10px] mb-1">Descrição</div>
-                                <p className="whitespace-pre-wrap leading-relaxed">{t.description}</p>
-                              </div>
-                            )}
-                            {t.rice_rationale && (
-                              <div>
-                                <div className="font-semibold text-muted-foreground uppercase tracking-wide text-[10px] mb-1">Defesa</div>
-                                <p className="whitespace-pre-wrap italic leading-relaxed">{t.rice_rationale}</p>
-                              </div>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full h-7 text-[11px]"
-                              onClick={() => setSelected(t)}
-                            >
-                              Abrir detalhes
-                            </Button>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <RoadmapBoard tickets={tickets} onOpen={setSelected} />
         </CardContent>
       </Card>
       <TicketDetailDialog ticket={selected} onClose={() => setSelected(null)} />
