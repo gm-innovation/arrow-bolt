@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import {
   Sparkles, Zap, Target, GitBranch, Trophy, AlertTriangle, TrendingUp,
-  Plus, RefreshCw, Trash2, Copy, ExternalLink, BrainCircuit, Layers,
+  Plus, RefreshCw, Trash2, Copy, ExternalLink, BrainCircuit, Layers, History,
 } from "lucide-react";
 import {
   usePMTickets, useRecalcRice, useUpdateTicketPM,
@@ -24,6 +24,8 @@ import {
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { toast } from "@/hooks/use-toast";
 import { formatLocalDate } from "@/lib/utils";
+import { RoadmapBoard } from "./RoadmapBoard";
+import { PMHistoryTab } from "./PMHistoryTab";
 
 const HORIZONS = [
   { value: "now", label: "Agora", color: "bg-red-500/10 text-red-700 border-red-300" },
