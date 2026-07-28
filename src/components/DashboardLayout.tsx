@@ -55,6 +55,7 @@ import {
   Palmtree,
   User,
   Layers,
+  Compass,
 } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
@@ -71,6 +72,7 @@ import { useWhatsAppAutoNotifier } from "@/hooks/useWhatsAppAutoNotifier";
 import { AIAssistant } from "@/components/ai/AIAssistant";
 import { OfflineSyncIndicator } from "@/components/offline/OfflineSyncIndicator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useWalkthroughAutoStart } from "@/hooks/useWalkthroughAutoStart";
 
 const ContentSkeleton = () => (
   <div className="space-y-6">
@@ -104,6 +106,7 @@ const collectPaths = (e: MenuEntry): string[] =>
 
 
 const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps) => {
+  useWalkthroughAutoStart();
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
@@ -166,6 +169,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Agente de IA", icon: Bot, path: "/super-admin/ai-management" },
     { title: "Inbox de Suporte", icon: MessageSquare, path: "/super-admin/support-inbox" },
     { title: "Dashboard PM", icon: Layers, path: "/super-admin/pm-dashboard" },
+    { title: "Walkthroughs", icon: Compass, path: "/super-admin/walkthroughs" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
   ];
@@ -518,6 +522,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       return (
         <Button
           key={entry.path}
+          data-tour={`nav:${entry.path}`}
           variant="ghost"
           className={cn(
             "w-full transition-all duration-200",

@@ -1,4 +1,4 @@
-import { LogOut, User, Settings } from "lucide-react";
+import { LogOut, User, Settings, Compass } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
+import { useWalkthrough } from "@/contexts/WalkthroughContext";
 
 interface UserMenuProps {
   userType: string;
@@ -20,6 +21,7 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
   const { user, profile, signOut } = useAuth();
   const navigate = useNavigate();
   const { avatarUrl } = useUserAvatar();
+  const { startWalkthrough } = useWalkthrough();
 
   const displayName = profile?.full_name || user?.user_metadata?.full_name || "Usuário";
 
@@ -108,6 +110,10 @@ export const UserMenu = ({ userType }: UserMenuProps) => {
         <DropdownMenuItem onClick={() => navigate("/account/settings")}>
           <Settings className="mr-2 h-4 w-4" />
           <span>Minha Conta</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => startWalkthrough()}>
+          <Compass className="mr-2 h-4 w-4" />
+          <span>Iniciar tour guiado</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">

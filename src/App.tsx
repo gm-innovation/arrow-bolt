@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "./contexts/AuthContext";
+import { WalkthroughProvider } from "./contexts/WalkthroughContext";
+import { WalkthroughOverlay } from "./components/walkthrough/WalkthroughOverlay";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthLanding } from "./components/AuthLanding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -63,6 +65,7 @@ const SuperAdminApiDocs = lazy(() => import("./pages/super-admin/ApiDocs"));
 const AIManagement = lazy(() => import("./pages/super-admin/AIManagement"));
 const SupportInbox = lazy(() => import("./pages/super-admin/SupportInbox"));
 const PMDashboard = lazy(() => import("./pages/super-admin/PMDashboard"));
+const Walkthroughs = lazy(() => import("./pages/super-admin/Walkthroughs"));
 const MyTickets = lazy(() => import("./pages/account/MyTickets"));
 
 const TechDashboard = lazy(() => import("./pages/tech/Dashboard"));
@@ -258,7 +261,9 @@ const App = () => {
             <Route path="*" element={
               <AuthProvider>
                 <SidebarProvider>
-                  <ErrorBoundary fallback={<ErrorFallback />}>
+                  <WalkthroughProvider>
+                    <WalkthroughOverlay />
+                    <ErrorBoundary fallback={<ErrorFallback />}>
                     <Routes>
                       {/* Auth routes - keep Suspense with spinner */}
                       <Route path="/" element={<AuthLanding />} />
@@ -283,6 +288,7 @@ const App = () => {
                     <Route path="/super-admin/ai-management" element={<AIManagement />} />
                     <Route path="/super-admin/support-inbox" element={<SupportInbox />} />
                     <Route path="/super-admin/pm-dashboard" element={<PMDashboard />} />
+                    <Route path="/super-admin/walkthroughs" element={<Walkthroughs />} />
                   </Route>
 
                   {/* Manager - nested layout route */}
@@ -521,6 +527,7 @@ const App = () => {
                 </Routes>
               </ErrorBoundary>
               <OfflineIndicator />
+                  </WalkthroughProvider>
             </SidebarProvider>
           </AuthProvider>
             } />
