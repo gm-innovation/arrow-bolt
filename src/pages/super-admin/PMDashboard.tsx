@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import {
   Sparkles, Zap, Target, GitBranch, Trophy, AlertTriangle, TrendingUp,
-  Plus, RefreshCw, Trash2, Copy, ExternalLink, BrainCircuit, Layers,
+  Plus, RefreshCw, Trash2, Copy, ExternalLink, BrainCircuit, Layers, History,
 } from "lucide-react";
 import {
   usePMTickets, useRecalcRice, useUpdateTicketPM,
@@ -24,6 +24,8 @@ import {
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { toast } from "@/hooks/use-toast";
 import { formatLocalDate } from "@/lib/utils";
+import { RoadmapBoard } from "./RoadmapBoard";
+import { PMHistoryTab } from "./PMHistoryTab";
 
 const HORIZONS = [
   { value: "now", label: "Agora", color: "bg-red-500/10 text-red-700 border-red-300" },
@@ -53,10 +55,11 @@ export default function PMDashboard() {
       </div>
 
       <Tabs defaultValue="tickets" className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
           <TabsTrigger value="tickets">Tickets & Contexto</TabsTrigger>
           <TabsTrigger value="strategy">OST & North Star</TabsTrigger>
           <TabsTrigger value="priority">RICE & Roadmap</TabsTrigger>
+          <TabsTrigger value="history">Histórico</TabsTrigger>
           <TabsTrigger value="impact">IA & Impacto</TabsTrigger>
         </TabsList>
 
@@ -69,11 +72,24 @@ export default function PMDashboard() {
         <TabsContent value="priority" className="space-y-4">
           <PriorityTab />
         </TabsContent>
+        <TabsContent value="history" className="space-y-4">
+          <HistoryTabWrapper />
+        </TabsContent>
         <TabsContent value="impact" className="space-y-4">
           <ImpactTab />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function HistoryTabWrapper() {
+  const [selected, setSelected] = useState<PMTicket | null>(null);
+  return (
+    <>
+      <PMHistoryTab onOpen={setSelected} />
+      <TicketDetailDialog ticket={selected} onClose={() => setSelected(null)} />
+    </>
   );
 }
 
@@ -491,7 +507,7 @@ function PriorityTab() {
   );
   const unscored = tickets.filter((t) => t.rice_score == null);
 
-  const byHorizon = (h: string) => tickets.filter((t) => t.roadmap_horizon === h);
+  
 
   const isQuickWin = (t: PMTicket) => (t.impact ?? 0) >= 4 && (t.effort ?? 5) <= 2;
 
@@ -566,71 +582,12 @@ function PriorityTab() {
       <Card>
         <CardHeader>
           <CardTitle>Roadmap — Now / Next / Later</CardTitle>
-          <CardDescription>Horizontes em vez de datas rígidas. Clique num item para ver a descrição e a defesa.</CardDescription>
+          <CardDescription>
+            Arraste itens entre os horizontes. Expanda para ver descrição, defesa e o prompt pronto para o Lovable.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 md:grid-cols-4">
-            {HORIZONS.map((h) => {
-              const items = byHorizon(h.value);
-              return (
-                <div key={h.value} className={`border rounded-lg p-3 ${h.color}`}>
-                  <div className="font-semibold mb-2 flex items-center justify-between">
-                    <span>{h.label}</span>
-                    <Badge variant="outline">{items.length}</Badge>
-                  </div>
-                  <div className="max-h-[32rem] overflow-y-auto pr-1">
-                    {items.length === 0 && <div className="text-xs text-muted-foreground italic">Vazio</div>}
-                    <Accordion type="multiple" className="space-y-2">
-                      {items.map((t) => (
-                        <AccordionItem
-                          key={t.id}
-                          value={t.id}
-                          className="bg-background rounded border-0 px-2"
-                        >
-                          <AccordionTrigger className="py-2 hover:no-underline">
-                            <div className="flex flex-col items-start gap-1 text-left w-full pr-2">
-                              <div className="flex items-center justify-between w-full gap-2">
-                                <span className="font-mono text-[10px] text-muted-foreground">#{t.ticket_number}</span>
-                                {t.rice_score != null && (
-                                  <span className="text-[10px] font-bold text-primary">RICE {t.rice_score}</span>
-                                )}
-                              </div>
-                              <div className="text-xs font-medium leading-snug">{t.title}</div>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-3 space-y-2 text-xs">
-                            {t.impacted_module && (
-                              <Badge variant="secondary" className="text-[10px]">{t.impacted_module}</Badge>
-                            )}
-                            {t.description && (
-                              <div>
-                                <div className="font-semibold text-muted-foreground uppercase tracking-wide text-[10px] mb-1">Descrição</div>
-                                <p className="whitespace-pre-wrap leading-relaxed">{t.description}</p>
-                              </div>
-                            )}
-                            {t.rice_rationale && (
-                              <div>
-                                <div className="font-semibold text-muted-foreground uppercase tracking-wide text-[10px] mb-1">Defesa</div>
-                                <p className="whitespace-pre-wrap italic leading-relaxed">{t.rice_rationale}</p>
-                              </div>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="w-full h-7 text-[11px]"
-                              onClick={() => setSelected(t)}
-                            >
-                              Abrir detalhes
-                            </Button>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <RoadmapBoard tickets={tickets} onOpen={setSelected} />
         </CardContent>
       </Card>
       <TicketDetailDialog ticket={selected} onClose={() => setSelected(null)} />
