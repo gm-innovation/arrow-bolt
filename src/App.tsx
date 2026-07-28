@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AuthProvider } from "./contexts/AuthContext";
+import { WalkthroughProvider } from "./contexts/WalkthroughContext";
+import { WalkthroughOverlay } from "./components/walkthrough/WalkthroughOverlay";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { AuthLanding } from "./components/AuthLanding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
