@@ -320,6 +320,7 @@ function StrategyTab() {
   const liveTickets = usePMTicketLiveCounts();
   const [openMetric, setOpenMetric] = useState<Partial<NorthStarMetric> | null>(null);
   const [openNode, setOpenNode] = useState<Partial<OSTNode> | null>(null);
+  const [seedOpen, setSeedOpen] = useState(false);
 
   // Auto-refresh product metrics if the latest snapshot is older than 6h
   useEffect(() => {
