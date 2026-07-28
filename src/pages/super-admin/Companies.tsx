@@ -256,7 +256,8 @@ const Companies = () => {
                   <TableCell>
                     {format(new Date(company.created_at), "dd/MM/yyyy")}
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-tour="companies-row-actions">
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
