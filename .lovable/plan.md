@@ -1,62 +1,65 @@
+
 ## Objetivo
 
-Configurar a Marina para o perfil **super_admin** com comportamento próprio, e dar a ela ferramentas para inserir/mover itens no Roadmap, registrar changelog, métricas e nós de OST — para que você possa conversar sobre novas funcionalidades e ela alimente o Dashboard de PM.
+Hoje a aba **Treinamento** trata toda a base de conhecimento e todos os exemplos few-shot como **globais** — qualquer trecho pode ser recuperado para qualquer usuário. Precisamos permitir que cada item seja marcado como:
 
-## 1) Habilitar `super_admin` no painel "AI Management"
+- **Global** (comportamento atual — todos os usuários)
+- **Por papel** (um ou mais: `super_admin`, `director`, `coordinator`, `technician`, `hr`, `commercial`, `financeiro`, `qualidade`, `compras`, `marketing`)
+- **Por módulo** (um ou mais: `pm`, `hr`, `quality`, `crm`, `operations`, `finance`, `supplies`, `corp`, `ai`)
 
-Hoje o array `ROLES` em `BehaviorTab.tsx` não inclui `super_admin`, então não há campo para você digitar instruções específicas.
+Um item pode combinar os dois filtros (ex.: "manual do coordenador operacional" = papel `coordinator` + módulo `operations`).
 
-- `src/components/super-admin/ai/BehaviorTab.tsx`: adicionar `super_admin` ao `ROLES` (topo da lista), com placeholder específico ("Instruções quando o usuário for Super Admin — foco em PM, roadmap, changelog…").
-- Mesma inclusão em qualquer outro seletor de role que hoje omita `super_admin` (Guardrails/Aparência se aplicável).
+## O que já existe
 
-## 2) Seed do agente Marina para super_admin
+- `ai_knowledge_sources` já tem colunas `tags text[]` e `scope jsonb` — hoje não usadas na UI.
+- `ai_training_examples` já tem `tags text[]`.
+- A tool `search_knowledge` chama a RPC `match_ai_knowledge` **sem filtro de escopo** (linha 956 de `tools.ts`).
 
-Migração `insert` (não schema) na linha do agente `is_default = true, company_id IS NULL`:
+Ou seja, o banco já suporta o modelo; falta UI + filtro na recuperação.
 
-- `behavior.role_instructions.super_admin`: prompt orientando a Marina a agir como copiloto de PM — pode listar tickets do roadmap, propor novo item (chama `create_roadmap_item`), mover entre horizontes, resumir métricas de saúde, sugerir defesa/prompt de dev, e registrar entrada de changelog quando pedido.
-- `behavior.suggested_prompts`: acrescentar prompts contextuais para super admin ("Adicione ao Gelo a ideia X", "Mova o ticket #NN para Próximo", "Publique versão 1.4 com estes itens", "Resuma o backlog por módulo").
-- `scope.write_actions`: habilitar `create/update` para os módulos novos abaixo (`roadmap_items`, `pm_changelog`, `pm_north_star_metrics`, `pm_ost_nodes`).
+## Mudanças
 
-## 3) Novas ferramentas na edge function (super_admin)
+### 1. UI — `src/components/super-admin/ai/TrainingTab.tsx`
 
-Editar `supabase/functions/ai-assistant/tools.ts`:
+Nas duas abas ("Base de conhecimento" e "Exemplos few-shot"):
 
-- Novo `Module` `roadmap` (com `pm_changelog`, `pm_metrics`, `pm_ost` como submódulos ou tools separadas).
-- Restringir por role: só entram no catálogo quando `role === "super_admin"`.
-- Tools SELECT (leitura):
-  - `query_roadmap_items` → `support_tickets` onde `category IN ('feature_request','improvement','suggestion')` ou `roadmap_horizon IS NOT NULL`, com filtros `horizon`, `module`, `search`.
-  - `query_pm_changelog`, `query_pm_metrics`, `query_pm_ost_nodes`.
-- Tools de escrita (com auditoria em `ai_assistant_actions` como as demais):
-  - `create_roadmap_item({title, description, module, horizon='icebox', rationale?})` → insere em `support_tickets` já com prefixo `[Roadmap]`, `category='feature_request'`, `roadmap_horizon`, `created_by = ctx.userId`.
-  - `move_roadmap_item({ticket_id, horizon, position?})` → update de `roadmap_horizon` e `roadmap_position`.
-  - `set_roadmap_rationale({ticket_id, rationale})` → grava `rice_rationale`.
-  - `generate_roadmap_dev_prompt({ticket_id})` → chama a edge `generate-ticket-dev-prompt` existente (via fetch service-role) e retorna o prompt salvo.
-  - `publish_pm_version({version, notes, ticket_ids[]})` → insere em `pm_changelog` e vincula tickets (`pm_changelog_id`, marca `status='resolved'`).
-  - `upsert_north_star_metric({...})` e `create_ost_node({...})` — leitura obrigatória, escrita opcional (deixar somente se o usuário confirmar mais tarde; por ora entregar leitura + roadmap writes).
+- Novo bloco **Escopo** no formulário de criação, com 3 opções em RadioGroup:
+  - `Global` (padrão)
+  - `Por papel(is)` → multi-select com os papéis suportados
+  - `Por módulo(s)` → multi-select com os módulos
+  - Combinável: se ambos preenchidos, o item só é recuperado quando *papel* **e** *módulo* baterem.
+- Persistência:
+  - `ai_knowledge_sources.scope = { roles: string[], modules: string[] }` e espelho em `tags[]` como `role:hr`, `module:quality` para permitir filtros SQL simples.
+  - `ai_training_examples.tags[]` no mesmo padrão (sem coluna `scope` — evita nova migração).
+- Lista de itens: mostrar chips de escopo (`Global`, `Papel: Coordenador`, `Módulo: RH`) e filtro no topo (`Todos | Global | Meus papéis | Módulo X`).
+- Edição de escopo inline (botão "Editar escopo" em cada linha) via `update` na tabela.
 
-Todas as writes passam pelo mesmo pipeline de `write_actions` já existente, então respeitam o toggle na aba "Ações de Escrita".
+### 2. Recuperação — filtrar por escopo do usuário
 
-## 4) UI de "Ações de Escrita" e "Escopo"
+Em `supabase/functions/ai-assistant/tools.ts` (tool `search_knowledge`):
 
-- `src/components/super-admin/ai/WriteActionsTab.tsx`: adicionar grupo **PM / Roadmap** com linhas `roadmap_items`, `pm_changelog`, `pm_north_star_metrics`, `pm_ost_nodes` — ligado ao mesmo `scope.write_actions` do agente.
-- Nenhuma mudança no schema; só nomes de "tabela lógica" que o tool loop já usa como chave.
+1. Antes da RPC, carregar em memória `ai_knowledge_sources` do agente com id, scope e tags.
+2. Calcular o conjunto de `source_ids permitidos` para o usuário corrente:
+   - Sempre incluir sources com `scope` vazio/`Global`.
+   - Incluir sources cujo `scope.roles` contenha `ctx.role`.
+   - Incluir sources cujo `scope.modules` contenha o módulo derivado de `ctx.route` (mapa simples: `/hr/* → hr`, `/admin/* → operations`, `/quality/* → quality`, `/commercial/* → crm`, `/finance/* → finance`, `/supplies/* → supplies`, `/corp/* → corp`, `/super-admin/pm-* → pm`).
+   - Se `roles` **e** `modules` estiverem preenchidos, exigir os dois.
+3. Chamar `match_ai_knowledge` como hoje, e **pós-filtrar** os chunks retornados por `source_id ∈ permitidos`. (Evita mudar a RPC.)
+4. Few-shot: quando o `ai-assistant` injeta exemplos no prompt, filtrar `ai_training_examples` pela mesma regra (tags).
 
-## 5) Contexto de página
+### 3. Sem migração de banco
 
-`AIAssistant` já envia `context.currentScreen`. Ao entrar em `/super-admin/pm-dashboard`, o `AIChat` deve mandar `context.pageUrl` (já manda) — a Marina usa isso no prompt "Você está no Dashboard de PM" para priorizar as tools de roadmap. Ajustar apenas o system prompt no edge para acrescentar essa dica quando `pageUrl` contém `/super-admin/pm-dashboard`.
+Não precisamos alterar schema — só passamos a **usar** `scope`/`tags` que já existem. Único ponto: garantir que UPDATE via `update_ai_knowledge_sources` no cliente respeite RLS existente (já OK — mantido `.eq('agent_id', agent.id)`).
+
+## Fora do escopo
+
+- Não mexer em fine-tuning nem no pipeline de ingestão (`ingest-knowledge`).
+- Não alterar a RPC `match_ai_knowledge` (pós-filtro em JS resolve).
+- Não introduzir cache — a lista de sources permitidos é lida a cada chamada de `search_knowledge`.
 
 ## Verificação
 
-1. Abrir `/super-admin/ai-management` → aba **Comportamento**: campo "super_admin" visível e editável.
-2. Aba **Ações de Escrita**: grupo PM / Roadmap listado com toggles.
-3. Abrir chat da Marina como super_admin e testar:
-   - "Adicione ao Gelo: Central de novidades v2, módulo pm" → aparece novo card em Gelo no `/super-admin/pm-dashboard`.
-   - "Mova o ticket #1010 para Próximo" → card muda de coluna.
-   - "Publique a versão 1.4 com os tickets X, Y" → entrada em `pm_changelog` e tickets vinculados.
-4. Rodar a migration/insert do seed do agente e confirmar que `behavior.role_instructions.super_admin` está gravado.
-
-## Detalhes técnicos
-
-- Escritas usam `userSupabase` (JWT do super_admin) para respeitar RLS — políticas de `support_tickets` e `pm_changelog` já permitem super_admin.
-- Auditoria: cada write registra em `ai_assistant_actions` (tabela existente).
-- Sem novas migrations de schema; apenas um `insert/update` no agente default e código nas tools + UI.
+- Cadastrar 3 fontes: 1 Global, 1 papel=`coordinator`, 1 módulo=`hr`.
+- Como `super_admin`, todas aparecem em busca.
+- Como `technician`, só a Global.
+- Como `hr` navegando em `/hr/*`, aparecem Global + módulo `hr`.
