@@ -151,11 +151,11 @@ const Companies = () => {
           </p>
         </div>
         <div className="flex gap-4">
-          <Button onClick={() => setNewDialogOpen(true)}>
+          <Button onClick={() => setNewDialogOpen(true)} data-tour="companies-new">
             <Plus className="mr-2 h-4 w-4" />
             Nova Empresa
           </Button>
-          <Button variant="outline" onClick={handleExport} disabled={filteredCompanies.length === 0}>
+          <Button variant="outline" onClick={handleExport} disabled={filteredCompanies.length === 0} data-tour="companies-export">
             <Download className="mr-2 h-4 w-4" />
             Exportar Lista
           </Button>
