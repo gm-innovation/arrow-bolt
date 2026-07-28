@@ -203,7 +203,7 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
               <Label>Módulo impactado</Label>
               <Input value={ticket.impacted_module ?? ticket.suggested_area ?? ""}
                 onChange={(e) => update.mutate({ id: ticket.id, patch: { impacted_module: e.target.value } })}
-                placeholder="ex.: RH, Comercial, SGQ..." />
+                placeholder="ex.: OS, RH/DP, Comercial/CRM, SGQ, Financeiro, Suprimentos, Corporativo, Marina (IA)" />
             </div>
             <div>
               <Label>Horizonte Roadmap</Label>
