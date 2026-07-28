@@ -317,8 +317,25 @@ function StrategyTab() {
   const nsm = useNorthStarMetrics();
   const ost = useOSTNodes();
   const refresh = useRefreshProductMetrics();
+  const liveTickets = usePMTicketLiveCounts();
   const [openMetric, setOpenMetric] = useState<Partial<NorthStarMetric> | null>(null);
   const [openNode, setOpenNode] = useState<Partial<OSTNode> | null>(null);
+
+  // Auto-refresh product metrics if the latest snapshot is older than 6h
+  useEffect(() => {
+    const list = nsm.data ?? [];
+    if (list.length === 0 || refresh.isPending) return;
+    const latest = list.reduce((max, m) => {
+      const t = m.updated_at ? new Date(m.updated_at).getTime() : 0;
+      return t > max ? t : max;
+    }, 0);
+    const sixHoursAgo = Date.now() - 6 * 3600_000;
+    if (latest > 0 && latest < sixHoursAgo) {
+      refresh.mutate();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nsm.data]);
+
 
   return (
     <>
