@@ -138,7 +138,7 @@ const Users = () => {
         </div>
       </div>
 
-      <div className="flex gap-4 items-end">
+      <div className="flex gap-4 items-end" data-tour="users-filters">
         <div className="flex-1">
           <Input
             placeholder="Buscar por nome do usuário..."
@@ -191,7 +191,7 @@ const Users = () => {
         )}
       </div>
 
-      <div className="border rounded-lg">
+      <div className="border rounded-lg" data-tour="users-table">
         <Table>
           <TableHeader>
             <TableRow>
