@@ -195,6 +195,20 @@ export function TrainingTab({ agent }: Props) {
   const [exScope, setExScope] = useState<ScopeValue>({ roles: [], modules: [] });
   const [filter, setFilter] = useState<string>("all");
 
+  // company_id do usuário logado — usado quando o agente é global (company_id null)
+  const myCompany = useQuery({
+    queryKey: ["my-company-id"],
+    queryFn: async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth?.user?.id;
+      if (!uid) return null;
+      const { data } = await supabase.from("profiles").select("company_id").eq("id", uid).maybeSingle();
+      return (data as any)?.company_id ?? null;
+    },
+  });
+  const resolvedCompanyId = () => agent.company_id ?? myCompany.data ?? null;
+
+
   // ===== Sources =====
   const sources = useQuery({
     queryKey: ["ai-knowledge-sources", agent.id],
@@ -218,7 +232,7 @@ export function TrainingTab({ agent }: Props) {
         : file.name.toLowerCase().endsWith(".docx") ? "docx" : "txt";
       const { data, error } = await supabase.from("ai_knowledge_sources" as any).insert({
         agent_id: agent.id,
-        company_id: agent.company_id,
+        company_id: resolvedCompanyId(),
         source_type: sourceType,
         title: title || file.name,
         storage_path: path,
@@ -243,7 +257,7 @@ export function TrainingTab({ agent }: Props) {
     mutationFn: async () => {
       const { data, error } = await supabase.from("ai_knowledge_sources" as any).insert({
         agent_id: agent.id,
-        company_id: agent.company_id,
+        company_id: resolvedCompanyId(),
         source_type: "manual",
         title: title || "Texto manual",
         raw_text: manualText,
@@ -317,7 +331,7 @@ export function TrainingTab({ agent }: Props) {
     mutationFn: async () => {
       const { error } = await supabase.from("ai_training_examples" as any).insert({
         agent_id: agent.id,
-        company_id: agent.company_id,
+        company_id: resolvedCompanyId(),
         question: exQ,
         ideal_answer: exA,
         tags: scopeToTags(exScope),

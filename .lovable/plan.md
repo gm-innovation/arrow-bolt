@@ -1,31 +1,35 @@
-## Problema
-
-No componente `ScopeEditor` (`src/components/super-admin/ai/TrainingTab.tsx`), o modo do radio ("Global / Por papel / Por módulo / Papel + Módulo") é **derivado** do valor via `useMemo`:
-
-```
-const mode = useMemo(() => {
-  const r = value.roles.length > 0;
-  const m = value.modules.length > 0;
-  if (r && m) return "both";
-  if (r) return "roles";
-  if (m) return "modules";
-  return "global";
-}, [value]);
-```
-
-Quando o usuário clica em "Por papel" com o valor ainda vazio, o `onValueChange` envia `{ roles: [], modules: [] }` — o `useMemo` recalcula e devolve `"global"`. Resultado: o radio fica preso em Global, os painéis de seleção de papel/módulo nunca aparecem, e o usuário não consegue marcar nada.
-
 ## Correção
 
-Manter `mode` como estado local do `ScopeEditor`, independente do `value`:
+Dois ajustes complementares para permitir que diretores/coordenadores/RH também contribuam com conhecimento em agentes globais:
 
-1. Substituir o `useMemo` por `useState<ScopeMode>` inicializado a partir do valor recebido.
-2. No `onValueChange` do RadioGroup, atualizar o estado local **e** ajustar o `value` (limpando roles/modules quando o modo não os utiliza).
-3. Quando o modo é "roles", "modules" ou "both", renderizar a lista de badges correspondente mesmo se ainda estiver vazia — assim o usuário pode marcar as opções.
-4. Manter compatibilidade: se um `value` já vier preenchido (edição inline via popover), inicializar o modo corretamente pelo conteúdo.
+### 1) Frontend — `src/components/super-admin/ai/TrainingTab.tsx`
 
-Nenhuma outra mudança é necessária — a persistência (`scope` + `tags`) e a lista/filtro continuam funcionando.
+Ao inserir em `ai_knowledge_sources` e `ai_training_examples`, usar o `company_id` do próprio usuário quando o agente for global:
+
+- Carregar o `company_id` do perfil do usuário logado (via `profiles`) uma vez no hook.
+- No `uploadFile.mutationFn` e `addManual.mutationFn`, gravar `company_id: agent.company_id ?? profile.company_id`.
+- Mesma alteração em `addExample.mutationFn`.
+
+Isso satisfaz a policy `ai_knowledge_sources company managers` (`company_id = user_company_id(auth.uid())`) sem precisar afrouxar RLS.
+
+### 2) Storage — bucket `ai-knowledge`
+
+Verificar as policies do bucket `ai-knowledge` no `storage.objects`. Se o upload também estiver restrito a `super_admin`, adicionar policy que permita `director`, `coordinator` e `hr` fazerem `INSERT`/`SELECT` em objetos cujo `bucket_id = 'ai-knowledge'`.
+
+Se as policies já cobrem esses papéis, este passo é dispensado — o insert na tabela é a causa raiz do erro exibido.
+
+### 3) Filtragem de escopo (já implementada) permanece intacta
+
+O `scope` continua sendo salvo normalmente; a mudança é só no `company_id`.
 
 ## Arquivos afetados
 
-- `src/components/super-admin/ai/TrainingTab.tsx` — apenas o componente `ScopeEditor`.
+- `src/components/super-admin/ai/TrainingTab.tsx` — buscar `company_id` do usuário e usar no insert.
+- Migração SQL (só se o bucket `ai-knowledge` bloquear o upload para os papéis operacionais).
+
+## Verificação
+
+Após a mudança:
+- Diretor consegue enviar PDF/DOCX e adicionar texto manual em agente global.
+- Super admin continua funcionando.
+- Registros ficam vinculados ao `company_id` do autor, respeitando a RLS.
