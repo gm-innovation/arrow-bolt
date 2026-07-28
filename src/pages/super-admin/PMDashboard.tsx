@@ -18,7 +18,7 @@ import {
 import {
   usePMTickets, useRecalcRice, useUpdateTicketPM,
   useNorthStarMetrics, useOSTNodes, useChangelog, useAIPerformance,
-  useRefreshProductMetrics,
+  useRefreshProductMetrics, usePMTicketLiveCounts,
   type PMTicket, type NorthStarMetric, type OSTNode, type ChangelogEntry,
 } from "@/hooks/usePMDashboard";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
