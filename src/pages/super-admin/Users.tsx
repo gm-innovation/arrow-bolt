@@ -127,9 +127,11 @@ const Users = () => {
             Gerencie todos os usuários do sistema
           </p>
         </div>
-        <div className="flex gap-4">
-          <NewUserDialog />
-          <Button variant="outline" onClick={handleExport}>
+        <div className="flex gap-4" data-tour="users-actions">
+          <div data-tour="users-new">
+            <NewUserDialog />
+          </div>
+          <Button variant="outline" onClick={handleExport} data-tour="users-export">
             <Download className="mr-2 h-4 w-4" />
             Exportar Lista
           </Button>
