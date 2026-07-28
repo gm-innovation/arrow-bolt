@@ -22,7 +22,7 @@ import {
   type PMTicket, type NorthStarMetric, type OSTNode, type ChangelogEntry, type OSTSeedPlan,
   type AIPerfWindow,
 } from "@/hooks/usePMDashboard";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
 import { toast } from "@/hooks/use-toast";
 import { formatLocalDate } from "@/lib/utils";
 import { RoadmapBoard } from "./RoadmapBoard";
