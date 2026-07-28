@@ -18,8 +18,9 @@ import {
 import {
   usePMTickets, useRecalcRice, useUpdateTicketPM,
   useNorthStarMetrics, useOSTNodes, useChangelog, useAIPerformance,
-  useRefreshProductMetrics, usePMTicketLiveCounts, useOSTSeed,
+  useRefreshProductMetrics, usePMTicketLiveCounts, useOSTSeed, useSeedChangelog,
   type PMTicket, type NorthStarMetric, type OSTNode, type ChangelogEntry, type OSTSeedPlan,
+  type AIPerfWindow,
 } from "@/hooks/usePMDashboard";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from "recharts";
 import { toast } from "@/hooks/use-toast";
