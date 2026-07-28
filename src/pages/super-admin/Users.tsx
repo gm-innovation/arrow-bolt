@@ -268,7 +268,8 @@ const Users = () => {
                       {user.active ? "Ativo" : "Inativo"}
                     </div>
                   </TableCell>
-                  <TableCell>
+                  <TableCell data-tour="users-row-actions">
+
                     {format(new Date(user.created_at), "dd/MM/yyyy")}
                   </TableCell>
                   <TableCell>
