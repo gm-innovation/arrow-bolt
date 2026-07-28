@@ -55,10 +55,11 @@ export default function PMDashboard() {
       </div>
 
       <Tabs defaultValue="tickets" className="space-y-4">
-        <TabsList className="grid grid-cols-2 md:grid-cols-4 w-full">
+        <TabsList className="grid grid-cols-2 md:grid-cols-5 w-full">
           <TabsTrigger value="tickets">Tickets & Contexto</TabsTrigger>
           <TabsTrigger value="strategy">OST & North Star</TabsTrigger>
           <TabsTrigger value="priority">RICE & Roadmap</TabsTrigger>
+          <TabsTrigger value="history">Histórico</TabsTrigger>
           <TabsTrigger value="impact">IA & Impacto</TabsTrigger>
         </TabsList>
 
@@ -71,11 +72,24 @@ export default function PMDashboard() {
         <TabsContent value="priority" className="space-y-4">
           <PriorityTab />
         </TabsContent>
+        <TabsContent value="history" className="space-y-4">
+          <HistoryTabWrapper />
+        </TabsContent>
         <TabsContent value="impact" className="space-y-4">
           <ImpactTab />
         </TabsContent>
       </Tabs>
     </div>
+  );
+}
+
+function HistoryTabWrapper() {
+  const [selected, setSelected] = useState<PMTicket | null>(null);
+  return (
+    <>
+      <PMHistoryTab onOpen={setSelected} />
+      <TicketDetailDialog ticket={selected} onClose={() => setSelected(null)} />
+    </>
   );
 }
 
