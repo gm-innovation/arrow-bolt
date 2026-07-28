@@ -13,10 +13,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
 import {
   Sparkles, Zap, Target, GitBranch, Trophy, AlertTriangle, TrendingUp,
-  Plus, RefreshCw, Trash2, Copy, ExternalLink, BrainCircuit, Layers, History,
+  Plus, RefreshCw, Trash2, Copy, ExternalLink, BrainCircuit, Layers, History, Code2,
 } from "lucide-react";
 import {
-  usePMTickets, useRecalcRice, useUpdateTicketPM,
+  usePMTickets, useRecalcRice, useUpdateTicketPM, useRegisterCodeChange,
   useNorthStarMetrics, useOSTNodes, useChangelog, useAIPerformance,
   useRefreshProductMetrics, usePMTicketLiveCounts, useOSTSeed, useSeedChangelog,
   type PMTicket, type NorthStarMetric, type OSTNode, type ChangelogEntry, type OSTSeedPlan,
@@ -34,6 +34,8 @@ const HORIZONS = [
   { value: "later", label: "Depois", color: "bg-blue-500/10 text-blue-700 border-blue-300" },
   { value: "icebox", label: "Gelo", color: "bg-slate-500/10 text-slate-700 border-slate-300" },
 ];
+
+const ROADMAP_CATEGORIES = new Set(["feature_request", "improvement", "suggestion"]);
 
 const NODE_TYPES = [
   { value: "outcome", label: "Objetivo (Outcome)", icon: Target },
@@ -197,7 +199,10 @@ function TicketsTab() {
 function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onClose: () => void }) {
   const recalc = useRecalcRice();
   const update = useUpdateTicketPM();
+  const registerCodeChange = useRegisterCodeChange();
   if (!ticket) return null;
+
+  const isRoadmapCategory = ROADMAP_CATEGORIES.has(ticket.category);
 
   return (
     <Dialog open={!!ticket} onOpenChange={onClose}>
@@ -212,6 +217,18 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
         </DialogHeader>
 
         <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => registerCodeChange.mutate(ticket)}
+              disabled={registerCodeChange.isPending}
+            >
+              <Code2 className="h-4 w-4 mr-1" />
+              {registerCodeChange.isPending ? "Registrando..." : "Registrar alteração de código"}
+            </Button>
+          </div>
+
           <div>
             <Label>Descrição</Label>
             <div className="text-sm mt-1 whitespace-pre-wrap p-3 bg-muted/40 rounded">{ticket.description}</div>
@@ -226,13 +243,19 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
 
             </div>
             <div>
-              <Label>Horizonte Roadmap</Label>
-              <Select value={ticket.roadmap_horizon ?? ""} onValueChange={(v) => update.mutate({ id: ticket.id, patch: { roadmap_horizon: v as any } })}>
-                <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
-                <SelectContent>
-                  {HORIZONS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Roadmap</Label>
+              {isRoadmapCategory ? (
+                <Select value={ticket.roadmap_horizon ?? ""} onValueChange={(v) => update.mutate({ id: ticket.id, patch: { roadmap_horizon: v as any } })}>
+                  <SelectTrigger><SelectValue placeholder="Selecionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {HORIZONS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="h-10 flex items-center rounded-md border px-3 text-sm text-muted-foreground bg-muted/40">
+                  Correções de bug ficam fora do roadmap
+                </div>
+              )}
             </div>
           </div>
 
@@ -674,6 +697,10 @@ function PriorityTab() {
     () => tickets.filter((t) => t.rice_score != null).sort((a, b) => (b.rice_score ?? 0) - (a.rice_score ?? 0)),
     [tickets],
   );
+  const roadmapTickets = useMemo(
+    () => tickets.filter((t) => ROADMAP_CATEGORIES.has(t.category)),
+    [tickets],
+  );
   const unscored = tickets.filter((t) => t.rice_score == null);
 
   
@@ -732,10 +759,14 @@ function PriorityTab() {
                     <td className="p-2 text-center">{t.effort}</td>
                     <td className="p-2 text-right font-bold text-primary">{t.rice_score}</td>
                     <td className="p-2">
-                      <Select value={t.roadmap_horizon ?? ""} onValueChange={(v) => update.mutate({ id: t.id, patch: { roadmap_horizon: v as any } })}>
-                        <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
-                        <SelectContent>{HORIZONS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}</SelectContent>
-                      </Select>
+                      {ROADMAP_CATEGORIES.has(t.category) ? (
+                        <Select value={t.roadmap_horizon ?? ""} onValueChange={(v) => update.mutate({ id: t.id, patch: { roadmap_horizon: v as any } })}>
+                          <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="—" /></SelectTrigger>
+                          <SelectContent>{HORIZONS.map((h) => <SelectItem key={h.value} value={h.value}>{h.label}</SelectItem>)}</SelectContent>
+                        </Select>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">Fora do roadmap</Badge>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -756,7 +787,7 @@ function PriorityTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <RoadmapBoard tickets={tickets} onOpen={setSelected} />
+          <RoadmapBoard tickets={roadmapTickets} onOpen={setSelected} />
         </CardContent>
       </Card>
       <TicketDetailDialog ticket={selected} onClose={() => setSelected(null)} />
