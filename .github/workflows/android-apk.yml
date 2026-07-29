@@ -6,14 +6,16 @@ on:
       build_type:
         description: "Tipo de build"
         required: true
-        default: "release"
+        default: "debug"
         type: choice
         options:
-          - release
           - debug
-  push:
-    tags:
-      - "v*"
+          - release
+      native_build:
+        description: "Número do build nativo (incrementar quando algo nativo mudar)"
+        required: true
+        default: "1"
+        type: string
 
 jobs:
   build:
@@ -31,10 +33,25 @@ jobs:
           distribution: temurin
           java-version: 21
 
+      # `secrets` não é acessível em `if:` de step — resolvemos aqui via env + output.
+      - name: Detectar keystore
+        id: keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$ANDROID_KEYSTORE_BASE64" ] && [ "${{ inputs.build_type }}" = "release" ]; then
+            echo "mode=release" >> "$GITHUB_OUTPUT"
+          else
+            echo "mode=debug" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Instalar dependências
         run: npm ci
 
       - name: Build web (produção)
+        env:
+          BUNDLE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '0.0.0' }}
+          NATIVE_BUILD: ${{ inputs.native_build }}
         run: npm run build
 
       - name: Remover server.url (build offline/produção)
@@ -53,11 +70,11 @@ jobs:
           npx cap sync android
 
       - name: Decodificar keystore
-        if: ${{ github.event.inputs.build_type != 'debug' && secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        if: steps.keystore.outputs.mode == 'release'
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/arrow.keystore
 
-      - name: Build APK assinado
-        if: ${{ github.event.inputs.build_type != 'debug' && secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Build APK assinado (release)
+        if: steps.keystore.outputs.mode == 'release'
         working-directory: android
         run: |
           ./gradlew assembleRelease \
@@ -66,14 +83,16 @@ jobs:
             -Pandroid.injected.signing.key.alias="${{ secrets.ANDROID_KEY_ALIAS }}" \
             -Pandroid.injected.signing.key.password="${{ secrets.ANDROID_KEY_PASSWORD }}"
 
+      # APK debug é assinado automaticamente pelo Gradle com a debug keystore do
+      # runner (efêmero) — pode exigir desinstalar a versão anterior antes de instalar.
       - name: Build APK debug
-        if: ${{ github.event.inputs.build_type == 'debug' || secrets.ANDROID_KEYSTORE_BASE64 == '' }}
+        if: steps.keystore.outputs.mode == 'debug'
         working-directory: android
         run: ./gradlew assembleDebug
 
       - name: Publicar artefato
         uses: actions/upload-artifact@v4
         with:
-          name: arrow-android-apk
+          name: arrow-android-${{ steps.keystore.outputs.mode }}
           path: android/app/build/outputs/apk/**/*.apk
           if-no-files-found: error
