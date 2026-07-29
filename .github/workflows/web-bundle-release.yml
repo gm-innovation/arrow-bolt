@@ -29,8 +29,11 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
+          node-version: 22
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Definir versão
         id: meta
@@ -41,12 +44,13 @@ jobs:
           echo "mandatory=${{ inputs.mandatory || 'false' }}" >> "$GITHUB_OUTPUT"
 
       - name: Instalar dependências
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build web
         env:
           BUNDLE_VERSION: ${{ steps.meta.outputs.version }}
-        run: npm run build
+        run: bun run build
+
 
       # index.html precisa ficar na RAIZ do zip para o updater encontrá-lo.
       - name: Empacotar bundle
