@@ -120,6 +120,10 @@ antes de aplicar e há rollback automático se o novo bundle não chamar
 
 ### Configuração do backend
 
-A função `app-update` precisa das variáveis `ARROW_RELEASE_REPO_OWNER` e
-`ARROW_RELEASE_REPO_NAME`, além de uma conexão GitHub ativa. A credencial do
-GitHub é usada **somente no servidor** e nunca é devolvida ao aplicativo.
+A função `app-update` usa `ARROW_RELEASE_REPO_OWNER` / `ARROW_RELEASE_REPO_NAME`
+(já configuradas: `gm-innovation/arrow`) e a conexão GitHub do projeto.
+
+Como o repositório é **privado**, os assets da Release não são acessíveis
+publicamente. A função espelha o `bundle.zip` no bucket privado `app-bundles`
+e devolve ao app uma **URL assinada** válida por 1 hora. A credencial do GitHub
+é usada somente no servidor e nunca é devolvida ao aplicativo.
