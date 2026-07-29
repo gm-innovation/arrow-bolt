@@ -123,3 +123,7 @@ verify_jwt = false
 
 [functions.ai-text-to-speech]
 verify_jwt = false
+
+# Manifesto de atualização OTA — só devolve metadados públicos de versão.
+[functions.app-update]
+verify_jwt = false
