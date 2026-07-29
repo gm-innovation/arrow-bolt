@@ -41,7 +41,7 @@ const formSchema = z.object({
     .optional()
     .or(z.literal("")),
   role: z.enum(["admin", "technician"], {
-    required_error: "Selecione uma função",
+    message: "Selecione uma função",
   }),
 });
 

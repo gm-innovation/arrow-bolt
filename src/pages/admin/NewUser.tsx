@@ -39,7 +39,7 @@ const formSchema = z.object({
     .min(6, "Senha deve ter pelo menos 6 caracteres")
     .max(72, "Senha deve ter no máximo 72 caracteres"),
   role: z.enum(["admin", "technician"], {
-    required_error: "Selecione uma função",
+    message: "Selecione uma função",
   }),
   phone: z.string()
     .regex(/^[\d\s\-\+\(\)]*$/, "Telefone inválido")

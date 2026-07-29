@@ -28,7 +28,7 @@ import { useSubscriptions } from "@/hooks/useSubscriptions";
 
 const formSchema = z.object({
   plan: z.enum(["basic", "professional", "enterprise"], {
-    required_error: "Selecione um plano",
+    message: "Selecione um plano",
   }),
 });
 
