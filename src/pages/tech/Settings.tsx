@@ -173,7 +173,12 @@ const TechSettings = () => {
               </div>
             </CardContent>
           </Card>
+
+          <BackgroundTrackingCard />
+
+          <BiometricLoginCard />
         </TabsContent>
+
 
         <TabsContent value="display" className="space-y-6">
           <Card>

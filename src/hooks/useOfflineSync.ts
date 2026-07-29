@@ -8,6 +8,8 @@ import {
   PendingChange
 } from '@/lib/offlineStorage';
 import { useToast } from '@/hooks/use-toast';
+import { isNativeApp } from '@/lib/platform';
+
 
 export const useOfflineSync = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -38,6 +40,21 @@ export const useOfflineSync = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
+    // App nativo: o plugin Network é mais confiável que navigator.onLine no Android
+    let removeNativeListener: (() => void) | undefined;
+    if (isNativeApp()) {
+      (async () => {
+        const { Network } = await import('@capacitor/network');
+        const status = await Network.getStatus();
+        setIsOnline(status.connected);
+        const listener = await Network.addListener('networkStatusChange', (s) => {
+          if (s.connected) handleOnline();
+          else handleOffline();
+        });
+        removeNativeListener = () => void listener.remove();
+      })();
+    }
+
     // Initial sync check
     if (navigator.onLine) {
       syncPendingChanges();
@@ -49,8 +66,10 @@ export const useOfflineSync = () => {
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
+      removeNativeListener?.();
       clearInterval(interval);
     };
+
   }, []);
 
   const updatePendingCount = async () => {
