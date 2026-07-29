@@ -501,12 +501,28 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
           <AttachmentChips attachments={attachments} onChange={setAttachments} />
           <div className="flex gap-2 items-stretch">
             <AttachmentButton attachments={attachments} onChange={setAttachments} />
+            <VoiceRecordButton
+              isRecording={isRecording}
+              isTranscribing={isTranscribing}
+              duration={recordDuration}
+              disabled={isLoading}
+              onStart={startRecording}
+              onStop={stopRecording}
+              onCancel={cancelRecording}
+            />
             <Textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={attachments.length > 0 ? "Descreva o que quer que a Marina faça com o(s) anexo(s)..." : "Digite sua pergunta..."}
+              onPaste={handlePaste}
+              placeholder={
+                isRecording
+                  ? 'Gravando... fale e clique em parar para transcrever'
+                  : attachments.length > 0
+                    ? 'Descreva o que quer que a Marina faça com o(s) anexo(s)...'
+                    : 'Digite, cole uma imagem (Ctrl+V) ou grave um áudio...'
+              }
               className="min-h-[56px] max-h-[160px] resize-none flex-1"
               rows={1}
               disabled={isLoading}
@@ -524,6 +540,10 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
               )}
             </Button>
           </div>
+          <div className="flex items-center justify-between">
+            <VoicePrefToggle pref={voicePref} onCycle={cycleVoicePref} />
+          </div>
+
         </div>
       </div>
     </div>
