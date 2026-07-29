@@ -6,6 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQualityDevices, type QualityMeasuringDevice } from "@/hooks/useQualityDevices";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   open: boolean;
@@ -34,7 +36,10 @@ const blank = {
 
 const DeviceFormDialog = ({ open, onClose, device }: Props) => {
   const { upsert } = useQualityDevices();
+  const { profile } = useAuth();
   const [form, setForm] = useState<any>(blank);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [checkingCode, setCheckingCode] = useState(false);
 
   useEffect(() => {
     if (device) {
@@ -59,13 +64,38 @@ const DeviceFormDialog = ({ open, onClose, device }: Props) => {
     } else {
       setForm(blank);
     }
+    setCodeError(null);
   }, [device, open]);
 
+  const checkCodeDuplicate = async () => {
+    const code = (form.code ?? "").trim();
+    if (!code || !profile?.company_id) {
+      setCodeError(null);
+      return;
+    }
+    setCheckingCode(true);
+    try {
+      let q = (supabase.from("quality_measuring_devices" as any) as any)
+        .select("id")
+        .eq("company_id", profile.company_id)
+        .eq("code", code)
+        .limit(1);
+      if (device?.id) q = q.neq("id", device.id);
+      const { data, error } = await q;
+      if (error) return;
+      setCodeError(data && data.length > 0 ? "Código já em uso por outro instrumento." : null);
+    } finally {
+      setCheckingCode(false);
+    }
+  };
+
   const save = async () => {
-    if (!form.code.trim() || !form.name.trim()) return;
+    const code = (form.code ?? "").trim();
+    if (!code || !form.name.trim() || codeError) return;
     await upsert.mutateAsync({
       ...(device?.id ? { id: device.id } : {}),
       ...form,
+      code,
       last_calibration_at: form.last_calibration_at || null,
       acquired_at: form.acquired_at || null,
     });
@@ -82,7 +112,18 @@ const DeviceFormDialog = ({ open, onClose, device }: Props) => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Código / TAG *</Label>
-            <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+            <Input
+              value={form.code}
+              onChange={(e) => {
+                setForm({ ...form, code: e.target.value });
+                if (codeError) setCodeError(null);
+              }}
+              onBlur={checkCodeDuplicate}
+              aria-invalid={!!codeError}
+              className={codeError ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {codeError && <p className="text-xs text-destructive mt-1">{codeError}</p>}
+            {checkingCode && <p className="text-xs text-muted-foreground mt-1">Verificando…</p>}
           </div>
           <div>
             <Label>Nome *</Label>
@@ -160,7 +201,7 @@ const DeviceFormDialog = ({ open, onClose, device }: Props) => {
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save} disabled={!form.code.trim() || !form.name.trim() || upsert.isPending}>
+          <Button onClick={save} disabled={!form.code.trim() || !form.name.trim() || !!codeError || checkingCode || upsert.isPending}>
             {upsert.isPending ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>

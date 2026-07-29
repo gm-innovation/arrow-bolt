@@ -96,7 +96,22 @@ export const useQualityDevices = (filters: DeviceFilters = {}) => {
       qc.invalidateQueries({ queryKey: ["quality_devices"] });
       toast({ title: "Instrumento salvo" });
     },
-    onError: (e: any) => toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" }),
+    onError: (e: any) => {
+      const msg = String(e?.message ?? "");
+      const isDupCode =
+        e?.code === "23505" ||
+        msg.includes("quality_measuring_devices_company_id_code_key") ||
+        (msg.toLowerCase().includes("duplicate key") && msg.includes("code"));
+      if (isDupCode) {
+        toast({
+          title: "Código já cadastrado",
+          description: "Já existe um instrumento com esse Código/TAG na sua empresa. Escolha outro código.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({ title: "Erro ao salvar", description: e.message, variant: "destructive" });
+    },
   });
 
   const remove = useMutation({
