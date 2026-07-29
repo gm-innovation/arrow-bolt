@@ -314,9 +314,24 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
     try {
       // Use the user's access token so the edge function's RLS-scoped client
       // acts as this exact user for any write (create/update/delete) tools.
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token
-        ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      // Never fall back to the anon publishable key — that would make the
+      // assistant call the function without an authenticated identity and
+      // any RLS-protected INSERT (e.g. support_tickets) would fail.
+      let { data: sessionData } = await supabase.auth.getSession();
+      let accessToken = sessionData?.session?.access_token ?? null;
+      if (!accessToken) {
+        try {
+          const { data: refreshed } = await supabase.auth.refreshSession();
+          accessToken = refreshed?.session?.access_token ?? null;
+        } catch (e) {
+          console.error('Marina: refreshSession failed', e);
+        }
+      }
+      if (!accessToken) {
+        toast.error('Sua sessão precisa ser reautenticada para conversar com a Marina. Faça login novamente.');
+        setIsLoading(false);
+        return;
+      }
       const response = await fetch(CHAT_URL, {
         method: 'POST',
         headers: {
@@ -344,6 +359,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Erro ao processar sua solicitação');
       }
+
 
       // Check content type to determine response format
       const contentType = response.headers.get('content-type') || '';
