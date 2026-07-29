@@ -84,6 +84,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  // Notify Service Worker about the current user so it can scope caches per user.
+  const notifySWUserId = useCallback((userId: string | null) => {
+    try {
+      const controller = navigator.serviceWorker?.controller;
+      if (!controller) return;
+      if (userId) {
+        controller.postMessage({ type: "SET_USER_ID", userId });
+      } else {
+        controller.postMessage({ type: "CLEAR_USER_CACHE" });
+      }
+    } catch {
+      // no-op — SW may not be registered (dev/preview/iframe)
+    }
+  }, []);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
