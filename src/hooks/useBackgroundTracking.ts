@@ -173,11 +173,12 @@ export const useBackgroundTracking = () => {
         toast.error('Não foi possível salvar a autorização');
         return false;
       }
-      await refreshProfile?.();
+      setHasConsent(value);
       if (!value) await stop();
       return true;
     },
-    [user?.id, refreshProfile, stop]
+    [user?.id, stop]
+
   );
 
   useEffect(() => {
