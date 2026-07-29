@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Loader2, Sparkles, History, X, LifeBuoy, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,13 @@ import { AttachmentChips, AttachmentButton, type MarinaAttachment } from './AIAt
 import { useMarinaAttachments } from '@/hooks/useMarinaAttachments';
 import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
+import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
+import { useSpeechPlayback } from '@/hooks/useSpeechPlayback';
+import { useVoicePref } from '@/hooks/useVoicePref';
+import { VoiceRecordButton } from './VoiceRecordButton';
+import { SpeakMessageButton } from './SpeakMessageButton';
+import { VoicePrefToggle } from './VoicePrefToggle';
+
 
 
 interface AIChatProps {
