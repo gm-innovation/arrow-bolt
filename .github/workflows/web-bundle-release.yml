@@ -1,0 +1,82 @@
+name: Publicar bundle web (OTA)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      min_native_build:
+        description: "Build nativo mínimo exigido por este bundle"
+        required: true
+        default: "1"
+        type: string
+      mandatory:
+        description: "Atualização obrigatória?"
+        required: true
+        default: "false"
+        type: choice
+        options: ["false", "true"]
+
+permissions:
+  contents: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Definir versão
+        id: meta
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "min_native_build=${{ inputs.min_native_build || '1' }}" >> "$GITHUB_OUTPUT"
+          echo "mandatory=${{ inputs.mandatory || 'false' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Instalar dependências
+        run: npm ci
+
+      - name: Build web
+        env:
+          BUNDLE_VERSION: ${{ steps.meta.outputs.version }}
+        run: npm run build
+
+      # index.html precisa ficar na RAIZ do zip para o updater encontrá-lo.
+      - name: Empacotar bundle
+        run: |
+          cd dist
+          zip -r ../bundle.zip .
+          cd ..
+          sha256sum bundle.zip | awk '{print $1}' > bundle.sha256
+          echo "SHA256=$(cat bundle.sha256)" >> "$GITHUB_ENV"
+
+      - name: Gerar release.json
+        run: |
+          cat > release.json <<EOF
+          {
+            "appId": "app.lovable.4cb88575f5074382bc47b7a5cefd825f",
+            "version": "${{ steps.meta.outputs.version }}",
+            "bundleUrl": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bundle.zip",
+            "sha256": "${SHA256}",
+            "minNativeBuild": ${{ steps.meta.outputs.min_native_build }},
+            "mandatory": ${{ steps.meta.outputs.mandatory }},
+            "message": "Correções e melhorias."
+          }
+          EOF
+          cat release.json
+
+      - name: Anexar à release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: |
+            bundle.zip
+            bundle.sha256
+            release.json

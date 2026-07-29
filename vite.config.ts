@@ -7,6 +7,19 @@ import { mcpPlugin } from "@lovable.dev/mcp-js/stacks/supabase/vite";
 
 const SW_VERSION = new Date().toISOString();
 
+/**
+ * Versão do bundle web entregue por OTA.
+ * No workflow de release é injetada a partir da tag Git (vX.Y.Z).
+ */
+const BUNDLE_VERSION = process.env.BUNDLE_VERSION || "0.0.0-dev";
+
+/**
+ * Build nativo embutido no APK. Incrementar APENAS quando algo nativo muda
+ * (novo plugin Capacitor, permissão, AndroidManifest, SDK, ícone nativo).
+ * Um bundle OTA com `minNativeBuild` maior que este não é instalável.
+ */
+const NATIVE_BUILD = Number(process.env.NATIVE_BUILD || 1);
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
@@ -15,6 +28,8 @@ export default defineConfig(({ mode }) => ({
   },
   define: {
     __SW_VERSION__: JSON.stringify(SW_VERSION),
+    __BUNDLE_VERSION__: JSON.stringify(BUNDLE_VERSION),
+    __NATIVE_BUILD__: JSON.stringify(NATIVE_BUILD),
   },
   plugins: [
     react(),

@@ -16,6 +16,18 @@ const config: CapacitorConfig = {
     cleartext: true,
   },
   plugins: {
+    /**
+     * Atualizações OTA do bundle web (fluxo MANUAL).
+     * `autoUpdate: false` — quem consulta a versão é o hook `useAppUpdate`,
+     * que baixa e aplica somente após aprovação do usuário no modal.
+     * NÃO configurar `updateUrl` aqui: isso ativaria o fluxo automático do plugin.
+     */
+    CapacitorUpdater: {
+      autoUpdate: false,
+      // Janela para o app chamar notifyAppReady() antes do rollback automático.
+      appReadyTimeout: 20000,
+      resetWhenUpdate: true,
+    },
     SplashScreen: {
       launchShowDuration: 1500,
       backgroundColor: '#0EA5E9',

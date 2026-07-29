@@ -14,6 +14,7 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import DashboardLayout from "./components/DashboardLayout";
 import { OfflineIndicator } from "./components/OfflineIndicator";
 import { NativeBootstrap } from "./components/native/NativeBootstrap";
+import { NativeAppUpdateProvider } from "./components/native/NativeAppUpdateProvider";
 
 
 // Auth pages - keep sync (small, critical path)
@@ -532,6 +533,7 @@ const App = () => {
               </ErrorBoundary>
               <OfflineIndicator />
               <NativeBootstrap />
+              <NativeAppUpdateProvider />
 
                   </WalkthroughProvider>
             </SidebarProvider>
