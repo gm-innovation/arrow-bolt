@@ -28,7 +28,7 @@ import { useSubscriptions } from "@/hooks/useSubscriptions";
 
 const formSchema = z.object({
   status: z.enum(["paid", "pending", "overdue"], {
-    required_error: "Selecione um status",
+    message: "Selecione um status",
   }),
 });
 

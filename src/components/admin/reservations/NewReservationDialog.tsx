@@ -43,8 +43,8 @@ import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   technician_id: z.string().min(1, "Selecione um técnico"),
-  start_date: z.date({ required_error: "Data de início é obrigatória" }),
-  end_date: z.date({ required_error: "Data de fim é obrigatória" }),
+  start_date: z.date({ message: "Data de início é obrigatória" }),
+  end_date: z.date({ message: "Data de fim é obrigatória" }),
   start_time: z.string().optional(),
   end_time: z.string().optional(),
   client_id: z.string().optional(),

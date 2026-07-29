@@ -106,6 +106,7 @@ export function ToolsModelTab({ agent, draft, setDraft }: Props) {
             <SelectContent>
               <SelectItem value="lovable">Lovable AI Gateway (sem chave)</SelectItem>
               <SelectItem value="openrouter">OpenRouter (requer OPENROUTER_API_KEY)</SelectItem>
+              <SelectItem value="openai">OpenAI / ChatGPT direto (requer OPENAI_API_KEY)</SelectItem>
             </SelectContent>
           </Select>
           {provider === "openrouter" && (

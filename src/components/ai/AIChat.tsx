@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Send, Loader2, Sparkles, History, X, LifeBuoy, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +12,13 @@ import { AttachmentChips, AttachmentButton, type MarinaAttachment } from './AIAt
 import { useMarinaAttachments } from '@/hooks/useMarinaAttachments';
 import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
+import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
+import { useSpeechPlayback } from '@/hooks/useSpeechPlayback';
+import { useVoicePref } from '@/hooks/useVoicePref';
+import { VoiceRecordButton } from './VoiceRecordButton';
+import { SpeakMessageButton } from './SpeakMessageButton';
+import { VoicePrefToggle } from './VoicePrefToggle';
+
 
 
 interface AIChatProps {
@@ -128,6 +135,26 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { processFiles: processDroppedFiles } = useMarinaAttachments(attachments, setAttachments, 10);
 
+  // ---- Voz ----
+  const { pref: voicePref, cycle: cycleVoicePref } = useVoicePref();
+  const { isSpeaking, speakingId, speak, stop: stopSpeaking } = useSpeechPlayback();
+  const lastSpokenRef = useRef<string | null>(null);
+  const lastInputWasVoiceRef = useRef(false);
+
+  const {
+    isRecording,
+    isTranscribing,
+    duration: recordDuration,
+    start: startRecording,
+    stop: stopRecording,
+    cancel: cancelRecording,
+  } = useVoiceRecorder({
+    onResult: (text) => {
+      lastInputWasVoiceRef.current = true;
+      setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+      textareaRef.current?.focus();
+    },
+  });
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -136,12 +163,45 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
     return () => cancelAnimationFrame(id);
   }, [messages, isLoading, reportPreview]);
 
+  // Fala automaticamente a última resposta conforme a preferência do usuário.
+  useEffect(() => {
+    if (voicePref === 'off' || isLoading) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant' || !last.content) return;
+    const key = last.id ?? `idx-${messages.length}-${last.content.length}`;
+    if (lastSpokenRef.current === key) return;
+    if (voicePref === 'auto' && !lastInputWasVoiceRef.current) return;
+    lastSpokenRef.current = key;
+    lastInputWasVoiceRef.current = false;
+    speak(last.content, key);
+  }, [messages, isLoading, voicePref, speak]);
+
   const handleSend = () => {
     if ((!input.trim() && attachments.length === 0) || isLoading) return;
+    stopSpeaking();
     sendMessage(input || '(anexo)', attachments);
     setInput('');
     setAttachments([]);
   };
+
+  // Colar imagens (print de tela) direto no chat.
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    if (isLoading) return;
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const files = items
+      .filter((it) => it.kind === 'file' && it.type.startsWith('image/'))
+      .map((it) => it.getAsFile())
+      .filter((f): f is File => !!f);
+    if (!files.length) return;
+    e.preventDefault();
+    const named = files.map((f, i) =>
+      f.name && f.name !== 'image.png'
+        ? f
+        : new File([f], `captura-${Date.now()}-${i + 1}.png`, { type: f.type }),
+    );
+    await processDroppedFiles(named);
+  }, [isLoading, processDroppedFiles]);
+
 
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -400,13 +460,24 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
 
                   </div>
 
-                  {/* Feedback for assistant messages */}
-                  {msg.role === 'assistant' && msg.content && msg.id && (
-                    <AIMessageFeedback
-                      messageId={msg.id}
-                      onFeedback={submitFeedback}
-                    />
+                  {/* Feedback + leitura em voz das respostas */}
+                  {msg.role === 'assistant' && msg.content && (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {msg.id && (
+                        <AIMessageFeedback
+                          messageId={msg.id}
+                          onFeedback={submitFeedback}
+                        />
+                      )}
+                      <SpeakMessageButton
+                        text={msg.content}
+                        isSpeaking={isSpeaking && speakingId === (msg.id ?? `idx-${i}`)}
+                        onSpeak={() => speak(msg.content, msg.id ?? `idx-${i}`)}
+                        onStop={stopSpeaking}
+                      />
+                    </div>
                   )}
+
 
                   {/* Action buttons */}
                   {actions.length > 0 && (
@@ -430,12 +501,28 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
           <AttachmentChips attachments={attachments} onChange={setAttachments} />
           <div className="flex gap-2 items-stretch">
             <AttachmentButton attachments={attachments} onChange={setAttachments} />
+            <VoiceRecordButton
+              isRecording={isRecording}
+              isTranscribing={isTranscribing}
+              duration={recordDuration}
+              disabled={isLoading}
+              onStart={startRecording}
+              onStop={stopRecording}
+              onCancel={cancelRecording}
+            />
             <Textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={attachments.length > 0 ? "Descreva o que quer que a Marina faça com o(s) anexo(s)..." : "Digite sua pergunta..."}
+              onPaste={handlePaste}
+              placeholder={
+                isRecording
+                  ? 'Gravando... fale e clique em parar para transcrever'
+                  : attachments.length > 0
+                    ? 'Descreva o que quer que a Marina faça com o(s) anexo(s)...'
+                    : 'Digite, cole uma imagem (Ctrl+V) ou grave um áudio...'
+              }
               className="min-h-[56px] max-h-[160px] resize-none flex-1"
               rows={1}
               disabled={isLoading}
@@ -453,6 +540,10 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
               )}
             </Button>
           </div>
+          <div className="flex items-center justify-between">
+            <VoicePrefToggle pref={voicePref} onCycle={cycleVoicePref} />
+          </div>
+
         </div>
       </div>
     </div>
