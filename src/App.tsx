@@ -272,6 +272,7 @@ const App = () => {
                       <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/install" element={<InstallApp />} />
+                      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
                   {/* Super Admin - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin" /></ProtectedRoute>}>
