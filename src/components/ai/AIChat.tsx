@@ -460,13 +460,24 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
 
                   </div>
 
-                  {/* Feedback for assistant messages */}
-                  {msg.role === 'assistant' && msg.content && msg.id && (
-                    <AIMessageFeedback
-                      messageId={msg.id}
-                      onFeedback={submitFeedback}
-                    />
+                  {/* Feedback + leitura em voz das respostas */}
+                  {msg.role === 'assistant' && msg.content && (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      {msg.id && (
+                        <AIMessageFeedback
+                          messageId={msg.id}
+                          onFeedback={submitFeedback}
+                        />
+                      )}
+                      <SpeakMessageButton
+                        text={msg.content}
+                        isSpeaking={isSpeaking && speakingId === (msg.id ?? `idx-${idx}`)}
+                        onSpeak={() => speak(msg.content, msg.id ?? `idx-${idx}`)}
+                        onStop={stopSpeaking}
+                      />
+                    </div>
                   )}
+
 
                   {/* Action buttons */}
                   {actions.length > 0 && (
