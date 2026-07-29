@@ -14,7 +14,7 @@ export const NATIVE_BUILD: number =
   typeof __NATIVE_BUILD__ !== 'undefined' ? __NATIVE_BUILD__ : 1;
 
 /** Identificador do app usado para validar o manifesto de release. */
-export const APP_ID = 'app.lovable.4cb88575f5074382bc47b7a5cefd825f';
+export const APP_ID = 'br.com.lecsor.arrow';
 
 /**
  * Compara duas versões semânticas simples (x.y.z, sufixos ignorados).

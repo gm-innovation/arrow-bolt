@@ -8,7 +8,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
  * app use os arquivos empacotados em `dist/`.
  */
 const config: CapacitorConfig = {
-  appId: 'app.lovable.4cb88575f5074382bc47b7a5cefd825f',
+  appId: 'br.com.lecsor.arrow',
   appName: 'Arrow',
   webDir: 'dist',
   server: {
