@@ -1,54 +1,46 @@
-# Anexos de Auditoria — upload real de arquivos
+# Calibração — erro de "duplicate key" ao criar instrumento
 
-## Diagnóstico (confirmado)
+## Diagnóstico (confirmado por consulta ao banco)
 
-O drawer `AuditAttachmentsDrawer.tsx` não tem upload de arquivo — ele exige que o usuário digite manualmente um **Nome do arquivo** e uma **URL** (`https://...`) para poder salvar. Como a Rayane (perfil `qualidade`) não tem como gerar essa URL, o botão "Adicionar" fica inativo/sem efeito e ela não consegue anexar nada. Não é bug de RLS nem de tipo de arquivo — é a UI que simplesmente nunca chamou o Storage.
+No módulo de Qualidade → Calibração, o botão "Novo" abre `DeviceFormDialog.tsx`, que grava em `public.quality_measuring_devices` via o mutation `upsert` de `useQualityDevices.ts`. Essa tabela tem UMA única restrição de unicidade:
 
-Evidências:
-- `src/components/quality/AuditAttachmentsDrawer.tsx`: campos `file_name` + `file_url` como `Input` de texto; sem `<input type="file">`.
-- `src/hooks/useQualityAuditAttachments.ts`: `add` insere direto em `quality_audit_attachments` com o `file_url` recebido — nunca faz upload.
-- RLS `qaa_write` já libera `qualidade`/`director`/`super_admin` da mesma empresa da auditoria — está correta.
-- Buckets existentes: `quality-evidences` (privado) é o candidato natural.
+```
+quality_measuring_devices_company_id_code_key  UNIQUE (company_id, code)
+```
 
-## O que construir
+A tabela `quality_calibrations` (registro de calibração propriamente dito) **não tem nenhuma unique constraint** além da PK — logo o erro só pode vir do cadastro de instrumento, quando a Rayane digita um Código/TAG que já existe para outro instrumento da mesma empresa (ativo ou já cadastrado antes). O `onError` do mutation hoje só faz `toast({ description: e.message })`, então o Postgres devolve literalmente "duplicate key value violates unique constraint …" em inglês — daí a mensagem que ela viu.
 
-1. **Upload real no drawer**
-   - Substituir o formulário atual por uma área de upload (botão + drag-and-drop) usando `<input type="file">` sobreposto (padrão do projeto: `opacity-0 absolute inset-0`).
-   - Aceitar PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, CSV, TXT, PNG, JPG/JPEG, WEBP.
-   - Limite: 25 MB por arquivo (validado no front, com toast claro em pt-BR quando exceder ou tipo não permitido).
-   - Manter os campos **Tipo** (plan/evidence/report/photo/other) e **Notas**.
+Não há duplicidade em `quality_calibrations`, nem gatilhos secundários que insiram em tabelas com unique — os dois triggers verificados (`quality_calibration_after_change_trigger` e `quality_improvement_from_calibration`) só fazem UPDATE em devices e INSERT em `quality_improvements_manual` (sem unique).
 
-2. **Fluxo de upload (front)**
-   - Sanitizar nome de arquivo (helper já existente no projeto — remover acentos/espaços) e prefixar com timestamp para evitar colisão.
-   - Path no Storage: `quality-evidences/audits/{audit_id}/{timestamp}_{sanitized_name}`.
-   - Após `supabase.storage.from('quality-evidences').upload(...)`, gerar `createSignedUrl` (7 dias) só para exibição/download imediato, mas **persistir no banco o `storage_path`**, não a URL assinada.
+## O que corrigir
 
-3. **Ajuste de dados**
-   - Adicionar coluna `storage_path text` em `quality_audit_attachments` (migration). Manter `file_url` para compatibilidade com registros antigos (nullable).
-   - Hook `useQualityAuditAttachments`: inserir `storage_path` no `add`; no `remove`, apagar também o objeto do bucket via `storage.remove([storage_path])`.
-   - Listagem: se houver `storage_path`, gerar `createSignedUrl` sob demanda ao clicar; fallback para `file_url` legado.
+Não mexer no schema — a restrição `(company_id, code)` é legítima. Ajustar o front para dar feedback claro e evitar o submit quando dá para prever a colisão.
 
-4. **RLS de Storage**
-   - Adicionar policies em `storage.objects` para o bucket `quality-evidences` permitindo `INSERT/SELECT/DELETE` a `authenticated` cujo `has_role` seja `qualidade`/`director`/`super_admin` e cujo caminho comece com `audits/`. Sem grants extras em tabela — as policies da tabela já cobrem.
+1. **Mensagem amigável em pt-BR** no `onError` do `upsert` (`src/hooks/useQualityDevices.ts`):
+   - Detectar `error.code === "23505"` ou `message` contendo `quality_measuring_devices_company_id_code_key`.
+   - Toast: título "Código já cadastrado", descrição "Já existe um instrumento com esse Código/TAG na sua empresa. Escolha outro código." em vez do texto cru do Postgres.
+   - Manter o toast genérico para outros erros.
 
-5. **Feedback ao usuário (pt-BR)**
-   - Toasts: "Enviando arquivo…", "Anexo adicionado", "Falha no upload: {motivo}", "Tipo não suportado", "Arquivo excede 25 MB".
-   - Barra/spinner de progresso enquanto envia; desabilitar o botão durante o envio.
+2. **Validação preventiva** em `DeviceFormDialog.tsx`:
+   - Ao sair do campo `Código / TAG` (onBlur), consultar `quality_measuring_devices` por `company_id` + `code` (ignorando o próprio `device.id` no modo edição) e, se existir, marcar o campo em vermelho com a mensagem inline "Código já em uso".
+   - Desabilitar o botão Salvar enquanto houver duplicidade detectada.
+
+3. **Trim/normalização**:
+   - Aplicar `.trim()` no `code` antes de salvar para evitar duplicidade "invisível" causada por espaço no final.
 
 ## Fora de escopo
 
-- Não mexer em `NewAuditDialog`, listagem de auditorias, nem em outros módulos.
-- Não alterar RLS da tabela `quality_audit_attachments` (já está correta).
-- Sem alteração de i18n global — mensagens ficam no próprio componente.
+- Não alterar RLS, migrações, tabelas de calibração ou triggers.
+- Não mexer no drawer de registro de calibração (`CalibrationDrawer.tsx`) — o erro não vem de lá.
+- Sem mudanças em outros módulos.
 
 ## Arquivos que serão tocados
 
-- `src/components/quality/AuditAttachmentsDrawer.tsx` — nova UI de upload.
-- `src/hooks/useQualityAuditAttachments.ts` — upload + signed URL + delete no Storage.
-- Migration nova: coluna `storage_path` + policies do bucket `quality-evidences`.
+- `src/hooks/useQualityDevices.ts` — tratar erro 23505 no `upsert.onError`.
+- `src/components/quality/DeviceFormDialog.tsx` — checagem de duplicidade em tempo real, feedback inline, trim.
 
 ## Validação
 
-- Logar como usuário `qualidade` da mesma empresa da auditoria, anexar um PDF e um DOCX, conferir que aparecem na lista, que o link abre e que o `Remove` apaga o objeto do bucket.
-- Tentar arquivo > 25 MB e tipo `.exe` → toasts de erro claros.
-- Logar como usuário sem papel de qualidade → botão de anexar bloqueado / erro amigável.
+- Cadastrar instrumento com código inédito → sucesso.
+- Cadastrar instrumento repetindo um código existente → mensagem inline "Código já em uso" e botão Salvar desabilitado; caso escape a checagem e chegue no banco, toast em pt-BR explicando o campo culpado, sem texto técnico.
+- Editar um instrumento existente mantendo seu próprio código → sem falso positivo.
