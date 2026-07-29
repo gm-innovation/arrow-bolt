@@ -20,6 +20,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import InstallApp from "./pages/InstallApp";
+import OAuthConsent from "./pages/OAuthConsent";
 import Chat from "./pages/Chat";
 
 // Lazy-loaded pages
