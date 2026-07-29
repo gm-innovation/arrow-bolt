@@ -36,7 +36,14 @@ const Login = () => {
 
   const doNavigate = useCallback((role: string) => {
     if (navigatedRef.current) return;
-    const redirectPath = getRoleRedirectPath(role);
+    // Preserve OAuth consent flow (or any same-origin `next` path)
+    const params = new URLSearchParams(window.location.search);
+    const rawNext = params.get("next");
+    let nextPath: string | null = null;
+    if (rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//")) {
+      nextPath = rawNext;
+    }
+    const redirectPath = nextPath ?? getRoleRedirectPath(role);
     if (redirectPath) {
       navigatedRef.current = true;
       sessionStorage.removeItem(SESSION_EMAIL_KEY);

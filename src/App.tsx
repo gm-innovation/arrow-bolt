@@ -20,6 +20,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import InstallApp from "./pages/InstallApp";
+import OAuthConsent from "./pages/OAuthConsent";
 import Chat from "./pages/Chat";
 
 // Lazy-loaded pages
@@ -272,6 +273,7 @@ const App = () => {
                       <Route path="/forgot-password" element={<ForgotPassword />} />
                       <Route path="/reset-password" element={<ResetPassword />} />
                       <Route path="/install" element={<InstallApp />} />
+                      <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
                   {/* Super Admin - nested layout route */}
                   <Route element={<ProtectedRoute allowedRoles={['super_admin']}><DashboardLayout userType="super-admin" /></ProtectedRoute>}>
