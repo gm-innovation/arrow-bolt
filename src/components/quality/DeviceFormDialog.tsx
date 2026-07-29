@@ -201,7 +201,7 @@ const DeviceFormDialog = ({ open, onClose, device }: Props) => {
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save} disabled={!form.code.trim() || !form.name.trim() || upsert.isPending}>
+          <Button onClick={save} disabled={!form.code.trim() || !form.name.trim() || !!codeError || checkingCode || upsert.isPending}>
             {upsert.isPending ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
