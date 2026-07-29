@@ -9,12 +9,26 @@ import { toast } from 'sonner';
  * Serve como bloqueio de reentrada: o app pede biometria antes de liberar a sessão salva.
  */
 export const useBiometricAuth = () => {
-  const { user, profile, refreshProfile } = useAuth() as any;
+  const { user } = useAuth();
   const [available, setAvailable] = useState(false);
   const [biometryLabel, setBiometryLabel] = useState('Biometria');
   const [checking, setChecking] = useState(true);
+  const [enabled, setEnabledState] = useState(false);
 
-  const enabled = Boolean(profile?.biometric_login_enabled);
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('biometric_login_enabled')
+        .eq('id', user.id)
+        .maybeSingle();
+      if (active) setEnabledState(Boolean((data as any)?.biometric_login_enabled));
+    })();
+    return () => { active = false; };
+  }, [user?.id]);
+
 
   useEffect(() => {
     let active = true;
