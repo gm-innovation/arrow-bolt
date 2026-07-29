@@ -1,64 +1,54 @@
-## Esclarecimento aceito
+# Anexos de Auditoria — upload real de arquivos
 
-Ter duas contas com o mesmo nome não é problema:
+## Diagnóstico (confirmado)
 
-- Cada usuário é identificado pelo **e-mail**, não pelo nome.
-- Se um colaborador acumular funções, o correto é ter **múltiplos papéis vinculados ao mesmo usuário** em `user_roles`, mantendo um único login.
-- Duas contas distintas (dois e-mails) são apenas duas linhas no banco; ambas devem autenticar normalmente e acessar suas áreas correspondentes.
+O drawer `AuditAttachmentsDrawer.tsx` não tem upload de arquivo — ele exige que o usuário digite manualmente um **Nome do arquivo** e uma **URL** (`https://...`) para poder salvar. Como a Rayane (perfil `qualidade`) não tem como gerar essa URL, o botão "Adicionar" fica inativo/sem efeito e ela não consegue anexar nada. Não é bug de RLS nem de tipo de arquivo — é a UI que simplesmente nunca chamou o Storage.
 
-Portanto, o plano **não** vai mexer nas duas contas da Rayane nem consolidar cadastros. O foco é garantir que qualquer usuário autenticado — independentemente do papel — consiga abrir chamados via Marina.
+Evidências:
+- `src/components/quality/AuditAttachmentsDrawer.tsx`: campos `file_name` + `file_url` como `Input` de texto; sem `<input type="file">`.
+- `src/hooks/useQualityAuditAttachments.ts`: `add` insere direto em `quality_audit_attachments` com o `file_url` recebido — nunca faz upload.
+- RLS `qaa_write` já libera `qualidade`/`director`/`super_admin` da mesma empresa da auditoria — está correta.
+- Buckets existentes: `quality-evidences` (privado) é o candidato natural.
 
-## Diagnóstico
+## O que construir
 
-- A conversa que falhou pertence à conta `qualidade@googlemarine.com.br` (papel `qualidade`), com company_id definido.
-- A política RLS de `support_tickets` só exige `auth.uid() = user_id` no INSERT. Não há bloqueio por papel.
-- O agente Marina **não** tem `support_tickets` na lista de `write_actions`, então a lógica atual permite a ação por padrão.
-- A tool `create_support_ticket` faz o INSERT via `ctx.userSupabase` (client autenticado com o JWT do usuário).
-- No client, `useAIChat` monta o header assim:  
-  `Authorization: Bearer ${session.access_token ?? VITE_SUPABASE_PUBLISHABLE_KEY}`
-- Se, no momento do envio, `getSession()` retornar sem `access_token`, o request vai para a edge function usando a **publishable key**. Dentro da função, o `userSupabase` roda como `anon`, `auth.uid()` fica `NULL`, e o INSERT bate na política `users_insert_own_tickets` → “problema de autenticação”.
+1. **Upload real no drawer**
+   - Substituir o formulário atual por uma área de upload (botão + drag-and-drop) usando `<input type="file">` sobreposto (padrão do projeto: `opacity-0 absolute inset-0`).
+   - Aceitar PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, CSV, TXT, PNG, JPG/JPEG, WEBP.
+   - Limite: 25 MB por arquivo (validado no front, com toast claro em pt-BR quando exceder ou tipo não permitido).
+   - Manter os campos **Tipo** (plan/evidence/report/photo/other) e **Notas**.
 
-Isso independe de a sessão do app estar válida na tela; é uma condição de corrida entre a hidratação da sessão e o envio da mensagem para a Marina.
+2. **Fluxo de upload (front)**
+   - Sanitizar nome de arquivo (helper já existente no projeto — remover acentos/espaços) e prefixar com timestamp para evitar colisão.
+   - Path no Storage: `quality-evidences/audits/{audit_id}/{timestamp}_{sanitized_name}`.
+   - Após `supabase.storage.from('quality-evidences').upload(...)`, gerar `createSignedUrl` (7 dias) só para exibição/download imediato, mas **persistir no banco o `storage_path`**, não a URL assinada.
 
-## Plano
+3. **Ajuste de dados**
+   - Adicionar coluna `storage_path text` em `quality_audit_attachments` (migration). Manter `file_url` para compatibilidade com registros antigos (nullable).
+   - Hook `useQualityAuditAttachments`: inserir `storage_path` no `add`; no `remove`, apagar também o objeto do bucket via `storage.remove([storage_path])`.
+   - Listagem: se houver `storage_path`, gerar `createSignedUrl` sob demanda ao clicar; fallback para `file_url` legado.
 
-### 1. Nunca chamar a Marina como anônimo
-Arquivo: `src/hooks/useAIChat.ts`
-- Remover o fallback `?? VITE_SUPABASE_PUBLISHABLE_KEY` no header `Authorization`.
-- Antes de enviar, garantir um `access_token` real:
-  - `supabase.auth.getSession()`; se não houver token, tentar `supabase.auth.refreshSession()` uma vez.
-  - Se ainda faltar token, abortar o envio e mostrar toast: “Sua sessão precisa ser reautenticada para conversar com a Marina. Faça login novamente.”
-- Isso corta o caminho em que um usuário autenticado dispara a Marina sem identidade real.
+4. **RLS de Storage**
+   - Adicionar policies em `storage.objects` para o bucket `quality-evidences` permitindo `INSERT/SELECT/DELETE` a `authenticated` cujo `has_role` seja `qualidade`/`director`/`super_admin` e cujo caminho comece com `audits/`. Sem grants extras em tabela — as policies da tabela já cobrem.
 
-### 2. Validar identidade dentro da edge function
-Arquivo: `supabase/functions/ai-assistant/index.ts`
-- Após criar o `userSupabase` a partir do header `Authorization`, chamar `userSupabase.auth.getUser()`.
-- Se falhar, retornar `401 { error: "Sessão inválida. Faça login novamente para continuar." }`.
-- Sobrescrever `toolCtx.userId` com o `user.id` verificado do token — nunca confiar apenas no `context.userId` vindo do body.
-- Buscar `company_id` do `profiles` pelo `user.id` verificado; usar como `toolCtx.companyId` (fallback para o do body só se não existir).
-- Manter `verify_jwt = false` no `config.toml` (padrão) — a validação passa a ser feita em código.
-
-### 3. Endurecer a tool e melhorar a mensagem ao usuário
-Arquivo: `supabase/functions/ai-assistant/tools.ts`, handler `create_support_ticket`
-- Após o INSERT, se `error` contiver `row-level security` ou `permission`, devolver:  
-  `{ error: "Não consegui registrar seu chamado agora — sua sessão precisa ser reautenticada. Faça login novamente e tente de novo." }`  
-  Manter o erro técnico em `console.error`.
-- Manter o INSERT via `userSupabase` (mesmo caminho de RLS já em uso).
-
-### 4. Validação
-- Fazer login com a conta `qualidade@googlemarine.com.br` (papel `qualidade`) na pré-visualização.
-- Pedir à Marina para abrir um chamado e confirmar sua criação.
-- Consultar `support_tickets` e conferir que a linha nova tem `user_id = f37fd779-5cb0-49f2-9dbe-f24be2b5b368` e `company_id` correto.
-- Repetir para um segundo usuário comum (qualquer papel operacional) para confirmar que não é específico do super_admin.
-- Confirmar que o super_admin continua conseguindo abrir chamados normalmente.
+5. **Feedback ao usuário (pt-BR)**
+   - Toasts: "Enviando arquivo…", "Anexo adicionado", "Falha no upload: {motivo}", "Tipo não suportado", "Arquivo excede 25 MB".
+   - Barra/spinner de progresso enquanto envia; desabilitar o botão durante o envio.
 
 ## Fora de escopo
-- Consolidar/mesclar as duas contas da Rayane. Cada e-mail permanece como uma conta independente.
-- Alterar políticas RLS, GRANTs ou schema de `support_tickets`.
-- Mudanças em `/super-admin/support-inbox`, PM Dashboard, walkthrough ou PWA.
-- Regras de acúmulo de papéis: a base já suporta múltiplas linhas em `user_roles` por usuário; isso continua igual.
 
-## Detalhes técnicos
-- Arquivos alterados: `src/hooks/useAIChat.ts`, `supabase/functions/ai-assistant/index.ts`, `supabase/functions/ai-assistant/tools.ts`.
-- Nenhuma migração de banco.
-- Edge function `ai-assistant` continua com `verify_jwt = false`; a autorização vira responsabilidade explícita do código via `auth.getUser()`.
+- Não mexer em `NewAuditDialog`, listagem de auditorias, nem em outros módulos.
+- Não alterar RLS da tabela `quality_audit_attachments` (já está correta).
+- Sem alteração de i18n global — mensagens ficam no próprio componente.
+
+## Arquivos que serão tocados
+
+- `src/components/quality/AuditAttachmentsDrawer.tsx` — nova UI de upload.
+- `src/hooks/useQualityAuditAttachments.ts` — upload + signed URL + delete no Storage.
+- Migration nova: coluna `storage_path` + policies do bucket `quality-evidences`.
+
+## Validação
+
+- Logar como usuário `qualidade` da mesma empresa da auditoria, anexar um PDF e um DOCX, conferir que aparecem na lista, que o link abre e que o `Remove` apaga o objeto do bucket.
+- Tentar arquivo > 25 MB e tipo `.exe` → toasts de erro claros.
+- Logar como usuário sem papel de qualidade → botão de anexar bloqueado / erro amigável.
