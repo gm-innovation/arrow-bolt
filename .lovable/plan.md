@@ -1,180 +1,89 @@
 ## Objetivo
-Habilitar **voz na Marina dentro do próprio Arrow** (chat web + PWA), permitir **colar/anexar imagens no chat**, e deixar a arquitetura pronta para **trocar de provedor de IA** (Lovable AI, OpenRouter ou OpenAI/ChatGPT direto) e para **novos canais** (Teams) — tudo sem refazer nada depois.
 
-## Estado atual verificado
-- `src/components/ai/AIChat.tsx` (461 linhas) — chat da Marina, hoje **só texto + anexos por botão**. Sem voz, sem colar imagem.
-- `supabase/functions/ai-assistant/index.ts` (1276 linhas) — cérebro da Marina, com toolset e auditoria; hoje aponta direto para o gateway Lovable.
-- Tabela **`ai_channel_bindings` já existe** — ponto de extensão pronto para Teams.
-- Tabela **`ai_agents`** já existe com config por empresa — servirá para guardar a escolha de provedor.
+Transformar o Arrow em um app Android nativo (Capacitor) instalável por APK, reaproveitando 100% do código web atual, com acesso completo aos recursos do celular. O PWA continua funcionando para quem não instalar o APK.
 
-## Arquitetura
+## O que já existe
 
-```text
-┌─────── CANAIS (plugável) ───────┐   ┌─── PROVEDORES (plugável) ───┐
-│ web/PWA ✅  teams 🔜  whatsapp  │   │ lovable ✅  openrouter 🔜   │
-└──────────────┬──────────────────┘   │ openai 🔜                   │
-               ↓                      └──────────────┬──────────────┘
-     _shared/channel.ts                              ↓
-               └──────────► ai-assistant ◄─── _shared/ai-provider.ts
-                             ↑        ↓
-                  ai-speech-to-text  ai-text-to-speech
-```
+- `useGeolocation` grava check-in/check-out/tracking em `technician_locations` (com endereço via Mapbox).
+- `GeolocationButtons.tsx` na área do técnico; mapa de últimas posições em `TechnicianLocations.tsx`.
+- PWA completa (manifest, service worker, offline com Dexie, web push).
+
+Falta a camada nativa e os recursos que o navegador não entrega.
 
 ---
 
-## Onda 1 — Voz no chat interno
+## Onda 1 — Base Capacitor
 
-### 1. Edge Function `ai-speech-to-text`
-- `multipart/form-data`, valida sessão com `getUser()` (sem fallback anon)
-- Encaminha para `/v1/audio/transcriptions`, modelo `openai/gpt-4o-mini-transcribe`, `stream: "true"`
-- Repassa o SSE sem bufferizar → transcrição aparece palavra a palavra
-- Erros 400/402/429 traduzidos para pt-BR
+- Instalar `@capacitor/core`, `@capacitor/cli`, `@capacitor/android`.
+- Criar `capacitor.config.ts` (appId `app.lovable.4cb88575f5074382bc47b7a5cefd825f`, appName `Arrow`, hot-reload para o sandbox em dev).
+- Criar `src/lib/platform.ts` com `isNativeApp()` — todo recurso nativo tem fallback web, sem telas duplicadas.
+- Splash screen e ícone do app com a identidade Lecsor.
 
-### 2. Edge Function `ai-text-to-speech`
-- `{ text, voice? }`, valida sessão
-- `/v1/audio/speech`, modelo `openai/gpt-4o-mini-tts`, voz `alloy`, `response_format: "pcm"`, SSE
-- `instructions`: "Fale em português do Brasil, tom profissional e acolhedor"
-- Divide textos longos em blocos (~400 palavras) para não estourar limite
+## Onda 2 — Câmera e GPS no check-in
 
-### 3. `src/hooks/useVoiceRecorder.ts`
-- Captura via **Web Audio API (PCM)** — não `MediaRecorder`, que gera MP4 fragmentado no Safari/iOS e quebra a transcrição
-- Encoda **WAV 16 kHz mono completo** antes de enviar
-- Rejeita gravação vazia (< 2 KB) com aviso amigável
-- Expõe `isRecording`, `duration`, `start/stop/cancel`, tratamento de permissão negada
+- `@capacitor/camera` + `@capacitor/geolocation`.
+- `useNativeCamera.ts`: câmera do sistema no app; `<input capture>` no navegador.
+- `useGeolocation` passa a usar o plugin nativo quando disponível (precisão e permissões melhores).
+- Foto anexada ao check-in: coluna `photo_path` em `technician_locations` + bucket privado `checkin-photos` com RLS por empresa/técnico.
 
-### 4. `src/hooks/useSpeechPlayback.ts`
-- Consome SSE, decodifica PCM base64 e agenda no `AudioContext` 24 kHz
-- Resume de contexto suspenso (iframe do preview e iOS)
-- Expõe `isSpeaking`, `speak(text)`, `stop()`
+## Onda 3 — Rastreamento em segundo plano
 
-### 5. UI de voz no `AIChat.tsx`
-- **Botão de microfone** ao lado do anexo; gravando → quadrado vermelho pulsante + cronômetro `00:12` + botão X para cancelar
-- Ao parar: transcrição vai para o **campo de texto** (usuário revisa antes de enviar), com placeholder "Transcrevendo…"
-- **Botão "🔊 Ouvir"** em cada resposta da Marina
-- **Toggle "Resposta em voz"**: `off` (padrão) / `auto` (fala quando a pergunta veio por voz) / `on` (sempre)
-- Preferência salva em nova coluna `profiles.voice_pref` (`off|auto|on`, default `off`), com fallback `localStorage`
+- `@capacitor-community/background-geolocation` com notificação persistente ("Arrow está registrando sua localização").
+- `useBackgroundTracking.ts`: liga no check-in, desliga no check-out; nunca roda sem tarefa ativa.
+- Buffer offline dos pontos e sincronização posterior.
+- Throttle configurável (distância mínima / intervalo) para não inflar a tabela.
+- Opt-in explícito do técnico + flag de consentimento em `profiles` (exigência do Google Play e LGPD).
+- Coluna `battery_level` opcional junto de cada ponto.
 
----
+## Onda 4 — Push nativo e deep links
 
-## Onda 2 — Imagens no chat (colar, arrastar, capturar)
+- `@capacitor/push-notifications` com Firebase Cloud Messaging; token salvo em `push_subscriptions` com marcação de plataforma.
+- Edge function de envio passa a despachar para web push **e** FCM conforme o tipo de inscrição.
+- Deep links (`@capacitor/app` + App Links): notificação ou link do WhatsApp abre direto a OS/tarefa correspondente, reaproveitando `notificationRoutes.ts`.
 
-### 6. `src/hooks/useChatImagePaste.ts`
-- Listener de `paste` no container do chat: captura `clipboardData.items` do tipo `image/*` (print de tela vai direto)
-- **Drag & drop** de imagem sobre a área do chat com overlay "Solte a imagem aqui"
-- Botão de câmera no mobile (`capture="environment"`)
-- Validação: só `image/png|jpeg|webp|gif`, máx. 10 MB, máx. 5 imagens por mensagem
-- Compressão via canvas antes do upload (lado maior 1600 px, JPEG q0.85) — corta drasticamente custo de token e tempo
+## Onda 5 — Biometria e scanner QR
 
-### 7. Armazenamento e envio
-- Upload para bucket **`marina-chat-images`** (privado), caminho `{company_id}/{user_id}/{uuid}.jpg`
-- RLS: usuário lê/escreve só o próprio caminho; RH/admin sem acesso extra
-- No envio, gera **signed URL** (1 h) e monta o bloco multimodal:
-  `{"type":"image_url","image_url":{"url":"<signed>"}}`
-- Se o modelo ativo não aceitar imagem, avisa em pt-BR e sugere trocar de modelo
+- `@capacitor-community/biometric-auth`: após o primeiro login, o técnico entra por digital/Face; sessão guardada em armazenamento seguro do dispositivo.
+- `@capacitor-mlkit/barcode-scanning`: leitura de QR/código de barras para identificar embarcação, equipamento, instrumento de calibração e item de EPI.
+- Gerador de QR nos cadastros correspondentes (instrumentos do SGQ e EPIs), para imprimir e colar no ativo.
 
-### 8. UI de imagens
-- **Miniaturas** acima do campo de texto com botão X para remover
-- Barra de progresso por imagem durante upload
-- Imagens já enviadas aparecem na bolha da mensagem, clicáveis para ampliar (lightbox)
-- Marina passa a **entender prints de erro** — casa direto com o fluxo de tickets de suporte
+## Onda 6 — Offline robusto e compartilhamento
 
----
+- `@capacitor-community/sqlite` como storage do `offlineStorage.ts` no app nativo (Dexie continua no navegador) — mais confiável para estaleiro/alto-mar.
+- `@capacitor/filesystem` + `@capacitor/share`: salvar o PDF do relatório no dispositivo e enviar direto pro WhatsApp/e-mail do cliente.
+- Anexar arquivos do celular sem as limitações do navegador iOS.
 
-## Onda 3 — Camada de provedor de IA (Lovable / OpenRouter / OpenAI)
+## Onda 7 — Navegação, chamada e sensores
 
-### 9. `supabase/functions/_shared/ai-provider.ts`
-Resolve o provedor em tempo de execução, mantendo corpo OpenAI-compatible:
+- Botões na OS: abrir rota no Waze/Google Maps e ligar para o contato do cliente com um toque.
+- `@capacitor/network`: indicador real de conexão substituindo o `OfflineIndicator` atual baseado em `navigator.onLine`.
+- `@capacitor/device` e `@capacitor/haptics`: nível de bateria junto ao rastreamento e feedback tátil em confirmações críticas.
+- Bússola/orientação disponível para uso em inspeções (exposta como hook, aplicada onde fizer sentido depois).
 
-```ts
-type ProviderId = "lovable" | "openrouter" | "openai";
+## Onda 8 — Build e distribuição do APK
 
-interface ResolvedProvider {
-  id: ProviderId;
-  baseUrl: string;
-  headers: Record<string, string>;
-  model: string;
-  supportsVision: boolean;
-  supportsTools: boolean;
-}
-```
+A Lovable não compila APK; o build acontece após exportar para o GitHub:
 
-| Provedor | Base URL | Auth | Chave |
-|---|---|---|---|
-| `lovable` (padrão) | `https://ai.gateway.lovable.dev/v1` | `Lovable-API-Key` | já existe |
-| `openrouter` | `https://openrouter.ai/api/v1` | `Authorization: Bearer` | `OPENROUTER_API_KEY` (secret, sob demanda) |
-| `openai` | `https://api.openai.com/v1` | `Authorization: Bearer` | `OPENAI_API_KEY` (secret, sob demanda) |
+1. Export to GitHub → `git pull`
+2. `npm install`
+3. `npx cap add android`
+4. `npm run build && npx cap sync`
+5. `npx cap open android` → Build → Generate Signed Bundle/APK → APK
+6. Distribuir o `.apk` por link/WhatsApp (técnicos precisam permitir "fontes desconhecidas")
 
-- Normaliza diferenças conhecidas: GPT-5 rejeita `max_tokens`/`temperature` → usa `max_completion_tokens`; GPT-5.6 exige `reasoning_effort: "none"` com tools; OpenRouter aceita headers `HTTP-Referer`/`X-Title`
-- **Fallback automático**: se o provedor escolhido falhar com 5xx/timeout, cai para `lovable` e registra em `ai_integration_logs`
-- Chaves só existem no servidor — **nunca** no frontend
-
-### 10. Configuração por empresa
-- Novas colunas em `ai_agents`: `provider` (default `lovable`), `model`, `fallback_enabled` (default `true`)
-- Aba **"Provedor de IA"** em `/super-admin/ai-management`:
-  - Seleção de provedor + modelo (lista carregada dinamicamente do OpenRouter quando aplicável)
-  - Indicador de status da chave: `✅ configurada` / `⚠️ não configurada`
-  - Botão **"Testar conexão"** que faz uma chamada real e mostra latência e resposta
-- STT/TTS **continuam sempre no Lovable AI** (OpenRouter não oferece esses endpoints) — deixado explícito na UI
-
-### 11. `ai-assistant` refatorado
-- Passa a montar o request via `ai-provider.ts` em vez de URL fixa
-- Novo parâmetro `channel: "web" | "teams" | "whatsapp"` (default `web`) e `input_mode: "text" | "voice"`
-- Em `input_mode: "voice"`: instrução extra para respostas curtas e sem markdown pesado (ruim de ouvir)
-- Registra `provider`, `model`, `channel`, `input_mode` em `ai_assistant_actions` para auditoria e custo
+Também deixo pronto um **GitHub Action** que gera o APK assinado a cada tag de release e publica em Releases — assim você baixa o link sem precisar do Android Studio no dia a dia.
 
 ---
 
-## Onda 4 — Preparação para o Teams (estrutura agora, ativação depois)
+## Detalhes técnicos
 
-### 12. `supabase/functions/_shared/channel.ts`
-```ts
-export interface ChannelAdapter {
-  id: "web" | "teams" | "whatsapp";
-  formatResponse(text: string, opts: { audioUrl?: string; images?: string[] }): unknown;
-  maxLength: number;          // web: ilimitado · teams: ~4000
-  supportsMarkdown: boolean;
-  supportsAudio: boolean;
-  supportsImages: boolean;
-}
-```
-- `webAdapter` implementado agora; `_shared/channels/teams.ts` como stub documentado com o esboço do Adaptive Card
-- Aba **"Canais"** em `/super-admin/ai-management`: `web ✅ ativo`, `teams ⏸ aguardando Azure`, `whatsapp` conforme config
+- Permissões no `AndroidManifest.xml`: `ACCESS_FINE_LOCATION`, `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE_LOCATION`, `CAMERA`, `POST_NOTIFICATIONS`, `USE_BIOMETRIC`, `NFC` (reservada), `INTERNET`.
+- Android 10+ exige pedir a permissão de background em uma segunda etapa, após a de primeiro plano — o fluxo de opt-in trata isso.
+- FCM exige o arquivo `google-services.json` do Firebase e a chave de servidor guardada como secret no backend.
+- A keystore de assinatura é gerada uma vez e deve ser guardada com segurança; perdê-la impede atualizar o mesmo app.
+- Migrações: `technician_locations.photo_path` e `battery_level`, consentimento de rastreamento em `profiles`, coluna de plataforma em `push_subscriptions`.
+- iOS fica preparado (mesmo código Capacitor), mas gerar o IPA exige Mac + conta Apple — fora do escopo agora.
 
-### 13. `docs/marina-canais-e-provedores.md`
-- Como funcionam as duas camadas (canal e provedor)
-- Checklist do Azure Bot para quando houver subscription (F0, canal Teams, endpoint, App ID + Secret)
-- O que falta para o Teams: `teams-bot-webhook`, `teams-bind`, tabela `teams_bot_bindings`, página `/teams/link` (~1 dia)
-- Como plugar um novo provedor de IA em ~20 linhas
+## Entrega
 
----
-
-## O que NÃO será feito agora
-- Nenhum recurso Azure / Bot Framework (sem subscription)
-- Nenhuma chave OpenRouter/OpenAI será solicitada agora — só quando você quiser ativar
-- Sem chamada de voz em tempo real (apenas mensagens de voz)
-- WhatsApp segue só como notificações
-
-## Escopo de arquivos
-| Arquivo | Ação |
-|---|---|
-| `supabase/functions/ai-speech-to-text/index.ts` | criar |
-| `supabase/functions/ai-text-to-speech/index.ts` | criar |
-| `supabase/functions/_shared/ai-provider.ts` | criar |
-| `supabase/functions/_shared/channel.ts` | criar |
-| `supabase/functions/_shared/channels/teams.ts` | criar (stub) |
-| `supabase/functions/ai-assistant/index.ts` | editar (provider + canal + imagens) |
-| `supabase/config.toml` | editar (`verify_jwt = true` nas novas) |
-| `src/hooks/useVoiceRecorder.ts` | criar |
-| `src/hooks/useSpeechPlayback.ts` | criar |
-| `src/hooks/useChatImagePaste.ts` | criar |
-| `src/components/ai/VoiceRecordButton.tsx` | criar |
-| `src/components/ai/SpeakMessageButton.tsx` | criar |
-| `src/components/ai/ChatImagePreview.tsx` | criar |
-| `src/components/ai/AIChat.tsx` | editar (mic, toggle voz, ouvir, colar/arrastar imagem) |
-| `src/pages/super-admin/AIManagement.tsx` | editar (abas Provedor e Canais) |
-| `docs/marina-canais-e-provedores.md` | criar |
-| Migrations | `profiles.voice_pref`, `ai_agents.provider/model/fallback_enabled`, bucket `marina-chat-images` + RLS |
-
-## Custo
-- STT ~R$ 0,01/min · TTS ~R$ 0,005/resposta · imagem ~R$ 0,01/print
-- Tudo via Lovable AI por padrão — sem chave externa, sem cartão, sem Azure
+Ondas 1 a 7 implementadas no código + o workflow de build automático. A geração e assinatura do APK precisam ser executadas por você fora da Lovable (ou pelo GitHub Action).

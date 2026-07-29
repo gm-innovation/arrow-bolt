@@ -13,6 +13,8 @@ import { AuthLanding } from "./components/AuthLanding";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import DashboardLayout from "./components/DashboardLayout";
 import { OfflineIndicator } from "./components/OfflineIndicator";
+import { NativeBootstrap } from "./components/native/NativeBootstrap";
+
 
 // Auth pages - keep sync (small, critical path)
 import Login from "./pages/Login";
@@ -529,6 +531,8 @@ const App = () => {
                 </Routes>
               </ErrorBoundary>
               <OfflineIndicator />
+              <NativeBootstrap />
+
                   </WalkthroughProvider>
             </SidebarProvider>
           </AuthProvider>

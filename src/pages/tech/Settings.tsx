@@ -6,6 +6,9 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Bell, MapPin, Eye } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BackgroundTrackingCard } from "@/components/native/BackgroundTrackingCard";
+import { BiometricLoginCard } from "@/components/native/BiometricLoginCard";
+
 
 const TechSettings = () => {
   const { toast } = useToast();
@@ -173,7 +176,12 @@ const TechSettings = () => {
               </div>
             </CardContent>
           </Card>
+
+          <BackgroundTrackingCard />
+
+          <BiometricLoginCard />
         </TabsContent>
+
 
         <TabsContent value="display" className="space-y-6">
           <Card>

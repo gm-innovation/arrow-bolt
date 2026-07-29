@@ -11,14 +11,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MapPin, LogIn, LogOut, Navigation, Loader2 } from 'lucide-react';
+import { MapPin, LogIn, LogOut, Navigation, Loader2, Camera } from 'lucide-react';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useNativeCamera } from '@/hooks/useNativeCamera';
 
 interface GeolocationButtonsProps {
   taskId?: string;
   showCheckIn?: boolean;
   showCheckOut?: boolean;
   showTracking?: boolean;
+  /** Permite anexar uma foto ao registrar check-in/check-out */
+  allowPhoto?: boolean;
   onCheckIn?: () => void;
   onCheckOut?: () => void;
 }
@@ -28,27 +31,43 @@ export const GeolocationButtons = ({
   showCheckIn = true,
   showCheckOut = true,
   showTracking = false,
+  allowPhoto = true,
   onCheckIn,
   onCheckOut,
 }: GeolocationButtonsProps) => {
   const { checkIn, checkOut, trackLocation, loading, latitude, longitude, error } = useGeolocation();
+  const { takePhoto, capturing } = useNativeCamera();
   const [showConfirm, setShowConfirm] = useState<'check_in' | 'check_out' | null>(null);
+  const [photo, setPhoto] = useState<{ blob: Blob; previewUrl: string } | null>(null);
+
+  const handleTakePhoto = async () => {
+    const captured = await takePhoto('camera');
+    if (captured) setPhoto({ blob: captured.blob, previewUrl: captured.previewUrl });
+  };
+
+  const closeDialog = () => {
+    setShowConfirm(null);
+    setPhoto(null);
+  };
 
   const handleCheckIn = async () => {
-    setShowConfirm(null);
-    const result = await checkIn(taskId);
+    const currentPhoto = photo?.blob ?? null;
+    closeDialog();
+    const result = await checkIn(taskId, currentPhoto);
     if (result && onCheckIn) {
       onCheckIn();
     }
   };
 
   const handleCheckOut = async () => {
-    setShowConfirm(null);
-    const result = await checkOut(taskId);
+    const currentPhoto = photo?.blob ?? null;
+    closeDialog();
+    const result = await checkOut(taskId, currentPhoto);
     if (result && onCheckOut) {
       onCheckOut();
     }
   };
+
 
   const handleTrack = async () => {
     await trackLocation(taskId);
@@ -124,7 +143,7 @@ export const GeolocationButtons = ({
       )}
 
       {/* Check-in Confirmation */}
-      <AlertDialog open={showConfirm === 'check_in'} onOpenChange={() => setShowConfirm(null)}>
+      <AlertDialog open={showConfirm === 'check_in'} onOpenChange={closeDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Check-in</AlertDialogTitle>
@@ -133,6 +152,27 @@ export const GeolocationButtons = ({
               Certifique-se de estar no local correto.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {allowPhoto && (
+            <div className="space-y-2">
+              <Button variant="outline" size="sm" onClick={handleTakePhoto} disabled={capturing}>
+                {capturing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="mr-2 h-4 w-4" />
+                )}
+                {photo ? 'Trocar foto' : 'Anexar foto (opcional)'}
+              </Button>
+              {photo && (
+                <img
+                  src={photo.previewUrl}
+                  alt="Pré-visualização da foto do check-in"
+                  className="h-32 w-full rounded-md object-cover"
+                />
+              )}
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleCheckIn} className="bg-green-600 hover:bg-green-700">
@@ -143,7 +183,7 @@ export const GeolocationButtons = ({
       </AlertDialog>
 
       {/* Check-out Confirmation */}
-      <AlertDialog open={showConfirm === 'check_out'} onOpenChange={() => setShowConfirm(null)}>
+      <AlertDialog open={showConfirm === 'check_out'} onOpenChange={closeDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar Check-out</AlertDialogTitle>
@@ -152,6 +192,27 @@ export const GeolocationButtons = ({
               Certifique-se de ter concluído todos os procedimentos necessários.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {allowPhoto && (
+            <div className="space-y-2">
+              <Button variant="outline" size="sm" onClick={handleTakePhoto} disabled={capturing}>
+                {capturing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="mr-2 h-4 w-4" />
+                )}
+                {photo ? 'Trocar foto' : 'Anexar foto (opcional)'}
+              </Button>
+              {photo && (
+                <img
+                  src={photo.previewUrl}
+                  alt="Pré-visualização da foto do check-out"
+                  className="h-32 w-full rounded-md object-cover"
+                />
+              )}
+            </div>
+          )}
+
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={handleCheckOut} className="bg-red-600 hover:bg-red-700">
@@ -159,6 +220,7 @@ export const GeolocationButtons = ({
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
+
       </AlertDialog>
     </div>
   );

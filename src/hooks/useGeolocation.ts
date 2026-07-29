@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { isNativeApp } from '@/lib/platform';
+
 
 export interface TechnicianLocation {
   id: string;
@@ -51,7 +53,24 @@ export function useGeolocation() {
     fetchTechnicianId();
   }, [user?.id]);
 
-  const getCurrentPosition = useCallback((): Promise<GeolocationPosition> => {
+  const getCurrentPosition = useCallback(async (): Promise<GeolocationPosition> => {
+    // App nativo: usa o plugin do Capacitor (GPS mais preciso e permissões nativas)
+    if (isNativeApp()) {
+      const { Geolocation } = await import('@capacitor/geolocation');
+      let permission = await Geolocation.checkPermissions();
+      if (permission.location !== 'granted') {
+        permission = await Geolocation.requestPermissions({ permissions: ['location'] });
+      }
+      if (permission.location !== 'granted') {
+        throw Object.assign(new Error('Permissão de localização negada'), { code: 1 });
+      }
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 15000,
+      });
+      return position as unknown as GeolocationPosition;
+    }
+
     return new Promise((resolve, reject) => {
       if (!navigator.geolocation) {
         reject(new Error('Geolocalização não suportada pelo navegador'));
@@ -70,10 +89,13 @@ export function useGeolocation() {
     });
   }, []);
 
+
   const recordLocation = useCallback(async (
     locationType: 'check_in' | 'check_out' | 'tracking',
-    taskId?: string
+    taskId?: string,
+    photo?: Blob | null
   ) => {
+
     if (!technicianId) {
       toast({
         title: 'Erro',
@@ -114,6 +136,21 @@ export function useGeolocation() {
         console.warn('Failed to get address:', e);
       }
 
+      // Foto opcional do check-in/check-out (câmera nativa ou navegador)
+      let photoPath: string | null = null;
+      if (photo && user?.id) {
+        const extension = (photo.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        const path = `${user.id}/${locationType}-${Date.now()}.${extension}`;
+        const { error: uploadError } = await supabase.storage
+          .from('checkin-photos')
+          .upload(path, photo, { contentType: photo.type || 'image/jpeg', upsert: false });
+        if (uploadError) {
+          console.warn('Falha ao enviar foto do registro:', uploadError);
+        } else {
+          photoPath = path;
+        }
+      }
+
       const { data, error } = await supabase
         .from('technician_locations')
         .insert({
@@ -124,9 +161,11 @@ export function useGeolocation() {
           accuracy,
           location_type: locationType,
           address,
-        })
+          photo_path: photoPath,
+        } as any)
         .select()
         .single();
+
 
       if (error) throw error;
 
@@ -159,15 +198,16 @@ export function useGeolocation() {
 
       return null;
     }
-  }, [technicianId, getCurrentPosition, toast]);
+  }, [technicianId, getCurrentPosition, toast, user?.id]);
 
-  const checkIn = useCallback((taskId?: string) => {
-    return recordLocation('check_in', taskId);
+  const checkIn = useCallback((taskId?: string, photo?: Blob | null) => {
+    return recordLocation('check_in', taskId, photo);
   }, [recordLocation]);
 
-  const checkOut = useCallback((taskId?: string) => {
-    return recordLocation('check_out', taskId);
+  const checkOut = useCallback((taskId?: string, photo?: Blob | null) => {
+    return recordLocation('check_out', taskId, photo);
   }, [recordLocation]);
+
 
   const trackLocation = useCallback((taskId?: string) => {
     return recordLocation('tracking', taskId);
