@@ -84,6 +84,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
+  // Notify Service Worker about the current user so it can scope caches per user.
+  const notifySWUserId = useCallback((userId: string | null) => {
+    try {
+      const controller = navigator.serviceWorker?.controller;
+      if (!controller) return;
+      if (userId) {
+        controller.postMessage({ type: "SET_USER_ID", userId });
+      } else {
+        controller.postMessage({ type: "CLEAR_USER_CACHE" });
+      }
+    } catch {
+      // no-op — SW may not be registered (dev/preview/iframe)
+    }
+  }, []);
+
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -116,6 +131,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (previousUserId !== newUserId) {
               setLoading(true);
             }
+            notifySWUserId(currentSession.user.id);
             // Defer Supabase call to prevent deadlock inside the listener
             setTimeout(() => {
               fetchUserRole(currentSession.user.id);
@@ -138,6 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(existingSession?.user ?? null);
 
       if (existingSession?.user) {
+        notifySWUserId(existingSession.user.id);
         fetchUserRole(existingSession.user.id);
       } else {
         setLoading(false);
@@ -185,11 +202,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signOut = useCallback(async () => {
+    const previousUserId = currentUserIdRef.current;
+    // Ask the SW to drop this user's scoped caches BEFORE clearing session
+    notifySWUserId(null);
+    if (previousUserId) {
+      try {
+        navigator.serviceWorker?.controller?.postMessage({
+          type: "CLEAR_USER_CACHE",
+          userId: previousUserId,
+        });
+      } catch {}
+    }
     await supabase.auth.signOut();
     currentUserIdRef.current = null;
     setUserRole(null);
     setProfile(null);
-  }, []);
+  }, [notifySWUserId]);
 
   const resetPassword = useCallback(async (email: string) => {
     const redirectUrl = `${window.location.origin}/reset-password`;

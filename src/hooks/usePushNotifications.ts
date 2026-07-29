@@ -92,12 +92,9 @@ export const usePushNotifications = () => {
 
     setIsLoading(true);
     try {
-      // Register custom service worker for push
-      const registration = await navigator.serviceWorker.register('/sw-custom.js', {
-        scope: '/'
-      });
-
-      await navigator.serviceWorker.ready;
+      // The unified /sw.js registered from main.tsx already handles push events.
+      // Wait for it to be ready instead of registering a separate worker.
+      const registration = await navigator.serviceWorker.ready;
 
       // Check for existing subscription
       let subscription = await (registration as any).pushManager.getSubscription();
