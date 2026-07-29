@@ -25,6 +25,7 @@ const roleToUserType: Record<string, "super-admin" | "admin" | "manager" | "tech
   technician: "tech",
   hr: "hr",
   commercial: "commercial",
+  marketing: "commercial",
   director: "director",
   compras: "compras",
   qualidade: "qualidade",
