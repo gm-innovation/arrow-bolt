@@ -50,13 +50,14 @@ jobs:
           fi
 
       - name: Instalar dependências
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build web (produção)
         env:
           BUNDLE_VERSION: ${{ github.ref_type == 'tag' && github.ref_name || '0.0.0' }}
           NATIVE_BUILD: ${{ inputs.native_build }}
-        run: npm run build
+        run: bun run build
+
 
       - name: Remover server.url (build offline/produção)
         run: |
