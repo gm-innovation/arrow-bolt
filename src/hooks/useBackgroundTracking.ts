@@ -36,29 +36,35 @@ const MIN_INTERVAL_MS = 60_000;
  * Requer consentimento explícito do colaborador (profiles.location_tracking_consent).
  */
 export const useBackgroundTracking = () => {
-  const { user, profile, refreshProfile } = useAuth() as any;
+  const { user } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
   const [starting, setStarting] = useState(false);
   const [technicianId, setTechnicianId] = useState<string | null>(null);
+  const [hasConsent, setHasConsent] = useState(false);
   const watcherId = useRef<string | null>(null);
   const pluginRef = useRef<BackgroundGeolocationPlugin | null>(null);
 
   const supported = isNativeApp();
-  const hasConsent = Boolean(profile?.location_tracking_consent);
 
   useEffect(() => {
     let active = true;
     (async () => {
       if (!user?.id) return;
-      const { data } = await supabase
-        .from('technicians')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      if (active && data) setTechnicianId(data.id);
+      const [technician, profileRow] = await Promise.all([
+        supabase.from('technicians').select('id').eq('user_id', user.id).maybeSingle(),
+        supabase
+          .from('profiles')
+          .select('location_tracking_consent')
+          .eq('id', user.id)
+          .maybeSingle(),
+      ]);
+      if (!active) return;
+      if (technician.data) setTechnicianId(technician.data.id);
+      setHasConsent(Boolean((profileRow.data as any)?.location_tracking_consent));
     })();
     return () => { active = false; };
   }, [user?.id]);
+
 
   const loadPlugin = useCallback(async () => {
     if (pluginRef.current) return pluginRef.current;
