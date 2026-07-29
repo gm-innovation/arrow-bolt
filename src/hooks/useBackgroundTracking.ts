@@ -68,8 +68,11 @@ export const useBackgroundTracking = () => {
 
   const loadPlugin = useCallback(async () => {
     if (pluginRef.current) return pluginRef.current;
-    const mod = await import('@capacitor-community/background-geolocation');
-    pluginRef.current = (mod as any).BackgroundGeolocation as BackgroundGeolocationPlugin;
+    // O pacote não expõe bundle JS: o plugin é acessado via registerPlugin do core.
+    const { registerPlugin } = await import('@capacitor/core');
+    pluginRef.current = registerPlugin<BackgroundGeolocationPlugin>(
+      'BackgroundGeolocation'
+    );
     return pluginRef.current;
   }, []);
 
