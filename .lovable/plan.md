@@ -1,29 +1,24 @@
 ## Diagnóstico
 
-O build falhou porque o `package-lock.json` do repositório está desatualizado: ele não contém as dependências instaladas recentemente (Capacitor, Capgo updater, dnd-kit, tiptap, MCP, swagger-ui, etc.). O Lovable gerencia as dependências pelo **Bun** (`bun.lock`, atualizado hoje às 19:55), enquanto o `package-lock.json` reflete um estado antigo. O `npm ci` exige sincronia exata entre `package.json` e `package-lock.json`, então aborta.
-
-Também há avisos de engine: `@capacitor/cli@8.4.2` e `swagger-client` pedem Node >= 22, e os workflows usam Node 20.
+O App ID atual é `app.lovable.4cb88575f5074382bc47b7a5cefd825f`. O Capacitor rejeita porque o último segmento começa com um dígito (`4cb...`) — cada segmento precisa começar com letra, no formato de pacote Java.
 
 ## Correção
 
-**1. `.github/workflows/android-apk.yml`**
-- Substituir `actions/setup-node` (`cache: npm`) por `oven-sh/setup-bun@v2`, mantendo também `setup-node` com `node-version: 22` (o Gradle/Capacitor CLI precisa de Node no PATH).
-- Trocar `npm ci` por `bun install --frozen-lockfile`.
-- Trocar `npm run build` por `bun run build`.
+Adotar o App ID **`br.com.lecsor.arrow`** (válido em Android e iOS) e propagá-lo nos 4 pontos onde ele aparece:
 
-**2. `.github/workflows/web-bundle-release.yml`**
-- Mesmas trocas: Node 22, Bun para instalar (`bun install --frozen-lockfile`) e `bun run build`.
+1. **`capacitor.config.ts`** — `appId: 'br.com.lecsor.arrow'`.
+2. **`src/lib/appVersion.ts`** — `APP_ID = 'br.com.lecsor.arrow'` (enviado pelo app na consulta de update).
+3. **`supabase/functions/app-update/index.ts`** — `EXPECTED_APP_ID = 'br.com.lecsor.arrow'`; redeploy da função.
+4. **`.github/workflows/web-bundle-release.yml`** — campo `appId` do `release.json` gerado.
 
-**3. Remover `package-lock.json` do repositório**
-Ele está permanentemente fora de sincronia com o `bun.lock` e só serve para quebrar builds. O `bun.lock` passa a ser a fonte única de verdade.
+Como reforço, adicionar `--skip-appid-validation` não é necessário — o ID novo passa na validação nativa.
 
 ## Detalhes técnicos
 
-- `bun install --frozen-lockfile` é o equivalente do `npm ci`: falha se o lockfile divergir do `package.json`, garantindo builds reproduzíveis.
-- O `bun.lock` (formato texto) é o que o Lovable mantém atualizado; o `bun.lockb` (binário legado) permanece, mas o Bun moderno prioriza o `.lock`.
-- Node 22 elimina os avisos `EBADENGINE` e alinha com o requisito do `@capacitor/cli@8`.
-- Nenhuma alteração no código da aplicação, na Edge Function `app-update` ou no contrato OTA — apenas na pipeline de CI.
+- O App ID vira o `applicationId` do Gradle e o nome do pacote Android; mudá-lo agora é seguro porque nenhum APK foi publicado ainda.
+- Os três valores (config nativa, constante do app, validação na Edge Function) e o `release.json` precisam bater exatamente, senão o OTA responde `manifest_app_id_mismatch`.
+- Nenhuma release existe ainda, então não há manifesto antigo para migrar.
 
 ## Depois disso
 
-Rodar novamente **Build Android APK** (`debug`, `native_build: 1`), instalar o APK e então publicar a tag `v0.0.1` para testar a atualização OTA.
+Rodar **Build Android APK** (`debug`, `native_build: 1`), instalar e publicar a tag `v0.0.1` para testar o OTA.
