@@ -135,6 +135,26 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { processFiles: processDroppedFiles } = useMarinaAttachments(attachments, setAttachments, 10);
 
+  // ---- Voz ----
+  const { pref: voicePref, cycle: cycleVoicePref } = useVoicePref();
+  const { isSpeaking, speakingId, speak, stop: stopSpeaking } = useSpeechPlayback();
+  const lastSpokenRef = useRef<string | null>(null);
+  const lastInputWasVoiceRef = useRef(false);
+
+  const {
+    isRecording,
+    isTranscribing,
+    duration: recordDuration,
+    start: startRecording,
+    stop: stopRecording,
+    cancel: cancelRecording,
+  } = useVoiceRecorder({
+    onResult: (text) => {
+      lastInputWasVoiceRef.current = true;
+      setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
+      textareaRef.current?.focus();
+    },
+  });
 
   useEffect(() => {
     const id = requestAnimationFrame(() => {
@@ -143,12 +163,45 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
     return () => cancelAnimationFrame(id);
   }, [messages, isLoading, reportPreview]);
 
+  // Fala automaticamente a última resposta conforme a preferência do usuário.
+  useEffect(() => {
+    if (voicePref === 'off' || isLoading) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant' || !last.content) return;
+    const key = last.id ?? `idx-${messages.length}-${last.content.length}`;
+    if (lastSpokenRef.current === key) return;
+    if (voicePref === 'auto' && !lastInputWasVoiceRef.current) return;
+    lastSpokenRef.current = key;
+    lastInputWasVoiceRef.current = false;
+    speak(last.content, key);
+  }, [messages, isLoading, voicePref, speak]);
+
   const handleSend = () => {
     if ((!input.trim() && attachments.length === 0) || isLoading) return;
+    stopSpeaking();
     sendMessage(input || '(anexo)', attachments);
     setInput('');
     setAttachments([]);
   };
+
+  // Colar imagens (print de tela) direto no chat.
+  const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
+    if (isLoading) return;
+    const items = Array.from(e.clipboardData?.items ?? []);
+    const files = items
+      .filter((it) => it.kind === 'file' && it.type.startsWith('image/'))
+      .map((it) => it.getAsFile())
+      .filter((f): f is File => !!f);
+    if (!files.length) return;
+    e.preventDefault();
+    const named = files.map((f, i) =>
+      f.name && f.name !== 'image.png'
+        ? f
+        : new File([f], `captura-${Date.now()}-${i + 1}.png`, { type: f.type }),
+    );
+    await processDroppedFiles(named);
+  }, [isLoading, processDroppedFiles]);
+
 
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
