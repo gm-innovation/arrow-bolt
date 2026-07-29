@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "sdk_version": "0.25.0",
+  "path": "/functions/v1/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://iyuypkfksxfsutubcpay.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "arrow-mcp",
+      "version": "0.1.0",
+      "title": "Arrow MCP"
+    },
+    "tools": [
+      {
+        "name": "whoami",
+        "title": "Quem sou eu",
+        "description": "Retorna informações do usuário Arrow atualmente autenticado (perfil e papéis).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_service_orders",
+        "title": "Listar Ordens de Serviço",
+        "description": "Lista as Ordens de Serviço (OS) do Arrow visíveis ao usuário autenticado, respeitando permissões (RLS). Retorna até 50 registros ordenados pelos mais recentes.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Quantidade máxima de OS a retornar (1-50). Padrão: 20.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "status": {
+              "description": "Filtrar por status exato da OS (ex.: 'pending', 'completed').",
+              "type": "string"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_notifications",
+        "title": "Listar Notificações",
+        "description": "Lista as notificações mais recentes do usuário Arrow autenticado.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "limit": {
+              "description": "Quantidade máxima (1-50). Padrão: 20.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50
+            },
+            "unread_only": {
+              "description": "Se true, retorna apenas notificações não lidas.",
+              "type": "boolean"
+            }
+          }
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
