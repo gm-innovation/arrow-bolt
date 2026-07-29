@@ -112,7 +112,18 @@ const DeviceFormDialog = ({ open, onClose, device }: Props) => {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <Label>Código / TAG *</Label>
-            <Input value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
+            <Input
+              value={form.code}
+              onChange={(e) => {
+                setForm({ ...form, code: e.target.value });
+                if (codeError) setCodeError(null);
+              }}
+              onBlur={checkCodeDuplicate}
+              aria-invalid={!!codeError}
+              className={codeError ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {codeError && <p className="text-xs text-destructive mt-1">{codeError}</p>}
+            {checkingCode && <p className="text-xs text-muted-foreground mt-1">Verificando…</p>}
           </div>
           <div>
             <Label>Nome *</Label>
