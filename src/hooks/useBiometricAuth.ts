@@ -93,11 +93,12 @@ export const useBiometricAuth = () => {
         toast.error('Não foi possível salvar a preferência');
         return false;
       }
-      await refreshProfile?.();
+      setEnabledState(value);
       toast.success(value ? 'Acesso por biometria ativado' : 'Acesso por biometria desativado');
       return true;
     },
-    [user?.id, authenticate, refreshProfile]
+    [user?.id, authenticate]
+
   );
 
   return { available, checking, enabled, biometryLabel, authenticate, setEnabled };
