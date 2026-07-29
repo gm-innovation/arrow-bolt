@@ -25,6 +25,7 @@ const roleToUserType: Record<string, "super-admin" | "admin" | "manager" | "tech
   technician: "tech",
   hr: "hr",
   commercial: "commercial",
+  marketing: "commercial",
   director: "director",
   compras: "compras",
   qualidade: "qualidade",
@@ -71,7 +72,7 @@ const CorpShell = ({ allowedRoles }: { allowedRoles: string[] }) => {
   );
 };
 
-const ALL_CORP_ROLES = ['coordinator', 'super_admin', 'manager', 'technician', 'hr', 'commercial', 'director', 'compras', 'qualidade', 'financeiro'];
+const ALL_CORP_ROLES = ['coordinator', 'super_admin', 'manager', 'technician', 'hr', 'commercial', 'marketing', 'director', 'compras', 'qualidade', 'financeiro'];
 
 export const CorpLayoutRoute = () => <CorpShell allowedRoles={ALL_CORP_ROLES} />;
 export const CorpAdminLayoutRoute = () => <CorpShell allowedRoles={['super_admin']} />;
