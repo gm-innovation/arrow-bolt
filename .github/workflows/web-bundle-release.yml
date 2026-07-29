@@ -65,7 +65,7 @@ jobs:
         run: |
           cat > release.json <<EOF
           {
-            "appId": "app.lovable.4cb88575f5074382bc47b7a5cefd825f",
+            "appId": "br.com.lecsor.arrow",
             "version": "${{ steps.meta.outputs.version }}",
             "bundleUrl": "https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/bundle.zip",
             "sha256": "${SHA256}",
