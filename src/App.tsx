@@ -532,6 +532,7 @@ const App = () => {
               </ErrorBoundary>
               <OfflineIndicator />
               <NativeBootstrap />
+              <NativeAppUpdateProvider />
 
                   </WalkthroughProvider>
             </SidebarProvider>
