@@ -224,7 +224,83 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
         onOpenChange={setPublishOpen}
         candidates={unlinkedResolvedTickets}
       />
+
+      <ManualChangeDialog open={manualOpen} onOpenChange={setManualOpen} />
     </>
+  );
+}
+
+function ManualChangeDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const register = useRegisterManualChange();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("improvement");
+  const [module, setModule] = useState("");
+
+  const submit = () => {
+    if (!title.trim()) return;
+    register.mutate(
+      { title: title.trim(), description: description.trim() || undefined, category, module: module.trim() || undefined },
+      {
+        onSuccess: () => {
+          setTitle(""); setDescription(""); setCategory("improvement"); setModule("");
+          onOpenChange(false);
+        },
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Registrar alteração no histórico</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Título</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Correção de rota do perfil Marketing" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bug">Correção</SelectItem>
+                  <SelectItem value="improvement">Melhoria</SelectItem>
+                  <SelectItem value="feature_request">Feature</SelectItem>
+                  <SelectItem value="infra">Infra</SelectItem>
+                  <SelectItem value="ai">IA</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Módulo</Label>
+              <Input value={module} onChange={(e) => setModule(e.target.value)} placeholder="Ex.: PM, RH, SGQ" />
+            </div>
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="O que foi alterado, arquivos/áreas impactadas..."
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={submit} disabled={!title.trim() || register.isPending}>Registrar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
