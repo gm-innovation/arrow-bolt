@@ -10,12 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { History, Package, Database, Bot, Cloud, Tag, FileText, ChevronDown, Code2 } from "lucide-react";
+import { History, Package, Database, Bot, Cloud, Tag, FileText, ChevronDown, Code2, Plus, Info } from "lucide-react";
 import { formatLocalDate } from "@/lib/utils";
 import {
   usePMTickets,
   useChangelog,
   usePublishVersion,
+  useRegisterManualChange,
   type PMTicket,
 } from "@/hooks/usePMDashboard";
 import { usePMActivityLog, type ActivityLogItem, type ActivitySource } from "@/hooks/usePMActivityLog";
