@@ -25,3 +25,16 @@ dist-ssr
 
 # Vite PWA dev output
 dev-dist
+
+# Segredos e credenciais - NUNCA versionar
+.env.local
+.env.*.local
+*.keystore
+*.jks
+keystore.properties
+google-services.json
+GoogleService-Info.plist
+*.p8
+*.p12
+*.mobileprovision
+service-account*.json
