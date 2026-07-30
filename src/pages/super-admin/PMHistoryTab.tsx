@@ -10,12 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { History, Package, Database, Bot, Cloud, Tag, FileText, ChevronDown, Code2 } from "lucide-react";
+import { History, Package, Database, Bot, Cloud, Tag, FileText, ChevronDown, Code2, Plus, Info } from "lucide-react";
 import { formatLocalDate } from "@/lib/utils";
 import {
   usePMTickets,
   useChangelog,
   usePublishVersion,
+  useRegisterManualChange,
   type PMTicket,
 } from "@/hooks/usePMDashboard";
 import { usePMActivityLog, type ActivityLogItem, type ActivitySource } from "@/hooks/usePMActivityLog";
@@ -44,6 +45,7 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
   const [moduleFilter, setModuleFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
   const activity = usePMActivityLog({
     sources: sourceFilter === "all" ? undefined : [sourceFilter as ActivitySource],
@@ -108,7 +110,13 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
     () => (tickets.data ?? []).filter((t) => (t.status === "resolved" || t.status === "closed") && !t.pm_changelog_id),
     [tickets.data],
   );
-
+  // Aviso: hoje só tem métricas (nenhuma alteração de código/migração registrada)
+  const todayHasOnlyMetrics = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const todays = items.filter((i) => String(i.occurred_at).slice(0, 10) === today);
+    if (todays.length === 0) return true;
+    return todays.every((i) => i.category === "metric" || i.module === "metrics");
+  }, [items]);
 
   return (
     <>
@@ -122,11 +130,27 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
               Timeline unificado: alterações de código, correções, melhorias, versões publicadas, migrações no banco e ações da Marina.
             </CardDescription>
           </div>
-          <Button size="sm" onClick={() => setPublishOpen(true)} disabled={unlinkedResolvedTickets.length === 0}>
-            <Package className="h-4 w-4 mr-1" /> Publicar versão ({unlinkedResolvedTickets.length})
-          </Button>
+          <div className="flex gap-2 shrink-0">
+            <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Registrar alteração
+            </Button>
+            <Button size="sm" onClick={() => setPublishOpen(true)} disabled={unlinkedResolvedTickets.length === 0}>
+              <Package className="h-4 w-4 mr-1" /> Publicar versão ({unlinkedResolvedTickets.length})
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {todayHasOnlyMetrics && (
+            <div className="flex items-start gap-2 rounded border border-amber-300 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+              <Info className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                Hoje ainda não há alterações de código registradas — apenas atualizações automáticas de métricas.
+                Alterações que não tocam o banco (frontend, workflows, edge functions) precisam ser registradas em
+                "Registrar alteração" ou pela Marina.
+              </span>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <Select value={sourceFilter} onValueChange={setSourceFilter}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
@@ -200,7 +224,83 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
         onOpenChange={setPublishOpen}
         candidates={unlinkedResolvedTickets}
       />
+
+      <ManualChangeDialog open={manualOpen} onOpenChange={setManualOpen} />
     </>
+  );
+}
+
+function ManualChangeDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const register = useRegisterManualChange();
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("improvement");
+  const [module, setModule] = useState("");
+
+  const submit = () => {
+    if (!title.trim()) return;
+    register.mutate(
+      { title: title.trim(), description: description.trim() || undefined, category, module: module.trim() || undefined },
+      {
+        onSuccess: () => {
+          setTitle(""); setDescription(""); setCategory("improvement"); setModule("");
+          onOpenChange(false);
+        },
+      },
+    );
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Registrar alteração no histórico</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-3">
+          <div>
+            <Label>Título</Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex.: Correção de rota do perfil Marketing" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label>Tipo</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="bug">Correção</SelectItem>
+                  <SelectItem value="improvement">Melhoria</SelectItem>
+                  <SelectItem value="feature_request">Feature</SelectItem>
+                  <SelectItem value="infra">Infra</SelectItem>
+                  <SelectItem value="ai">IA</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Módulo</Label>
+              <Input value={module} onChange={(e) => setModule(e.target.value)} placeholder="Ex.: PM, RH, SGQ" />
+            </div>
+          </div>
+          <div>
+            <Label>Descrição</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="O que foi alterado, arquivos/áreas impactadas..."
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={submit} disabled={!title.trim() || register.isPending}>Registrar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

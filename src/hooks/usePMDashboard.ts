@@ -567,3 +567,45 @@ export const useSeedChangelog = () => {
     onError: (e: any) => toast({ title: "Erro ao sincronizar", description: e.message, variant: "destructive" }),
   });
 };
+
+// ---------- Registro manual de alteração de código ----------
+export interface ManualChangeInput {
+  title: string;
+  description?: string;
+  category?: string; // bug | improvement | feature_request | infra | ai | release
+  module?: string;
+  occurred_at?: string;
+}
+
+export const useRegisterManualChange = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: ManualChangeInput) => {
+      const { data: authData } = await supabase.auth.getUser();
+      const occurredAt = input.occurred_at ?? new Date().toISOString();
+      const { error } = await supabase.from("pm_activity_log" as any).insert({
+        occurred_at: occurredAt,
+        source: "manual",
+        category: input.category ?? "improvement",
+        module: input.module || null,
+        title: input.title,
+        description: input.description || null,
+        ref_table: "manual_code_change",
+        ref_id: `manual:${occurredAt}`,
+        author_id: authData.user?.id ?? null,
+        metadata: {
+          code_change_registered: true,
+          registered_from: "pm_dashboard_manual",
+          category: input.category ?? "improvement",
+        },
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["pm-activity-log"] });
+      toast({ title: "Alteração registrada no histórico" });
+    },
+    onError: (e: any) =>
+      toast({ title: "Erro ao registrar", description: e.message, variant: "destructive" }),
+  });
+};
