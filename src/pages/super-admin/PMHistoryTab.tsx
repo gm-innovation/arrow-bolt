@@ -110,7 +110,13 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
     () => (tickets.data ?? []).filter((t) => (t.status === "resolved" || t.status === "closed") && !t.pm_changelog_id),
     [tickets.data],
   );
-
+  // Aviso: hoje só tem métricas (nenhuma alteração de código/migração registrada)
+  const todayHasOnlyMetrics = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const todays = items.filter((i) => String(i.occurred_at).slice(0, 10) === today);
+    if (todays.length === 0) return true;
+    return todays.every((i) => i.category === "metric" || i.module === "metrics");
+  }, [items]);
 
   return (
     <>
@@ -124,11 +130,27 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
               Timeline unificado: alterações de código, correções, melhorias, versões publicadas, migrações no banco e ações da Marina.
             </CardDescription>
           </div>
-          <Button size="sm" onClick={() => setPublishOpen(true)} disabled={unlinkedResolvedTickets.length === 0}>
-            <Package className="h-4 w-4 mr-1" /> Publicar versão ({unlinkedResolvedTickets.length})
-          </Button>
+          <div className="flex gap-2 shrink-0">
+            <Button size="sm" variant="outline" onClick={() => setManualOpen(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Registrar alteração
+            </Button>
+            <Button size="sm" onClick={() => setPublishOpen(true)} disabled={unlinkedResolvedTickets.length === 0}>
+              <Package className="h-4 w-4 mr-1" /> Publicar versão ({unlinkedResolvedTickets.length})
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {todayHasOnlyMetrics && (
+            <div className="flex items-start gap-2 rounded border border-amber-300 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+              <Info className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                Hoje ainda não há alterações de código registradas — apenas atualizações automáticas de métricas.
+                Alterações que não tocam o banco (frontend, workflows, edge functions) precisam ser registradas em
+                "Registrar alteração" ou pela Marina.
+              </span>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2">
             <Select value={sourceFilter} onValueChange={setSourceFilter}>
               <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
