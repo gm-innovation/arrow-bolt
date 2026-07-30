@@ -45,6 +45,7 @@ export function PMHistoryTab({ onOpen }: { onOpen: (t: PMTicket) => void }) {
   const [moduleFilter, setModuleFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [publishOpen, setPublishOpen] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
 
   const activity = usePMActivityLog({
     sources: sourceFilter === "all" ? undefined : [sourceFilter as ActivitySource],
