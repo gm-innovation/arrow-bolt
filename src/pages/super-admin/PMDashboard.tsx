@@ -783,19 +783,22 @@ function PriorityTab() {
   const hasScore = (t: PMTicket) =>
     metric === "rice" ? t.rice_score != null : metric === "ice" ? iceOf(t) != null : t.rice_score != null || iceOf(t) != null;
 
+  const activeTickets = useMemo(() => tickets.filter((t) => !isTicketDelivered(t)), [tickets]);
+
   const scored = useMemo(() => {
     const min = Number(minScore);
-    return tickets
+    return activeTickets
       .filter(hasScore)
       .filter((t) => (minScore === "" || !Number.isFinite(min) ? true : scoreOf(t) >= min))
       .sort((a, b) => scoreOf(b) - scoreOf(a));
-  }, [tickets, metric, minScore]);
+  }, [activeTickets, metric, minScore]);
 
   const roadmapTickets = useMemo(
     () => tickets.filter((t) => ROADMAP_CATEGORIES.has(t.category)),
     [tickets],
   );
-  const unscored = tickets.filter((t) => t.rice_score == null || iceOf(t) == null);
+  const unscored = activeTickets.filter((t) => t.rice_score == null || iceOf(t) == null);
+
 
   const isQuickWin = (t: PMTicket) =>
     metric === "rice"
