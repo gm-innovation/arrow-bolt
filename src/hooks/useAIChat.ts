@@ -261,6 +261,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
   const sendMessage = useCallback(async (
     messageText: string,
     imageOrAttachments?: string | MarinaAttachmentPayload[],
+    opts?: { channel?: 'voice' | 'text' },
   ) => {
     if (!messageText.trim() || isLoading || !user?.id) return;
 
