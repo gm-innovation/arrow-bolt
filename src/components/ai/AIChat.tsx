@@ -14,6 +14,8 @@ import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { useSpeechPlayback } from '@/hooks/useSpeechPlayback';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAIUserPreferences } from '@/hooks/useAIUserPreferences';
 import { useVoicePref } from '@/hooks/useVoicePref';
 import { VoiceRecordButton } from './VoiceRecordButton';
 import { SpeakMessageButton } from './SpeakMessageButton';
@@ -134,6 +136,13 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { processFiles: processDroppedFiles } = useMarinaAttachments(attachments, setAttachments, 10);
+
+  // ---- Saudação personalizada ----
+  const { profile } = useAuth();
+  const { data: aiPrefs } = useAIUserPreferences();
+  const greetingName = (aiPrefs?.use_name ?? true)
+    ? ((aiPrefs?.preferred_name || (profile as any)?.full_name || '').trim().split(/\s+/)[0] || '')
+    : '';
 
   // ---- Voz ----
   const { pref: voicePref, cycle: cycleVoicePref } = useVoicePref();
@@ -378,11 +387,14 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
               <Sparkles className="h-12 w-12 text-primary/50" />
             )}
             <div>
-              <h3 className="font-semibold text-foreground">Olá! Sou {agentName}</h3>
+              <h3 className="font-semibold text-foreground">
+                {greetingName ? `Olá, ${greetingName}! Sou ${agentName}` : `Olá! Sou ${agentName}`}
+              </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Como posso ajudar você hoje?
               </p>
             </div>
+
             
             {/* Quick suggestions */}
             <div className="flex flex-wrap gap-2 justify-center mt-4">

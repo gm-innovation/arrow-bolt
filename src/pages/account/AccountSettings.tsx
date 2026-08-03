@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { UserCog, Lock, Palette, Bell, ShieldAlert, Loader2, PenLine, Megaphone } from "lucide-react";
+import { UserCog, Lock, Palette, Bell, ShieldAlert, Loader2, PenLine, Megaphone, Sparkles } from "lucide-react";
 import SignatureSection from "@/components/account/SignatureSection";
 import MyAwarenessPanel from "@/components/account/MyAwarenessPanel";
+import { AIPreferencesCard } from "@/components/account/AIPreferencesCard";
 
 const AccountSettings = () => {
   const { user, profile, updatePassword } = useAuth();
@@ -77,11 +78,17 @@ const AccountSettings = () => {
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-2" /> Notificações</TabsTrigger>
           <TabsTrigger value="session"><ShieldAlert className="h-4 w-4 mr-2" /> Sessão</TabsTrigger>
           <TabsTrigger value="awareness"><Megaphone className="h-4 w-4 mr-2" /> Conscientizações</TabsTrigger>
+          <TabsTrigger value="assistant"><Sparkles className="h-4 w-4 mr-2" /> Assistente</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="assistant" className="mt-4">
+          <AIPreferencesCard />
+        </TabsContent>
 
         <TabsContent value="awareness" className="mt-4">
           <MyAwarenessPanel />
         </TabsContent>
+
 
         <TabsContent value="signature" className="mt-4">
           <SignatureSection />

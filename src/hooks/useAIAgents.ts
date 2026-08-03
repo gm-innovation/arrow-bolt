@@ -33,6 +33,13 @@ export type AIAgentOutOfScope = {
   area_routing: AIAgentOutOfScopeArea[];
 };
 
+export type AIAgentAgility = {
+  level?: "normal" | "agil" | "ultra";
+  default_proactivity?: "low" | "medium" | "high";
+  use_name?: boolean;
+  allow_learning?: boolean;
+};
+
 export type AIAgentBehavior = {
   suggested_prompts?: string[];
   role_instructions?: Record<string, string>;
@@ -41,6 +48,7 @@ export type AIAgentBehavior = {
   handoff_channel?: string;
   handoff_target?: string;
   out_of_scope?: AIAgentOutOfScope;
+  agility?: AIAgentAgility;
 };
 
 export const DEFAULT_OUT_OF_SCOPE: AIAgentOutOfScope = {

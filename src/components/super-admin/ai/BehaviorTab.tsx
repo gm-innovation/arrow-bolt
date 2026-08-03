@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X } from "lucide-react";
 import { useState } from "react";
 
@@ -31,8 +32,70 @@ export function BehaviorTab({ agent, draft, setDraft }: Props) {
   const [newPrompt, setNewPrompt] = useState("");
   const prompts = behavior.suggested_prompts ?? [];
 
+  const agility = behavior.agility ?? {};
+  const updateAgility = (patch: Partial<typeof agility>) =>
+    update({ agility: { ...agility, ...patch } });
+
   return (
     <div className="space-y-6 max-w-2xl">
+      <div className="rounded-lg border p-4 space-y-4">
+        <div>
+          <Label className="text-base">Agilidade e personalização</Label>
+          <p className="text-xs text-muted-foreground mt-1">
+            Controla o quanto o agente pergunta antes de agir e como ele trata o usuário.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label className="text-xs">Nível de agilidade</Label>
+            <Select
+              value={agility.level ?? "agil"}
+              onValueChange={(v) => updateAgility({ level: v as any })}
+            >
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="normal">Normal — pode perguntar quando útil</SelectItem>
+                <SelectItem value="agil">Ágil — no máximo 1 rodada de perguntas</SelectItem>
+                <SelectItem value="ultra">Ultra — nunca pergunta, assume e informa</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label className="text-xs">Proatividade padrão</Label>
+            <Select
+              value={agility.default_proactivity ?? "medium"}
+              onValueChange={(v) => updateAgility({ default_proactivity: v as any })}
+            >
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="low">Baixa</SelectItem>
+                <SelectItem value="medium">Média</SelectItem>
+                <SelectItem value="high">Alta</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm">Chamar o usuário pelo nome</span>
+          <Switch
+            checked={agility.use_name ?? true}
+            onCheckedChange={(v) => updateAgility({ use_name: v })}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm">Aprender preferências de estilo do usuário</span>
+          <Switch
+            checked={agility.allow_learning !== false}
+            onCheckedChange={(v) => updateAgility({ allow_learning: v })}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Cada usuário pode ajustar o próprio estilo em Configurações → Assistente; essas preferências
+          têm prioridade sobre os padrões acima.
+        </p>
+      </div>
       <div>
         <Label>Prompts sugeridos iniciais</Label>
         <div className="flex gap-2 mt-2">
