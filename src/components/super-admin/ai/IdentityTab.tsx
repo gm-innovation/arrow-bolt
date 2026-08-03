@@ -1,4 +1,4 @@
-import { AIAgent } from "@/hooks/useAIAgents";
+import { AIAgent, AI_VOICE_OPTIONS, DEFAULT_VOICE_INSTRUCTIONS } from "@/hooks/useAIAgents";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -141,6 +141,57 @@ export function IdentityTab({ agent, draft, setDraft }: Props) {
         <p className="text-xs text-muted-foreground mt-1">
           Avatar padrão: Marina, assistente da Arrow (macacão coral).
         </p>
+      </div>
+
+
+      <div className="rounded-lg border p-4 space-y-4">
+        <div>
+          <h4 className="text-sm font-medium">Voz da assistente</h4>
+          <p className="text-xs text-muted-foreground">
+            Usada na leitura em voz alta das respostas. Padrão: Coral (feminina, expressiva).
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label>Voz</Label>
+            <Select
+              value={identity.voice ?? "coral"}
+              onValueChange={(v) => update({ voice: v as any })}
+            >
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {AI_VOICE_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Velocidade da fala ({(identity.voice_speed ?? 1.03).toFixed(2)}x)</Label>
+            <Input
+              type="number"
+              step="0.01"
+              min="0.5"
+              max="2"
+              className="mt-1"
+              value={identity.voice_speed ?? 1.03}
+              onChange={(e) => update({ voice_speed: Number(e.target.value) || 1.03 })}
+            />
+          </div>
+        </div>
+        <div>
+          <Label>Instruções de entonação</Label>
+          <Textarea
+            className="mt-1"
+            rows={4}
+            value={identity.voice_instructions ?? ""}
+            onChange={(e) => update({ voice_instructions: e.target.value })}
+            placeholder={DEFAULT_VOICE_INSTRUCTIONS}
+          />
+          <p className="text-xs text-muted-foreground mt-1">
+            Deixe em branco para usar as instruções padrão (voz feminina, ritmo de conversa em pt-BR).
+          </p>
+        </div>
       </div>
 
     </div>
