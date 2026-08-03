@@ -56,7 +56,7 @@ export function useSpeechPlayback() {
   const speak = useCallback(async (
     text: string,
     id?: string,
-    opts?: { voice?: string; speed?: number },
+    opts?: { voice?: string; speed?: number; instructions?: string },
   ) => {
     const clean = (text ?? '').trim();
     if (!clean) return;
@@ -122,6 +122,7 @@ export function useSpeechPlayback() {
               text: chunk,
               ...(opts?.voice ? { voice: opts.voice } : {}),
               ...(typeof opts?.speed === 'number' ? { speed: opts.speed } : {}),
+              ...(opts?.instructions ? { instructions: opts.instructions } : {}),
             }),
             signal: controller.signal,
           },
