@@ -3,6 +3,73 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
+/** Buckets onde documentos de colaborador podem estar (legado: ficha do técnico). */
+export const HR_DOC_BUCKETS = ["corp-documents", "technician-documents"] as const;
+export type HrDocBucket = (typeof HR_DOC_BUCKETS)[number];
+export const DEFAULT_HR_DOC_BUCKET: HrDocBucket = "corp-documents";
+
+export interface HrStoredDoc {
+  file_path: string;
+  storage_bucket?: string | null;
+}
+
+/**
+ * Gera um link assinado para um documento de colaborador, usando o bucket
+ * registrado e caindo para o outro bucket quando o registro é legado.
+ */
+export const createHrDocSignedUrl = async (
+  doc: HrStoredDoc,
+  expiresIn = 60 * 10,
+): Promise<string> => {
+  const preferred = (doc.storage_bucket as HrDocBucket) || DEFAULT_HR_DOC_BUCKET;
+  const order = [preferred, ...HR_DOC_BUCKETS.filter((b) => b !== preferred)];
+  let lastError: any = null;
+  for (const bucket of order) {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(doc.file_path, expiresIn);
+    if (!error && data?.signedUrl) return data.signedUrl;
+    lastError = error;
+  }
+  throw new Error(hrDocErrorMessage(lastError));
+};
+
+/** Baixa o arquivo (blob) do bucket correto, com fallback para registros legados. */
+export const downloadHrDoc = async (doc: HrStoredDoc): Promise<Blob> => {
+  const preferred = (doc.storage_bucket as HrDocBucket) || DEFAULT_HR_DOC_BUCKET;
+  const order = [preferred, ...HR_DOC_BUCKETS.filter((b) => b !== preferred)];
+  let lastError: any = null;
+  for (const bucket of order) {
+    const { data, error } = await supabase.storage.from(bucket).download(doc.file_path);
+    if (!error && data) return data;
+    lastError = error;
+  }
+  throw new Error(hrDocErrorMessage(lastError));
+};
+
+/** Remove o arquivo do bucket registrado (e do alternativo, para registros legados). */
+export const removeHrDocFile = async (doc: HrStoredDoc): Promise<void> => {
+  const preferred = (doc.storage_bucket as HrDocBucket) || DEFAULT_HR_DOC_BUCKET;
+  const order = [preferred, ...HR_DOC_BUCKETS.filter((b) => b !== preferred)];
+  for (const bucket of order) {
+    const { error } = await supabase.storage.from(bucket).remove([doc.file_path]);
+    if (!error) return;
+  }
+};
+
+/** Mensagem de erro em pt-BR conforme a causa conhecida. */
+export const hrDocErrorMessage = (error: any): string => {
+  const raw = `${error?.message ?? ""} ${error?.error ?? ""}`.toLowerCase();
+  if (raw.includes("not found") || raw.includes("does not exist")) {
+    return "Arquivo não encontrado no armazenamento.";
+  }
+  if (raw.includes("unauthorized") || raw.includes("permission") || raw.includes("policy")) {
+    return "Você não tem permissão para acessar este documento.";
+  }
+  return error?.message || "Não foi possível abrir o documento.";
+};
+
+
 export type ComplianceStatus =
   | "missing"
   | "pending_review"
@@ -134,7 +201,7 @@ export const useUploadEmployeeDocument = () => {
       const code = (input.catalog_code ?? input.catalog_id).toString().replace(/[^a-zA-Z0-9_-]/g, "_");
       const path = `${profile.company_id}/employees/${input.employee_id}/${code}/${Date.now()}_${safe}`;
       const { error: upErr } = await supabase.storage
-        .from("corp-documents")
+        .from(DEFAULT_HR_DOC_BUCKET)
         .upload(path, input.file);
       if (upErr) throw upErr;
 
@@ -144,11 +211,13 @@ export const useUploadEmployeeDocument = () => {
         catalog_id: input.catalog_id,
         file_name: input.file.name,
         file_path: path,
+        storage_bucket: DEFAULT_HR_DOC_BUCKET,
         uploaded_by: user.id,
         issue_date: input.issue_date ?? null,
         notes: input.notes ?? null,
         is_current: true,
       });
+
       if (insErr) throw insErr;
     },
     onSuccess: () => {
@@ -254,21 +323,18 @@ export const useReviewDocument = () => {
   });
 };
 
-export const useDocumentFileUrl = (filePath?: string | null) => {
+export const useDocumentFileUrl = (filePath?: string | null, storageBucket?: string | null) => {
   return useQuery({
-    queryKey: ["hr-doc-signed-url", filePath],
+    queryKey: ["hr-doc-signed-url", filePath, storageBucket],
     enabled: !!filePath,
     staleTime: 60 * 1000 * 4,
     queryFn: async (): Promise<string | null> => {
       if (!filePath) return null;
-      const { data, error } = await supabase.storage
-        .from("corp-documents")
-        .createSignedUrl(filePath, 60 * 10);
-      if (error) throw error;
-      return data?.signedUrl ?? null;
+      return await createHrDocSignedUrl({ file_path: filePath, storage_bucket: storageBucket });
     },
   });
 };
+
 
 export const useMyDocuments = () => {
   const { user, profile } = useAuth();

@@ -15,7 +15,23 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmployeeNotes } from "@/hooks/useEmployeeNotes";
 import { useShareableCatalog, useEmployeeBlocks, useSetBlock, useBulkSetEmployee } from "@/hooks/useHRDocumentSharing";
-import { useEmployeeDocuments, useUploadEmployeeDocument } from "@/hooks/useHRDocumentCompliance";
+import {
+  useEmployeeDocuments,
+  useUploadEmployeeDocument,
+  createHrDocSignedUrl,
+  removeHrDocFile,
+  hrDocErrorMessage,
+  downloadHrDoc,
+} from "@/hooks/useHRDocumentCompliance";
+
+/** Registro de documento de colaborador com o bucket onde o arquivo está. */
+type EmployeeDocumentRow = {
+  id: string;
+  file_path: string;
+  file_name?: string | null;
+  storage_bucket?: string | null;
+};
+
 import { Switch } from "@/components/ui/switch";
 import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3 } from "lucide-react";
 import { format, addDays } from "date-fns";
@@ -452,22 +468,24 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
     }
   };
 
-  const handleDownload = async (doc: any) => {
+  const handleDownload = async (doc: EmployeeDocumentRow) => {
     try {
-      const { data, error } = await supabase.storage
-        .from("corp-documents")
-        .createSignedUrl(doc.file_path, 300);
-      if (error) throw error;
-      window.open(data.signedUrl, "_blank");
-    } catch {
-      toast({ title: "Erro ao abrir documento", variant: "destructive" });
+      const signedUrl = await createHrDocSignedUrl(doc, 300);
+      window.open(signedUrl, "_blank");
+    } catch (err: any) {
+      toast({
+        title: "Erro ao abrir documento",
+        description: hrDocErrorMessage(err),
+        variant: "destructive",
+      });
     }
   };
 
-  const handleDelete = async (doc: any) => {
+  const handleDelete = async (doc: EmployeeDocumentRow & { id: string }) => {
     try {
-      await supabase.storage.from("corp-documents").remove([doc.file_path]);
+      await removeHrDocFile(doc);
       const { error } = await (supabase as any).from("hr_employee_documents").delete().eq("id", doc.id);
+
       if (error) throw error;
       toast({ title: "Documento excluído" });
       queryClient.invalidateQueries({ queryKey: ["hr-employee-documents", employeeId] });
@@ -847,9 +865,11 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
 
   const handleDownload = async (doc: any) => {
     try {
-      const { data, error } = await supabase.storage.from("technician-documents").download(doc.file_path);
-      if (error) throw error;
-      const blobUrl = URL.createObjectURL(data);
+      const blob = await downloadHrDoc({
+        file_path: doc.file_path,
+        storage_bucket: "technician-documents",
+      });
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
       a.download = doc.file_name || "document";
@@ -857,9 +877,10 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
-    } catch {
-      toast({ title: "Erro ao baixar documento", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Erro ao baixar documento", description: hrDocErrorMessage(err), variant: "destructive" });
     }
+
   };
 
   const handleDeleteTechnician = async () => {
