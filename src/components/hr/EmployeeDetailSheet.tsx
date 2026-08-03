@@ -15,7 +15,23 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEmployeeNotes } from "@/hooks/useEmployeeNotes";
 import { useShareableCatalog, useEmployeeBlocks, useSetBlock, useBulkSetEmployee } from "@/hooks/useHRDocumentSharing";
-import { useEmployeeDocuments, useUploadEmployeeDocument } from "@/hooks/useHRDocumentCompliance";
+import {
+  useEmployeeDocuments,
+  useUploadEmployeeDocument,
+  createHrDocSignedUrl,
+  removeHrDocFile,
+  hrDocErrorMessage,
+  downloadHrDoc,
+} from "@/hooks/useHRDocumentCompliance";
+
+/** Registro de documento de colaborador com o bucket onde o arquivo está. */
+type EmployeeDocumentRow = {
+  id: string;
+  file_path: string;
+  file_name?: string | null;
+  storage_bucket?: string | null;
+};
+
 import { Switch } from "@/components/ui/switch";
 import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3 } from "lucide-react";
 import { format, addDays } from "date-fns";
