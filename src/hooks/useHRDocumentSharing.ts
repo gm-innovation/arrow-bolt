@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { createHrDocSignedUrl } from "@/hooks/useHRDocumentCompliance";
+
 
 // ============ Catalog: shareable flag ============
 export const useShareableCatalog = () => {
