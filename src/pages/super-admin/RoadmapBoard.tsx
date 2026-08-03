@@ -22,7 +22,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { GripVertical, Sparkles, Copy, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { PMTicket } from "@/hooks/usePMDashboard";
-import { useMoveRoadmapTicket, useGenerateDevPrompt } from "@/hooks/usePMDashboard";
+import { useMoveRoadmapTicket, useGenerateDevPrompt, computeIceScore } from "@/hooks/usePMDashboard";
+import { usePriorityMetric } from "@/hooks/usePriorityMetric";
+
 
 const HORIZONS = [
   { value: "now", label: "Agora", color: "bg-red-500/10 text-red-700 border-red-300" },
