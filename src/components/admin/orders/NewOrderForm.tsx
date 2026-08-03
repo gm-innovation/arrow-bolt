@@ -255,20 +255,40 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
 
       setSupervisors(supervisorsData || []);
 
-      // Fetch technicians with phone numbers
+      // Fetch technicians (nomes via profiles_public para não depender de acesso a PII)
       const { data: techniciansData } = await supabase
         .from("technicians")
-        .select(`
-          id,
-          profiles:user_id (
-            full_name,
-            phone
-          )
-        `)
+        .select("id, user_id")
         .eq("company_id", profileData.company_id)
         .eq("active", true);
 
-      setTechnicians(techniciansData || []);
+      const techUserIds = (techniciansData || []).map((t: any) => t.user_id).filter(Boolean);
+
+      const [{ data: publicProfiles }, { data: privateProfiles }] = await Promise.all([
+        techUserIds.length
+          ? supabase.from("profiles_public").select("id, full_name").in("id", techUserIds)
+          : Promise.resolve({ data: [] as any[] }),
+        techUserIds.length
+          ? supabase.from("profiles").select("id, full_name, phone").in("id", techUserIds)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
+
+      const nameById = new Map((publicProfiles || []).map((p: any) => [p.id, p.full_name]));
+      const phoneById = new Map((privateProfiles || []).map((p: any) => [p.id, p.phone]));
+      (privateProfiles || []).forEach((p: any) => {
+        if (p.full_name && !nameById.get(p.id)) nameById.set(p.id, p.full_name);
+      });
+
+      setTechnicians(
+        (techniciansData || []).map((t: any) => ({
+          id: t.id,
+          user_id: t.user_id,
+          profiles: {
+            full_name: nameById.get(t.user_id) || "Técnico",
+            phone: phoneById.get(t.user_id) || null,
+          },
+        }))
+      );
 
       // Fetch task types
       const { data: taskTypesData } = await supabase
