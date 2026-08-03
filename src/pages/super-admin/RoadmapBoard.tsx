@@ -32,6 +32,9 @@ const HORIZONS = [
 ];
 
 const ROADMAP_CATEGORIES = new Set(["feature_request", "improvement", "suggestion"]);
+const DELIVERED_STATUSES = new Set(["resolved", "closed"]);
+
+const isDelivered = (t: PMTicket) => DELIVERED_STATUSES.has(t.status);
 
 export function RoadmapBoard({
   tickets,
@@ -41,25 +44,34 @@ export function RoadmapBoard({
   onOpen: (t: PMTicket) => void;
 }) {
   const move = useMoveRoadmapTicket();
+  const [showDelivered, setShowDelivered] = useState(false);
 
-  const byHorizon = useMemo(() => {
+  const { byHorizon, deliveredCount } = useMemo(() => {
     const map: Record<string, PMTicket[]> = { now: [], next: [], later: [], icebox: [] };
+    let delivered = 0;
     for (const t of tickets) {
       if (!ROADMAP_CATEGORIES.has(t.category)) continue;
+      if (isDelivered(t)) {
+        delivered++;
+        if (!showDelivered) continue;
+      }
       const h = t.roadmap_horizon ?? "icebox";
       if (!map[h]) map[h] = [];
       map[h].push(t);
     }
     for (const h of Object.keys(map)) {
       map[h].sort((a, b) => {
+        const da = isDelivered(a) ? 1 : 0;
+        const db = isDelivered(b) ? 1 : 0;
+        if (da !== db) return da - db;
         const pa = a.roadmap_position ?? 1e9;
         const pb = b.roadmap_position ?? 1e9;
         if (pa !== pb) return pa - pb;
         return (b.rice_score ?? 0) - (a.rice_score ?? 0);
       });
     }
-    return map;
-  }, [tickets]);
+    return { byHorizon: map, deliveredCount: delivered };
+  }, [tickets, showDelivered]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
