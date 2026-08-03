@@ -303,7 +303,7 @@ export const getSignedDocUrl = async (opts: {
       });
     }
   } catch { /* non-blocking */ }
-  return data.signedUrl;
+  return signedUrl;
 };
 
 // ============ Share packages ============
