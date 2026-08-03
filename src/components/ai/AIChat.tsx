@@ -135,6 +135,13 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { processFiles: processDroppedFiles } = useMarinaAttachments(attachments, setAttachments, 10);
 
+  // ---- Saudação personalizada ----
+  const { profile } = useAuth();
+  const { data: aiPrefs } = useAIUserPreferences();
+  const greetingName = (aiPrefs?.use_name ?? true)
+    ? ((aiPrefs?.preferred_name || (profile as any)?.full_name || '').trim().split(/\s+/)[0] || '')
+    : '';
+
   // ---- Voz ----
   const { pref: voicePref, cycle: cycleVoicePref } = useVoicePref();
   const { isSpeaking, speakingId, speak, stop: stopSpeaking } = useSpeechPlayback();
