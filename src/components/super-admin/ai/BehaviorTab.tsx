@@ -197,6 +197,78 @@ export function BehaviorTab({ agent, draft, setDraft }: Props) {
           />
         </div>
       </div>
+
+      <div className="rounded-lg border p-4 space-y-4">
+        <div>
+          <h4 className="text-sm font-medium">Naturalidade da conversa</h4>
+          <p className="text-xs text-muted-foreground">
+            Controla o quanto a assistente soa como uma colega de trabalho em vez de um sistema.
+          </p>
+        </div>
+        <div>
+          <Label>Registro</Label>
+          <Select
+            value={behavior.naturalness ?? "natural"}
+            onValueChange={(v) => update({ naturalness: v as any })}
+          >
+            <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mechanical">Objetivo — direto ao ponto, sem floreio</SelectItem>
+              <SelectItem value="natural">Natural — como uma colega experiente (recomendado)</SelectItem>
+              <SelectItem value="conversational">Conversacional — bem próximo de uma conversa real</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div>
+            <p className="text-sm font-medium">Variar aberturas</p>
+            <p className="text-xs text-muted-foreground">Evita começar sempre com "Claro!", "Entendido:" etc.</p>
+          </div>
+          <Switch
+            checked={behavior.avoid_repetitive_openings !== false}
+            onCheckedChange={(v) => update({ avoid_repetitive_openings: v })}
+          />
+        </div>
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div>
+            <p className="text-sm font-medium">Permitir emojis</p>
+            <p className="text-xs text-muted-foreground">No máximo um por resposta, e só com função.</p>
+          </div>
+          <Switch
+            checked={behavior.use_emojis !== false}
+            onCheckedChange={(v) => update({ use_emojis: v })}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-lg border p-4 space-y-4">
+        <div>
+          <h4 className="text-sm font-medium">Coleta de dados</h4>
+          <p className="text-xs text-muted-foreground">
+            Como a assistente pede as informações que faltam para executar uma ação.
+          </p>
+        </div>
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div>
+            <p className="text-sm font-medium">Pedir tudo em uma única mensagem</p>
+            <p className="text-xs text-muted-foreground">Lista numerada com sugestões prontas, em vez de vários turnos.</p>
+          </div>
+          <Switch
+            checked={behavior.single_message_collection !== false}
+            onCheckedChange={(v) => update({ single_message_collection: v })}
+          />
+        </div>
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div>
+            <p className="text-sm font-medium">Exigir descrição no Roadmap</p>
+            <p className="text-xs text-muted-foreground">Itens do Roadmap só são criados com descrição (pedida ou redigida pela IA).</p>
+          </div>
+          <Switch
+            checked={behavior.require_roadmap_description !== false}
+            onCheckedChange={(v) => update({ require_roadmap_description: v })}
+          />
+        </div>
+      </div>
     </div>
   );
 }

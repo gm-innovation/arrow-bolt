@@ -140,6 +140,10 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
   // ---- Saudação personalizada ----
   const { profile } = useAuth();
   const { data: aiPrefs } = useAIUserPreferences();
+  const voiceOpts = {
+    ...(aiPrefs?.voice ? { voice: aiPrefs.voice } : {}),
+    ...(aiPrefs?.voice_speed ? { speed: aiPrefs.voice_speed } : {}),
+  };
   const greetingName = (aiPrefs?.use_name ?? true)
     ? ((aiPrefs?.preferred_name || (profile as any)?.full_name || '').trim().split(/\s+/)[0] || '')
     : '';
@@ -182,7 +186,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
     if (voicePref === 'auto' && !lastInputWasVoiceRef.current) return;
     lastSpokenRef.current = key;
     lastInputWasVoiceRef.current = false;
-    speak(last.content, key);
+    speak(last.content, key, voiceOpts);
   }, [messages, isLoading, voicePref, speak]);
 
   const handleSend = () => {
@@ -484,7 +488,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
                       <SpeakMessageButton
                         text={msg.content}
                         isSpeaking={isSpeaking && speakingId === (msg.id ?? `idx-${i}`)}
-                        onSpeak={() => speak(msg.content, msg.id ?? `idx-${i}`)}
+                        onSpeak={() => speak(msg.content, msg.id ?? `idx-${i}`, voiceOpts)}
                         onStop={stopSpeaking}
                       />
                     </div>

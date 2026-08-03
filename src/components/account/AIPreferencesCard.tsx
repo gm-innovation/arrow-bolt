@@ -17,6 +17,8 @@ import {
   type AIVerbosity,
   type AITone,
   type AIProactivity,
+  AI_USER_VOICE_LABELS,
+  type AIUserVoice,
 } from "@/hooks/useAIUserPreferences";
 
 export function AIPreferencesCard() {
@@ -28,6 +30,8 @@ export function AIPreferencesCard() {
   const [tone, setTone] = useState<AITone>("neutral");
   const [proactivity, setProactivity] = useState<AIProactivity>("medium");
   const [useName, setUseName] = useState(true);
+  const [voice, setVoice] = useState<AIUserVoice | "default">("default");
+  const [voiceSpeed, setVoiceSpeed] = useState<string>("");
 
   useEffect(() => {
     if (!data) return;
@@ -36,6 +40,8 @@ export function AIPreferencesCard() {
     setTone(data.tone);
     setProactivity(data.proactivity);
     setUseName(data.use_name);
+    setVoice((data.voice ?? "default") as AIUserVoice | "default");
+    setVoiceSpeed(data.voice_speed != null ? String(data.voice_speed) : "");
   }, [data]);
 
   if (isLoading) {
@@ -107,6 +113,34 @@ export function AIPreferencesCard() {
           </div>
         </div>
 
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Voz da leitura em voz alta</Label>
+            <Select value={voice} onValueChange={(v) => setVoice(v as AIUserVoice | "default")}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Padrão do assistente</SelectItem>
+                {(Object.entries(AI_USER_VOICE_LABELS) as [AIUserVoice, string][]).map(([k, label]) => (
+                  <SelectItem key={k} value={k}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="ai-voice-speed">Velocidade da fala</Label>
+            <Input
+              id="ai-voice-speed"
+              type="number"
+              step="0.01"
+              min="0.5"
+              max="2"
+              value={voiceSpeed}
+              onChange={(e) => setVoiceSpeed(e.target.value)}
+              placeholder="Padrão (1.03x)"
+            />
+          </div>
+        </div>
+
         <div className="flex items-center justify-between rounded-md border p-3">
           <div>
             <p className="text-sm font-medium">Usar meu nome nas conversas</p>
@@ -135,6 +169,8 @@ export function AIPreferencesCard() {
                 tone,
                 proactivity,
                 use_name: useName,
+                voice: voice === "default" ? null : voice,
+                voice_speed: voiceSpeed.trim() ? Number(voiceSpeed) : null,
               })
             }
             disabled={update.isPending}
