@@ -65,6 +65,15 @@ export function useLiveVoice({
   const bargeFramesRef = useRef(0);
   const busyRef = useRef(false);
 
+  // Os callbacks vivem em refs: o processador de áudio é montado uma única vez
+  // e não pode carregar versões antigas de sendMessage/cancelamento.
+  const onUtteranceRef = useRef(onUtterance);
+  const onPartialRef = useRef(onPartial);
+  const onBargeInRef = useRef(onBargeIn);
+  useEffect(() => { onUtteranceRef.current = onUtterance; }, [onUtterance]);
+  useEffect(() => { onPartialRef.current = onPartial; }, [onPartial]);
+  useEffect(() => { onBargeInRef.current = onBargeIn; }, [onBargeIn]);
+
   useEffect(() => { agentSpeakingRef.current = agentSpeaking; }, [agentSpeaking]);
 
   const transcribe = useCallback(async (blob: Blob, speechMs: number) => {
