@@ -128,7 +128,7 @@ export function useLiveVoice({
             if (evt.type === 'transcript.text.delta' && evt.delta) {
               text += evt.delta;
               setPartial(text);
-              onPartial?.(text);
+              onPartialRef.current?.(text);
             } else if (evt.type === 'transcript.text.done' && typeof evt.text === 'string') {
               text = evt.text;
             }
@@ -139,13 +139,13 @@ export function useLiveVoice({
       const finalText = text.trim();
       setPartial('');
       if (!finalText) return;
-      onUtterance(finalText, { speechMs, transcribeMs: Date.now() - startedAt });
+      onUtteranceRef.current(finalText, { speechMs, transcribeMs: Date.now() - startedAt });
     } catch (e) {
       console.error('Erro na transcrição contínua:', e);
     } finally {
       setIsTranscribing(false);
     }
-  }, [onPartial, onUtterance]);
+  }, []);
 
   const finalizeSegment = useCallback((rate: number) => {
     const frames = framesRef.current;
@@ -228,7 +228,7 @@ export function useLiveVoice({
         if (agentSpeakingRef.current) {
           bargeFramesRef.current += 1;
           if (bargeFramesRef.current * frameMs < 250) return;
-          onBargeIn?.();
+          onBargeInRef.current?.();
         }
         if (busyRef.current) return;
 
@@ -263,7 +263,7 @@ export function useLiveVoice({
     nodeRef.current = node;
     noiseFloorRef.current = BASE_THRESHOLD;
     setIsActive(true);
-  }, [finalizeSegment, isActive, onBargeIn]);
+  }, [finalizeSegment, isActive]);
 
   const state: LiveVoiceState = !isActive
     ? 'off'
