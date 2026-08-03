@@ -181,7 +181,7 @@ export const TechniciansSelection = ({
       <FormLabel>Técnicos</FormLabel>
       <div className="border rounded-lg p-4 space-y-4">
         <Select onValueChange={handleAddTechnician}>
-          <SelectTrigger>
+          <SelectTrigger aria-label="Técnicos">
             <SelectValue placeholder="Selecione os técnicos" />
           </SelectTrigger>
           <SelectContent>
@@ -271,6 +271,7 @@ export const TechniciansSelection = ({
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 ml-2"
+                      aria-label={`Remover técnico ${technicians.find(t => t.id === techId)?.profiles?.full_name || ''}`}
                       onClick={() => handleRemove(techId)}
                     >
                       <X className="h-4 w-4" />

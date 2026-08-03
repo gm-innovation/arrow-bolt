@@ -435,7 +435,7 @@ const NewRequestDialog = ({ companyId }: NewRequestDialogProps) => {
   return (
     <Dialog open={open} onOpenChange={o => { setOpen(o); if (!o) resetForm(); }}>
       <DialogTrigger asChild>
-        <Button className="gap-2"><Plus className="h-4 w-4" /> Nova Solicitação</Button>
+        <Button className="gap-2" aria-label="Nova Solicitação Corporativa"><Plus className="h-4 w-4" /> Nova Solicitação</Button>
       </DialogTrigger>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>

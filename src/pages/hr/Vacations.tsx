@@ -300,7 +300,7 @@ export default function Vacations() {
         </div>
         <NewRequestDialog
           trigger={
-            <Button>
+            <Button aria-label="Nova Solicitação de Férias">
               <Plus className="h-4 w-4 mr-2" /> Nova Solicitação
             </Button>
           }
