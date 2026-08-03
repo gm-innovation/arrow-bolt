@@ -166,7 +166,7 @@ export function useTechnicianStats() {
         // Reports submitted
         supabase
           .from("task_reports")
-          .select("id", { count: "exact", head: true })
+          .select("id, task:tasks!task_reports_task_uuid_fkey!inner(assigned_to)", { count: "exact", head: true })
           .eq("task.assigned_to", technician.id),
 
         // Ratings from task reports
@@ -174,7 +174,7 @@ export function useTechnicianStats() {
           .from("task_reports")
           .select(`
             report_data,
-            task:tasks!task_reports_task_uuid_fkey (
+            task:tasks!task_reports_task_uuid_fkey!inner (
               assigned_to
             )
           `)

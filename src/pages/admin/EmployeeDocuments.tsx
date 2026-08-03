@@ -81,10 +81,11 @@ const Directory = () => {
   };
 
   const [expanded, setExpanded] = useState<string[]>([]);
+  const filteredIdsKey = filtered.map((e: any) => e.id).join(",");
   useEffect(() => {
-    if (q.trim()) setExpanded(filtered.map((e: any) => e.id));
-    else setExpanded([]);
-  }, [q, filtered]);
+    if (q.trim()) setExpanded(filteredIdsKey ? filteredIdsKey.split(",") : []);
+    else setExpanded(prev => (prev.length === 0 ? prev : []));
+  }, [q, filteredIdsKey]);
 
   return (
     <Card>
