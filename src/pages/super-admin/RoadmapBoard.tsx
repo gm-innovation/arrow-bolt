@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -32,6 +32,9 @@ const HORIZONS = [
 ];
 
 const ROADMAP_CATEGORIES = new Set(["feature_request", "improvement", "suggestion"]);
+const DELIVERED_STATUSES = new Set(["resolved", "closed"]);
+
+const isDelivered = (t: PMTicket) => DELIVERED_STATUSES.has(t.status);
 
 export function RoadmapBoard({
   tickets,
@@ -41,25 +44,34 @@ export function RoadmapBoard({
   onOpen: (t: PMTicket) => void;
 }) {
   const move = useMoveRoadmapTicket();
+  const [showDelivered, setShowDelivered] = useState(false);
 
-  const byHorizon = useMemo(() => {
+  const { byHorizon, deliveredCount } = useMemo(() => {
     const map: Record<string, PMTicket[]> = { now: [], next: [], later: [], icebox: [] };
+    let delivered = 0;
     for (const t of tickets) {
       if (!ROADMAP_CATEGORIES.has(t.category)) continue;
+      if (isDelivered(t)) {
+        delivered++;
+        if (!showDelivered) continue;
+      }
       const h = t.roadmap_horizon ?? "icebox";
       if (!map[h]) map[h] = [];
       map[h].push(t);
     }
     for (const h of Object.keys(map)) {
       map[h].sort((a, b) => {
+        const da = isDelivered(a) ? 1 : 0;
+        const db = isDelivered(b) ? 1 : 0;
+        if (da !== db) return da - db;
         const pa = a.roadmap_position ?? 1e9;
         const pb = b.roadmap_position ?? 1e9;
         if (pa !== pb) return pa - pb;
         return (b.rice_score ?? 0) - (a.rice_score ?? 0);
       });
     }
-    return map;
-  }, [tickets]);
+    return { byHorizon: map, deliveredCount: delivered };
+  }, [tickets, showDelivered]);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -101,8 +113,9 @@ export function RoadmapBoard({
       if (!moved) return;
       ordered = [...targetList.slice(0, newIndex), moved, ...targetList.slice(newIndex)];
     }
-    // Persist positions for the affected column (batched)
+    // Persist positions for the affected column (batched); itens entregues não são reordenados
     ordered.forEach((t, idx) => {
+      if (isDelivered(t)) return;
       const shouldUpdateHorizon = t.id === activeId && from !== to;
       if ((t.roadmap_position ?? -1) !== idx || shouldUpdateHorizon) {
         move.mutate({ id: t.id, horizon: to, position: idx });
@@ -112,6 +125,17 @@ export function RoadmapBoard({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
+      <div className="flex items-center justify-end gap-2 mb-2">
+        <span className="text-xs text-muted-foreground">Entregues: {deliveredCount}</span>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-[11px]"
+          onClick={() => setShowDelivered((v) => !v)}
+        >
+          {showDelivered ? "Ocultar entregues" : "Mostrar entregues"}
+        </Button>
+      </div>
       <div className="grid gap-3 md:grid-cols-4">
         {HORIZONS.map((h) => (
           <RoadmapColumn key={h.value} horizon={h} items={byHorizon[h.value] ?? []} onOpen={onOpen} />
@@ -160,12 +184,16 @@ function RoadmapColumn({
 }
 
 function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t: PMTicket) => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ticket.id });
+  const delivered = isDelivered(ticket);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: ticket.id,
+    disabled: delivered,
+  });
   const gen = useGenerateDevPrompt();
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.5 : delivered ? 0.6 : 1,
   };
   return (
     <AccordionItem
@@ -176,25 +204,36 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
       className="bg-background rounded border-0 px-2"
     >
       <div className="flex items-start">
-        <button
-          {...attributes}
-          {...listeners}
-          className="p-1.5 mt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
-          aria-label="Arrastar"
-          data-tour="pm-roadmap-drag-handle"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
+        {delivered ? (
+          <span className="p-1.5 mt-1.5 text-muted-foreground/40">
+            <GripVertical className="h-3.5 w-3.5" />
+          </span>
+        ) : (
+          <button
+            {...attributes}
+            {...listeners}
+            className="p-1.5 mt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+            aria-label="Arrastar"
+            data-tour="pm-roadmap-drag-handle"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+        )}
         <AccordionTrigger className="py-2 hover:no-underline flex-1">
           <div className="flex flex-col items-start gap-1 text-left w-full pr-2">
             <div className="flex items-center justify-between w-full gap-2">
               <span className="font-mono text-[10px] text-muted-foreground">#{ticket.ticket_number}</span>
-              {ticket.rice_score != null && (
-                <span className="text-[10px] font-bold text-primary">RICE {ticket.rice_score}</span>
-              )}
+              <span className="flex items-center gap-1">
+                {delivered && (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0">Entregue</Badge>
+                )}
+                {ticket.rice_score != null && (
+                  <span className="text-[10px] font-bold text-primary">RICE {ticket.rice_score}</span>
+                )}
+              </span>
             </div>
-            <div className="text-xs font-medium leading-snug">{ticket.title}</div>
+            <div className={`text-xs font-medium leading-snug ${delivered ? "line-through" : ""}`}>{ticket.title}</div>
           </div>
         </AccordionTrigger>
       </div>
