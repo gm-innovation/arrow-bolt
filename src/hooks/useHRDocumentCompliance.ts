@@ -321,21 +321,18 @@ export const useReviewDocument = () => {
   });
 };
 
-export const useDocumentFileUrl = (filePath?: string | null) => {
+export const useDocumentFileUrl = (filePath?: string | null, storageBucket?: string | null) => {
   return useQuery({
-    queryKey: ["hr-doc-signed-url", filePath],
+    queryKey: ["hr-doc-signed-url", filePath, storageBucket],
     enabled: !!filePath,
     staleTime: 60 * 1000 * 4,
     queryFn: async (): Promise<string | null> => {
       if (!filePath) return null;
-      const { data, error } = await supabase.storage
-        .from("corp-documents")
-        .createSignedUrl(filePath, 60 * 10);
-      if (error) throw error;
-      return data?.signedUrl ?? null;
+      return await createHrDocSignedUrl({ file_path: filePath, storage_bucket: storageBucket });
     },
   });
 };
+
 
 export const useMyDocuments = () => {
   const { user, profile } = useAuth();
