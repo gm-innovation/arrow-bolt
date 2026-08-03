@@ -279,12 +279,14 @@ export const useCoordinatorEmployeeDocs = () => {
 
 // ============ Signed URL + log ============
 export const getSignedDocUrl = async (opts: {
-  document_id: string; file_path: string; action?: "view" | "download"; package_id?: string; employee_id?: string;
+  document_id: string; file_path: string; storage_bucket?: string | null;
+  action?: "view" | "download"; package_id?: string; employee_id?: string;
 }) => {
-  const { data, error } = await supabase.storage
-    .from("corp-documents")
-    .createSignedUrl(opts.file_path, 60 * 10);
-  if (error) throw error;
+  const signedUrl = await createHrDocSignedUrl({
+    file_path: opts.file_path,
+    storage_bucket: opts.storage_bucket,
+  });
+
   // best-effort audit log
   try {
     const { data: u } = await supabase.auth.getUser();
