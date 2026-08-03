@@ -616,6 +616,14 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
       {/* Input */}
       <div className="p-3 border-t">
         <div className="flex flex-col gap-2">
+          <LiveVoiceBar
+            isActive={live.isActive}
+            state={live.state}
+            level={live.level}
+            partial={live.partial}
+            onToggle={() => { void toggleLive(); }}
+            disabled={isRecording || isTranscribing}
+          />
           <AttachmentChips attachments={attachments} onChange={setAttachments} />
           <div className="flex gap-2 items-stretch">
             <AttachmentButton attachments={attachments} onChange={setAttachments} />
