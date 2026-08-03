@@ -359,6 +359,37 @@ function RiceCell({ label, value }: { label: string; value: number | null }) {
   );
 }
 
+function IceCell({
+  label,
+  value,
+  hint,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  hint?: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="border rounded p-2 text-center space-y-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <Select value={value != null ? String(value) : ""} onValueChange={(v) => onChange(Number(v))}>
+        <SelectTrigger className="h-8 text-sm justify-center">
+          <SelectValue placeholder="—" />
+        </SelectTrigger>
+        <SelectContent>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {hint && <div className="text-[10px] text-muted-foreground">{hint}</div>}
+    </div>
+  );
+}
+
+
+
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: string }) {
   return (
     <Card>
