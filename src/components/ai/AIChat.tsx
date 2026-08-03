@@ -271,12 +271,12 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
 
   // Encerra o modo conversa se o painel for fechado.
   useEffect(() => {
-    if (!isOpen && (liveOn || live.isActive)) {
+    if (!open && (liveOn || live.isActive)) {
       live.stop();
       speechQueue.cancel();
       setLiveOn(false);
     }
-  }, [isOpen]);
+  }, [open]);
 
   // Fala automaticamente a última resposta conforme a preferência do usuário.
   useEffect(() => {
