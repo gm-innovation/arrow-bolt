@@ -51,10 +51,12 @@ export function RoadmapBoard({
 }) {
   const move = useMoveRoadmapTicket();
   const [showDelivered, setShowDelivered] = useState(false);
+  const { metric } = usePriorityMetric();
 
   const { byHorizon, deliveredCount } = useMemo(() => {
     const map: Record<string, PMTicket[]> = { now: [], next: [], later: [], icebox: [] };
     let delivered = 0;
+    const activeScore = (t: PMTicket) => (metric === "rice" ? t.rice_score ?? 0 : iceOf(t) ?? 0);
     for (const t of tickets) {
       if (!ROADMAP_CATEGORIES.has(t.category)) continue;
       if (isDelivered(t)) {
@@ -73,11 +75,12 @@ export function RoadmapBoard({
         const pa = a.roadmap_position ?? 1e9;
         const pb = b.roadmap_position ?? 1e9;
         if (pa !== pb) return pa - pb;
-        return (b.rice_score ?? 0) - (a.rice_score ?? 0);
+        return activeScore(b) - activeScore(a);
       });
     }
     return { byHorizon: map, deliveredCount: delivered };
-  }, [tickets, showDelivered]);
+  }, [tickets, showDelivered, metric]);
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
