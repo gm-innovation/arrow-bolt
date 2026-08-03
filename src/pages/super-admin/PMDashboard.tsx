@@ -203,6 +203,8 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
   if (!ticket) return null;
 
   const isRoadmapCategory = ROADMAP_CATEGORIES.has(ticket.category);
+  const iceScore = ticket.ice_score ?? computeIceScore(ticket.ice_impact, ticket.ice_confidence, ticket.ice_ease);
+
 
   return (
     <Dialog open={!!ticket} onOpenChange={onClose}>
