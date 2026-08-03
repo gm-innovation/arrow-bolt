@@ -78,11 +78,17 @@ const AccountSettings = () => {
           <TabsTrigger value="notifications"><Bell className="h-4 w-4 mr-2" /> Notificações</TabsTrigger>
           <TabsTrigger value="session"><ShieldAlert className="h-4 w-4 mr-2" /> Sessão</TabsTrigger>
           <TabsTrigger value="awareness"><Megaphone className="h-4 w-4 mr-2" /> Conscientizações</TabsTrigger>
+          <TabsTrigger value="assistant"><Sparkles className="h-4 w-4 mr-2" /> Assistente</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="assistant" className="mt-4">
+          <AIPreferencesCard />
+        </TabsContent>
 
         <TabsContent value="awareness" className="mt-4">
           <MyAwarenessPanel />
         </TabsContent>
+
 
         <TabsContent value="signature" className="mt-4">
           <SignatureSection />
