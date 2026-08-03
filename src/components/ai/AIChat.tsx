@@ -14,6 +14,8 @@ import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { useSpeechPlayback } from '@/hooks/useSpeechPlayback';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAIUserPreferences } from '@/hooks/useAIUserPreferences';
 import { useVoicePref } from '@/hooks/useVoicePref';
 import { VoiceRecordButton } from './VoiceRecordButton';
 import { SpeakMessageButton } from './SpeakMessageButton';
