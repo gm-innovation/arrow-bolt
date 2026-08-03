@@ -153,24 +153,35 @@ function TicketsTab() {
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Central Agêntica de Tickets</CardTitle>
-          <CardDescription>Tickets processados pela Marina — resumo, área e prompt de execução prontos</CardDescription>
+        <CardHeader className="flex-row items-center justify-between gap-3 flex-wrap">
+          <div>
+            <CardTitle>Central Agêntica de Tickets</CardTitle>
+            <CardDescription>Tickets ativos processados pela Marina — entregues ficam no Histórico</CardDescription>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">Entregues: {delivered.length}</span>
+            <Button size="sm" variant="ghost" onClick={() => setShowDelivered((v) => !v)}>
+              {showDelivered ? "Ocultar entregues" : "Mostrar entregues"}
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <ScrollArea className="h-[500px]">
             <div className="divide-y">
               {isLoading ? Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="p-4"><Skeleton className="h-16 w-full" /></div>
-              )) : tickets.map((t) => (
+              )) : visible.map((t) => (
                 <button key={t.id} onClick={() => setSelected(t)}
-                  className="w-full text-left p-4 hover:bg-muted/40 transition-colors">
+                  className={`w-full text-left p-4 hover:bg-muted/40 transition-colors ${isTicketDelivered(t) ? "opacity-60" : ""}`}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-1">
                         <span className="font-mono text-xs text-muted-foreground">#{t.ticket_number}</span>
                         <Badge variant="outline">{t.category}</Badge>
                         <Badge variant={t.status === "open" ? "default" : "secondary"}>{t.status}</Badge>
+                        {isTicketDelivered(t) && (
+                          <Badge variant="outline" className="border-emerald-300 text-emerald-700">Entregue</Badge>
+                        )}
                         {t.impacted_module || t.suggested_area ? (
                           <Badge variant="outline" className="border-primary/30 text-primary">
                             {t.impacted_module || t.suggested_area}
@@ -182,7 +193,7 @@ function TicketsTab() {
                           </Badge>
                         )}
                       </div>
-                      <div className="font-medium truncate">{t.title}</div>
+                      <div className={`font-medium truncate ${isTicketDelivered(t) ? "line-through" : ""}`}>{t.title}</div>
                       <div className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
                         {t.ai_summary || t.description}
                       </div>
@@ -191,9 +202,10 @@ function TicketsTab() {
                   </div>
                 </button>
               ))}
-              {!isLoading && tickets.length === 0 && (
-                <div className="p-8 text-center text-muted-foreground">Nenhum ticket ainda.</div>
+              {!isLoading && visible.length === 0 && (
+                <div className="p-8 text-center text-muted-foreground">Nenhum ticket ativo.</div>
               )}
+
             </div>
           </ScrollArea>
         </CardContent>
