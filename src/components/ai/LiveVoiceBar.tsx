@@ -15,7 +15,7 @@ const STATE_LABEL: Record<VoiceSessionState, string> = {
 
 interface LiveVoiceBarProps {
   isActive: boolean;
-  state: LiveVoiceState;
+  state: VoiceSessionState;
   level: number;
   partial?: string;
   onToggle: () => void;
