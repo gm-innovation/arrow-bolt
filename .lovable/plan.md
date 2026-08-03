@@ -32,6 +32,16 @@ O que muda:
 - Se o usuário já deu contexto suficiente na conversa, a Marina **redige a descrição sozinha**, mostra o resumo e pede apenas o "pode criar".
 - Nunca criar item com descrição vazia: se não houver como inferir, a descrição é solicitada nessa mesma primeira mensagem.
 
+## 4. Configuração na área de IA (Super Admin)
+
+Em **Gestão de Agentes de IA**, os novos ajustes ficam editáveis por agente, sem precisar recriar nada:
+
+- **Aba Identidade → "Voz"**: seletor de voz feminina/masculina/neutra (coral, shimmer, sage, nova, alloy, echo) com botão "Ouvir amostra", campo de velocidade da fala e um campo de instruções de entonação (texto livre, com o padrão já preenchido).
+- **Aba Comportamento → "Naturalidade"**: controle de nível de naturalidade (mecânica / natural / bem conversacional), switch de uso de emojis e switch "evitar aberturas repetitivas". Esses valores alimentam o bloco de naturalidade do prompt.
+- **Aba Comportamento → "Coleta de dados em criações"**: switch "pedir todos os campos numa única mensagem" e switch "descrição obrigatória ao criar item de Roadmap", que controlam o comportamento descrito no item 3.
+
+Também na conta do usuário (**Minha Conta → Configurações → Assistente de IA**), junto das preferências já existentes: escolha da voz preferida e da velocidade, sobrescrevendo o padrão do agente.
+
 ## Detalhes técnicos
 
 **`supabase/functions/ai-text-to-speech/index.ts`**
