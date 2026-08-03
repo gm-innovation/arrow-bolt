@@ -2,6 +2,22 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export type AIAgentVoice = "coral" | "shimmer" | "sage" | "nova" | "alloy" | "echo";
+
+export const AI_VOICE_OPTIONS: { value: AIAgentVoice; label: string }[] = [
+  { value: "coral", label: "Coral (feminina, expressiva)" },
+  { value: "shimmer", label: "Shimmer (feminina, suave)" },
+  { value: "sage", label: "Sage (feminina, calma)" },
+  { value: "nova", label: "Nova (feminina, jovem)" },
+  { value: "alloy", label: "Alloy (neutra)" },
+  { value: "echo", label: "Echo (masculina)" },
+];
+
+export const DEFAULT_VOICE_INSTRUCTIONS =
+  "Fale em português do Brasil como uma colega de trabalho experiente conversando, não como locutora. " +
+  "Entonação variada, pausas naturais em vírgulas e pontos, ritmo de fala real. " +
+  "Diga números e siglas como um brasileiro falaria. Não leia símbolos de formatação.";
+
 export type AIAgentIdentity = {
   name?: string;
   tagline?: string;
@@ -10,6 +26,9 @@ export type AIAgentIdentity = {
   language?: string;
   persona?: string;
   avatar_url?: string;
+  voice?: AIAgentVoice;
+  voice_speed?: number;
+  voice_instructions?: string;
 };
 
 export type AIAgentOutOfScopeArea = {
