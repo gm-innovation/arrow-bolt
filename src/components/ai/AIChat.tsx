@@ -14,10 +14,9 @@ import { AIReportPreview } from './AIReportPreview';
 import { useNavigate } from 'react-router-dom';
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder';
 import { useSpeechPlayback } from '@/hooks/useSpeechPlayback';
-import { useSpeechQueue } from '@/hooks/useSpeechQueue';
-import { useLiveVoice } from '@/hooks/useLiveVoice';
+import { useVoiceSession } from '@/hooks/useVoiceSession';
 import { useVoiceTelemetry } from '@/hooks/useVoiceTelemetry';
-import { takeCompleteSentences } from '@/lib/voice/audio';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useAIUserPreferences } from '@/hooks/useAIUserPreferences';
 import { useVoicePref } from '@/hooks/useVoicePref';
