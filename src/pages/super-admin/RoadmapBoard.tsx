@@ -224,11 +224,16 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
           <div className="flex flex-col items-start gap-1 text-left w-full pr-2">
             <div className="flex items-center justify-between w-full gap-2">
               <span className="font-mono text-[10px] text-muted-foreground">#{ticket.ticket_number}</span>
-              {ticket.rice_score != null && (
-                <span className="text-[10px] font-bold text-primary">RICE {ticket.rice_score}</span>
-              )}
+              <span className="flex items-center gap-1">
+                {delivered && (
+                  <Badge variant="outline" className="text-[9px] px-1 py-0">Entregue</Badge>
+                )}
+                {ticket.rice_score != null && (
+                  <span className="text-[10px] font-bold text-primary">RICE {ticket.rice_score}</span>
+                )}
+              </span>
             </div>
-            <div className="text-xs font-medium leading-snug">{ticket.title}</div>
+            <div className={`text-xs font-medium leading-snug ${delivered ? "line-through" : ""}`}>{ticket.title}</div>
           </div>
         </AccordionTrigger>
       </div>
