@@ -87,22 +87,29 @@ const EditUser = () => {
             full_name,
             email,
             phone,
-            company_id,
-            user_roles (role)
+            company_id
           `)
           .eq("id", userId)
           .eq("company_id", profileData.company_id)
-          .single();
+          .maybeSingle();
 
         if (userError) throw userError;
         if (!userData) throw new Error("Usuário não encontrado");
+
+        // user_roles referencia auth.users (sem FK com profiles): busca separada
+        const { data: roleData } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId)
+          .limit(1)
+          .maybeSingle();
 
         // Set form values
         form.reset({
           full_name: userData.full_name || "",
           email: userData.email || "",
           phone: userData.phone || "",
-          role: (userData.user_roles as any)?.[0]?.role || "technician",
+          role: (roleData?.role as any) || "technician",
         });
       } catch (error: any) {
         console.error("Error fetching user:", error);
