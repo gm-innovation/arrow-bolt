@@ -32,6 +32,16 @@ O que muda:
 - Se o usuário já deu contexto suficiente na conversa, a Marina **redige a descrição sozinha**, mostra o resumo e pede apenas o "pode criar".
 - Nunca criar item com descrição vazia: se não houver como inferir, a descrição é solicitada nessa mesma primeira mensagem.
 
+## 4. Configuração na área de IA (Super Admin)
+
+Em **Gestão de Agentes de IA**, os novos ajustes ficam editáveis por agente, sem precisar recriar nada:
+
+- **Aba Identidade → "Voz"**: seletor de voz feminina/masculina/neutra (coral, shimmer, sage, nova, alloy, echo) com botão "Ouvir amostra", campo de velocidade da fala e um campo de instruções de entonação (texto livre, com o padrão já preenchido).
+- **Aba Comportamento → "Naturalidade"**: controle de nível de naturalidade (mecânica / natural / bem conversacional), switch de uso de emojis e switch "evitar aberturas repetitivas". Esses valores alimentam o bloco de naturalidade do prompt.
+- **Aba Comportamento → "Coleta de dados em criações"**: switch "pedir todos os campos numa única mensagem" e switch "descrição obrigatória ao criar item de Roadmap", que controlam o comportamento descrito no item 3.
+
+Também na conta do usuário (**Minha Conta → Configurações → Assistente de IA**), junto das preferências já existentes: escolha da voz preferida e da velocidade, sobrescrevendo o padrão do agente.
+
 ## Detalhes técnicos
 
 **`supabase/functions/ai-text-to-speech/index.ts`**
@@ -45,7 +55,12 @@ O que muda:
 **`supabase/functions/ai-assistant/tools.ts`**
 - `create_roadmap_item`: `description` da spec reescrita ("colete descrição, módulo e horizonte na MESMA mensagem, sugerindo valores inferidos; não chame sem descrição") e `description` adicionada a `required`, mantendo o restante do handler (RLS, `logAction`, `triggerDevPrompt`) intacto.
 
-**Frontend**
-- `src/hooks/useSpeechPlayback.ts`: passa a enviar `voice` opcional (sem alterar comportamento atual quando não informada). Nenhuma mudança de tipagem pública.
+**Configuração (Super Admin e conta do usuário)**
+- `src/hooks/useAIAgents.ts`: estender `AIAgentIdentity` com `voice`, `voice_speed`, `voice_instructions`; e `AIAgentBehavior` com `naturalness` (`mechanical | natural | conversational`), `use_emojis`, `avoid_repetitive_openings`, `single_message_collection`, `require_roadmap_description`. Tudo opcional, gravado nas colunas `jsonb` existentes — sem migração.
+- `src/components/super-admin/ai/IdentityTab.tsx`: bloco "Voz" (seletor, velocidade, instruções, botão de amostra usando o hook de playback).
+- `src/components/super-admin/ai/BehaviorTab.tsx`: blocos "Naturalidade" e "Coleta de dados em criações".
+- `src/hooks/useAIUserPreferences.ts` + `AIPreferencesCard.tsx`: campos `voice` e `voice_speed` na preferência do usuário (colunas novas em `ai_user_preferences` via migração com `GRANT` + RLS já vigente, políticas mantidas: cada usuário só a própria linha).
+- `supabase/functions/ai-assistant/index.ts`: ler `behavior.naturalness`/switches e `identity` para montar o bloco de naturalidade e as regras de coleta.
+- `src/hooks/useSpeechPlayback.ts`: aceita `voice`/`speed` e envia à função de voz; precedência preferência do usuário → agente → padrão.
 
 Todas as strings visíveis seguem em pt-BR.
