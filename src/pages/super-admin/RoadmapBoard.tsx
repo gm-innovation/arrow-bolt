@@ -38,6 +38,10 @@ const DELIVERED_STATUSES = new Set(["resolved", "closed"]);
 
 const isDelivered = (t: PMTicket) => DELIVERED_STATUSES.has(t.status);
 
+const iceOf = (t: PMTicket) => t.ice_score ?? computeIceScore(t.ice_impact, t.ice_confidence, t.ice_ease);
+
+
+
 export function RoadmapBoard({
   tickets,
   onOpen,
