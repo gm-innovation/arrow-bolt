@@ -555,10 +555,11 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
       <div className="p-3 border-t">
         <div className="flex flex-col gap-2">
           <LiveVoiceBar
-            isActive={live.isActive}
-            state={live.state}
-            level={live.level}
-            partial={live.partial}
+            isActive={voice.isActive}
+            state={voice.state}
+            level={voice.level}
+            partial={voice.partial}
+
             onToggle={() => { void toggleLive(); }}
             disabled={isRecording || isTranscribing}
           />
