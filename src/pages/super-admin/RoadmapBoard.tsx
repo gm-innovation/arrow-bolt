@@ -113,8 +113,9 @@ export function RoadmapBoard({
       if (!moved) return;
       ordered = [...targetList.slice(0, newIndex), moved, ...targetList.slice(newIndex)];
     }
-    // Persist positions for the affected column (batched)
+    // Persist positions for the affected column (batched); itens entregues não são reordenados
     ordered.forEach((t, idx) => {
+      if (isDelivered(t)) return;
       const shouldUpdateHorizon = t.id === activeId && from !== to;
       if ((t.roadmap_position ?? -1) !== idx || shouldUpdateHorizon) {
         move.mutate({ id: t.id, horizon: to, position: idx });
@@ -124,6 +125,17 @@ export function RoadmapBoard({
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCorners} onDragEnd={onDragEnd}>
+      <div className="flex items-center justify-end gap-2 mb-2">
+        <span className="text-xs text-muted-foreground">Entregues: {deliveredCount}</span>
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 text-[11px]"
+          onClick={() => setShowDelivered((v) => !v)}
+        >
+          {showDelivered ? "Ocultar entregues" : "Mostrar entregues"}
+        </Button>
+      </div>
       <div className="grid gap-3 md:grid-cols-4">
         {HORIZONS.map((h) => (
           <RoadmapColumn key={h.value} horizon={h} items={byHorizon[h.value] ?? []} onOpen={onOpen} />
