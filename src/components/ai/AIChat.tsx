@@ -378,11 +378,14 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
               <Sparkles className="h-12 w-12 text-primary/50" />
             )}
             <div>
-              <h3 className="font-semibold text-foreground">Olá! Sou {agentName}</h3>
+              <h3 className="font-semibold text-foreground">
+                {greetingName ? `Olá, ${greetingName}! Sou ${agentName}` : `Olá! Sou ${agentName}`}
+              </h3>
               <p className="text-sm text-muted-foreground mt-1">
                 Como posso ajudar você hoje?
               </p>
             </div>
+
             
             {/* Quick suggestions */}
             <div className="flex flex-wrap gap-2 justify-center mt-4">
