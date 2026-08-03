@@ -237,9 +237,13 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
                 {delivered && (
                   <Badge variant="outline" className="text-[9px] px-1 py-0">Entregue</Badge>
                 )}
-                {ticket.rice_score != null && (
+                {showIce && iceOf(ticket) != null && (
+                  <span className="text-[10px] font-bold text-primary">ICE {iceOf(ticket)}</span>
+                )}
+                {showRice && ticket.rice_score != null && (
                   <span className="text-[10px] font-bold text-primary">RICE {ticket.rice_score}</span>
                 )}
+
               </span>
             </div>
             <div className={`text-xs font-medium leading-snug ${delivered ? "line-through" : ""}`}>{ticket.title}</div>
