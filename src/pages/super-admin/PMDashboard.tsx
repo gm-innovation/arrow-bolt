@@ -19,7 +19,7 @@ import {
   usePMTickets, useRecalcRice, useUpdateTicketPM, useRegisterCodeChange,
   useNorthStarMetrics, useOSTNodes, useChangelog, useAIPerformance,
   useRefreshProductMetrics, usePMTicketLiveCounts, useOSTSeed, useSeedChangelog,
-  computeIceScore,
+  computeIceScore, isTicketDelivered, splitDeliveredTickets,
   type PMTicket, type NorthStarMetric, type OSTNode, type ChangelogEntry, type OSTSeedPlan,
   type AIPerfWindow,
 } from "@/hooks/usePMDashboard";
