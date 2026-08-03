@@ -19,9 +19,12 @@ import {
   usePMTickets, useRecalcRice, useUpdateTicketPM, useRegisterCodeChange,
   useNorthStarMetrics, useOSTNodes, useChangelog, useAIPerformance,
   useRefreshProductMetrics, usePMTicketLiveCounts, useOSTSeed, useSeedChangelog,
+  computeIceScore,
   type PMTicket, type NorthStarMetric, type OSTNode, type ChangelogEntry, type OSTSeedPlan,
   type AIPerfWindow,
 } from "@/hooks/usePMDashboard";
+import { usePriorityMetric, type PriorityMetric } from "@/hooks/usePriorityMetric";
+
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
 import { toast } from "@/hooks/use-toast";
 import { formatLocalDate } from "@/lib/utils";
