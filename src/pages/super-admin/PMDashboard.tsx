@@ -19,9 +19,12 @@ import {
   usePMTickets, useRecalcRice, useUpdateTicketPM, useRegisterCodeChange,
   useNorthStarMetrics, useOSTNodes, useChangelog, useAIPerformance,
   useRefreshProductMetrics, usePMTicketLiveCounts, useOSTSeed, useSeedChangelog,
+  computeIceScore,
   type PMTicket, type NorthStarMetric, type OSTNode, type ChangelogEntry, type OSTSeedPlan,
   type AIPerfWindow,
 } from "@/hooks/usePMDashboard";
+import { usePriorityMetric, type PriorityMetric } from "@/hooks/usePriorityMetric";
+
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid, AreaChart, Area } from "recharts";
 import { toast } from "@/hooks/use-toast";
 import { formatLocalDate } from "@/lib/utils";
@@ -203,6 +206,8 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
   if (!ticket) return null;
 
   const isRoadmapCategory = ROADMAP_CATEGORIES.has(ticket.category);
+  const iceScore = ticket.ice_score ?? computeIceScore(ticket.ice_impact, ticket.ice_confidence, ticket.ice_ease);
+
 
   return (
     <Dialog open={!!ticket} onOpenChange={onClose}>
@@ -278,6 +283,36 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
             )}
           </div>
 
+          <div data-tour="pm-ice-block">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-base">
+                ICE Score
+                {iceScore != null && <span className="ml-2 text-primary">{iceScore}</span>}
+              </Label>
+              <span className="text-xs text-muted-foreground">Impacto × Confiança × Facilidade (1–5)</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-sm">
+              <IceCell
+                label="Impacto"
+                value={ticket.ice_impact}
+                onChange={(v) => update.mutate({ id: ticket.id, patch: { ice_impact: v } })}
+              />
+              <IceCell
+                label="Confiança"
+                value={ticket.ice_confidence}
+                onChange={(v) => update.mutate({ id: ticket.id, patch: { ice_confidence: v } })}
+              />
+              <IceCell
+                label="Facilidade"
+                value={ticket.ice_ease}
+                hint="5 = muito fácil"
+                onChange={(v) => update.mutate({ id: ticket.id, patch: { ice_ease: v } })}
+              />
+            </div>
+          </div>
+
+
+
           {ticket.dev_prompt && (
             <div>
               <div className="flex items-center justify-between mb-1">
@@ -323,6 +358,37 @@ function RiceCell({ label, value }: { label: string; value: number | null }) {
     </div>
   );
 }
+
+function IceCell({
+  label,
+  value,
+  hint,
+  onChange,
+}: {
+  label: string;
+  value: number | null;
+  hint?: string;
+  onChange: (v: number) => void;
+}) {
+  return (
+    <div className="border rounded p-2 text-center space-y-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <Select value={value != null ? String(value) : ""} onValueChange={(v) => onChange(Number(v))}>
+        <SelectTrigger className="h-8 text-sm justify-center">
+          <SelectValue placeholder="—" />
+        </SelectTrigger>
+        <SelectContent>
+          {[1, 2, 3, 4, 5].map((n) => (
+            <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {hint && <div className="text-[10px] text-muted-foreground">{hint}</div>}
+    </div>
+  );
+}
+
+
 
 function StatCard({ label, value, icon: Icon, accent }: { label: string; value: number; icon: any; accent?: string }) {
   return (
@@ -692,39 +758,82 @@ function PriorityTab() {
   const recalc = useRecalcRice();
   const update = useUpdateTicketPM();
   const [selected, setSelected] = useState<PMTicket | null>(null);
+  const { metric, setMetric, showIce, showRice } = usePriorityMetric();
+  const [minScore, setMinScore] = useState("");
 
-  const scored = useMemo(
-    () => tickets.filter((t) => t.rice_score != null).sort((a, b) => (b.rice_score ?? 0) - (a.rice_score ?? 0)),
-    [tickets],
-  );
+  const iceOf = (t: PMTicket) => t.ice_score ?? computeIceScore(t.ice_impact, t.ice_confidence, t.ice_ease);
+  const scoreOf = (t: PMTicket) => (metric === "rice" ? t.rice_score ?? 0 : iceOf(t) ?? 0);
+  const hasScore = (t: PMTicket) =>
+    metric === "rice" ? t.rice_score != null : metric === "ice" ? iceOf(t) != null : t.rice_score != null || iceOf(t) != null;
+
+  const scored = useMemo(() => {
+    const min = Number(minScore);
+    return tickets
+      .filter(hasScore)
+      .filter((t) => (minScore === "" || !Number.isFinite(min) ? true : scoreOf(t) >= min))
+      .sort((a, b) => scoreOf(b) - scoreOf(a));
+  }, [tickets, metric, minScore]);
+
   const roadmapTickets = useMemo(
     () => tickets.filter((t) => ROADMAP_CATEGORIES.has(t.category)),
     [tickets],
   );
-  const unscored = tickets.filter((t) => t.rice_score == null);
+  const unscored = tickets.filter((t) => t.rice_score == null || iceOf(t) == null);
 
-  
+  const isQuickWin = (t: PMTicket) =>
+    metric === "rice"
+      ? (t.impact ?? 0) >= 4 && (t.effort ?? 5) <= 2
+      : (t.ice_impact ?? 0) >= 4 && (t.ice_ease ?? 0) >= 4;
 
-  const isQuickWin = (t: PMTicket) => (t.impact ?? 0) >= 4 && (t.effort ?? 5) <= 2;
+  const metricLabel =
+    metric === "ice" ? "ICE" : metric === "rice" ? "RICE" : "ICE + RICE";
+  const metricDescription =
+    metric === "ice"
+      ? "Impacto × Confiança × Facilidade — Quick Wins destacados"
+      : metric === "rice"
+        ? "Reach × Impact × Confidence ÷ Effort — Quick Wins destacados"
+        : "ICE e RICE lado a lado — ordenado pelo ICE";
+
+  const colCount = 3 + (showIce ? 4 : 0) + (showRice ? 5 : 0);
 
   return (
     <>
       <Card data-tour="pm-rice-card">
-        <CardHeader className="flex-row justify-between items-center">
+        <CardHeader className="flex-row justify-between items-center gap-3 flex-wrap">
           <div>
-            <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5" /> Priorização RICE</CardTitle>
-            <CardDescription>Reach × Impact × Confidence ÷ Effort — Quick Wins destacados</CardDescription>
+            <CardTitle className="flex items-center gap-2"><Trophy className="h-5 w-5" /> Priorização {metricLabel}</CardTitle>
+            <CardDescription>{metricDescription}</CardDescription>
           </div>
-          {unscored.length > 0 && (
-            <Button size="sm" variant="outline" data-tour="pm-rice-calculate-pending" onClick={async () => {
-              toast({ title: `Calculando ${unscored.length} tickets...` });
-              for (const t of unscored.slice(0, 10)) {
-                try { await recalc.mutateAsync(t.id); } catch { /* skip */ }
-              }
-            }}>
-              <Sparkles className="h-4 w-4 mr-1" /> Calcular pendentes ({unscored.length})
-            </Button>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={metric} onValueChange={(v) => setMetric(v as PriorityMetric)}>
+              <SelectTrigger className="h-8 w-36 text-xs" data-tour="pm-priority-metric-select">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ice">ICE</SelectItem>
+                <SelectItem value="rice">RICE</SelectItem>
+                <SelectItem value="both">Ambas</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="number"
+              value={minScore}
+              onChange={(e) => setMinScore(e.target.value)}
+              placeholder="Score mín."
+              className="h-8 w-28 text-xs"
+              data-tour="pm-priority-min-score"
+            />
+            {unscored.length > 0 && (
+              <Button size="sm" variant="outline" data-tour="pm-rice-calculate-pending" onClick={async () => {
+                toast({ title: `Calculando ${unscored.length} tickets...` });
+                for (const t of unscored.slice(0, 10)) {
+                  try { await recalc.mutateAsync(t.id); } catch { /* skip */ }
+                }
+              }}>
+                <Sparkles className="h-4 w-4 mr-1" /> Calcular pendentes ({unscored.length})
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0" data-tour="pm-rice-table">
           <ScrollArea className="h-[400px]">
@@ -733,17 +842,25 @@ function PriorityTab() {
                 <tr className="text-left">
                   <th className="p-2 w-12">#</th>
                   <th className="p-2">Título</th>
-                  <th className="p-2 text-center">R</th>
-                  <th className="p-2 text-center">I</th>
-                  <th className="p-2 text-center">C</th>
-                  <th className="p-2 text-center">E</th>
-                  <th className="p-2 text-right">RICE</th>
+                  {showIce && <>
+                    <th className="p-2 text-center" title="Impacto">Imp</th>
+                    <th className="p-2 text-center" title="Confiança">Conf</th>
+                    <th className="p-2 text-center" title="Facilidade">Fac</th>
+                    <th className="p-2 text-right">ICE</th>
+                  </>}
+                  {showRice && <>
+                    <th className="p-2 text-center">R</th>
+                    <th className="p-2 text-center">I</th>
+                    <th className="p-2 text-center">C</th>
+                    <th className="p-2 text-center">E</th>
+                    <th className="p-2 text-right">RICE</th>
+                  </>}
                   <th className="p-2">Horizonte</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? Array.from({ length: 5 }).map((_, i) => (
-                  <tr key={i}><td colSpan={8} className="p-2"><Skeleton className="h-8 w-full" /></td></tr>
+                  <tr key={i}><td colSpan={colCount} className="p-2"><Skeleton className="h-8 w-full" /></td></tr>
                 )) : scored.map((t) => (
                   <tr key={t.id} className={`border-t ${isQuickWin(t) ? "bg-green-50/50 dark:bg-green-950/20" : ""}`}>
                     <td className="p-2 font-mono text-xs">{t.ticket_number}</td>
@@ -753,11 +870,19 @@ function PriorityTab() {
                         <span className="truncate max-w-md">{t.title}</span>
                       </div>
                     </td>
-                    <td className="p-2 text-center">{t.reach}</td>
-                    <td className="p-2 text-center">{t.impact}</td>
-                    <td className="p-2 text-center">{t.confidence}</td>
-                    <td className="p-2 text-center">{t.effort}</td>
-                    <td className="p-2 text-right font-bold text-primary">{t.rice_score}</td>
+                    {showIce && <>
+                      <td className="p-2 text-center">{t.ice_impact ?? "—"}</td>
+                      <td className="p-2 text-center">{t.ice_confidence ?? "—"}</td>
+                      <td className="p-2 text-center">{t.ice_ease ?? "—"}</td>
+                      <td className="p-2 text-right font-bold text-primary">{iceOf(t) ?? "—"}</td>
+                    </>}
+                    {showRice && <>
+                      <td className="p-2 text-center">{t.reach ?? "—"}</td>
+                      <td className="p-2 text-center">{t.impact ?? "—"}</td>
+                      <td className="p-2 text-center">{t.confidence ?? "—"}</td>
+                      <td className="p-2 text-center">{t.effort ?? "—"}</td>
+                      <td className="p-2 text-right font-bold text-primary">{t.rice_score ?? "—"}</td>
+                    </>}
                     <td className="p-2">
                       {ROADMAP_CATEGORIES.has(t.category) ? (
                         <Select value={t.roadmap_horizon ?? ""} onValueChange={(v) => update.mutate({ id: t.id, patch: { roadmap_horizon: v as any } })}>
@@ -771,8 +896,9 @@ function PriorityTab() {
                   </tr>
                 ))}
                 {!isLoading && scored.length === 0 && (
-                  <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum ticket com RICE calculado ainda.</td></tr>
+                  <tr><td colSpan={colCount} className="p-8 text-center text-muted-foreground">Nenhum ticket priorizado com {metricLabel} ainda.</td></tr>
                 )}
+
               </tbody>
             </table>
           </ScrollArea>

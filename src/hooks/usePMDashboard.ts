@@ -27,6 +27,11 @@ export interface PMTicket {
   effort: number | null;
   rice_score: number | null;
   rice_rationale: string | null;
+  ice_impact: number | null;
+  ice_confidence: number | null;
+  ice_ease: number | null;
+  ice_score: number | null;
+
   roadmap_horizon: string | null;
   roadmap_position: number | null;
   pm_changelog_id: string | null;
@@ -49,6 +54,16 @@ export const usePMTickets = () => {
   });
 };
 
+/** ICE = Impacto × Confiança × Facilidade (1–5 cada, 5 = mais fácil). */
+export const computeIceScore = (
+  impact: number | null | undefined,
+  confidence: number | null | undefined,
+  ease: number | null | undefined,
+): number | null => {
+  if (impact == null || confidence == null || ease == null) return null;
+  return impact * confidence * ease;
+};
+
 export const useRecalcRice = () => {
   const qc = useQueryClient();
   return useMutation({
@@ -61,11 +76,12 @@ export const useRecalcRice = () => {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["pm-tickets"] });
-      toast({ title: "RICE recalculado" });
+      toast({ title: "RICE e ICE recalculados" });
     },
-    onError: (e: any) => toast({ title: "Falha ao calcular RICE", description: e.message, variant: "destructive" }),
+    onError: (e: any) => toast({ title: "Falha ao calcular priorização", description: e.message, variant: "destructive" }),
   });
 };
+
 
 export const useUpdateTicketPM = () => {
   const qc = useQueryClient();

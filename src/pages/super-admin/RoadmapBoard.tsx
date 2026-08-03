@@ -22,7 +22,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { GripVertical, Sparkles, Copy, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { PMTicket } from "@/hooks/usePMDashboard";
-import { useMoveRoadmapTicket, useGenerateDevPrompt } from "@/hooks/usePMDashboard";
+import { useMoveRoadmapTicket, useGenerateDevPrompt, computeIceScore } from "@/hooks/usePMDashboard";
+import { usePriorityMetric } from "@/hooks/usePriorityMetric";
+
 
 const HORIZONS = [
   { value: "now", label: "Agora", color: "bg-red-500/10 text-red-700 border-red-300" },
@@ -36,6 +38,10 @@ const DELIVERED_STATUSES = new Set(["resolved", "closed"]);
 
 const isDelivered = (t: PMTicket) => DELIVERED_STATUSES.has(t.status);
 
+const iceOf = (t: PMTicket) => t.ice_score ?? computeIceScore(t.ice_impact, t.ice_confidence, t.ice_ease);
+
+
+
 export function RoadmapBoard({
   tickets,
   onOpen,
@@ -45,10 +51,12 @@ export function RoadmapBoard({
 }) {
   const move = useMoveRoadmapTicket();
   const [showDelivered, setShowDelivered] = useState(false);
+  const { metric } = usePriorityMetric();
 
   const { byHorizon, deliveredCount } = useMemo(() => {
     const map: Record<string, PMTicket[]> = { now: [], next: [], later: [], icebox: [] };
     let delivered = 0;
+    const activeScore = (t: PMTicket) => (metric === "rice" ? t.rice_score ?? 0 : iceOf(t) ?? 0);
     for (const t of tickets) {
       if (!ROADMAP_CATEGORIES.has(t.category)) continue;
       if (isDelivered(t)) {
@@ -67,11 +75,12 @@ export function RoadmapBoard({
         const pa = a.roadmap_position ?? 1e9;
         const pb = b.roadmap_position ?? 1e9;
         if (pa !== pb) return pa - pb;
-        return (b.rice_score ?? 0) - (a.rice_score ?? 0);
+        return activeScore(b) - activeScore(a);
       });
     }
     return { byHorizon: map, deliveredCount: delivered };
-  }, [tickets, showDelivered]);
+  }, [tickets, showDelivered, metric]);
+
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -190,6 +199,8 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
     disabled: delivered,
   });
   const gen = useGenerateDevPrompt();
+  const { showIce, showRice } = usePriorityMetric();
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -228,9 +239,13 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
                 {delivered && (
                   <Badge variant="outline" className="text-[9px] px-1 py-0">Entregue</Badge>
                 )}
-                {ticket.rice_score != null && (
+                {showIce && iceOf(ticket) != null && (
+                  <span className="text-[10px] font-bold text-primary">ICE {iceOf(ticket)}</span>
+                )}
+                {showRice && ticket.rice_score != null && (
                   <span className="text-[10px] font-bold text-primary">RICE {ticket.rice_score}</span>
                 )}
+
               </span>
             </div>
             <div className={`text-xs font-medium leading-snug ${delivered ? "line-through" : ""}`}>{ticket.title}</div>
