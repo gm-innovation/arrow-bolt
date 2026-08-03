@@ -452,22 +452,24 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
     }
   };
 
-  const handleDownload = async (doc: any) => {
+  const handleDownload = async (doc: EmployeeDocumentRow) => {
     try {
-      const { data, error } = await supabase.storage
-        .from("corp-documents")
-        .createSignedUrl(doc.file_path, 300);
-      if (error) throw error;
-      window.open(data.signedUrl, "_blank");
-    } catch {
-      toast({ title: "Erro ao abrir documento", variant: "destructive" });
+      const signedUrl = await createHrDocSignedUrl(doc, 300);
+      window.open(signedUrl, "_blank");
+    } catch (err: any) {
+      toast({
+        title: "Erro ao abrir documento",
+        description: hrDocErrorMessage(err),
+        variant: "destructive",
+      });
     }
   };
 
-  const handleDelete = async (doc: any) => {
+  const handleDelete = async (doc: EmployeeDocumentRow & { id: string }) => {
     try {
-      await supabase.storage.from("corp-documents").remove([doc.file_path]);
+      await removeHrDocFile(doc);
       const { error } = await (supabase as any).from("hr_employee_documents").delete().eq("id", doc.id);
+
       if (error) throw error;
       toast({ title: "Documento excluído" });
       queryClient.invalidateQueries({ queryKey: ["hr-employee-documents", employeeId] });
