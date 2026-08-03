@@ -865,9 +865,11 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
 
   const handleDownload = async (doc: any) => {
     try {
-      const { data, error } = await supabase.storage.from("technician-documents").download(doc.file_path);
-      if (error) throw error;
-      const blobUrl = URL.createObjectURL(data);
+      const blob = await downloadHrDoc({
+        file_path: doc.file_path,
+        storage_bucket: "technician-documents",
+      });
+      const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
       a.download = doc.file_name || "document";
@@ -875,9 +877,10 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
-    } catch {
-      toast({ title: "Erro ao baixar documento", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Erro ao baixar documento", description: hrDocErrorMessage(err), variant: "destructive" });
     }
+
   };
 
   const handleDeleteTechnician = async () => {
