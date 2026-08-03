@@ -13,6 +13,72 @@ O plano entrega essa experiência agora e isola a camada de áudio para que troc
 - Sair do modo conversa devolve o chat de texto normal, com todo o histórico preservado.
 - No aplicativo Android, mantém o comportamento nativo já usado nos outros recursos; onde o navegador não permitir microfone contínuo, degrada para o botão de gravar atual.
 
+## Diagrama da arquitetura
+
+Sim, com agentes distintos por tarefa. A diferença em relação ao GPT Live é o transporte: em vez de áudio nativo por WebRTC, o áudio entra e sai encadeado (transcrição e síntese), enquanto a divisão de papéis entre agentes é equivalente.
+
+```text
+                        ┌──────────────────────────────┐
+                        │   Usuário (microfone aberto)  │
+                        └───────────┬──────────────────┘
+                                    │
+                    ┌───────────────▼────────────────┐
+                    │  Camada de áudio (navegador)    │
+                    │  detecção de fala e silêncio    │
+                    │  tolerância a hesitação         │
+                    │  interrupção (barge-in)         │
+                    └───────┬──────────────┬─────────┘
+        trecho completo     │              │  usuário voltou a falar
+                            ▼              ▼
+                   ┌──────────────┐   ┌──────────────────────┐
+                   │ Transcrição  │   │ Corta a voz e limpa  │
+                   └───────┬──────┘   │ a fila de áudio      │
+                           │          └──────────┬───────────┘
+                           ▼                     │
+            ┌──────────────────────────────┐     │
+            │   Agente Orquestrador         │◄────┘
+            │   (Marina: responde ou        │
+            │    delega, mantém o turno)    │
+            └───┬────────┬────────┬────────┘
+                │        │        │        └────────────┐
+                ▼        ▼        ▼                     ▼
+      ┌───────────────┐ ┌──────────────┐ ┌───────────────┐ ┌──────────────┐
+      │ Agente de     │ │ Agente de    │ │ Agente de     │ │ Agente de    │
+      │ Dados         │ │ Execução     │ │ Conhecimento  │ │ Memória      │
+      │ OS, RH, SGQ,  │ │ criar/editar │ │ manuais e     │ │ resumo da    │
+      │ comercial,    │ │ /excluir,    │ │ rotas do      │ │ sessão e     │
+      │ financeiro    │ │ chamados,    │ │ Arrow         │ │ busca        │
+      │               │ │ roadmap      │ │               │ │ semântica    │
+      └───────┬───────┘ └──────┬───────┘ └───────┬───────┘ └──────┬───────┘
+              │                │ confirmação     │                │
+              │                ▼ falada          │                │
+              │        ┌──────────────┐          │                │
+              │        │ Usuário      │          │                │
+              │        │ confirma     │          │                │
+              │        └──────┬───────┘          │                │
+              └───────────────┴──────────────────┴────────────────┘
+                                    │ resposta em streaming
+                                    ▼
+                        ┌──────────────────────────┐
+                        │ Síntese de voz por frase │
+                        │ fila cancelável          │
+                        └───────────┬──────────────┘
+                                    ▼
+                        ┌──────────────────────────┐
+                        │  Áudio para o usuário    │
+                        └──────────────────────────┘
+
+              Telemetria por turno: latência de cada etapa,
+              interrupções e ferramentas acionadas.
+```
+
+Papéis, em uma linha cada:
+- **Orquestrador**: mantém a conversa, decide responder direto ou delegar, e responde durante a espera para não ficar mudo.
+- **Dados**: consultas de leitura nos módulos, sempre filtradas pela empresa e pelo perfil.
+- **Execução**: qualquer escrita, com confirmação falada obrigatória antes de agir.
+- **Conhecimento**: manuais e caminhos de tela do Arrow.
+- **Memória**: compacta a sessão longa e devolve os pontos-chave quando necessário.
+
 ## Ondas de implementação
 
 ### Onda 1 — Núcleo da conversa contínua
