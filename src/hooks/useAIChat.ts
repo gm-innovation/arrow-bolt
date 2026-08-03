@@ -344,6 +344,7 @@ export function useAIChat({ userRole, context }: UseAIChatOptions) {
           image: legacyImage,
           attachments,
           userRole,
+          channel: opts?.channel ?? 'text',
           context: {
             ...context,
             companyId: context?.companyId || userCompanyId,
