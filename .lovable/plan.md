@@ -6,7 +6,9 @@ Objetivo: rodar uma bateria de testes automatizados (Playwright) cobrindo todos 
 
 Criar uma empresa de testes isolada ("QA Automação") e um usuário por papel, todos com e-mail `qa+<papel>@arrow.test` e senha única gerada:
 
-- super_admin, director, coordinator, technician, hr, commercial, marketing, qualidade, financeiro, compras
+- super_admin, director, coordinator, technician, hr, commercial, marketing, financeiro, compras
+
+O módulo de Qualidade (SGQ) fica **fora do escopo**: por exigência da ISO 9001 não serão criados registros fictícios ali, e o papel `qualidade` e as rotas `/quality/*` não serão testados.
 
 Cada usuário recebe: registro em `auth.users` (confirmado), `profiles` com `company_id` da empresa QA, e a linha correspondente em `user_roles`. O técnico também recebe registro em `technicians`.
 
@@ -28,7 +30,7 @@ Para cada papel, em sessão de navegador própria:
 - Técnico: abrir OS atribuída, registrar apontamento/checklist, upload de foto.
 - RH: cadastrar colaborador, subir documento, abrir/baixar documento (regressão do bug de bucket), solicitação de férias.
 - Comercial: criar lead, oportunidade e tarefa.
-- Qualidade: criar documento controlado, NCR e anexo de auditoria (regressão do bucket `quality-evidences`).
+- Qualidade: nenhum teste (módulo excluído do escopo por conformidade ISO 9001 — sem leitura nem escrita).
 - Financeiro: lançar conta a pagar/receber.
 - Suprimentos: criar requisição de compra e homologar provedor.
 - Diretor: aprovar uma solicitação corporativa e uma requisição de compra.
