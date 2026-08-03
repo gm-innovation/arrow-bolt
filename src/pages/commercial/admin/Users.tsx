@@ -79,6 +79,8 @@ const AdminUsers = () => {
         ...u,
         user_roles: roleByUser.has(u.id) ? [{ role: roleByUser.get(u.id) }] : [],
       }));
+    },
+    enabled: !!profile?.company_id,
   });
 
   const filtered = users.filter((u: any) =>
