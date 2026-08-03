@@ -106,6 +106,7 @@ export default function SupportInbox() {
     onSuccess: () => {
       toast.success("Status atualizado");
       qc.invalidateQueries({ queryKey: ["support-tickets"] });
+      qc.invalidateQueries({ queryKey: ["pm-tickets"] });
     },
     onError: (e: any) => toast.error(e.message),
   });
