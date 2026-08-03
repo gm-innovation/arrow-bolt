@@ -199,6 +199,8 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
     disabled: delivered,
   });
   const gen = useGenerateDevPrompt();
+  const { showIce, showRice } = usePriorityMetric();
+
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
