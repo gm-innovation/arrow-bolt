@@ -2,15 +2,15 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { encodeWav, frameRms, resamplePcm, TARGET_SAMPLE_RATE } from '@/lib/voice/audio';
+import type { VoiceSessionState } from '@/lib/voice/transport';
 
-/** Estados visíveis da sessão de voz contínua. */
-export type LiveVoiceState =
-  | 'off'
-  | 'listening'   // microfone aberto, silêncio
-  | 'hearing'     // usuário falando
-  | 'transcribing'
-  | 'thinking'
-  | 'speaking';
+/**
+ * Detalhe interno do transporte encadeado (ver src/lib/voice/FULL-DUPLEX.md):
+ * captura de microfone, detecção de fala/silêncio, interrupção e transcrição
+ * por trecho. Consumido por `useVoiceSession`, não pelo chat.
+ */
+export type LiveVoiceState = VoiceSessionState;
+
 
 const FRAME_SIZE = 2048;
 const SILENCE_MS = 900;          // silêncio que encerra o turno
