@@ -278,6 +278,36 @@ function TicketDetailDialog({ ticket, onClose }: { ticket: PMTicket | null; onCl
             )}
           </div>
 
+          <div data-tour="pm-ice-block">
+            <div className="flex items-center justify-between mb-2">
+              <Label className="text-base">
+                ICE Score
+                {iceScore != null && <span className="ml-2 text-primary">{iceScore}</span>}
+              </Label>
+              <span className="text-xs text-muted-foreground">Impacto × Confiança × Facilidade (1–5)</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-sm">
+              <IceCell
+                label="Impacto"
+                value={ticket.ice_impact}
+                onChange={(v) => update.mutate({ id: ticket.id, patch: { ice_impact: v } })}
+              />
+              <IceCell
+                label="Confiança"
+                value={ticket.ice_confidence}
+                onChange={(v) => update.mutate({ id: ticket.id, patch: { ice_confidence: v } })}
+              />
+              <IceCell
+                label="Facilidade"
+                value={ticket.ice_ease}
+                hint="5 = muito fácil"
+                onChange={(v) => update.mutate({ id: ticket.id, patch: { ice_ease: v } })}
+              />
+            </div>
+          </div>
+
+
+
           {ticket.dev_prompt && (
             <div>
               <div className="flex items-center justify-between mb-1">
