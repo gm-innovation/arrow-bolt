@@ -60,13 +60,25 @@ const AdminUsers = () => {
       if (!profile?.company_id) return [];
       const { data, error } = await (supabase as any)
         .from("profiles")
-        .select("id, full_name, email, phone, created_at, user_roles(role)")
+        .select("id, full_name, email, phone, created_at")
         .eq("company_id", profile.company_id)
         .order("full_name");
       if (error) throw error;
-      return data || [];
-    },
-    enabled: !!profile?.company_id,
+      const ids = (data || []).map((u: any) => u.id);
+      if (ids.length === 0) return [];
+      // user_roles referencia auth.users (sem FK com profiles): busca separada
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", ids);
+      const roleByUser = new Map<string, string>();
+      (roles || []).forEach((r: any) => {
+        if (!roleByUser.has(r.user_id)) roleByUser.set(r.user_id, r.role);
+      });
+      return (data || []).map((u: any) => ({
+        ...u,
+        user_roles: roleByUser.has(u.id) ? [{ role: roleByUser.get(u.id) }] : [],
+      }));
   });
 
   const filtered = users.filter((u: any) =>
