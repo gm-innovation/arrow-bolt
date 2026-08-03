@@ -127,3 +127,7 @@ verify_jwt = false
 # Manifesto de atualização OTA — só devolve metadados públicos de versão.
 [functions.app-update]
 verify_jwt = false
+
+# Compactação de memória da sessão de voz da Marina (valida a sessão em código).
+[functions.ai-compact-session]
+verify_jwt = true
