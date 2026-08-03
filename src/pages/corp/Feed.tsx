@@ -33,8 +33,8 @@ const CorpFeed = () => {
   const { data: userRole } = useQuery({
     queryKey: ['my-role', user?.id],
     queryFn: async () => {
-      const { data } = await supabase.from('user_roles').select('role').eq('user_id', user!.id).single();
-      return data?.role;
+      const { data } = await supabase.from('user_roles').select('role').eq('user_id', user!.id).limit(1).maybeSingle();
+      return data?.role ?? null;
     },
     enabled: !!user,
   });
