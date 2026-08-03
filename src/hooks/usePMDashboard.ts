@@ -54,6 +54,20 @@ export const usePMTickets = () => {
   });
 };
 
+/** Status considerados "entregues": saem das ferramentas de trabalho e ficam só no histórico. */
+export const DELIVERED_TICKET_STATUSES = new Set(["resolved", "closed"]);
+
+export const isTicketDelivered = (t: { status: string }) => DELIVERED_TICKET_STATUSES.has(t.status);
+
+/** Separa a lista em ativos (ferramentas) e entregues (histórico). */
+export const splitDeliveredTickets = <T extends { status: string }>(list: T[]) => {
+  const active: T[] = [];
+  const delivered: T[] = [];
+  for (const t of list) (isTicketDelivered(t) ? delivered : active).push(t);
+  return { active, delivered };
+};
+
+
 /** ICE = Impacto × Confiança × Facilidade (1–5 cada, 5 = mais fácil). */
 export const computeIceScore = (
   impact: number | null | undefined,

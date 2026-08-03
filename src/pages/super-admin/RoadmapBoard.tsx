@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { GripVertical, Sparkles, Copy, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { PMTicket } from "@/hooks/usePMDashboard";
-import { useMoveRoadmapTicket, useGenerateDevPrompt, computeIceScore } from "@/hooks/usePMDashboard";
+import { useMoveRoadmapTicket, useGenerateDevPrompt, computeIceScore, isTicketDelivered } from "@/hooks/usePMDashboard";
 import { usePriorityMetric } from "@/hooks/usePriorityMetric";
 
 
@@ -34,9 +34,9 @@ const HORIZONS = [
 ];
 
 const ROADMAP_CATEGORIES = new Set(["feature_request", "improvement", "suggestion"]);
-const DELIVERED_STATUSES = new Set(["resolved", "closed"]);
 
-const isDelivered = (t: PMTicket) => DELIVERED_STATUSES.has(t.status);
+const isDelivered = isTicketDelivered;
+
 
 const iceOf = (t: PMTicket) => t.ice_score ?? computeIceScore(t.ice_impact, t.ice_confidence, t.ice_ease);
 
