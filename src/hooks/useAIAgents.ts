@@ -68,6 +68,11 @@ export type AIAgentBehavior = {
   handoff_target?: string;
   out_of_scope?: AIAgentOutOfScope;
   agility?: AIAgentAgility;
+  naturalness?: "mechanical" | "natural" | "conversational";
+  use_emojis?: boolean;
+  avoid_repetitive_openings?: boolean;
+  single_message_collection?: boolean;
+  require_roadmap_description?: boolean;
 };
 
 export const DEFAULT_OUT_OF_SCOPE: AIAgentOutOfScope = {
