@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { VoiceTestButton } from "@/components/ai/VoiceTestButton";
 
 interface Props {
   agent: AIAgent;
@@ -179,6 +180,18 @@ export function IdentityTab({ agent, draft, setDraft }: Props) {
             />
           </div>
         </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <VoiceTestButton
+            voice={identity.voice ?? "coral"}
+            speed={identity.voice_speed ?? 1.03}
+            instructions={identity.voice_instructions ?? ""}
+            sampleText={`Oi, eu sou a ${identity.name || "Marina"}. A OS 1036 foi concluída ontem e o relatório já está assinado. Quer que eu envie o resumo pra você?`}
+          />
+          <p className="text-xs text-muted-foreground">
+            Ouve uma frase de exemplo com os valores atuais desta tela, mesmo antes de salvar.
+          </p>
+        </div>
+
         <div>
           <Label>Instruções de entonação</Label>
           <Textarea

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VoiceTestButton } from "@/components/ai/VoiceTestButton";
 import { useState, useEffect } from "react";
 import {
   useAIUserPreferences,
@@ -139,6 +140,16 @@ export function AIPreferencesCard() {
               placeholder="Padrão (1.03x)"
             />
           </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <VoiceTestButton
+            {...(voice !== "default" ? { voice } : {})}
+            {...(voiceSpeed.trim() && Number.isFinite(Number(voiceSpeed)) ? { speed: Number(voiceSpeed) } : {})}
+          />
+          <p className="text-xs text-muted-foreground">
+            Ouça uma frase de exemplo com a voz escolhida antes de salvar.
+          </p>
         </div>
 
         <div className="flex items-center justify-between rounded-md border p-3">
