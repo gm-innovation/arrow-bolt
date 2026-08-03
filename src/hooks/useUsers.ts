@@ -27,30 +27,39 @@ export const useUsers = () => {
 
       if (!profileData?.company_id) throw new Error('Empresa não encontrada');
 
-      const { data: usersData, error } = await (supabase as any)
+      const { data: usersData, error } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          full_name,
-          email,
-          phone,
-          created_at,
-          user_roles (role),
-          technicians (active)
-        `)
+        .select('id, full_name, email, phone, created_at')
         .eq('company_id', profileData.company_id);
 
       if (error) throw error;
 
-      const formattedUsers: UserData[] = usersData?.map((u: any) => ({
+      const ids = (usersData || []).map((u) => u.id);
+      if (ids.length === 0) return [];
+
+      // user_roles e technicians referenciam auth.users (sem FK com profiles),
+      // por isso são buscados separadamente em vez de embed do PostgREST.
+      const [rolesResult, techResult] = await Promise.all([
+        supabase.from('user_roles').select('user_id, role').in('user_id', ids),
+        supabase.from('technicians').select('user_id, active').in('user_id', ids),
+      ]);
+
+      const roleByUser = new Map<string, string>();
+      (rolesResult.data || []).forEach((r: any) => {
+        if (!roleByUser.has(r.user_id)) roleByUser.set(r.user_id, r.role);
+      });
+      const activeByUser = new Map<string, boolean>();
+      (techResult.data || []).forEach((t: any) => activeByUser.set(t.user_id, t.active));
+
+      const formattedUsers: UserData[] = (usersData || []).map((u: any) => ({
         id: u.id,
         full_name: u.full_name,
         email: u.email,
         phone: u.phone,
         created_at: u.created_at,
-        role: u.user_roles?.[0]?.role || null,
-        active: u.technicians?.[0]?.active ?? true,
-      })) || [];
+        role: roleByUser.get(u.id) || null,
+        active: activeByUser.get(u.id) ?? true,
+      }));
 
       return formattedUsers;
     },
