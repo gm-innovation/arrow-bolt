@@ -103,10 +103,14 @@ function HistoryTabWrapper() {
 function TicketsTab() {
   const { data: tickets = [], isLoading } = usePMTickets();
   const [selected, setSelected] = useState<PMTicket | null>(null);
+  const [showDelivered, setShowDelivered] = useState(false);
+
+  const { active, delivered } = useMemo(() => splitDeliveredTickets(tickets), [tickets]);
+  const visible = showDelivered ? [...active, ...delivered] : active;
 
   const blastData = useMemo(() => {
     const counts: Record<string, number> = {};
-    tickets.forEach((t) => {
+    active.forEach((t) => {
       const mod = t.impacted_module || t.suggested_area || "Não classificado";
       counts[mod] = (counts[mod] || 0) + 1;
     });
@@ -114,16 +118,17 @@ function TicketsTab() {
       .map(([module, count]) => ({ module, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10);
-  }, [tickets]);
+  }, [active]);
 
   return (
     <>
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard label="Tickets (total)" value={tickets.length} icon={GitBranch} />
-        <StatCard label="Abertos" value={tickets.filter((t) => t.status === "open").length} icon={AlertTriangle} accent="text-amber-600" />
-        <StatCard label="Bugs" value={tickets.filter((t) => t.category === "bug").length} icon={AlertTriangle} accent="text-red-600" />
-        <StatCard label="Com prompt IA" value={tickets.filter((t) => t.dev_prompt_status === "ready").length} icon={Sparkles} accent="text-primary" />
+        <StatCard label="Tickets ativos" value={active.length} icon={GitBranch} />
+        <StatCard label="Abertos" value={active.filter((t) => t.status === "open").length} icon={AlertTriangle} accent="text-amber-600" />
+        <StatCard label="Bugs ativos" value={active.filter((t) => t.category === "bug").length} icon={AlertTriangle} accent="text-red-600" />
+        <StatCard label="Entregues" value={delivered.length} icon={Sparkles} accent="text-emerald-600" />
       </div>
+
 
       <Card data-tour="pm-north-star-card">
         <CardHeader>
