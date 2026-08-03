@@ -1,9 +1,9 @@
 import { Loader2, Mic, MicOff, Radio, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { LiveVoiceState } from '@/hooks/useLiveVoice';
+import type { VoiceSessionState } from '@/lib/voice/transport';
 
-const STATE_LABEL: Record<LiveVoiceState, string> = {
+const STATE_LABEL: Record<VoiceSessionState, string> = {
   off: 'Modo conversa desligado',
   listening: 'Ouvindo...',
   hearing: 'Estou te ouvindo',
@@ -11,6 +11,7 @@ const STATE_LABEL: Record<LiveVoiceState, string> = {
   thinking: 'Pensando...',
   speaking: 'Falando (pode me interromper)',
 };
+
 
 interface LiveVoiceBarProps {
   isActive: boolean;
