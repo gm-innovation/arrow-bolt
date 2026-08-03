@@ -171,6 +171,8 @@ export const ClientSearchCombobox = ({
             clients.map((client) => (
               <button
                 key={client.id}
+                role="option"
+                aria-selected={value === client.id}
                 onClick={() => {
                   onValueChange(client.id);
                   setSelectedLabel(client.name);
