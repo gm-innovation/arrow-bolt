@@ -95,8 +95,7 @@ export function BehaviorTab({ agent, draft, setDraft }: Props) {
           têm prioridade sobre os padrões acima.
         </p>
       </div>
-
-
+      <div>
         <Label>Prompts sugeridos iniciais</Label>
         <div className="flex gap-2 mt-2">
           <Input
