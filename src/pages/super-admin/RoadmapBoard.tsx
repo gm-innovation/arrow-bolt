@@ -184,12 +184,16 @@ function RoadmapColumn({
 }
 
 function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t: PMTicket) => void }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: ticket.id });
+  const delivered = isDelivered(ticket);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: ticket.id,
+    disabled: delivered,
+  });
   const gen = useGenerateDevPrompt();
   const style: React.CSSProperties = {
     transform: CSS.Transform.toString(transform),
     transition,
-    opacity: isDragging ? 0.5 : 1,
+    opacity: isDragging ? 0.5 : delivered ? 0.6 : 1,
   };
   return (
     <AccordionItem
@@ -200,16 +204,22 @@ function SortableRoadmapItem({ ticket, onOpen }: { ticket: PMTicket; onOpen: (t:
       className="bg-background rounded border-0 px-2"
     >
       <div className="flex items-start">
-        <button
-          {...attributes}
-          {...listeners}
-          className="p-1.5 mt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
-          aria-label="Arrastar"
-          data-tour="pm-roadmap-drag-handle"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
+        {delivered ? (
+          <span className="p-1.5 mt-1.5 text-muted-foreground/40">
+            <GripVertical className="h-3.5 w-3.5" />
+          </span>
+        ) : (
+          <button
+            {...attributes}
+            {...listeners}
+            className="p-1.5 mt-1.5 cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground touch-none"
+            aria-label="Arrastar"
+            data-tour="pm-roadmap-drag-handle"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+          </button>
+        )}
         <AccordionTrigger className="py-2 hover:no-underline flex-1">
           <div className="flex flex-col items-start gap-1 text-left w-full pr-2">
             <div className="flex items-center justify-between w-full gap-2">
