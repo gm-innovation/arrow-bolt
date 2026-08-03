@@ -181,9 +181,106 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
     return () => cancelAnimationFrame(id);
   }, [messages, isLoading, reportPreview]);
 
+  // ---- Modo conversa contínua (Marina Live) ----
+  const speechQueue = useSpeechQueue();
+  const { logTurn, compactSession } = useVoiceTelemetry();
+  const [liveOn, setLiveOn] = useState(false);
+  const turnRef = useRef<{ startedAt: number; sentAt: number; speechMs: number; transcribeMs: number; interrupted: boolean } | null>(null);
+  const spokenLenRef = useRef(0);
+  const pendingTailRef = useRef('');
+  const liveMsgKeyRef = useRef<string | null>(null);
+  const prevLoadingRef = useRef(false);
+
+  const live = useLiveVoice({
+    agentSpeaking: speechQueue.isSpeaking,
+    agentThinking: isLoading,
+    onBargeIn: () => {
+      speechQueue.cancel();
+      if (turnRef.current) turnRef.current.interrupted = true;
+    },
+    onUtterance: (text, metrics) => {
+      speechQueue.cancel();
+      spokenLenRef.current = 0;
+      pendingTailRef.current = '';
+      liveMsgKeyRef.current = null;
+      turnRef.current = {
+        startedAt: Date.now() - metrics.speechMs - metrics.transcribeMs,
+        sentAt: Date.now(),
+        speechMs: metrics.speechMs,
+        transcribeMs: metrics.transcribeMs,
+        interrupted: false,
+      };
+      sendMessage(text, undefined, { channel: 'voice' });
+    },
+  });
+
+  const toggleLive = async () => {
+    if (liveOn || live.isActive) {
+      live.stop();
+      speechQueue.cancel();
+      setLiveOn(false);
+      return;
+    }
+    stopSpeaking();
+    await live.start();
+    setLiveOn(true);
+  };
+
+  // Fala a resposta frase a frase, à medida que o texto vai chegando.
+  useEffect(() => {
+    if (!liveOn) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== 'assistant') return;
+    const key = last.id ?? `live-${messages.length}`;
+    if (liveMsgKeyRef.current !== key) {
+      liveMsgKeyRef.current = key;
+      spokenLenRef.current = 0;
+      pendingTailRef.current = '';
+    }
+    const full = last.content ?? '';
+    const fresh = full.slice(spokenLenRef.current);
+    spokenLenRef.current = full.length;
+    if (!fresh && (isLoading || !pendingTailRef.current.trim())) return;
+    const { sentences, rest } = takeCompleteSentences(pendingTailRef.current + fresh);
+    pendingTailRef.current = rest;
+    sentences.forEach((s) => speechQueue.enqueue(s, voiceOpts));
+    if (!isLoading && pendingTailRef.current.trim()) {
+      speechQueue.enqueue(pendingTailRef.current, voiceOpts);
+      pendingTailRef.current = '';
+    }
+  }, [messages, isLoading, liveOn]);
+
+  // Telemetria do turno + compactação da memória em segundo plano.
+  useEffect(() => {
+    if (prevLoadingRef.current && !isLoading && liveOn && turnRef.current) {
+      const t = turnRef.current;
+      turnRef.current = null;
+      void logTurn({
+        conversationId: currentConversationId,
+        speechMs: t.speechMs,
+        transcribeMs: t.transcribeMs,
+        modelMs: Date.now() - t.sentAt,
+        firstAudioMs: speechQueue.getTimeToFirstAudio(),
+        totalMs: Date.now() - t.startedAt,
+        interrupted: t.interrupted,
+      });
+      if (currentConversationId && messages.length >= 14) void compactSession(currentConversationId);
+    }
+    prevLoadingRef.current = isLoading;
+  }, [isLoading, liveOn, currentConversationId, messages.length, logTurn, compactSession, speechQueue]);
+
+  // Encerra o modo conversa se o painel for fechado.
+  useEffect(() => {
+    if (!isOpen && (liveOn || live.isActive)) {
+      live.stop();
+      speechQueue.cancel();
+      setLiveOn(false);
+    }
+  }, [isOpen]);
+
   // Fala automaticamente a última resposta conforme a preferência do usuário.
   useEffect(() => {
-    if (voicePref === 'off' || isLoading) return;
+    if (voicePref === 'off' || isLoading || liveOn) return;
     const last = messages[messages.length - 1];
     if (!last || last.role !== 'assistant' || !last.content) return;
     const key = last.id ?? `idx-${messages.length}-${last.content.length}`;
@@ -192,7 +289,7 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
     lastSpokenRef.current = key;
     lastInputWasVoiceRef.current = false;
     speak(last.content, key, voiceOpts);
-  }, [messages, isLoading, voicePref, speak]);
+  }, [messages, isLoading, voicePref, liveOn, speak]);
 
   const handleSend = () => {
     if ((!input.trim() && attachments.length === 0) || isLoading) return;
