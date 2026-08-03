@@ -7,6 +7,17 @@ export type AIVerbosity = "concise" | "balanced" | "detailed";
 export type AITone = "formal" | "neutral" | "informal";
 export type AIProactivity = "low" | "medium" | "high";
 
+export type AIUserVoice = "coral" | "shimmer" | "sage" | "nova" | "alloy" | "echo";
+
+export const AI_USER_VOICE_LABELS: Record<AIUserVoice, string> = {
+  coral: "Coral (feminina, expressiva)",
+  shimmer: "Shimmer (feminina, suave)",
+  sage: "Sage (feminina, calma)",
+  nova: "Nova (feminina, jovem)",
+  alloy: "Alloy (neutra)",
+  echo: "Echo (masculina)",
+};
+
 export type AILearnedNote = { note: string; at?: string };
 
 export interface AIUserPreferences {
@@ -18,6 +29,8 @@ export interface AIUserPreferences {
   proactivity: AIProactivity;
   use_name: boolean;
   learned_notes: AILearnedNote[];
+  voice: AIUserVoice | null;
+  voice_speed: number | null;
 }
 
 export const VERBOSITY_LABELS: Record<AIVerbosity, string> = {
@@ -45,6 +58,8 @@ export const DEFAULT_AI_PREFERENCES: Omit<AIUserPreferences, "user_id" | "compan
   proactivity: "medium",
   use_name: true,
   learned_notes: [],
+  voice: null,
+  voice_speed: null,
 };
 
 export function useAIUserPreferences() {
@@ -73,6 +88,8 @@ export function useAIUserPreferences() {
         proactivity: (row.proactivity ?? "medium") as AIProactivity,
         use_name: row.use_name ?? true,
         learned_notes: Array.isArray(row.learned_notes) ? row.learned_notes : [],
+        voice: (row.voice ?? null) as AIUserVoice | null,
+        voice_speed: row.voice_speed != null ? Number(row.voice_speed) : null,
       };
     },
   });

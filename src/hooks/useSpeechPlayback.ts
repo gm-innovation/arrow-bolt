@@ -53,7 +53,11 @@ export function useSpeechPlayback() {
 
   useEffect(() => () => stop(), [stop]);
 
-  const speak = useCallback(async (text: string, id?: string) => {
+  const speak = useCallback(async (
+    text: string,
+    id?: string,
+    opts?: { voice?: string; speed?: number },
+  ) => {
     const clean = (text ?? '').trim();
     if (!clean) return;
 
@@ -114,7 +118,11 @@ export function useSpeechPlayback() {
               apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? '',
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ text: chunk }),
+            body: JSON.stringify({
+              text: chunk,
+              ...(opts?.voice ? { voice: opts.voice } : {}),
+              ...(typeof opts?.speed === 'number' ? { speed: opts.speed } : {}),
+            }),
             signal: controller.signal,
           },
         );
