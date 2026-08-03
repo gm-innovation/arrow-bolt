@@ -201,7 +201,7 @@ export const useUploadEmployeeDocument = () => {
       const code = (input.catalog_code ?? input.catalog_id).toString().replace(/[^a-zA-Z0-9_-]/g, "_");
       const path = `${profile.company_id}/employees/${input.employee_id}/${code}/${Date.now()}_${safe}`;
       const { error: upErr } = await supabase.storage
-        .from("corp-documents")
+        .from(DEFAULT_HR_DOC_BUCKET)
         .upload(path, input.file);
       if (upErr) throw upErr;
 
@@ -211,11 +211,13 @@ export const useUploadEmployeeDocument = () => {
         catalog_id: input.catalog_id,
         file_name: input.file.name,
         file_path: path,
+        storage_bucket: DEFAULT_HR_DOC_BUCKET,
         uploaded_by: user.id,
         issue_date: input.issue_date ?? null,
         notes: input.notes ?? null,
         is_current: true,
       });
+
       if (insErr) throw insErr;
     },
     onSuccess: () => {
