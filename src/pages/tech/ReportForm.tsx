@@ -1030,8 +1030,10 @@ const ReportFormContent = () => {
           const { data: existingReports } = await supabase
             .from('task_reports')
             .select('id')
-            .eq('task_id', taskId)
-            .eq('status', "submitted");
+            .or(`task_uuid.eq.${taskId},task_id.eq.${taskId},task_id.eq.${currentServiceOrderId}`)
+            .eq('status', "submitted")
+            .order('updated_at', { ascending: false })
+            .limit(1);
 
           if (existingReports && existingReports.length > 0) {
             await supabase
