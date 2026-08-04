@@ -100,11 +100,16 @@ const ReportFormContent = () => {
         .from('reports')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: false
         });
 
       if (error) {
         console.error(`Error uploading image ${imageIndex + 1}:`, error);
+        toast({
+          title: "Falha ao enviar foto",
+          description: `Não foi possível enviar a foto ${imageIndex + 1}. Tente novamente.`,
+          variant: "destructive",
+        });
         return null;
       }
 
@@ -693,24 +698,20 @@ const ReportFormContent = () => {
     return updatedReportData;
   };
 
-  // Helper function to get visit_id for a task
-  const getVisitIdForTask = async (taskId: string): Promise<string | null> => {
+  // Helper function to get visit_id for a service order
+  const getVisitIdForServiceOrder = async (serviceOrderId: string): Promise<string | null> => {
     try {
       const { data, error } = await supabase
-        .from('tasks')
-        .select(`
-          service_orders:service_order_id (
-            service_visits (id)
-          )
-        `)
-        .eq('id', taskId)
-        .single();
+        .from('service_visits')
+        .select('id')
+        .eq('service_order_id', serviceOrderId)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
       if (error) throw error;
-      
-      const serviceOrders = data?.service_orders as any;
-      const visits = serviceOrders?.service_visits;
-      return visits && Array.isArray(visits) && visits.length > 0 ? visits[0].id : null;
+
+      return data?.id ?? null;
     } catch (error) {
       console.error("Error fetching visit_id:", error);
       return null;
@@ -736,18 +737,26 @@ const ReportFormContent = () => {
         return;
       }
 
-      for (const [_taskKey, report] of Object.entries(reportData)) {
+      const validTaskIds = new Set(allTasks.map(t => t.id));
+
+      for (const [taskKey, report] of Object.entries(reportData)) {
         if (report.timeEntries && report.timeEntries.length > 0) {
+          // time_entries.task_id references tasks(id): use the task key when valid
+          const targetTaskId = validTaskIds.has(taskKey)
+            ? taskKey
+            : (validTaskIds.has(taskIdToSync) ? taskIdToSync : allTasks[0]?.id);
+          if (!targetTaskId) continue;
+
           // Delete existing entries for this task/technician
           await supabase
             .from('time_entries')
             .delete()
-            .eq('task_id', taskIdToSync)
+            .eq('task_id', targetTaskId)
             .eq('technician_id', techData.id);
 
           // Insert new entries
           const entries = report.timeEntries.map(entry => ({
-            task_id: taskIdToSync,
+            task_id: targetTaskId,
             technician_id: techData.id,
             entry_type: entry.type || 'work_normal',
             entry_date: entry.date instanceof Date 
@@ -831,24 +840,30 @@ const ReportFormContent = () => {
       }
       
       // Get visit_id for the service order
-      const visitId = await getVisitIdForTask(currentServiceOrderId!);
+      const visitId = await getVisitIdForServiceOrder(currentServiceOrderId!);
+
+      // task_reports.task_uuid references tasks(id): use the order's anchor task
+      const anchorTaskId = allTasks.find(t => t.id === selectedTask)?.id ?? allTasks[0]?.id ?? null;
+      if (!anchorTaskId) {
+        throw new Error("Nenhuma tarefa encontrada para esta OS");
+      }
 
       // Check if report already exists to determine action and get previous data
       const { data: existingReport } = await supabase
         .from('task_reports')
         .select('id, report_data')
-        .eq('task_uuid', currentServiceOrderId)
-        .single();
+        .eq('task_uuid', anchorTaskId)
+        .maybeSingle();
 
       const isNewReport = !existingReport;
       const previousData = existingReport?.report_data as Record<string, any> | null;
 
-      // Use upsert to prevent duplicates - use service order ID as unique key
+      // Use upsert to prevent duplicates - use the anchor task as unique key
       const { data: savedReport, error } = await supabase
         .from('task_reports')
         .upsert({
           task_id: currentServiceOrderId,
-          task_uuid: currentServiceOrderId,
+          task_uuid: anchorTaskId,
           visit_id: visitId,
           status: status,
           report_data: serializableReportData,
@@ -906,14 +921,14 @@ const ReportFormContent = () => {
       const blob = await asPdf.toBlob();
       console.log("Blob generated:", blob);
       
-      const fileName = `relatorio-${taskId}-${status}-${new Date().toISOString().split('T')[0]}.pdf`;
+      const fileName = `relatorio-${taskId}-${status}-${Date.now()}.pdf`;
       
       const { data, error } = await supabase.storage
         .from('reports')
         .upload(`${taskId}/${fileName}`, blob, {
           contentType: 'application/pdf',
           cacheControl: '3600',
-          upsert: true
+          upsert: false
         });
       
       if (error) {
