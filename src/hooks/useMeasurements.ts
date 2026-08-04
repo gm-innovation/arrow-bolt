@@ -30,6 +30,8 @@ export const useMeasurements = (serviceOrderId?: string) => {
       return data;
     },
     enabled: !!serviceOrderId,
+    retry: 2,
+    refetchOnMount: 'always',
   });
 
   // Criar medição

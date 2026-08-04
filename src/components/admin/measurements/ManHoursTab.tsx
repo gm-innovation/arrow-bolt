@@ -48,7 +48,7 @@ interface TimeEntryWithRole {
 
 export const ManHoursTab = ({ measurementId, serviceOrderId, manHours, disabled }: ManHoursTabProps) => {
   const [isAdding, setIsAdding] = useState(false);
-  const { addManHour, removeManHour } = useMeasurementManHours();
+  const { addManHour, importManHours, removeManHour } = useMeasurementManHours();
   const { getRate, rates } = useServiceRates();
 
   // Buscar time_entries automaticamente do banco
@@ -231,14 +231,71 @@ export const ManHoursTab = ({ measurementId, serviceOrderId, manHours, disabled 
   const autoSubtotal = technicianTimeEntries.reduce((sum, e) => sum + e.total_value, 0);
   const hasZeroRates = technicianTimeEntries.some(e => e.hourly_rate === 0);
 
+  // Apontamentos do técnico que ainda não foram importados para a medição
+  const importedKeys = new Set(
+    (manHours || []).map(
+      (m) => `${m.entry_date}|${m.start_time}|${m.end_time}|${(m.technician_name || '').trim().toLowerCase()}`
+    )
+  );
+  const pendingEntries = technicianTimeEntries.filter(
+    (e) =>
+      !importedKeys.has(
+        `${e.entry_date}|${e.start_time}|${e.end_time}|${e.technician_name.trim().toLowerCase()}`
+      )
+  );
+  const pendingSubtotal = pendingEntries.reduce((sum, e) => sum + e.total_value, 0);
+
+  const handleImportEntries = () => {
+    importManHours.mutate(
+      pendingEntries.map((e) => ({
+        measurement_id: measurementId,
+        entry_date: e.entry_date,
+        start_time: e.start_time,
+        end_time: e.end_time,
+        hour_type: (['work_normal', 'work_extra', 'work_night', 'standby'].includes(e.entry_type)
+          ? e.entry_type
+          : 'work_normal') as 'work_normal' | 'work_extra' | 'work_night' | 'standby',
+        work_type: 'trabalho' as const,
+        technician_name: e.technician_name,
+        technician_role: e.role_type,
+        total_hours: e.total_hours,
+        hourly_rate: e.hourly_rate,
+        total_value: e.total_value,
+      }))
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Seção de horas automáticas do banco */}
       <div className="space-y-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <h3 className="font-semibold text-sm">Horas Registradas pelos Técnicos</h3>
-          <span className="text-xs text-muted-foreground">(automático - somente leitura)</span>
+          <span className="text-xs text-muted-foreground">(apontamento do técnico)</span>
+          {!disabled && pendingEntries.length > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              className="ml-auto"
+              onClick={handleImportEntries}
+              disabled={importManHours.isPending}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Importar {pendingEntries.length} apontamento(s) — R$ {pendingSubtotal.toFixed(2)}
+            </Button>
+          )}
         </div>
+
+        {!disabled && pendingEntries.length > 0 && (
+          <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <AlertTriangle className="h-4 w-4 text-yellow-600 mt-0.5" />
+            <span className="text-sm text-yellow-700 dark:text-yellow-400">
+              Estas horas ainda <strong>não estão somadas</strong> no subtotal da medição. Use
+              "Importar apontamentos" para incluí-las (depois é possível editar ou remover linha por linha).
+            </span>
+          </div>
+        )}
 
         {hasZeroRates && (
           <div className="flex items-center gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
@@ -248,6 +305,7 @@ export const ManHoursTab = ({ measurementId, serviceOrderId, manHours, disabled 
             </span>
           </div>
         )}
+
 
         {isLoadingEntries ? (
           <div className="text-center py-4 text-muted-foreground text-sm">Carregando...</div>
