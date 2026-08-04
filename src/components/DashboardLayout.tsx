@@ -99,6 +99,39 @@ type MenuLeaf = { title: string; icon: IconType; path: string };
 type MenuGroup = { title: string; icon: IconType; key: string; children: MenuEntry[] };
 type MenuEntry = MenuLeaf | MenuGroup;
 
+const ROUTE_TITLES_PT: Record<string, string> = {
+  vacations: "Gestão de Férias",
+  "health-exams": "Exames Ocupacionais",
+  "payroll-export": "Exportação para Folha",
+  "time-tracking": "Controle de Ponto",
+  benefits: "Benefícios",
+  onboarding: "Admissões",
+  employees: "Colaboradores",
+  recruitment: "Recrutamento",
+  university: "Treinamentos",
+  reports: "Relatórios",
+  settings: "Configurações",
+  dashboard: "Dashboard",
+  "document-compliance": "Conformidade Documental",
+  epi: "Gestão de EPI",
+  schedules: "Escalas e Ausências",
+  clients: "Clientes",
+  suppliers: "Fornecedores",
+  opportunities: "Oportunidades",
+  leads: "Leads",
+  sales: "Vendas",
+  tasks: "Tarefas",
+  measurements: "Medições",
+  documents: "Documentos",
+  audits: "Auditorias",
+  calibrations: "Calibrações",
+  indicators: "Indicadores",
+  requests: "Solicitações",
+  feed: "Feed",
+  profile: "Perfil",
+  notifications: "Notificações",
+};
+
 const isGroup = (e: MenuEntry): e is MenuGroup => "children" in e;
 
 const collectPaths = (e: MenuEntry): string[] =>
@@ -722,6 +755,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
                   // Don't show UUID patterns as titles
                   const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(lastSegment);
                   if (isUUID) return "Detalhes";
+                  if (ROUTE_TITLES_PT[lastSegment]) return ROUTE_TITLES_PT[lastSegment];
                   return lastSegment.replace(/-/g, " ").replace(/\b\w/g, l => l.toUpperCase());
                 })()}
               </h1>

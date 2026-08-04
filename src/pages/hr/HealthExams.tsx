@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parseISO } from "date-fns";
+import { addMonths, format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   HealthExam,
@@ -142,6 +142,17 @@ function ExamDialog({
   });
   const employees = useEmployeeOptions();
   const upsert = useUpsertHealthExam();
+  const examSettings = useHealthExamSettings();
+
+  // Pré-visualiza a data do próximo exame conforme a periodicidade configurada
+  const [nextTouched, setNextTouched] = useState(!!form.next_exam_date);
+  useEffect(() => {
+    if (nextTouched || !form.exam_date) return;
+    const months =
+      examSettings.data?.find((s) => s.exam_type === form.exam_type)?.periodicity_months ?? 12;
+    const suggested = format(addMonths(parseISO(form.exam_date), months), "yyyy-MM-dd");
+    setForm((s) => (s.next_exam_date === suggested ? s : { ...s, next_exam_date: suggested }));
+  }, [form.exam_date, form.exam_type, examSettings.data, nextTouched]);
 
   const submit = async () => {
     if (!form.employee_id) return;
@@ -239,7 +250,10 @@ function ExamDialog({
             <Input
               type="date"
               value={form.next_exam_date}
-              onChange={(e) => setForm((s) => ({ ...s, next_exam_date: e.target.value }))}
+              onChange={(e) => {
+                setNextTouched(true);
+                setForm((s) => ({ ...s, next_exam_date: e.target.value }));
+              }}
             />
           </div>
 

@@ -257,9 +257,18 @@ export function useCreateEnrollment() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['university-enrollments'] });
       qc.invalidateQueries({ queryKey: ['university-my-enrollments'] });
+      qc.invalidateQueries({ queryKey: ['university-all-enrollments'] });
       toast({ title: 'Matrícula realizada' });
     },
-    onError: (e: any) => toast({ title: 'Erro na matrícula', description: e.message, variant: 'destructive' }),
+    onError: (e: any) =>
+      toast({
+        title: 'Erro na matrícula',
+        description:
+          e?.code === '23505'
+            ? 'Este colaborador já está matriculado neste curso.'
+            : e.message,
+        variant: 'destructive',
+      }),
   });
 }
 
