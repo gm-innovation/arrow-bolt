@@ -142,6 +142,17 @@ function ExamDialog({
   });
   const employees = useEmployeeOptions();
   const upsert = useUpsertHealthExam();
+  const examSettings = useHealthExamSettings();
+
+  // Pré-visualiza a data do próximo exame conforme a periodicidade configurada
+  const [nextTouched, setNextTouched] = useState(!!form.next_exam_date);
+  useEffect(() => {
+    if (nextTouched || !form.exam_date) return;
+    const months =
+      examSettings.data?.find((s) => s.exam_type === form.exam_type)?.periodicity_months ?? 12;
+    const suggested = format(addMonths(parseISO(form.exam_date), months), "yyyy-MM-dd");
+    setForm((s) => (s.next_exam_date === suggested ? s : { ...s, next_exam_date: suggested }));
+  }, [form.exam_date, form.exam_type, examSettings.data, nextTouched]);
 
   const submit = async () => {
     if (!form.employee_id) return;
