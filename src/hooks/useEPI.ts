@@ -94,7 +94,7 @@ export const useEPI = () => {
       const { error } = await (supabase as any).from('epi_deliveries').insert({ ...d, company_id: profile?.company_id, created_by: user!.id });
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['epi_deliveries'] }); toast({ title: 'Entrega registrada' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['epi_deliveries'] }); qc.invalidateQueries({ queryKey: ['epi_items'] }); toast({ title: 'Entrega registrada' }); },
     onError: (e: Error) => toast({ title: 'Erro', description: e.message, variant: 'destructive' }),
   });
 
