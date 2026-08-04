@@ -43,6 +43,50 @@ export const useMeasurementManHours = () => {
     },
   });
 
+  // Importar em lote as horas apontadas pelos técnicos (time_entries)
+  const importManHours = useMutation({
+    mutationFn: async (rows: Array<{
+      measurement_id: string;
+      entry_date: string;
+      start_time: string;
+      end_time: string;
+      hour_type: 'work_normal' | 'work_extra' | 'work_night' | 'standby';
+      work_type: 'trabalho' | 'espera_deslocamento' | 'laboratorio';
+      technician_name: string;
+      technician_role: 'tecnico' | 'auxiliar' | 'engenheiro' | 'supervisor';
+      total_hours: number;
+      hourly_rate: number;
+      total_value: number;
+    }>) => {
+      if (rows.length === 0) return 0;
+
+      const { error } = await supabase
+        .from('measurement_man_hours')
+        .insert(rows);
+
+      if (error) throw error;
+      return rows.length;
+    },
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: ['measurement'] });
+      toast({
+        title: 'Horas importadas',
+        description: count
+          ? `${count} apontamento(s) do técnico importado(s) para a medição.`
+          : 'Nenhum apontamento novo para importar.',
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Erro ao importar horas',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+
+
+
   // Remover entrada de mão de obra
   const removeManHour = useMutation({
     mutationFn: async (id: string) => {
@@ -71,6 +115,8 @@ export const useMeasurementManHours = () => {
 
   return {
     addManHour,
+    importManHours,
     removeManHour,
   };
+
 };
