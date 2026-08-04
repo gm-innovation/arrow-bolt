@@ -208,7 +208,7 @@ const Recurrences = () => {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.clients?.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{r.crm_products?.name || "-"}</TableCell>
-                    <TableCell>{r.periodicity}</TableCell>
+                    <TableCell>{formatPeriodicity(r.periodicity)}</TableCell>
                     <TableCell>
                       {(() => {
                         const now = new Date();
