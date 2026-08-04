@@ -165,12 +165,12 @@ const Checklists = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Tipo de Tarefa (opcional)</Label>
-                  <Select value={taskTypeId} onValueChange={setTaskTypeId}>
+                  <Select value={taskTypeId || 'all'} onValueChange={(v) => setTaskTypeId(v === 'all' ? '' : v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Todos os tipos" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Todos os tipos</SelectItem>
+                      <SelectItem value="all">Todos os tipos</SelectItem>
                       {taskTypes.map((type) => (
                         <SelectItem key={type.id} value={type.id}>
                           {type.name}

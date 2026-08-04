@@ -94,8 +94,9 @@ const VesselHistory = () => {
   };
 
   const handleViewHistory = (vesselId: string) => {
-    navigate("/admin/service-history");
+    navigate("/admin/history");
   };
+
 
   const handleEdit = (vesselId: string) => {
     navigate("/admin/clients");
