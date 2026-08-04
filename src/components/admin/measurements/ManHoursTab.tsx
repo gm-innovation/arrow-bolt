@@ -48,7 +48,7 @@ interface TimeEntryWithRole {
 
 export const ManHoursTab = ({ measurementId, serviceOrderId, manHours, disabled }: ManHoursTabProps) => {
   const [isAdding, setIsAdding] = useState(false);
-  const { addManHour, removeManHour } = useMeasurementManHours();
+  const { addManHour, importManHours, removeManHour } = useMeasurementManHours();
   const { getRate, rates } = useServiceRates();
 
   // Buscar time_entries automaticamente do banco
