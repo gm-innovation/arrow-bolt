@@ -570,6 +570,7 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
           .limit(1)
           .single();
 
+        const validEditTechs = selectedTechnicians.filter(id => id && id.trim() !== '');
         if (visitData) {
           // Delete existing visit technicians
           await supabase
@@ -578,7 +579,6 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
             .eq("visit_id", visitData.id);
 
           // Insert new visit technicians (filter out any null/undefined IDs)
-          const validEditTechs = selectedTechnicians.filter(id => id && id.trim() !== '');
           if (validEditTechs.length > 0) {
             const visitTechniciansToInsert = validEditTechs.map(techId => ({
               visit_id: visitData.id,
@@ -598,19 +598,19 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
         // Create new tasks
         // If singleReport = true: ONE task per type assigned to lead
         // If singleReport = false: One task per technician per type
-        if (formTaskTypes.length > 0 && selectedTechnicians.length > 0) {
+        if (formTaskTypes.length > 0) {
           let tasksToInsert;
           
-          if (data.singleReport) {
-            // Single report mode: create only 1 task per type, assigned to lead technician
-            const assignedTo = leadTechId || selectedTechnicians[0];
+          if (data.singleReport || validEditTechs.length === 0) {
+            // Single report / fixed-price mode: 1 task per type
+            const assignedTo = leadTechId || validEditTechs[0] || null;
             tasksToInsert = formTaskTypes.map(taskTypeId => ({
               service_order_id: orderId,
               task_type_id: taskTypeId,
               title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
               status: "pending" as const,
               assigned_to: assignedTo,
-              task_order_number: null,
+              task_order_number: taskOrderNumbers[taskTypeId] || null,
             }));
           } else {
             // Multiple reports mode: one task per technician per type
@@ -875,18 +875,18 @@ export const NewOrderForm = ({ isEditing, orderId, orderNumber, clientReference,
           }
 
           // Create tasks
-          if (formTaskTypes.length > 0 && serviceOrder && selectedTechnicians.length > 0) {
+          if (formTaskTypes.length > 0 && serviceOrder) {
             let tasksToInsert;
             
-            if (data.singleReport) {
-              const assignedTo = leadTechId || selectedTechnicians[0];
+            if (data.singleReport || validNormalTechs.length === 0) {
+              const assignedTo = leadTechId || validNormalTechs[0] || null;
               tasksToInsert = formTaskTypes.map(taskTypeId => ({
                 service_order_id: serviceOrder.id,
                 task_type_id: taskTypeId,
                 title: taskTypes.find(t => t.id === taskTypeId)?.name || "Task",
                 status: "pending" as const,
                 assigned_to: assignedTo,
-                task_order_number: null,
+                task_order_number: taskOrderNumbers[taskTypeId] || null,
               }));
             } else {
               tasksToInsert = selectedTechnicians.flatMap(techId => 
