@@ -57,17 +57,24 @@ export const ScheduleReturnDialog = ({ orderId, orderNumber, open, onClose }: Sc
 
       const { data, error } = await supabase
         .from('technicians')
-        .select(`
-          id,
-          profiles:user_id (
-            full_name
-          )
-        `)
+        .select('id, user_id')
         .eq('company_id', profileData.company_id)
         .eq('active', true);
 
       if (error) throw error;
-      setTechnicians(data as Technician[]);
+
+      const techUserIds = (data || []).map((t: any) => t.user_id).filter(Boolean);
+      const { data: publicProfiles } = techUserIds.length
+        ? await supabase.from('profiles_public').select('id, full_name').in('id', techUserIds)
+        : { data: [] as any[] };
+      const nameById = new Map((publicProfiles || []).map((p: any) => [p.id, p.full_name]));
+
+      setTechnicians(
+        (data || []).map((t: any) => ({
+          id: t.id,
+          profiles: { full_name: nameById.get(t.user_id) || 'Técnico' },
+        }))
+      );
     } catch (error) {
       console.error('Error fetching technicians:', error);
     } finally {
