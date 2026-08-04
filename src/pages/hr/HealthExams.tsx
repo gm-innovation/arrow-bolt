@@ -250,7 +250,10 @@ function ExamDialog({
             <Input
               type="date"
               value={form.next_exam_date}
-              onChange={(e) => setForm((s) => ({ ...s, next_exam_date: e.target.value }))}
+              onChange={(e) => {
+                setNextTouched(true);
+                setForm((s) => ({ ...s, next_exam_date: e.target.value }));
+              }}
             />
           </div>
 
