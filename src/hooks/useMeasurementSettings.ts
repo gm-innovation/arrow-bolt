@@ -23,9 +23,9 @@ export const useMeasurementSettings = () => {
         .from('measurement_settings')
         .select('*')
         .eq('company_id', profileData.company_id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
 
       // Se não existe, retornar valores padrão
       if (!data) {
