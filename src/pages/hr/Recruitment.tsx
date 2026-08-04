@@ -546,7 +546,9 @@ const HRRecruitment = () => {
 
       {selectedApp && (
         <ApplicationDetailSheet
-          application={selectedApp}
+          application={
+            (applications || []).find((a: any) => a.id === selectedApp.id) || selectedApp
+          }
           open={!!selectedApp}
           onClose={() => setSelectedApp(null)}
           onUpdate={(patch) => updateApplication.mutate({ id: selectedApp.id, ...patch })}
