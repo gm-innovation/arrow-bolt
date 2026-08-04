@@ -26,12 +26,29 @@ const RECURRENCE_TYPES = [
   { value: "recurring_service", label: "Serviço Recorrente" },
 ];
 
+const PERIODICITY_LABELS: Record<string, string> = {
+  monthly: "Mensal",
+  quarterly: "Trimestral",
+  semiannual: "Semestral",
+  annual: "Anual",
+  weekly: "Semanal",
+};
+
+const formatPeriodicity = (value?: string | null) => {
+  if (!value) return "—";
+  if (PERIODICITY_LABELS[value]) return PERIODICITY_LABELS[value];
+  const months = value.match(/^(\d+)_months?$/);
+  if (months) return `A cada ${months[1]} ${Number(months[1]) === 1 ? "mês" : "meses"}`;
+  return value;
+};
+
 const STATUS_MAP: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   active: { label: "Ativa", variant: "default" },
   paused: { label: "Pausada", variant: "secondary" },
   completed: { label: "Concluída", variant: "outline" },
   cancelled: { label: "Cancelada", variant: "destructive" },
 };
+
 
 const Recurrences = () => {
   const { recurrences, isLoading, createRecurrence, updateRecurrence, deleteRecurrence } = useRecurrences();
@@ -191,7 +208,7 @@ const Recurrences = () => {
                   <TableRow key={r.id}>
                     <TableCell className="font-medium">{r.clients?.name}</TableCell>
                     <TableCell className="hidden md:table-cell">{r.crm_products?.name || "-"}</TableCell>
-                    <TableCell>{r.periodicity}</TableCell>
+                    <TableCell>{formatPeriodicity(r.periodicity)}</TableCell>
                     <TableCell>
                       {(() => {
                         const now = new Date();
