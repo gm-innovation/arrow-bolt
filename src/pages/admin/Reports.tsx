@@ -296,6 +296,13 @@ const Reports = () => {
 
       // 3. Atualizar status da OS para 'completed'
       if (reportData?.task_uuid) {
+        // Concluir a tarefa vinculada ao relatório aprovado
+        await supabase
+          .from('tasks')
+          .update({ status: 'completed' })
+          .eq('id', reportData.task_uuid)
+          .neq('status', 'completed');
+
         const { data: taskData } = await supabase
           .from('tasks')
           .select('service_order_id')
@@ -312,6 +319,7 @@ const Reports = () => {
             .eq('id', taskData.service_order_id);
         }
       }
+
 
       // 4. Gerar embeddings para busca semântica
       try {
