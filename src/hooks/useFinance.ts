@@ -79,7 +79,7 @@ export const useFinancePayables = () => {
   });
 
   const createPayable = useMutation({
-    mutationFn: async (values: { supplier_name: string; description?: string; amount: number; due_date: string; invoice_number?: string; notes?: string }) => {
+    mutationFn: async (values: { supplier_name: string; description?: string; amount: number; due_date: string; invoice_number?: string; notes?: string; category_id?: string | null }) => {
       const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user!.id).single();
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
 
@@ -91,6 +91,7 @@ export const useFinancePayables = () => {
         due_date: values.due_date,
         invoice_number: values.invoice_number || null,
         notes: values.notes || null,
+        category_id: values.category_id || null,
         created_by: user!.id,
         status: "pending",
       });
@@ -144,7 +145,7 @@ export const useFinanceReceivables = () => {
   });
 
   const createReceivable = useMutation({
-    mutationFn: async (values: { client_name: string; description?: string; amount: number; due_date: string; invoice_number?: string; notes?: string }) => {
+    mutationFn: async (values: { client_name: string; description?: string; amount: number; due_date: string; invoice_number?: string; notes?: string; category_id?: string | null }) => {
       const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user!.id).single();
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
 
@@ -156,6 +157,7 @@ export const useFinanceReceivables = () => {
         due_date: values.due_date,
         invoice_number: values.invoice_number || null,
         notes: values.notes || null,
+        category_id: values.category_id || null,
         created_by: user!.id,
         status: "invoiced",
       });
@@ -205,7 +207,7 @@ export const useFinanceReimbursements = () => {
   });
 
   const createReimbursement = useMutation({
-    mutationFn: async (values: { description: string; amount: number; expense_date: string; notes?: string }) => {
+    mutationFn: async (values: { description: string; amount: number; expense_date: string; notes?: string; category_id?: string | null }) => {
       const { data: profile } = await supabase.from("profiles").select("company_id").eq("id", user!.id).single();
       if (!profile?.company_id) throw new Error("Empresa não encontrada");
 
@@ -216,6 +218,7 @@ export const useFinanceReimbursements = () => {
         amount: values.amount,
         expense_date: values.expense_date,
         notes: values.notes || null,
+        category_id: values.category_id || null,
         status: "pending",
       });
       if (error) throw error;
