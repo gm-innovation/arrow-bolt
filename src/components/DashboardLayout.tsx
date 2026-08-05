@@ -150,6 +150,18 @@ const ROUTE_TITLES_PT: Record<string, string> = {
   badges: "Conquistas",
   ranking: "Ranking",
   chat: "Chat",
+  companies: "Empresas",
+  users: "Usuários",
+  subscriptions: "Assinaturas",
+  "pm-dashboard": "Dashboard de PM",
+  "support-inbox": "Central de Suporte",
+  walkthroughs: "Tours Guiados",
+  "api-docs": "Documentação da API",
+  "ai-management": "Gestão de IA",
+  install: "Instalar App",
+  orders: "Ordens de Serviço",
+  "service-orders": "Ordens de Serviço",
+  "measurement-settings": "Configurações de Medição",
 };
 
 
