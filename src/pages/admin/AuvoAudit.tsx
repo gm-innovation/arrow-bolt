@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
-import { format, parseISO, subDays } from "date-fns";
+import { format, parseISO, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle,
@@ -7,11 +7,14 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardList,
+  FileText,
+  Link2Off,
   PackageX,
   RefreshCw,
   Scale,
   Search,
 } from "lucide-react";
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
