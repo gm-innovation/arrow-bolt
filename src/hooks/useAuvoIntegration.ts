@@ -55,12 +55,17 @@ export interface AuvoTaskRow {
   order_number: string | null;
   auvo_task_type: string | null;
   customer_name: string | null;
+  vessel_name: string | null;
   technician_name: string | null;
   task_date: string | null;
   checkin_at: string | null;
   checkout_at: string | null;
+  address: string | null;
+  orientation: string | null;
   service_order_id: string | null;
+  promoted_at: string | null;
 }
+
 
 interface SyncArgs {
   period_start?: string;
@@ -115,7 +120,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       const { data, error } = await supabase
         .from("auvo_tasks")
         .select(
-          "id, auvo_task_id, order_number, auvo_task_type, customer_name, technician_name, task_date, checkin_at, checkout_at, service_order_id",
+          "id, auvo_task_id, order_number, auvo_task_type, customer_name, vessel_name, technician_name, task_date, checkin_at, checkout_at, address, orientation, service_order_id, promoted_at",
         )
         .order("task_date", { ascending: false, nullsFirst: false })
         .limit(300);
@@ -124,6 +129,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     },
     enabled: !!companyId,
   });
+
 
   const runSync = useMutation({
     mutationFn: async (args: SyncArgs = {}) => {
@@ -218,6 +224,120 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     onError: (error: Error) => toast.error("Erro ao atualizar", { description: error.message }),
   });
 
+  // Promove um atendimento espelhado do Auvo para uma OS nativa do Arrow,
+  // reaproveitando (ou criando) cliente e embarcação pelo nome vindo do Auvo.
+  const promoteToOS = useMutation({
+    mutationFn: async (task: AuvoTaskRow) => {
+      if (!companyId) throw new Error("Empresa não identificada");
+      if (task.service_order_id) throw new Error("Atendimento já promovido a OS");
+
+      const orderNumber = (task.order_number || `AUVO-${task.auvo_task_id}`).slice(0, 50);
+
+      const { data: existingOrder } = await supabase
+        .from("service_orders")
+        .select("id")
+        .eq("company_id", companyId)
+        .eq("order_number", orderNumber)
+        .maybeSingle();
+      if (existingOrder) throw new Error(`Já existe uma OS ${orderNumber} no Arrow`);
+
+      // Cliente
+      let clientId: string | null = null;
+      const clientName = task.customer_name?.trim();
+      if (clientName) {
+        const { data: found } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("company_id", companyId)
+          .ilike("name", clientName)
+          .limit(1)
+          .maybeSingle();
+        if (found) {
+          clientId = found.id;
+        } else {
+          const { data: created, error: clientError } = await supabase
+            .from("clients")
+            .insert({ company_id: companyId, name: clientName })
+            .select("id")
+            .single();
+          if (clientError) throw clientError;
+          clientId = created.id;
+        }
+      }
+
+      // Embarcação (depende do cliente)
+      let vesselId: string | null = null;
+      const vesselName = task.vessel_name?.trim();
+      if (vesselName && clientId) {
+        const { data: foundVessel } = await supabase
+          .from("vessels")
+          .select("id")
+          .eq("client_id", clientId)
+          .ilike("name", vesselName)
+          .limit(1)
+          .maybeSingle();
+        if (foundVessel) {
+          vesselId = foundVessel.id;
+        } else {
+          const { data: createdVessel, error: vesselError } = await supabase
+            .from("vessels")
+            .insert({ client_id: clientId, name: vesselName })
+            .select("id")
+            .single();
+          if (vesselError) throw vesselError;
+          vesselId = createdVessel.id;
+        }
+      }
+
+      const descriptionParts = [
+        task.auvo_task_type ? `Tipo Auvo: ${task.auvo_task_type}` : null,
+        task.orientation?.trim() || null,
+        task.technician_name ? `Técnico no Auvo: ${task.technician_name}` : null,
+        `Importado do Auvo (atendimento ${task.auvo_task_id}).`,
+      ].filter(Boolean);
+
+      const { data: order, error: orderError } = await supabase
+        .from("service_orders")
+        .insert({
+          company_id: companyId,
+          order_number: orderNumber,
+          client_id: clientId,
+          vessel_id: vesselId,
+          status: task.checkout_at ? "completed" : "pending",
+          scheduled_date: task.task_date,
+          completed_date: task.checkout_at ? task.checkout_at.slice(0, 10) : null,
+          service_date_time: task.checkin_at,
+          location: task.address,
+          description: descriptionParts.join("\n"),
+          created_by: profile?.id,
+        })
+        .select("id, order_number")
+        .single();
+      if (orderError) throw orderError;
+
+      const { error: linkError } = await supabase
+        .from("auvo_tasks")
+        .update({
+          service_order_id: order.id,
+          promoted_at: new Date().toISOString(),
+          promoted_by: profile?.id,
+        })
+        .eq("id", task.id);
+      if (linkError) throw linkError;
+
+      return order;
+    },
+    onSuccess: (order) => {
+      toast.success(`OS ${order.order_number} criada no Arrow`, {
+        description: "Cliente, embarcação e datas foram preenchidos a partir do Auvo.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["auvo-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["service-orders"] });
+    },
+    onError: (error: Error) => toast.error("Erro ao promover para OS", { description: error.message }),
+  });
+
+
   const discrepancies = discrepanciesQuery.data ?? [];
   const divergent = discrepancies.filter((d) => d.classification !== "match");
 
@@ -242,5 +362,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     runSync,
     reanalyzeTask,
     reviewDiscrepancy,
+    promoteToOS,
+
   };
 };

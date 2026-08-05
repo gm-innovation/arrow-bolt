@@ -45,6 +45,8 @@ import {
 import {
   useAuvoIntegration,
   type AuvoDiscrepancy,
+  type AuvoTaskRow,
+
   type DiscrepancyClassification,
 } from "@/hooks/useAuvoIntegration";
 
@@ -81,6 +83,8 @@ export default function AuvoAudit() {
     "confirmed",
   );
   const [reviewNotes, setReviewNotes] = useState("");
+  const [promoteTarget, setPromoteTarget] = useState<AuvoTaskRow | null>(null);
+
   const [periodStart, setPeriodStart] = useState(
     format(subDays(new Date(), 14), "yyyy-MM-dd"),
   );
@@ -95,6 +99,8 @@ export default function AuvoAudit() {
     runSync,
     reanalyzeTask,
     reviewDiscrepancy,
+    promoteToOS,
+
   } = useAuvoIntegration({ onlyDivergent });
 
   const filtered = useMemo(() => {
@@ -417,7 +423,7 @@ export default function AuvoAudit() {
             <CardHeader>
               <CardTitle>Atendimentos importados do Auvo</CardTitle>
               <CardDescription>
-                Base espelhada para consulta e futura promoção a OS do Arrow.
+                Base espelhada do Auvo. Promova para OS do Arrow quando o cliente migrar.
               </CardDescription>
             </CardHeader>
             <CardContent className="overflow-x-auto">
@@ -427,15 +433,17 @@ export default function AuvoAudit() {
                     <TableHead>OS</TableHead>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Cliente</TableHead>
+                    <TableHead>Embarcação</TableHead>
                     <TableHead>Técnico</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Check-in / out</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {tasks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-10 text-center text-muted-foreground">
+                      <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                         Nenhum atendimento importado ainda.
                       </TableCell>
                     </TableRow>
@@ -447,17 +455,38 @@ export default function AuvoAudit() {
                         <TableCell className="max-w-[220px] truncate">
                           {t.customer_name ?? "—"}
                         </TableCell>
+                        <TableCell className="max-w-[160px] truncate">
+                          {t.vessel_name ?? "—"}
+                        </TableCell>
                         <TableCell>{t.technician_name ?? "—"}</TableCell>
                         <TableCell>{formatDate(t.task_date)}</TableCell>
                         <TableCell className="text-xs text-muted-foreground">
                           {t.checkin_at ? format(parseISO(t.checkin_at), "dd/MM HH:mm") : "—"} ·{" "}
                           {t.checkout_at ? format(parseISO(t.checkout_at), "dd/MM HH:mm") : "—"}
                         </TableCell>
+                        <TableCell className="text-right">
+                          {t.service_order_id ? (
+                            <Badge variant="secondary" className="gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Promovido
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setPromoteTarget(t)}
+                              disabled={promoteToOS.isPending}
+                            >
+                              Promover para OS
+                            </Button>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))
                   )}
                 </TableBody>
               </Table>
+
             </CardContent>
           </Card>
         </TabsContent>
@@ -567,6 +596,58 @@ export default function AuvoAudit() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!promoteTarget} onOpenChange={(open) => !open && setPromoteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Promover atendimento para OS do Arrow</DialogTitle>
+            <DialogDescription>
+              Será criada uma OS nativa com os dados do Auvo. Cliente e embarcação são
+              reaproveitados quando já existem no Arrow.
+            </DialogDescription>
+          </DialogHeader>
+          {promoteTarget && (
+            <div className="space-y-2 rounded-md bg-muted p-3 text-sm">
+              <p>
+                <span className="text-muted-foreground">OS: </span>
+                {promoteTarget.order_number ?? `AUVO-${promoteTarget.auvo_task_id}`}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Cliente: </span>
+                {promoteTarget.customer_name ?? "—"}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Embarcação: </span>
+                {promoteTarget.vessel_name ?? "—"}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Data: </span>
+                {formatDate(promoteTarget.task_date)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Status inicial: {promoteTarget.checkout_at ? "concluída" : "pendente"}
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromoteTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={promoteToOS.isPending}
+              onClick={() => {
+                if (!promoteTarget) return;
+                promoteToOS.mutate(promoteTarget, {
+                  onSuccess: () => setPromoteTarget(null),
+                });
+              }}
+            >
+              {promoteToOS.isPending ? "Criando..." : "Criar OS no Arrow"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
