@@ -83,6 +83,8 @@ export default function AuvoAudit() {
     "confirmed",
   );
   const [reviewNotes, setReviewNotes] = useState("");
+  const [promoteTarget, setPromoteTarget] = useState<AuvoTaskRow | null>(null);
+
   const [periodStart, setPeriodStart] = useState(
     format(subDays(new Date(), 14), "yyyy-MM-dd"),
   );
