@@ -103,7 +103,9 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
   const { rates } = useServiceRates();
   const [activeTab, setActiveTab] = useState("basic");
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [showAuvoWarning, setShowAuvoWarning] = useState(false);
   const { toast } = useToast();
+
 
   // Fetch service order details for PDF with client, vessel and company
   const { data: serviceOrder } = useQuery({
