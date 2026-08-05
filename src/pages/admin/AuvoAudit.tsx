@@ -86,6 +86,15 @@ export default function AuvoAudit() {
   );
   const [reviewNotes, setReviewNotes] = useState("");
   const [promoteTarget, setPromoteTarget] = useState<AuvoTaskRow | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (uid: string) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(uid) ? next.delete(uid) : next.add(uid);
+      return next;
+    });
+
 
   const [periodStart, setPeriodStart] = useState(
     format(subDays(new Date(), 14), "yyyy-MM-dd"),
