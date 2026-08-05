@@ -318,7 +318,15 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       ],
     },
     { title: "Recrutamento", icon: Inbox, path: "/hr/recruitment" },
-    { title: "Treinamentos", icon: GraduationCap, path: "/hr/university" },
+    {
+      title: "Desenvolvimento",
+      icon: GraduationCap,
+      key: "hr-dev",
+      children: [
+        { title: "Universidade Corporativa", icon: GraduationCap, path: "/hr/university" },
+        { title: "Treinamentos e Competências", icon: Target, path: "/hr/training" },
+      ],
+    },
     { title: "Relatórios", icon: FileBarChart, path: "/hr/reports" },
     { title: "Configurações", icon: Settings, path: "/hr/settings" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
