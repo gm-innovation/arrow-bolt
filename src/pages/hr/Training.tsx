@@ -190,8 +190,9 @@ const HRTraining = () => {
                   {!isLoading && filteredEmployees.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center text-muted-foreground">
-                        Nenhum colaborador encontrado. A matriz é definida pelos requisitos por cargo no módulo de
-                        Qualidade.
+                        Nenhum colaborador mapeado ainda. A base de competências e os requisitos por cargo são
+                        cadastrados no módulo de Qualidade (Competências e Requisitos por Cargo); assim que existirem,
+                        as lacunas aparecem aqui automaticamente.
                       </TableCell>
                     </TableRow>
                   )}
