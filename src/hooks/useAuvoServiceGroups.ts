@@ -175,13 +175,60 @@ export const useAuvoServiceGroups = () => {
     onError: (error: Error) => toast.error("Erro ao reanalisar", { description: error.message }),
   });
 
+  /** Processa um lote da fila de análise imediatamente, sem esperar o agendamento. */
+  const processQueue = useMutation({
+    mutationFn: async (limit = 8) => {
+      const { data, error } = await supabase.functions.invoke("auvo-sync", {
+        body: { mode: "analyze_batch", limit },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message ?? data.error);
+      return data as { processed?: number; discrepancies?: number; failed?: number };
+    },
+    onSuccess: (data) => {
+      toast.success("Fila processada", {
+        description: `${data?.processed ?? 0} serviço(s) analisados · ${data?.discrepancies ?? 0} divergência(s)${
+          data?.failed ? ` · ${data.failed} falha(s)` : ""
+        }.`,
+      });
+      invalidate();
+    },
+    onError: (error: Error) => toast.error("Erro ao processar fila", { description: error.message }),
+  });
+
+  /** Devolve à fila os serviços que estouraram as tentativas de análise. */
+  const retryFailedAnalyses = useMutation({
+    mutationFn: async () => {
+      const ids = groups.filter((g) => g.analysis_status === "error").map((g) => g.id);
+      if (ids.length === 0) return 0;
+      const { error } = await supabase
+        .from("auvo_service_groups")
+        .update({ analysis_status: "pending", analysis_attempts: 0, analysis_error: null })
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      toast.success(
+        count ? `${count} serviço(s) voltaram para a fila` : "Nenhum serviço com erro",
+      );
+      invalidate();
+    },
+    onError: (error: Error) => toast.error("Erro ao reenfileirar", { description: error.message }),
+  });
+
   return {
-    groups: query.data?.groups ?? [],
+    groups,
     membersByGroup: query.data?.membersByGroup ?? new Map<string, AuvoServiceMember[]>(),
-    members: query.data?.members ?? [],
+    members,
+    orphanMembers,
+    queue,
     isLoading: query.isLoading,
     unlinkTask,
     linkTaskToGroup,
     reanalyzeService,
+    processQueue,
+    retryFailedAnalyses,
   };
+
 };
