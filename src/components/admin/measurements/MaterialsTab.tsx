@@ -1,4 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useEvaMaterials } from "@/hooks/useEvaMaterials";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { RefreshCw, AlertCircle } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -29,16 +32,61 @@ interface MaterialsTabProps {
   disabled?: boolean;
   technicianMaterials?: string[];
   serviceOrderId?: string;
+  orderNumber?: string;
+  vesselName?: string;
 }
 
-export const MaterialsTab = ({ measurementId, materials, disabled, technicianMaterials, serviceOrderId }: MaterialsTabProps) => {
+export const MaterialsTab = ({ measurementId, materials, disabled, technicianMaterials, serviceOrderId, orderNumber, vesselName }: MaterialsTabProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedForImport, setSelectedForImport] = useState<string[]>([]);
+  const [vesselMismatch, setVesselMismatch] = useState<string | null>(null);
+  const autoSyncedRef = useRef(false);
   const { addMaterial, removeMaterial } = useMeasurementMaterials();
   const { settings } = useMeasurementSettings();
-  const { materials: osMaterials, getUsedMaterials } = useOsMaterials(serviceOrderId);
+  const { materials: osMaterials, getUsedMaterials, syncFromEva, isLoading: isLoadingOsMaterials } = useOsMaterials(serviceOrderId);
+  const { fetchEvaMaterials, isLoading: isFetchingEva } = useEvaMaterials();
   const { toast } = useToast();
+
+  const handleSyncFromEva = async (silent = false) => {
+    if (!orderNumber || !serviceOrderId) return;
+
+    const result = await fetchEvaMaterials(orderNumber);
+    if (!result.success || !result.materials) return;
+
+    if (result.materials.length === 0) {
+      if (!silent) {
+        toast({
+          title: "Nenhum material no Eva",
+          description: `A OS ${orderNumber} não possui materiais lançados no estoque.`,
+        });
+      }
+      return;
+    }
+
+    if (vesselName && result.vesselName && result.vesselName.toLowerCase() !== vesselName.toLowerCase()) {
+      setVesselMismatch(result.vesselName);
+    } else {
+      setVesselMismatch(null);
+    }
+
+    await syncFromEva.mutateAsync({
+      serviceOrderId,
+      materials: result.materials,
+    });
+  };
+
+  // Auto-sync from Eva when the OS has no materials registered yet
+  useEffect(() => {
+    if (disabled) return;
+    if (autoSyncedRef.current) return;
+    if (isLoadingOsMaterials) return;
+    if (!orderNumber || !serviceOrderId) return;
+    if (osMaterials.length > 0) return;
+    autoSyncedRef.current = true;
+    handleSyncFromEva(true);
+  }, [disabled, isLoadingOsMaterials, osMaterials.length, orderNumber, serviceOrderId]);
+
 
   const form = useForm({
     resolver: zodResolver(materialSchema),
@@ -159,9 +207,30 @@ export const MaterialsTab = ({ measurementId, materials, disabled, technicianMat
         </Card>
       )}
 
+      {vesselMismatch && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            A embarcação do estoque (Eva) é <strong>{vesselMismatch}</strong>, diferente da embarcação da OS
+            {vesselName ? ` (${vesselName})` : ""}. Confira os materiais antes de importar.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Action buttons */}
       {!disabled && (
         <div className="flex gap-2 flex-wrap">
+          {orderNumber && (
+            <Button
+              onClick={() => handleSyncFromEva()}
+              size="sm"
+              variant="outline"
+              disabled={isFetchingEva || syncFromEva.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isFetchingEva || syncFromEva.isPending ? "animate-spin" : ""}`} />
+              Buscar materiais no Eva
+            </Button>
+          )}
           {availableForImport.length > 0 && (
             <Button onClick={handleOpenImportDialog} size="sm" variant="outline">
               <Package className="h-4 w-4 mr-2" />
@@ -176,6 +245,7 @@ export const MaterialsTab = ({ measurementId, materials, disabled, technicianMat
           )}
         </div>
       )}
+
 
       {isAdding && (
         <Card className="p-4">

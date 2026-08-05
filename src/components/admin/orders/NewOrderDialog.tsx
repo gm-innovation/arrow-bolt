@@ -25,6 +25,9 @@ export const NewOrderDialog = ({ form, onSuccess }: NewOrderDialogProps) => {
 
   const handleOmieImport = (order: OmieImportData) => {
     form.setValue("orderNumber", order.orderNumber);
+    if (order.clientReference) {
+      form.setValue("clientReference", order.clientReference);
+    }
     setOmieImportData(order);
   };
 
