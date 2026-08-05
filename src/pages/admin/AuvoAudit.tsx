@@ -130,6 +130,58 @@ export default function AuvoAudit() {
     );
   }, [discrepancies, search, classification]);
 
+  // Uma linha por OS/atendimento: as divergências da mesma OS ficam agrupadas.
+  const grouped = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        taskUid: string;
+        orderNumber: string | null;
+        taskDate?: string | null;
+        customerName?: string | null;
+        technicianName?: string | null;
+        items: AuvoDiscrepancy[];
+        totalRisk: number;
+        pending: number;
+        stockNotReported: number;
+        worstWeight: number;
+      }
+    >();
+
+    const weight = (c: string) =>
+      c === "stock_not_reported" ? 0 : c === "quantity_mismatch" ? 1 : c === "reported_not_in_stock" ? 2 : 3;
+
+    for (const d of filtered) {
+      const key = d.auvo_task_uid;
+      let group = map.get(key);
+      if (!group) {
+        group = {
+          taskUid: key,
+          orderNumber: d.order_number ?? null,
+          taskDate: d.auvo_tasks?.task_date,
+          customerName: d.auvo_tasks?.customer_name,
+          technicianName: d.auvo_tasks?.technician_name,
+          items: [],
+          totalRisk: 0,
+          pending: 0,
+          stockNotReported: 0,
+          worstWeight: 99,
+        };
+        map.set(key, group);
+      }
+      group.items.push(d);
+      group.totalRisk += Number(d.value_at_risk ?? 0);
+      if (d.review_status === "pending") group.pending += 1;
+      if (d.classification === "stock_not_reported") group.stockNotReported += 1;
+      group.worstWeight = Math.min(group.worstWeight, weight(d.classification));
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) => a.worstWeight - b.worstWeight || b.totalRisk - a.totalRisk,
+    );
+  }, [filtered]);
+
+
   const lastRun = runs[0];
 
   const submitReview = () => {
