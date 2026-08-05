@@ -53,14 +53,14 @@ export const useAuvoServiceGroups = () => {
         supabase
           .from("auvo_service_groups")
           .select(
-            "id, service_key, order_numbers, primary_order_number, customer_name, vessel_name, first_task_date, last_task_date, is_similarity_grouped, grouping_reason, analysis_status, analyzed_at",
+            "id, service_key, order_numbers, primary_order_number, customer_name, vessel_name, first_task_date, last_task_date, is_similarity_grouped, grouping_reason, analysis_status, analyzed_at, analysis_error, analysis_attempts, analysis_last_attempt_at",
           )
           .order("last_task_date", { ascending: false, nullsFirst: false })
           .limit(1000),
         supabase
           .from("auvo_tasks")
           .select(
-            "id, auvo_task_id, order_number, auvo_task_type, task_date, technician_name, service_group_id, unlinked_from_group",
+            "id, auvo_task_id, order_number, auvo_task_type, customer_name, vessel_name, task_date, technician_name, service_group_id, unlinked_from_group",
           )
           .order("task_date", { ascending: true, nullsFirst: false })
           .limit(2000),
@@ -70,6 +70,7 @@ export const useAuvoServiceGroups = () => {
       if (groupsRes.error) throw groupsRes.error;
       if (tasksRes.error) throw tasksRes.error;
       if (reportsRes.error) throw reportsRes.error;
+
 
       const withReport = new Set(
         (reportsRes.data ?? [])
