@@ -2,10 +2,11 @@
 
 Hoje a auditoria trata cada atendimento do Auvo como um serviço isolado. Verificado nos dados:
 
-- OS **4821** tem 2 atendimentos (Wagner, com relatório; Kaike Neves, sem relatório) — só o primeiro é analisado.
+- OS **4821** tem hoje apenas 2 atendimentos espelhados (Wagner, com relatório; Kaike Neves, sem relatório) — e só o do Wagner é analisado. O relatório do **Ismael, de maio**, não existe no banco: a base espelhada começa em **01/07/2026** (247 atendimentos, nada antes disso), porque a sincronização só busca os últimos 7 dias (14 na tela). Ou seja, o serviço está incompleto na origem, não apenas na exibição.
 - OS **5237** gerou **16 linhas de divergência para 15 itens** em 4 atendimentos: o estoque inteiro da OS é comparado contra cada relatório separadamente, então o mesmo material aparece como "sem relato" em vários atendimentos.
 - Existem números em formatos diferentes para a mesma OS (`5322` vs `OS5496`), que hoje nunca se encontram.
-- A sincronização busca por padrão os últimos 7 dias (14 na tela), enquanto OS ficam meses abertas.
+- Uma OS pode ficar meses aberta, com técnicos diferentes em cada atendimento, e a auditoria precisa considerar todos eles juntos.
+
 
 ## Como vai funcionar
 
@@ -28,7 +29,7 @@ Regra de agrupamento (na ordem):
 - No diálogo de revisão, o visualizador de relatório ganha **abas por atendimento** — o revisor lê todos os relatórios do serviço, com fotos e questionários de cada um. Atendimentos sem relatório aparecem sinalizados.
 - "Reanalisar" reprocessa o serviço inteiro.
 
-**Janela de sincronização:** padrão passa a ser **desde 1º de janeiro do ano corrente**, com atalhos de 30/90/180 dias e "ano inteiro". A busca no Auvo passa a paginar até o fim do período (sem o corte atual de páginas) e roda em blocos mensais para não estourar o tempo da função, retomando de onde parou entre chamadas.
+**Janela de sincronização:** padrão passa a ser **desde 1º de janeiro do ano corrente**, com atalhos de 30/90/180 dias e "ano inteiro". A busca no Auvo passa a paginar até o fim do período (sem o corte atual de páginas) e roda em blocos mensais para não estourar o tempo da função, retomando de onde parou entre chamadas. A primeira execução após a mudança faz a carga histórica e traz atendimentos como o do Ismael em maio na OS 4821.
 
 **Alertas** passam a ser por serviço (um alerta consolidado por OS/serviço), não por atendimento.
 
