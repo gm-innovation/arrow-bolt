@@ -842,6 +842,90 @@ export default function AuvoAudit() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="sem-servico">
+          <Card>
+            <CardHeader>
+              <CardTitle>Atendimentos sem serviço vinculado</CardTitle>
+              <CardDescription>
+                Normalmente atendimentos sem número de OS. Vincule ao serviço correto para que os
+                relatórios entrem no cruzamento de materiais.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Atendimento</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Embarcação</TableHead>
+                    <TableHead>Técnico</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Relatório</TableHead>
+                    <TableHead>Vincular ao serviço</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orphanMembers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                        Todos os atendimentos estão vinculados a um serviço.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    orphanMembers.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium">
+                          {m.order_number ?? m.auvo_task_id}
+                        </TableCell>
+                        <TableCell className="max-w-[220px] truncate">
+                          {m.customer_name ?? "—"}
+                        </TableCell>
+                        <TableCell className="max-w-[160px] truncate">
+                          {m.vessel_name ?? "—"}
+                        </TableCell>
+                        <TableCell>{m.technician_name ?? "—"}</TableCell>
+                        <TableCell>{formatDate(m.task_date)}</TableCell>
+                        <TableCell>
+                          {m.hasReport ? (
+                            <Badge variant="secondary">Com relatório</Badge>
+                          ) : (
+                            <Badge variant="outline">Sem relatório</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value="none"
+                            onValueChange={(value) =>
+                              linkTaskToGroup.mutate({ taskId: m.id, groupId: value })
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-[220px] text-xs">
+                              <SelectValue placeholder="Escolher serviço" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none" disabled>
+                                Escolher serviço
+                              </SelectItem>
+                              {groups.slice(0, 200).map((g) => (
+                                <SelectItem key={g.id} value={g.id}>
+                                  {(g.primary_order_number ?? g.service_key) +
+                                    (g.customer_name ? ` · ${g.customer_name}` : "")}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+
+
         <TabsContent value="execucoes">
           <Card>
             <CardHeader>
