@@ -177,7 +177,7 @@ export const useAuvoServiceGroups = () => {
 
   /** Processa um lote da fila de análise imediatamente, sem esperar o agendamento. */
   const processQueue = useMutation({
-    mutationFn: async (limit = 8) => {
+    mutationFn: async (limit: number = 8) => {
       const { data, error } = await supabase.functions.invoke("auvo-sync", {
         body: { mode: "analyze_batch", limit },
       });
