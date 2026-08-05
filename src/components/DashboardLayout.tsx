@@ -55,7 +55,7 @@ import {
   Palmtree,
   User,
   Layers,
-  Compass, Gift } from "lucide-react";
+  Compass, Gift, Clock } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
@@ -238,6 +238,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
     { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
   ];
 
   const adminMenuItems = [
@@ -254,6 +255,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
     { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
   ];
 
   const managerMenuItems = [
@@ -266,6 +268,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
     { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
   ];
 
   const techMenuItems = [
@@ -277,6 +280,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
     { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
   ];
 
   const hrMenuItems: MenuEntry[] = [
@@ -289,6 +293,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         { title: "Colaboradores", icon: Users, path: "/hr/employees" },
         { title: "Escalas e Ausências", icon: Users, path: "/hr/absences" },
         { title: "Controle de Atendimento", icon: History, path: "/hr/time-control" },
+        { title: "Ponto e Jornada", icon: Clock, path: "/hr/timesheet" },
         { title: "Férias", icon: Palmtree, path: "/hr/vacations" },
       ],
     },
@@ -356,6 +361,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
     { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
   ];
 
   const directorMenuItems = [
@@ -368,6 +374,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
     { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
   ];
 
   const comprasMenuItems: MenuEntry[] = [
@@ -380,6 +387,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
     { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
   ];
 
 
@@ -464,6 +472,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
     { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
     { title: "Meus Documentos", icon: FileText, path: "/corp/my-documents" },
     { title: "Perfil", icon: User, path: "/quality/profile" },
   ];
@@ -479,6 +488,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
     { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
   ];
 
   const menuItems = {
@@ -512,7 +522,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       (menuPath !== "/" && location.pathname.startsWith(menuPath + "/")) ||
       (path === "/corp/dashboard" &&
         location.pathname.startsWith("/corp/") &&
-        !["/corp/feed", "/corp/profile", "/corp/university", "/corp/benefits", "/corp/my-documents"].some(
+        !["/corp/feed", "/corp/profile", "/corp/university", "/corp/benefits", "/corp/my-timesheet", "/corp/my-documents"].some(
           (p) => location.pathname.startsWith(p),
         )) ||
       (path === "/corp/feed" && location.pathname.startsWith("/corp/profile"));
