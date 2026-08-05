@@ -113,6 +113,12 @@ const ViewPurchaseRequestDialog = ({ request, open, onOpenChange }: ViewPurchase
               <span className="text-muted-foreground">Prioridade:</span>
               <p className="font-medium">{priorityLabels[request.priority] || request.priority}</p>
             </div>
+            <div>
+              <span className="text-muted-foreground">Ordem de Serviço:</span>
+              <p className="font-medium">
+                {request.service_order?.order_number ? `OS ${request.service_order.order_number}` : "Sem vínculo"}
+              </p>
+            </div>
           </div>
 
           {request.description && (
