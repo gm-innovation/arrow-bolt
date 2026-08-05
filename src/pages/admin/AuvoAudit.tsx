@@ -390,96 +390,168 @@ export default function AuvoAudit() {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead className="w-[40px]" />
                         <TableHead>OS</TableHead>
-                        <TableHead>Material</TableHead>
                         <TableHead>Cliente / Técnico</TableHead>
-                        <TableHead className="text-right">Estoque</TableHead>
-                        <TableHead className="text-right">Relatório</TableHead>
-                        <TableHead className="text-right">Risco</TableHead>
-                        <TableHead>Classificação</TableHead>
+                        <TableHead className="text-center">Divergências</TableHead>
+                        <TableHead className="text-right">Risco total</TableHead>
                         <TableHead>Revisão</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {filtered.map((d) => (
-                        <TableRow
-                          key={d.id}
-                          className={
-                            d.classification === "stock_not_reported"
-                              ? "bg-destructive/5 hover:bg-destructive/10"
-                              : undefined
-                          }
-                        >
-                          <TableCell className="font-medium">
-                            {d.order_number ?? "—"}
-                            <div className="text-xs text-muted-foreground">
-                              {formatDate(d.auvo_tasks?.task_date)}
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[260px]">
-                            <div className="truncate" title={d.item_name}>{d.item_name}</div>
-                            {d.external_product_code && (
-                              <div className="text-xs text-muted-foreground">
-                                {d.external_product_code}
-                              </div>
+                      {grouped.map((g) => {
+                        const isOpen = expanded.has(g.taskUid);
+                        return (
+                          <Fragment key={g.taskUid}>
+                            <TableRow
+                              className={`cursor-pointer ${
+                                g.stockNotReported > 0
+                                  ? "bg-destructive/5 hover:bg-destructive/10"
+                                  : ""
+                              }`}
+                              onClick={() => toggleExpanded(g.taskUid)}
+                            >
+                              <TableCell>
+                                {isOpen ? (
+                                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium">
+                                {g.orderNumber ?? "—"}
+                                <div className="text-xs text-muted-foreground">
+                                  {formatDate(g.taskDate)}
+                                </div>
+                              </TableCell>
+                              <TableCell className="max-w-[220px]">
+                                <div className="truncate">{g.customerName ?? "—"}</div>
+                                <div className="truncate text-xs text-muted-foreground">
+                                  {g.technicianName ?? "—"}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="flex flex-wrap items-center justify-center gap-1">
+                                  <Badge variant="secondary">{g.items.length} itens</Badge>
+                                  {g.stockNotReported > 0 && (
+                                    <Badge variant="destructive">
+                                      {g.stockNotReported} sem relato
+                                    </Badge>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {g.totalRisk > 0 ? currency(g.totalRisk) : "—"}
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-sm text-muted-foreground">
+                                  {g.pending} pendentes · {g.items.length - g.pending} tratadas
+                                </span>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    reanalyzeTask.mutate(g.taskUid);
+                                  }}
+                                  disabled={reanalyzeTask.isPending}
+                                >
+                                  Reanalisar
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+
+                            {isOpen && (
+                              <TableRow className="hover:bg-transparent">
+                                <TableCell colSpan={7} className="bg-muted/30 p-0">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Material</TableHead>
+                                        <TableHead className="text-right">Estoque</TableHead>
+                                        <TableHead className="text-right">Relatório</TableHead>
+                                        <TableHead className="text-right">Risco</TableHead>
+                                        <TableHead>Classificação</TableHead>
+                                        <TableHead>Revisão</TableHead>
+                                        <TableHead className="text-right">Ações</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {g.items.map((d) => (
+                                        <TableRow key={d.id}>
+                                          <TableCell className="max-w-[280px]">
+                                            <div className="truncate" title={d.item_name}>
+                                              {d.item_name}
+                                            </div>
+                                            {d.external_product_code && (
+                                              <div className="text-xs text-muted-foreground">
+                                                {d.external_product_code}
+                                              </div>
+                                            )}
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            {Number(d.stock_quantity)}
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            {d.reported_quantity === null
+                                              ? "—"
+                                              : Number(d.reported_quantity)}
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            {d.value_at_risk > 0
+                                              ? currency(Number(d.value_at_risk))
+                                              : "—"}
+                                          </TableCell>
+                                          <TableCell>
+                                            <Badge variant={severityVariant(d.severity)}>
+                                              {CLASSIFICATION_LABEL[d.classification]}
+                                            </Badge>
+                                            {d.ai_notes && (
+                                              <p className="mt-1 max-w-[260px] text-xs text-muted-foreground">
+                                                {d.ai_notes}
+                                              </p>
+                                            )}
+                                          </TableCell>
+                                          <TableCell>
+                                            <Badge
+                                              variant={
+                                                d.review_status === "pending"
+                                                  ? "outline"
+                                                  : "secondary"
+                                              }
+                                            >
+                                              {REVIEW_LABEL[d.review_status] ?? d.review_status}
+                                            </Badge>
+                                          </TableCell>
+                                          <TableCell className="text-right">
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => {
+                                                setReviewTarget(d);
+                                                setReviewStatus("confirmed");
+                                                setReviewNotes(d.review_notes ?? "");
+                                              }}
+                                            >
+                                              Revisar
+                                            </Button>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </TableCell>
+                              </TableRow>
                             )}
-                          </TableCell>
-                          <TableCell className="max-w-[200px]">
-                            <div className="truncate">{d.auvo_tasks?.customer_name ?? "—"}</div>
-                            <div className="truncate text-xs text-muted-foreground">
-                              {d.auvo_tasks?.technician_name ?? "—"}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">{Number(d.stock_quantity)}</TableCell>
-                          <TableCell className="text-right">
-                            {d.reported_quantity === null ? "—" : Number(d.reported_quantity)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {d.value_at_risk > 0 ? currency(Number(d.value_at_risk)) : "—"}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={severityVariant(d.severity)}>
-                              {CLASSIFICATION_LABEL[d.classification]}
-                            </Badge>
-                            {d.ai_notes && (
-                              <p className="mt-1 max-w-[260px] text-xs text-muted-foreground">
-                                {d.ai_notes}
-                              </p>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={d.review_status === "pending" ? "outline" : "secondary"}>
-                              {REVIEW_LABEL[d.review_status] ?? d.review_status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setReviewTarget(d);
-                                  setReviewStatus("confirmed");
-                                  setReviewNotes(d.review_notes ?? "");
-                                }}
-                              >
-                                Revisar
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => reanalyzeTask.mutate(d.auvo_task_uid)}
-                                disabled={reanalyzeTask.isPending}
-                              >
-                                Reanalisar
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                          </Fragment>
+                        );
+                      })}
                     </TableBody>
                   </Table>
+
                 </div>
               )}
             </CardContent>
