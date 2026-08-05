@@ -209,15 +209,38 @@ export default function AuvoAudit() {
             <p className="text-xs text-muted-foreground">material sem confirmação no relatório</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setClassification("stock_not_reported")}
+          onKeyDown={(e) => e.key === "Enter" && setClassification("stock_not_reported")}
+          className={`cursor-pointer transition-colors ${
+            stats.stockNotReported > 0
+              ? "border-destructive/60 bg-destructive/5 hover:bg-destructive/10"
+              : "hover:bg-muted/50"
+          }`}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Não relatados</CardTitle>
-            <PackageX className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">
+              Baixado do estoque, sem relato
+            </CardTitle>
+            <PackageX
+              className={`h-4 w-4 ${
+                stats.stockNotReported > 0 ? "text-destructive" : "text-muted-foreground"
+              }`}
+            />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.stockNotReported}</div>
+            <div
+              className={`text-2xl font-bold ${
+                stats.stockNotReported > 0 ? "text-destructive" : ""
+              }`}
+            >
+              {stats.stockNotReported}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {stats.quantityMismatch} qtd. divergente · {stats.reportedNotInStock} sem baixa
+              material saiu do estoque e o técnico não citou · {stats.quantityMismatch} qtd.
+              divergente · {stats.reportedNotInStock} relatado sem baixa
             </p>
           </CardContent>
         </Card>
