@@ -531,7 +531,7 @@ const HRTimesheet = () => {
                   {(ts.devices.data ?? []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        Nenhum relógio cadastrado.
+                        Nenhum relógio configurado. Solicite o cadastro ao Super Admin em "API &amp; Integrações".
                       </TableCell>
                     </TableRow>
                   )}
@@ -548,11 +548,13 @@ const HRTimesheet = () => {
                         {d.last_sync_at ? format(new Date(d.last_sync_at), "dd/MM/yyyy HH:mm") : '—'}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => ts.syncPunches.mutate(d.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => ts.syncPunches.mutate(d.id)} disabled={ts.syncPunches.isPending}>
                           <RefreshCw className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setDeviceDialog(d)}>Editar</Button>
                       </TableCell>
+                    </TableRow>
+                  ))}
+
                     </TableRow>
                   ))}
                 </TableBody>
