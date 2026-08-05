@@ -137,7 +137,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
     (d) => d.classification === "stock_not_reported",
   );
 
-  });
+
 
   // Fetch technician time entries for PDF
   const { data: technicianTimeEntries = [] } = useQuery({
