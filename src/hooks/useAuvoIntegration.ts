@@ -47,9 +47,13 @@ export interface AuvoSyncRun {
   reports_fetched: number;
   discrepancies_found: number;
   error_message: string | null;
+  progress_message: string | null;
+  current_block: string | null;
+  heartbeat_at: string | null;
   started_at: string;
   finished_at: string | null;
 }
+
 
 export interface AuvoTaskRow {
   id: string;

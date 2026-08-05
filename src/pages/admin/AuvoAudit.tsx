@@ -124,10 +124,15 @@ export default function AuvoAudit() {
   const {
     groups,
     membersByGroup,
+    orphanMembers,
+    queue,
     unlinkTask,
     linkTaskToGroup,
     reanalyzeService,
+    processQueue,
+    retryFailedAnalyses,
   } = useAuvoServiceGroups();
+
 
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
 
@@ -248,7 +253,10 @@ export default function AuvoAudit() {
         auvo_task_type: reviewTarget.auvo_tasks?.auvo_task_type ?? null,
         task_date: reviewTarget.auvo_tasks?.task_date ?? null,
         technician_name: reviewTarget.auvo_tasks?.technician_name ?? null,
+        customer_name: null,
+        vessel_name: null,
         service_group_id: null,
+
         unlinked_from_group: false,
         hasReport: true,
       },
@@ -389,13 +397,51 @@ export default function AuvoAudit() {
         </Card>
       </div>
 
+      {(queue.pending > 0 || queue.error > 0) && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div className="text-sm">
+              <p className="font-medium">Fila de análise</p>
+              <p className="text-muted-foreground">
+                {queue.pending} serviço(s) aguardando análise · {queue.done} concluído(s)
+                {queue.error > 0 ? ` · ${queue.error} com erro` : ""}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => processQueue.mutate(8)}
+                disabled={processQueue.isPending || queue.pending === 0}
+              >
+                {processQueue.isPending ? "Processando..." : "Processar fila agora"}
+              </Button>
+              {queue.error > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => retryFailedAnalyses.mutate()}
+                  disabled={retryFailedAnalyses.isPending}
+                >
+                  Tentar novamente os com erro
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="divergencias">
         <TabsList>
           <TabsTrigger value="divergencias">Divergências</TabsTrigger>
           <TabsTrigger value="indicadores">Indicadores</TabsTrigger>
           <TabsTrigger value="atendimentos">Atendimentos importados</TabsTrigger>
+          <TabsTrigger value="sem-servico">
+            Sem serviço {orphanMembers.length > 0 ? `(${orphanMembers.length})` : ""}
+          </TabsTrigger>
           <TabsTrigger value="execucoes">Execuções</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="indicadores">
           <AuvoInsightsPanel />
@@ -796,6 +842,90 @@ export default function AuvoAudit() {
           </Card>
         </TabsContent>
 
+        <TabsContent value="sem-servico">
+          <Card>
+            <CardHeader>
+              <CardTitle>Atendimentos sem serviço vinculado</CardTitle>
+              <CardDescription>
+                Normalmente atendimentos sem número de OS. Vincule ao serviço correto para que os
+                relatórios entrem no cruzamento de materiais.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Atendimento</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Embarcação</TableHead>
+                    <TableHead>Técnico</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Relatório</TableHead>
+                    <TableHead>Vincular ao serviço</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orphanMembers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="py-10 text-center text-muted-foreground">
+                        Todos os atendimentos estão vinculados a um serviço.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    orphanMembers.map((m) => (
+                      <TableRow key={m.id}>
+                        <TableCell className="font-medium">
+                          {m.order_number ?? m.auvo_task_id}
+                        </TableCell>
+                        <TableCell className="max-w-[220px] truncate">
+                          {m.customer_name ?? "—"}
+                        </TableCell>
+                        <TableCell className="max-w-[160px] truncate">
+                          {m.vessel_name ?? "—"}
+                        </TableCell>
+                        <TableCell>{m.technician_name ?? "—"}</TableCell>
+                        <TableCell>{formatDate(m.task_date)}</TableCell>
+                        <TableCell>
+                          {m.hasReport ? (
+                            <Badge variant="secondary">Com relatório</Badge>
+                          ) : (
+                            <Badge variant="outline">Sem relatório</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Select
+                            value="none"
+                            onValueChange={(value) =>
+                              linkTaskToGroup.mutate({ taskId: m.id, groupId: value })
+                            }
+                          >
+                            <SelectTrigger className="h-8 w-[220px] text-xs">
+                              <SelectValue placeholder="Escolher serviço" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none" disabled>
+                                Escolher serviço
+                              </SelectItem>
+                              {groups.slice(0, 200).map((g) => (
+                                <SelectItem key={g.id} value={g.id}>
+                                  {(g.primary_order_number ?? g.service_key) +
+                                    (g.customer_name ? ` · ${g.customer_name}` : "")}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+
+
         <TabsContent value="execucoes">
           <Card>
             <CardHeader>
@@ -835,12 +965,20 @@ export default function AuvoAudit() {
                           <Badge variant={r.status === "success" ? "secondary" : r.status === "error" ? "destructive" : "outline"}>
                             {r.status}
                           </Badge>
+                          {r.status === "running" && (r.progress_message || r.current_block) && (
+                            <p className="mt-1 max-w-[280px] text-xs text-muted-foreground">
+                              {r.progress_message ?? r.current_block}
+                              {r.heartbeat_at &&
+                                ` · atualizado ${format(parseISO(r.heartbeat_at), "HH:mm:ss")}`}
+                            </p>
+                          )}
                           {r.error_message && (
                             <p className="mt-1 max-w-[280px] text-xs text-destructive">
                               {r.error_message}
                             </p>
                           )}
                         </TableCell>
+
                         <TableCell className="text-right">{r.tasks_fetched}</TableCell>
                         <TableCell className="text-right">{r.reports_fetched}</TableCell>
                         <TableCell className="text-right">{r.discrepancies_found}</TableCell>

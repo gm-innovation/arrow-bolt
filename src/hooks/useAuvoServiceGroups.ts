@@ -16,6 +16,9 @@ export interface AuvoServiceGroup {
   grouping_reason: string | null;
   analysis_status: string;
   analyzed_at: string | null;
+  analysis_error: string | null;
+  analysis_attempts: number | null;
+  analysis_last_attempt_at: string | null;
 }
 
 export interface AuvoServiceMember {
@@ -23,12 +26,15 @@ export interface AuvoServiceMember {
   auvo_task_id: string;
   order_number: string | null;
   auvo_task_type: string | null;
+  customer_name: string | null;
+  vessel_name: string | null;
   task_date: string | null;
   technician_name: string | null;
   service_group_id: string | null;
   unlinked_from_group: boolean;
   hasReport: boolean;
 }
+
 
 /**
  * Serviços do Auvo: um serviço reúne todos os atendimentos e relatórios do mesmo
@@ -47,14 +53,14 @@ export const useAuvoServiceGroups = () => {
         supabase
           .from("auvo_service_groups")
           .select(
-            "id, service_key, order_numbers, primary_order_number, customer_name, vessel_name, first_task_date, last_task_date, is_similarity_grouped, grouping_reason, analysis_status, analyzed_at",
+            "id, service_key, order_numbers, primary_order_number, customer_name, vessel_name, first_task_date, last_task_date, is_similarity_grouped, grouping_reason, analysis_status, analyzed_at, analysis_error, analysis_attempts, analysis_last_attempt_at",
           )
           .order("last_task_date", { ascending: false, nullsFirst: false })
           .limit(1000),
         supabase
           .from("auvo_tasks")
           .select(
-            "id, auvo_task_id, order_number, auvo_task_type, task_date, technician_name, service_group_id, unlinked_from_group",
+            "id, auvo_task_id, order_number, auvo_task_type, customer_name, vessel_name, task_date, technician_name, service_group_id, unlinked_from_group",
           )
           .order("task_date", { ascending: true, nullsFirst: false })
           .limit(2000),
@@ -64,6 +70,7 @@ export const useAuvoServiceGroups = () => {
       if (groupsRes.error) throw groupsRes.error;
       if (tasksRes.error) throw tasksRes.error;
       if (reportsRes.error) throw reportsRes.error;
+
 
       const withReport = new Set(
         (reportsRes.data ?? [])
@@ -92,11 +99,25 @@ export const useAuvoServiceGroups = () => {
     },
   });
 
+  const groups = query.data?.groups ?? [];
+  const members = query.data?.members ?? [];
+
+  /** Situação da fila de análise: o que falta processar e o que falhou de vez. */
+  const queue = {
+    pending: groups.filter((g) => g.analysis_status === "pending").length,
+    error: groups.filter((g) => g.analysis_status === "error").length,
+    done: groups.filter((g) => g.analysis_status === "done").length,
+  };
+
+  /** Atendimentos que não entraram em nenhum serviço (sem nº de OS e sem similaridade). */
+  const orphanMembers = members.filter((m) => !m.service_group_id && !m.unlinked_from_group);
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["auvo-service-groups"] });
     queryClient.invalidateQueries({ queryKey: ["auvo-discrepancies"] });
     queryClient.invalidateQueries({ queryKey: ["auvo-tasks"] });
   };
+
 
   const unlinkTask = useMutation({
     mutationFn: async (taskId: string) => {
@@ -154,13 +175,60 @@ export const useAuvoServiceGroups = () => {
     onError: (error: Error) => toast.error("Erro ao reanalisar", { description: error.message }),
   });
 
+  /** Processa um lote da fila de análise imediatamente, sem esperar o agendamento. */
+  const processQueue = useMutation({
+    mutationFn: async (limit: number = 8) => {
+      const { data, error } = await supabase.functions.invoke("auvo-sync", {
+        body: { mode: "analyze_batch", limit },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message ?? data.error);
+      return data as { processed?: number; discrepancies?: number; failed?: number };
+    },
+    onSuccess: (data) => {
+      toast.success("Fila processada", {
+        description: `${data?.processed ?? 0} serviço(s) analisados · ${data?.discrepancies ?? 0} divergência(s)${
+          data?.failed ? ` · ${data.failed} falha(s)` : ""
+        }.`,
+      });
+      invalidate();
+    },
+    onError: (error: Error) => toast.error("Erro ao processar fila", { description: error.message }),
+  });
+
+  /** Devolve à fila os serviços que estouraram as tentativas de análise. */
+  const retryFailedAnalyses = useMutation({
+    mutationFn: async () => {
+      const ids = groups.filter((g) => g.analysis_status === "error").map((g) => g.id);
+      if (ids.length === 0) return 0;
+      const { error } = await supabase
+        .from("auvo_service_groups")
+        .update({ analysis_status: "pending", analysis_attempts: 0, analysis_error: null })
+        .in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (count) => {
+      toast.success(
+        count ? `${count} serviço(s) voltaram para a fila` : "Nenhum serviço com erro",
+      );
+      invalidate();
+    },
+    onError: (error: Error) => toast.error("Erro ao reenfileirar", { description: error.message }),
+  });
+
   return {
-    groups: query.data?.groups ?? [],
+    groups,
     membersByGroup: query.data?.membersByGroup ?? new Map<string, AuvoServiceMember[]>(),
-    members: query.data?.members ?? [],
+    members,
+    orphanMembers,
+    queue,
     isLoading: query.isLoading,
     unlinkTask,
     linkTaskToGroup,
     reanalyzeService,
+    processQueue,
+    retryFailedAnalyses,
   };
+
 };
