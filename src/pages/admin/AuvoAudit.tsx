@@ -8,6 +8,7 @@ import {
   ChevronRight,
   ClipboardList,
   FileText,
+  Link2,
   Link2Off,
   PackageX,
   RefreshCw,
