@@ -329,7 +329,14 @@ export default function AuvoAudit() {
                     </TableHeader>
                     <TableBody>
                       {filtered.map((d) => (
-                        <TableRow key={d.id}>
+                        <TableRow
+                          key={d.id}
+                          className={
+                            d.classification === "stock_not_reported"
+                              ? "bg-destructive/5 hover:bg-destructive/10"
+                              : undefined
+                          }
+                        >
                           <TableCell className="font-medium">
                             {d.order_number ?? "—"}
                             <div className="text-xs text-muted-foreground">
