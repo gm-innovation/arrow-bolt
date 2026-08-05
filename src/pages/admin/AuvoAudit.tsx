@@ -51,7 +51,7 @@ import {
 const CLASSIFICATION_LABEL: Record<DiscrepancyClassification, string> = {
   match: "Conforme",
   quantity_mismatch: "Quantidade divergente",
-  stock_not_reported: "Saiu do estoque, não relatado",
+  stock_not_reported: "Baixado do estoque, sem relato",
   reported_not_in_stock: "Relatado, sem baixa no estoque",
   unidentified: "Menção não identificada",
 };
