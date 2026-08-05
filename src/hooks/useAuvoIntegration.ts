@@ -13,6 +13,7 @@ export type DiscrepancyClassification =
 export interface AuvoDiscrepancy {
   id: string;
   auvo_task_uid: string;
+  service_group_id: string | null;
   order_number: string | null;
   item_name: string;
   external_product_code: string | null;
@@ -34,6 +35,7 @@ export interface AuvoDiscrepancy {
     auvo_task_type: string | null;
   } | null;
 }
+
 
 export interface AuvoSyncRun {
   id: string;
