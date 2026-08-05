@@ -132,6 +132,7 @@ export default function AuvoAudit() {
     reanalyzeService,
     processQueue,
     retryFailedAnalyses,
+    autoGroupOrphans,
   } = useAuvoServiceGroups();
 
 
