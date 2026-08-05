@@ -397,13 +397,51 @@ export default function AuvoAudit() {
         </Card>
       </div>
 
+      {(queue.pending > 0 || queue.error > 0) && (
+        <Card className="border-amber-500/40 bg-amber-500/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div className="text-sm">
+              <p className="font-medium">Fila de análise</p>
+              <p className="text-muted-foreground">
+                {queue.pending} serviço(s) aguardando análise · {queue.done} concluído(s)
+                {queue.error > 0 ? ` · ${queue.error} com erro` : ""}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => processQueue.mutate(8)}
+                disabled={processQueue.isPending || queue.pending === 0}
+              >
+                {processQueue.isPending ? "Processando..." : "Processar fila agora"}
+              </Button>
+              {queue.error > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => retryFailedAnalyses.mutate()}
+                  disabled={retryFailedAnalyses.isPending}
+                >
+                  Tentar novamente os com erro
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="divergencias">
         <TabsList>
           <TabsTrigger value="divergencias">Divergências</TabsTrigger>
           <TabsTrigger value="indicadores">Indicadores</TabsTrigger>
           <TabsTrigger value="atendimentos">Atendimentos importados</TabsTrigger>
+          <TabsTrigger value="sem-servico">
+            Sem serviço {orphanMembers.length > 0 ? `(${orphanMembers.length})` : ""}
+          </TabsTrigger>
           <TabsTrigger value="execucoes">Execuções</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="indicadores">
           <AuvoInsightsPanel />
