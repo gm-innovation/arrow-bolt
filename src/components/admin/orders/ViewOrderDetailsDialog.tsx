@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { VisitHistoryList } from "./VisitHistoryList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuditTrailViewer } from "./AuditTrailViewer";
+import { AuvoReportPanel } from "./AuvoReportPanel";
 import { formatLocalDate } from "@/lib/utils";
 
 interface ViewOrderDetailsDialogProps {
@@ -178,11 +179,13 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         </DialogHeader>
       
       <Tabs defaultValue="details" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="details">Detalhes</TabsTrigger>
           <TabsTrigger value="visits">Visitas</TabsTrigger>
+          <TabsTrigger value="auvo">Auvo</TabsTrigger>
           <TabsTrigger value="audit">Histórico</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="details">
           <ScrollArea className="h-[50vh] pr-4">
@@ -325,6 +328,14 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
             <VisitHistoryList serviceOrderId={orderId} />
           </ScrollArea>
         </TabsContent>
+
+        <TabsContent value="auvo">
+          <ScrollArea className="h-[50vh] pr-4">
+            <AuvoReportPanel serviceOrderId={orderId} orderNumber={orderDetails.order_number} />
+          </ScrollArea>
+        </TabsContent>
+
+
 
         <TabsContent value="audit">
           <ScrollArea className="h-[50vh] pr-4">
