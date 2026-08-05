@@ -55,7 +55,7 @@ import {
   Palmtree,
   User,
   Layers,
-  Compass, Gift } from "lucide-react";
+  Compass, Gift, Clock } from "lucide-react";
 import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
