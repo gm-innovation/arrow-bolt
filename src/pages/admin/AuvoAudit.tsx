@@ -263,9 +263,14 @@ export default function AuvoAudit() {
       <Tabs defaultValue="divergencias">
         <TabsList>
           <TabsTrigger value="divergencias">Divergências</TabsTrigger>
+          <TabsTrigger value="indicadores">Indicadores</TabsTrigger>
           <TabsTrigger value="atendimentos">Atendimentos importados</TabsTrigger>
           <TabsTrigger value="execucoes">Execuções</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="indicadores">
+          <AuvoInsightsPanel />
+        </TabsContent>
 
         <TabsContent value="divergencias" className="space-y-4">
           <Card>
