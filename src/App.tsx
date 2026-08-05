@@ -446,7 +446,7 @@ const App = () => {
 
 
                   {/* Supplies - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['compras']}><DashboardLayout userType="compras" /></ProtectedRoute>}>
+                  <Route element={<ProtectedRoute allowedRoles={['compras', 'super_admin']}><DashboardLayout userType="compras" /></ProtectedRoute>}>
                     <Route path="/supplies/dashboard" element={<SuppliesDashboard />} />
                     <Route path="/supplies/requests" element={<SuppliesRequests />} />
                     <Route path="/supplies/settings" element={<SuppliesSettings />} />
@@ -511,7 +511,7 @@ const App = () => {
                   </Route>
 
                   {/* Finance - nested layout route */}
-                  <Route element={<ProtectedRoute allowedRoles={['financeiro']}><DashboardLayout userType="financeiro" /></ProtectedRoute>}>
+                  <Route element={<ProtectedRoute allowedRoles={['financeiro', 'super_admin']}><DashboardLayout userType="financeiro" /></ProtectedRoute>}>
                     <Route path="/finance/dashboard" element={<FinanceDashboard />} />
                     <Route path="/finance/payables" element={<FinancePayables />} />
                     <Route path="/finance/receivables" element={<FinanceReceivables />} />

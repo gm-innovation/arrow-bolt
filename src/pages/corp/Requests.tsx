@@ -35,7 +35,7 @@ const priorityMap: Record<string, { label: string; variant: 'default' | 'seconda
 };
 
 const CorpRequests = () => {
-  const { user, userRole } = useAuth();
+  const { user, userRole, profile } = useAuth();
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [search, setSearch] = useState('');
   const [selectedRequest, setSelectedRequest] = useState<any>(null);
@@ -45,7 +45,10 @@ const CorpRequests = () => {
   const { requests, isLoading } = useCorpRequests(filters);
   const { departments } = useDepartments();
 
-  const companyId = requests?.[0]?.company_id || '';
+  // Sempre a empresa do usuário logado: derivar da primeira solicitação
+  // deixava o campo vazio quando ainda não havia nenhuma solicitação.
+  const companyId = profile?.company_id || requests?.[0]?.company_id || '';
+
 
   // Minhas solicitações
   const myRequests = requests.filter(r =>

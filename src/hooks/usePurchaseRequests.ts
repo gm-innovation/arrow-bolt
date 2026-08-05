@@ -82,7 +82,8 @@ export const usePurchaseRequests = () => {
           category: values.category,
           priority: values.priority,
           justification: values.justification || null,
-          status: "pending_manager",
+          // Aprovação direta pela diretoria (coordenador/gerente não aprova compras)
+          status: "pending_director",
           supplier_id: values.supplier_id || null,
         } as any)
         .select()
