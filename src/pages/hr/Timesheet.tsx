@@ -6,7 +6,6 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock,
-  Cog,
   Lock,
   RefreshCw,
   Unlock,
@@ -73,7 +72,6 @@ const HRTimesheet = () => {
 
   const ts = useHRTimesheet(year, month, selectedEmployee);
   const [editDay, setEditDay] = useState<TimesheetDay | null>(null);
-  const [deviceDialog, setDeviceDialog] = useState<Partial<TimeclockDevice> | null>(null);
 
   const days = ts.days.data ?? [];
   const overtimePending = (ts.overtime.data ?? []).filter((o) => o.status === 'pending');
@@ -507,13 +505,15 @@ const HRTimesheet = () => {
               <div>
                 <CardTitle>Relógios de ponto</CardTitle>
                 <CardDescription>
-                  Control iD (iDClass / iDAccess). A senha é guardada como segredo do sistema — informe apenas o nome do segredo.
+                  Control iD (iDClass / iDAccess). A configuração da conexão é feita pelo Super Admin em
+                  "API &amp; Integrações". Aqui você acompanha o status e importa as batidas.
                 </CardDescription>
               </div>
-              <Button onClick={() => setDeviceDialog({ vendor: 'control_id', integration_kind: 'api', is_active: true })}>
-                <Cog className="h-4 w-4 mr-2" /> Novo relógio
+              <Button variant="outline" onClick={() => ts.syncPunches.mutate(undefined)} disabled={ts.syncPunches.isPending}>
+                <RefreshCw className="h-4 w-4 mr-2" /> Sincronizar batidas
               </Button>
             </CardHeader>
+
             <CardContent>
               <Table>
                 <TableHeader>
@@ -529,7 +529,7 @@ const HRTimesheet = () => {
                   {(ts.devices.data ?? []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                        Nenhum relógio cadastrado.
+                        Nenhum relógio configurado. Solicite o cadastro ao Super Admin em "API &amp; Integrações".
                       </TableCell>
                     </TableRow>
                   )}
@@ -546,10 +546,9 @@ const HRTimesheet = () => {
                         {d.last_sync_at ? format(new Date(d.last_sync_at), "dd/MM/yyyy HH:mm") : '—'}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button size="sm" variant="ghost" onClick={() => ts.syncPunches.mutate(d.id)}>
+                        <Button size="sm" variant="ghost" onClick={() => ts.syncPunches.mutate(d.id)} disabled={ts.syncPunches.isPending}>
                           <RefreshCw className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setDeviceDialog(d)}>Editar</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -691,72 +690,6 @@ const HRTimesheet = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Cadastro de relógio */}
-      <Dialog open={!!deviceDialog} onOpenChange={(o) => !o && setDeviceDialog(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{deviceDialog?.id ? 'Editar relógio' : 'Novo relógio'}</DialogTitle>
-          </DialogHeader>
-          {deviceDialog && (
-            <form
-              className="space-y-4"
-              onSubmit={(e) => {
-                e.preventDefault();
-                const form = new FormData(e.currentTarget);
-                ts.saveDevice.mutate(
-                  {
-                    id: deviceDialog.id,
-                    name: String(form.get('name')),
-                    base_url: String(form.get('base_url')),
-                    username: String(form.get('username') ?? ''),
-                    password_secret_name: String(form.get('password_secret_name') ?? ''),
-                    vendor: 'control_id',
-                    integration_kind: 'api',
-                    is_active: form.get('is_active') === 'on',
-                    notes: String(form.get('notes') ?? ''),
-                  },
-                  { onSuccess: () => setDeviceDialog(null) },
-                );
-              }}
-            >
-              <div className="space-y-2">
-                <Label>Nome</Label>
-                <Input name="name" defaultValue={deviceDialog.name ?? ''} required />
-              </div>
-              <div className="space-y-2">
-                <Label>Endereço (ex.: http://192.168.0.50)</Label>
-                <Input name="base_url" defaultValue={deviceDialog.base_url ?? ''} required />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Usuário</Label>
-                  <Input name="username" defaultValue={deviceDialog.username ?? 'admin'} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Nome do segredo da senha</Label>
-                  <Input
-                    name="password_secret_name"
-                    placeholder="CONTROL_ID_PASSWORD"
-                    defaultValue={deviceDialog.password_secret_name ?? 'CONTROL_ID_PASSWORD'}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch name="is_active" defaultChecked={deviceDialog.is_active ?? true} />
-                <Label>Ativo</Label>
-              </div>
-              <div className="space-y-2">
-                <Label>Observações</Label>
-                <Textarea name="notes" defaultValue={deviceDialog.notes ?? ''} />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setDeviceDialog(null)}>Cancelar</Button>
-                <Button type="submit" disabled={ts.saveDevice.isPending}>Salvar</Button>
-              </div>
-            </form>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
