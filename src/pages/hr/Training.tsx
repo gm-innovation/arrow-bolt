@@ -26,7 +26,21 @@ import {
   isPlanLate,
   type EmployeeTrainingSummary,
 } from "@/hooks/useHRTraining";
-import { roleLabels } from "@/hooks/useAllUsers";
+const roleLabels: Record<string, string> = {
+  super_admin: "Super Admin",
+  admin: "Coordenador",
+  coordinator: "Coordenador",
+  manager: "Coordenador",
+  director: "Diretoria",
+  technician: "Técnico",
+  hr: "RH",
+  commercial: "Comercial",
+  marketing: "Marketing",
+  compras: "Suprimentos",
+  qualidade: "Qualidade",
+  financeiro: "Financeiro",
+};
+
 import HRTrainingPlanDialog from "@/components/hr/training/HRTrainingPlanDialog";
 import type { TrainingPlan } from "@/hooks/useQualityTrainingPlans";
 
@@ -184,7 +198,7 @@ const HRTraining = () => {
                   {filteredEmployees.map((e) => (
                     <TableRow key={e.user_id}>
                       <TableCell className="font-medium">{e.full_name}</TableCell>
-                      <TableCell>{roleLabels[e.role as keyof typeof roleLabels] ?? e.role ?? "—"}</TableCell>
+                      <TableCell>{roleLabels[e.role] ?? e.role ?? "—"}</TableCell>
                       <TableCell className="text-center">{e.requirements}</TableCell>
                       <TableCell className="text-center">
                         {e.gaps > 0 ? (
