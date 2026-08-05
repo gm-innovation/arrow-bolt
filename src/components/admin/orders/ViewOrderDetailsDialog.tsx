@@ -329,6 +329,14 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
           </ScrollArea>
         </TabsContent>
 
+        <TabsContent value="auvo">
+          <ScrollArea className="h-[50vh] pr-4">
+            <AuvoReportPanel serviceOrderId={orderId} orderNumber={orderDetails.order_number} />
+          </ScrollArea>
+        </TabsContent>
+
+
+
         <TabsContent value="audit">
           <ScrollArea className="h-[50vh] pr-4">
             <div className="space-y-4 mb-4">
