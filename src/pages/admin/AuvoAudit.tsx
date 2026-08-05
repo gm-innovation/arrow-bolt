@@ -42,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AuvoInsightsPanel } from "@/components/admin/auvo/AuvoInsightsPanel";
 import {
   useAuvoIntegration,
   type AuvoDiscrepancy,
