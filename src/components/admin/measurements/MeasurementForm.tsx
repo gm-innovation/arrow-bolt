@@ -128,6 +128,17 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
     enabled: !!serviceOrderId,
   });
 
+  // Divergências de material do Auvo pendentes nesta OS
+  const { data: auvoDiscrepancies = [] } = useAuvoOrderDiscrepancies(
+    serviceOrderId,
+    serviceOrder?.order_number,
+  );
+  const criticalAuvo = auvoDiscrepancies.filter(
+    (d) => d.classification === "stock_not_reported",
+  );
+
+  });
+
   // Fetch technician time entries for PDF
   const { data: technicianTimeEntries = [] } = useQuery({
     queryKey: ['time-entries-for-pdf', serviceOrderId, rates],
