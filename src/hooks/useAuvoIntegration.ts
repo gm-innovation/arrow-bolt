@@ -146,12 +146,33 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       if (error) throw error;
       if (data?.error) throw new Error(data.message ?? data.error);
 
+      // A ingestão roda em background na função: aguardamos a execução terminar.
+      const runId = data.run_id as string | undefined;
+      let ingested = { tasks: 0, reports: 0 };
+      if (runId) {
+        for (let attempt = 0; attempt < 180; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          const { data: run } = await supabase
+            .from("auvo_sync_runs")
+            .select("status, tasks_fetched, reports_fetched, error_message")
+            .eq("id", runId)
+            .maybeSingle();
+          queryClient.invalidateQueries({ queryKey: ["auvo-sync-runs"] });
+          if (!run) continue;
+          if (run.status === "error") throw new Error(run.error_message ?? "Falha na ingestão.");
+          if (run.status === "success") {
+            ingested = { tasks: run.tasks_fetched ?? 0, reports: run.reports_fetched ?? 0 };
+            break;
+          }
+        }
+      }
+
       // A análise com IA roda em lotes curtos para não estourar o tempo da função.
       let analyzed = 0;
       let discrepancies = 0;
-      let remaining = data.pending_analysis ?? 0;
+      let remaining = 1;
 
-      for (let round = 0; round < 40 && remaining > 0; round++) {
+      for (let round = 0; round < 80 && remaining > 0; round++) {
         const { data: batch, error: batchError } = await supabase.functions.invoke("auvo-sync", {
           body: { mode: "analyze_batch", limit: 4 },
         });
@@ -164,8 +185,8 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       }
 
       return {
-        tasks_fetched: data.tasks_fetched as number,
-        reports_fetched: data.reports_fetched as number,
+        tasks_fetched: ingested.tasks,
+        reports_fetched: ingested.reports,
         analyzed,
         discrepancies_found: discrepancies,
         pending_analysis: remaining,
@@ -176,16 +197,18 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
         `Sincronização concluída: ${data.tasks_fetched} atendimentos, ${data.discrepancies_found} divergências`,
         {
           description: data.pending_analysis
-            ? `${data.pending_analysis} relatórios ficaram na fila — rode novamente para concluir.`
-            : `${data.analyzed} relatórios analisados pela IA.`,
+            ? `${data.pending_analysis} serviços ficaram na fila — rode novamente para concluir.`
+            : `${data.analyzed} serviços analisados pela IA.`,
         },
       );
       queryClient.invalidateQueries({ queryKey: ["auvo-discrepancies"] });
       queryClient.invalidateQueries({ queryKey: ["auvo-sync-runs"] });
       queryClient.invalidateQueries({ queryKey: ["auvo-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["auvo-service-groups"] });
     },
     onError: (error: Error) => toast.error("Erro na sincronização", { description: error.message }),
   });
+
 
   const reanalyzeTask = useMutation({
     mutationFn: async (taskUid: string) => {
