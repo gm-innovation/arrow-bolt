@@ -66,7 +66,10 @@ export interface AuvoTaskRow {
   orientation: string | null;
   service_order_id: string | null;
   promoted_at: string | null;
+  service_group_id: string | null;
+  unlinked_from_group: boolean;
 }
+
 
 
 interface SyncArgs {
