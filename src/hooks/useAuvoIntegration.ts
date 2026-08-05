@@ -13,6 +13,7 @@ export type DiscrepancyClassification =
 export interface AuvoDiscrepancy {
   id: string;
   auvo_task_uid: string;
+  service_group_id: string | null;
   order_number: string | null;
   item_name: string;
   external_product_code: string | null;
@@ -34,6 +35,7 @@ export interface AuvoDiscrepancy {
     auvo_task_type: string | null;
   } | null;
 }
+
 
 export interface AuvoSyncRun {
   id: string;
@@ -64,7 +66,10 @@ export interface AuvoTaskRow {
   orientation: string | null;
   service_order_id: string | null;
   promoted_at: string | null;
+  service_group_id: string | null;
+  unlinked_from_group: boolean;
 }
+
 
 
 interface SyncArgs {
@@ -83,11 +88,12 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       let query = supabase
         .from("auvo_material_discrepancies")
         .select(
-          `id, auvo_task_uid, order_number, item_name, external_product_code, stock_quantity,
+          `id, auvo_task_uid, service_group_id, order_number, item_name, external_product_code, stock_quantity,
            reported_quantity, unit_value, value_at_risk, classification, severity, ai_notes,
            review_status, review_notes, created_at,
            auvo_tasks:auvo_task_uid ( auvo_task_id, customer_name, technician_name, task_date, auvo_task_type )`,
         )
+
         .order("value_at_risk", { ascending: false })
         .limit(500);
 
@@ -112,7 +118,11 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       return (data ?? []) as unknown as AuvoSyncRun[];
     },
     enabled: !!companyId,
+    // Enquanto há ingestão em background, acompanhamos o progresso.
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((r) => r.status === "running") ? 8000 : false,
   });
+
 
   const tasksQuery = useQuery({
     queryKey: ["auvo-tasks", companyId],
@@ -120,8 +130,9 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       const { data, error } = await supabase
         .from("auvo_tasks")
         .select(
-          "id, auvo_task_id, order_number, auvo_task_type, customer_name, vessel_name, technician_name, task_date, checkin_at, checkout_at, address, orientation, service_order_id, promoted_at",
+          "id, auvo_task_id, order_number, auvo_task_type, customer_name, vessel_name, technician_name, task_date, checkin_at, checkout_at, address, orientation, service_order_id, promoted_at, service_group_id, unlinked_from_group",
         )
+
         .order("task_date", { ascending: false, nullsFirst: false })
         .limit(300);
       if (error) throw error;
@@ -139,12 +150,33 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       if (error) throw error;
       if (data?.error) throw new Error(data.message ?? data.error);
 
+      // A ingestão roda em background na função: aguardamos a execução terminar.
+      const runId = data.run_id as string | undefined;
+      let ingested = { tasks: 0, reports: 0 };
+      if (runId) {
+        for (let attempt = 0; attempt < 180; attempt++) {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          const { data: run } = await supabase
+            .from("auvo_sync_runs")
+            .select("status, tasks_fetched, reports_fetched, error_message")
+            .eq("id", runId)
+            .maybeSingle();
+          queryClient.invalidateQueries({ queryKey: ["auvo-sync-runs"] });
+          if (!run) continue;
+          if (run.status === "error") throw new Error(run.error_message ?? "Falha na ingestão.");
+          if (run.status === "success") {
+            ingested = { tasks: run.tasks_fetched ?? 0, reports: run.reports_fetched ?? 0 };
+            break;
+          }
+        }
+      }
+
       // A análise com IA roda em lotes curtos para não estourar o tempo da função.
       let analyzed = 0;
       let discrepancies = 0;
-      let remaining = data.pending_analysis ?? 0;
+      let remaining = 1;
 
-      for (let round = 0; round < 40 && remaining > 0; round++) {
+      for (let round = 0; round < 80 && remaining > 0; round++) {
         const { data: batch, error: batchError } = await supabase.functions.invoke("auvo-sync", {
           body: { mode: "analyze_batch", limit: 4 },
         });
@@ -157,8 +189,8 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       }
 
       return {
-        tasks_fetched: data.tasks_fetched as number,
-        reports_fetched: data.reports_fetched as number,
+        tasks_fetched: ingested.tasks,
+        reports_fetched: ingested.reports,
         analyzed,
         discrepancies_found: discrepancies,
         pending_analysis: remaining,
@@ -169,16 +201,18 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
         `Sincronização concluída: ${data.tasks_fetched} atendimentos, ${data.discrepancies_found} divergências`,
         {
           description: data.pending_analysis
-            ? `${data.pending_analysis} relatórios ficaram na fila — rode novamente para concluir.`
-            : `${data.analyzed} relatórios analisados pela IA.`,
+            ? `${data.pending_analysis} serviços ficaram na fila — rode novamente para concluir.`
+            : `${data.analyzed} serviços analisados pela IA.`,
         },
       );
       queryClient.invalidateQueries({ queryKey: ["auvo-discrepancies"] });
       queryClient.invalidateQueries({ queryKey: ["auvo-sync-runs"] });
       queryClient.invalidateQueries({ queryKey: ["auvo-tasks"] });
+      queryClient.invalidateQueries({ queryKey: ["auvo-service-groups"] });
     },
     onError: (error: Error) => toast.error("Erro na sincronização", { description: error.message }),
   });
+
 
   const reanalyzeTask = useMutation({
     mutationFn: async (taskUid: string) => {

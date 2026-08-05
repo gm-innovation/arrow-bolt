@@ -1,5 +1,5 @@
 import { Fragment, useMemo, useState } from "react";
-import { format, parseISO, subDays } from "date-fns";
+import { format, parseISO, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   AlertTriangle,
@@ -7,11 +7,14 @@ import {
   ChevronDown,
   ChevronRight,
   ClipboardList,
+  FileText,
+  Link2Off,
   PackageX,
   RefreshCw,
   Scale,
   Search,
 } from "lucide-react";
+
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,14 +49,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AuvoInsightsPanel } from "@/components/admin/auvo/AuvoInsightsPanel";
-import { AuvoTaskReportView } from "@/components/admin/auvo/AuvoTaskReportView";
+import { AuvoServiceReportTabs } from "@/components/admin/auvo/AuvoServiceReportTabs";
+import { useAuvoServiceGroups } from "@/hooks/useAuvoServiceGroups";
 import {
   useAuvoIntegration,
   type AuvoDiscrepancy,
   type AuvoTaskRow,
-
   type DiscrepancyClassification,
 } from "@/hooks/useAuvoIntegration";
+
 
 const CLASSIFICATION_LABEL: Record<DiscrepancyClassification, string> = {
   match: "Conforme",
@@ -99,8 +103,9 @@ export default function AuvoAudit() {
     });
 
 
+  // OS podem ficar meses abertas: por padrão auditamos o ano corrente inteiro.
   const [periodStart, setPeriodStart] = useState(
-    format(subDays(new Date(), 14), "yyyy-MM-dd"),
+    format(startOfYear(new Date()), "yyyy-MM-dd"),
   );
   const [periodEnd, setPeriodEnd] = useState(format(new Date(), "yyyy-MM-dd"));
 
@@ -114,8 +119,18 @@ export default function AuvoAudit() {
     reanalyzeTask,
     reviewDiscrepancy,
     promoteToOS,
-
   } = useAuvoIntegration({ onlyDivergent });
+
+  const {
+    groups,
+    membersByGroup,
+    unlinkTask,
+    linkTaskToGroup,
+    reanalyzeService,
+  } = useAuvoServiceGroups();
+
+  const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
+
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -142,16 +157,24 @@ export default function AuvoAudit() {
     );
   }, [discrepancies, search, classification]);
 
-  // Uma linha por OS/atendimento: as divergências da mesma OS ficam agrupadas.
+  // Uma linha por SERVIÇO: todos os atendimentos e relatórios do mesmo trabalho juntos.
   const grouped = useMemo(() => {
     const map = new Map<
       string,
       {
+        key: string;
+        serviceGroupId: string | null;
         taskUid: string;
-        orderNumber: string | null;
-        taskDate?: string | null;
+        orderLabel: string;
+        firstDate?: string | null;
+        lastDate?: string | null;
         customerName?: string | null;
-        technicianName?: string | null;
+        vesselName?: string | null;
+        technicians: Set<string>;
+        attendances: number;
+        reports: number;
+        isSimilarityGrouped: boolean;
+        groupingReason?: string | null;
         items: AuvoDiscrepancy[];
         totalRisk: number;
         pending: number;
@@ -164,21 +187,39 @@ export default function AuvoAudit() {
       c === "stock_not_reported" ? 0 : c === "quantity_mismatch" ? 1 : c === "reported_not_in_stock" ? 2 : 3;
 
     for (const d of filtered) {
-      const key = d.auvo_task_uid;
+      const key = d.service_group_id ?? d.auvo_task_uid;
+      const sg = d.service_group_id ? groupById.get(d.service_group_id) : undefined;
+      const members = d.service_group_id ? membersByGroup.get(d.service_group_id) ?? [] : [];
+
       let group = map.get(key);
       if (!group) {
+        const orderNumbers = sg?.order_numbers?.length
+          ? sg.order_numbers
+          : [d.order_number].filter(Boolean) as string[];
         group = {
-          taskUid: key,
-          orderNumber: d.order_number ?? null,
-          taskDate: d.auvo_tasks?.task_date,
-          customerName: d.auvo_tasks?.customer_name,
-          technicianName: d.auvo_tasks?.technician_name,
+          key,
+          serviceGroupId: d.service_group_id ?? null,
+          taskUid: d.auvo_task_uid,
+          orderLabel: orderNumbers.length ? orderNumbers.join(" / ") : "—",
+          firstDate: sg?.first_task_date ?? d.auvo_tasks?.task_date,
+          lastDate: sg?.last_task_date ?? d.auvo_tasks?.task_date,
+          customerName: sg?.customer_name ?? d.auvo_tasks?.customer_name,
+          vesselName: sg?.vessel_name ?? null,
+          technicians: new Set<string>(),
+          attendances: members.length || 1,
+          reports: members.filter((m) => m.hasReport).length,
+          isSimilarityGrouped: sg?.is_similarity_grouped ?? false,
+          groupingReason: sg?.grouping_reason ?? null,
           items: [],
           totalRisk: 0,
           pending: 0,
           stockNotReported: 0,
           worstWeight: 99,
         };
+        for (const m of members) if (m.technician_name) group.technicians.add(m.technician_name);
+        if (group.technicians.size === 0 && d.auvo_tasks?.technician_name) {
+          group.technicians.add(d.auvo_tasks.technician_name);
+        }
         map.set(key, group);
       }
       group.items.push(d);
@@ -191,7 +232,29 @@ export default function AuvoAudit() {
     return Array.from(map.values()).sort(
       (a, b) => a.worstWeight - b.worstWeight || b.totalRisk - a.totalRisk,
     );
-  }, [filtered]);
+  }, [filtered, groupById, membersByGroup]);
+
+  const reviewMembers = useMemo(() => {
+    if (!reviewTarget) return [];
+    const members = reviewTarget.service_group_id
+      ? membersByGroup.get(reviewTarget.service_group_id) ?? []
+      : [];
+    if (members.length > 0) return members;
+    return [
+      {
+        id: reviewTarget.auvo_task_uid,
+        auvo_task_id: reviewTarget.auvo_tasks?.auvo_task_id ?? "",
+        order_number: reviewTarget.order_number,
+        auvo_task_type: reviewTarget.auvo_tasks?.auvo_task_type ?? null,
+        task_date: reviewTarget.auvo_tasks?.task_date ?? null,
+        technician_name: reviewTarget.auvo_tasks?.technician_name ?? null,
+        service_group_id: null,
+        unlinked_from_group: false,
+        hasReport: true,
+      },
+    ];
+  }, [reviewTarget, membersByGroup]);
+
 
 
   const lastRun = runs[0];
@@ -394,8 +457,8 @@ export default function AuvoAudit() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]" />
-                        <TableHead>OS</TableHead>
-                        <TableHead>Cliente / Técnico</TableHead>
+                        <TableHead>Serviço (OS)</TableHead>
+                        <TableHead>Cliente / Embarcação / Técnicos</TableHead>
                         <TableHead className="text-center">Divergências</TableHead>
                         <TableHead className="text-right">Risco total</TableHead>
                         <TableHead>Revisão</TableHead>
@@ -404,16 +467,23 @@ export default function AuvoAudit() {
                     </TableHeader>
                     <TableBody>
                       {grouped.map((g) => {
-                        const isOpen = expanded.has(g.taskUid);
+                        const isOpen = expanded.has(g.key);
+                        const members = g.serviceGroupId
+                          ? membersByGroup.get(g.serviceGroupId) ?? []
+                          : [];
+                        const period =
+                          g.firstDate && g.lastDate && g.firstDate !== g.lastDate
+                            ? `${formatDate(g.firstDate)} – ${formatDate(g.lastDate)}`
+                            : formatDate(g.lastDate ?? g.firstDate);
                         return (
-                          <Fragment key={g.taskUid}>
+                          <Fragment key={g.key}>
                             <TableRow
                               className={`cursor-pointer ${
                                 g.stockNotReported > 0
                                   ? "bg-destructive/5 hover:bg-destructive/10"
                                   : ""
                               }`}
-                              onClick={() => toggleExpanded(g.taskUid)}
+                              onClick={() => toggleExpanded(g.key)}
                             >
                               <TableCell>
                                 {isOpen ? (
@@ -423,15 +493,33 @@ export default function AuvoAudit() {
                                 )}
                               </TableCell>
                               <TableCell className="font-medium">
-                                {g.orderNumber ?? "—"}
-                                <div className="text-xs text-muted-foreground">
-                                  {formatDate(g.taskDate)}
+                                {g.orderLabel}
+                                <div className="text-xs text-muted-foreground">{period}</div>
+                                <div className="mt-1 flex flex-wrap items-center gap-1">
+                                  <Badge variant="outline" className="gap-1 text-[10px]">
+                                    <FileText className="h-3 w-3" />
+                                    {g.attendances} atend. · {g.reports} relat.
+                                  </Badge>
+                                  {g.isSimilarityGrouped && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-[10px]"
+                                      title={g.groupingReason ?? undefined}
+                                    >
+                                      agrupado por similaridade
+                                    </Badge>
+                                  )}
                                 </div>
                               </TableCell>
-                              <TableCell className="max-w-[220px]">
+                              <TableCell className="max-w-[240px]">
                                 <div className="truncate">{g.customerName ?? "—"}</div>
                                 <div className="truncate text-xs text-muted-foreground">
-                                  {g.technicianName ?? "—"}
+                                  {g.vesselName ?? "—"}
+                                </div>
+                                <div className="truncate text-xs text-muted-foreground">
+                                  {g.technicians.size > 0
+                                    ? Array.from(g.technicians).join(", ")
+                                    : "—"}
                                 </div>
                               </TableCell>
                               <TableCell className="text-center">
@@ -458,14 +546,61 @@ export default function AuvoAudit() {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    reanalyzeTask.mutate(g.taskUid);
+                                    if (g.serviceGroupId) {
+                                      reanalyzeService.mutate(g.serviceGroupId);
+                                    } else {
+                                      reanalyzeTask.mutate(g.taskUid);
+                                    }
                                   }}
-                                  disabled={reanalyzeTask.isPending}
+                                  disabled={reanalyzeTask.isPending || reanalyzeService.isPending}
                                 >
-                                  Reanalisar
+                                  Reanalisar serviço
                                 </Button>
                               </TableCell>
                             </TableRow>
+
+                            {isOpen && members.length > 0 && (
+                              <TableRow className="hover:bg-transparent">
+                                <TableCell colSpan={7} className="bg-muted/20">
+                                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                    Atendimentos deste serviço
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {members.map((m) => (
+                                      <div
+                                        key={m.id}
+                                        className="flex items-center gap-2 rounded-md border bg-background px-2 py-1 text-xs"
+                                      >
+                                        <span className="font-medium">
+                                          {m.order_number ?? `AUVO-${m.auvo_task_id}`}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                          {formatDate(m.task_date)} · {m.technician_name ?? "—"}
+                                        </span>
+                                        <Badge
+                                          variant={m.hasReport ? "secondary" : "outline"}
+                                          className="text-[10px]"
+                                        >
+                                          {m.hasReport ? "com relatório" : "sem relatório"}
+                                        </Badge>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 gap-1 px-1 text-[11px]"
+                                          title="Desvincular deste serviço"
+                                          onClick={() => unlinkTask.mutate(m.id)}
+                                          disabled={unlinkTask.isPending}
+                                        >
+                                          <Link2Off className="h-3 w-3" />
+                                          Desvincular
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+
 
                             {isOpen && (
                               <TableRow className="hover:bg-transparent">
@@ -580,13 +715,14 @@ export default function AuvoAudit() {
                     <TableHead>Técnico</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Check-in / out</TableHead>
+                    <TableHead>Serviço</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {tasks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                      <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
                         Nenhum atendimento importado ainda.
                       </TableCell>
                     </TableRow>
@@ -607,6 +743,31 @@ export default function AuvoAudit() {
                           {t.checkin_at ? format(parseISO(t.checkin_at), "dd/MM HH:mm") : "—"} ·{" "}
                           {t.checkout_at ? format(parseISO(t.checkout_at), "dd/MM HH:mm") : "—"}
                         </TableCell>
+                        <TableCell>
+                          <Select
+                            value={t.service_group_id ?? "none"}
+                            onValueChange={(value) => {
+                              if (value === "none") {
+                                unlinkTask.mutate(t.id);
+                              } else {
+                                linkTaskToGroup.mutate({ taskId: t.id, groupId: value });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-[190px] text-xs">
+                              <SelectValue placeholder="Sem serviço" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sem serviço</SelectItem>
+                              {groups.slice(0, 200).map((g) => (
+                                <SelectItem key={g.id} value={g.id}>
+                                  {(g.primary_order_number ?? g.service_key) +
+                                    (g.customer_name ? ` · ${g.customer_name}` : "")}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell className="text-right">
                           {t.service_order_id ? (
                             <Badge variant="secondary" className="gap-1">
@@ -624,6 +785,7 @@ export default function AuvoAudit() {
                             </Button>
                           )}
                         </TableCell>
+
                       </TableRow>
                     ))
                   )}
@@ -702,7 +864,11 @@ export default function AuvoAudit() {
           </DialogHeader>
           <div className="grid gap-6 md:grid-cols-[1.4fr_1fr]">
             <div>
-              <AuvoTaskReportView auvoTaskUid={reviewTarget?.auvo_task_uid} />
+              <AuvoServiceReportTabs
+                members={reviewMembers}
+                initialTaskUid={reviewTarget?.auvo_task_uid}
+              />
+
             </div>
             <div className="space-y-4">
               {reviewTarget && (
