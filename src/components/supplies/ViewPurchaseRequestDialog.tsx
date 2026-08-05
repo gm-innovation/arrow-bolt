@@ -63,9 +63,10 @@ const ViewPurchaseRequestDialog = ({ request, open, onOpenChange }: ViewPurchase
 
   if (!request) return null;
 
+  // Somente diretoria (ou super admin) aprova compras — coordenador/gerente não.
   const canApprove =
-    (request.status === "pending_manager" && (userRole === "manager" || userRole === "super_admin" || userRole === "director")) ||
-    (request.status === "pending_director" && (userRole === "director" || userRole === "super_admin"));
+    (request.status === "pending_manager" || request.status === "pending_director") &&
+    (userRole === "director" || userRole === "super_admin");
 
   const canReject = canApprove;
 

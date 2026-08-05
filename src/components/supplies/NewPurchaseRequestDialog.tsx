@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { usePurchaseRequests } from "@/hooks/usePurchaseRequests";
 import { useQualitySuppliers } from "@/hooks/useQualitySuppliers";
+import { toast } from "@/hooks/use-toast";
 
 interface NewPurchaseRequestDialogProps {
   open: boolean;
@@ -59,6 +60,14 @@ const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDial
   };
 
   const onSubmit = async (data: { title: string; description: string; category: string; priority: string; justification: string }) => {
+    if (items.length === 0) {
+      toast({
+        title: "Adicione pelo menos um item",
+        description: "Preencha a linha de item e clique no botão + antes de criar a solicitação.",
+        variant: "destructive",
+      });
+      return;
+    }
     await createRequest.mutateAsync({
       ...data,
       supplier_id: supplierId === "none" ? null : supplierId,
@@ -183,7 +192,7 @@ const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDial
                 />
               </div>
               <div className="col-span-1">
-                <Button type="button" size="icon" variant="outline" onClick={addItem}>
+                <Button type="button" size="icon" variant="outline" onClick={addItem} aria-label="Adicionar item" title="Adicionar item">
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -214,7 +223,7 @@ const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDial
                         {(item.quantity * item.estimated_unit_price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                       </TableCell>
                       <TableCell>
-                        <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(index)}>
+                        <Button type="button" size="icon" variant="ghost" onClick={() => removeItem(index)} aria-label={`Remover item ${item.description}`}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
