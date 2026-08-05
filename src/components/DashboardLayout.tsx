@@ -237,6 +237,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Walkthroughs", icon: Compass, path: "/super-admin/walkthroughs" },
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
+    { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
   ];
 
   const adminMenuItems = [
