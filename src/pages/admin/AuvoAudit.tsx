@@ -837,7 +837,11 @@ export default function AuvoAudit() {
           </DialogHeader>
           <div className="grid gap-6 md:grid-cols-[1.4fr_1fr]">
             <div>
-              <AuvoTaskReportView auvoTaskUid={reviewTarget?.auvo_task_uid} />
+              <AuvoServiceReportTabs
+                members={reviewMembers}
+                initialTaskUid={reviewTarget?.auvo_task_uid}
+              />
+
             </div>
             <div className="space-y-4">
               {reviewTarget && (
