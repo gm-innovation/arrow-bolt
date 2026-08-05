@@ -315,6 +315,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       children: [
         { title: "Folha de Pagamento", icon: FileBarChart, path: "/hr/payroll-export" },
         { title: "Parcerias", icon: Inbox, path: "/hr/partnerships" },
+        { title: "Benefícios e Endomarketing", icon: Gift, path: "/hr/benefits" },
       ],
     },
     { title: "Recrutamento", icon: Inbox, path: "/hr/recruitment" },
