@@ -3,9 +3,21 @@ import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, FileSpreadsheet } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, FileText, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { useMeasurements } from "@/hooks/useMeasurements";
 import { useServiceRates } from "@/hooks/useServiceRates";
+import { useAuvoOrderDiscrepancies } from "@/hooks/useAuvoOrderDiscrepancies";
 import { supabase } from "@/integrations/supabase/client";
 import { BasicInfoTab } from "./BasicInfoTab";
 import { ManHoursTab } from "./ManHoursTab";
@@ -17,6 +29,14 @@ import { MeasurementSummary } from "./MeasurementSummary";
 import { MeasurementPDFPreview } from "./MeasurementPDFPreview";
 import { exportMeasurementToExcel } from "@/lib/exportMeasurements";
 import { useToast } from "@/hooks/use-toast";
+
+const auvoClassificationLabel: Record<string, string> = {
+  quantity_mismatch: "Quantidade divergente",
+  stock_not_reported: "Baixado do estoque, sem relato",
+  reported_not_in_stock: "Relatado sem baixa",
+  unidentified: "Não identificado",
+};
+
 
 interface MeasurementFormProps {
   serviceOrderId: string;
@@ -83,7 +103,9 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
   const { rates } = useServiceRates();
   const [activeTab, setActiveTab] = useState("basic");
   const [showPDFPreview, setShowPDFPreview] = useState(false);
+  const [showAuvoWarning, setShowAuvoWarning] = useState(false);
   const { toast } = useToast();
+
 
   // Fetch service order details for PDF with client, vessel and company
   const { data: serviceOrder } = useQuery({
@@ -105,6 +127,17 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
     },
     enabled: !!serviceOrderId,
   });
+
+  // Divergências de material do Auvo pendentes nesta OS
+  const { data: auvoDiscrepancies = [] } = useAuvoOrderDiscrepancies(
+    serviceOrderId,
+    serviceOrder?.order_number,
+  );
+  const criticalAuvo = auvoDiscrepancies.filter(
+    (d) => d.classification === "stock_not_reported",
+  );
+
+
 
   // Fetch technician time entries for PDF
   const { data: technicianTimeEntries = [] } = useQuery({
@@ -470,8 +503,10 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
           PDF
         </Button>
         {canEdit && (
-          <Button 
-            onClick={handleFinalize}
+          <Button
+            onClick={() =>
+              auvoDiscrepancies.length > 0 ? setShowAuvoWarning(true) : handleFinalize()
+            }
             disabled={finalizeMeasurement.isPending}
           >
             {finalizeMeasurement.isPending && (
@@ -481,6 +516,63 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
           </Button>
         )}
       </div>
+
+      <AlertDialog open={showAuvoWarning} onOpenChange={setShowAuvoWarning}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Divergências de material pendentes
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A auditoria Auvo encontrou {auvoDiscrepancies.length} divergência(s) sem revisão
+              nesta OS
+              {criticalAuvo.length > 0
+                ? `, sendo ${criticalAuvo.length} de material baixado do estoque e não relatado pelo técnico`
+                : ""}
+              . Revise antes de finalizar a medição.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="max-h-56 overflow-y-auto space-y-2">
+            {[...auvoDiscrepancies]
+              .sort((a, b) =>
+                a.classification === "stock_not_reported"
+                  ? -1
+                  : b.classification === "stock_not_reported"
+                    ? 1
+                    : 0,
+              )
+              .map((d) => (
+                <div
+                  key={d.id}
+                  className={`rounded-md p-2 text-sm ${
+                    d.classification === "stock_not_reported"
+                      ? "bg-destructive/10 border border-destructive/40"
+                      : "bg-muted/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{d.item_name}</span>
+                    <Badge variant={d.severity === "high" ? "destructive" : "secondary"}>
+                      {auvoClassificationLabel[d.classification] ?? d.classification}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Estoque: {d.stock_quantity} · Relatado: {d.reported_quantity ?? 0}
+                  </p>
+                </div>
+              ))}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Revisar na Auditoria</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinalize}>
+              Finalizar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* PDF Preview Dialog */}
       {serviceOrder && (
@@ -492,6 +584,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
           onOpenChange={setShowPDFPreview}
         />
       )}
+
     </div>
   );
 };
