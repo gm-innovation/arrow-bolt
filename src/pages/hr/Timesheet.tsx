@@ -507,13 +507,15 @@ const HRTimesheet = () => {
               <div>
                 <CardTitle>Relógios de ponto</CardTitle>
                 <CardDescription>
-                  Control iD (iDClass / iDAccess). A senha é guardada como segredo do sistema — informe apenas o nome do segredo.
+                  Control iD (iDClass / iDAccess). A configuração da conexão é feita pelo Super Admin em
+                  "API &amp; Integrações". Aqui você acompanha o status e importa as batidas.
                 </CardDescription>
               </div>
-              <Button onClick={() => setDeviceDialog({ vendor: 'control_id', integration_kind: 'api', is_active: true })}>
-                <Cog className="h-4 w-4 mr-2" /> Novo relógio
+              <Button variant="outline" onClick={() => ts.syncPunches.mutate(undefined)} disabled={ts.syncPunches.isPending}>
+                <RefreshCw className="h-4 w-4 mr-2" /> Sincronizar batidas
               </Button>
             </CardHeader>
+
             <CardContent>
               <Table>
                 <TableHeader>
