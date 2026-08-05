@@ -40,7 +40,7 @@ const ApprovalActions = ({ request }: ApprovalActionsProps) => {
     if (!typeDepartmentId) return false;
     // Check by role mapping
     if (isFinanceiro && ['subscription', 'reimbursement'].includes(typeCategory)) return true;
-    if (isSuprimentos && typeCategory === 'product') return true;
+    if (isSuprimentos && ['product', 'marketing_materials'].includes(typeCategory)) return true;
     if (isHR && ['document', 'time_off'].includes(typeCategory)) return true;
     return false;
   })();
