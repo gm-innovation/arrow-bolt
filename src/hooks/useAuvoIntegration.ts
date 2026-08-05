@@ -55,12 +55,17 @@ export interface AuvoTaskRow {
   order_number: string | null;
   auvo_task_type: string | null;
   customer_name: string | null;
+  vessel_name: string | null;
   technician_name: string | null;
   task_date: string | null;
   checkin_at: string | null;
   checkout_at: string | null;
+  address: string | null;
+  orientation: string | null;
   service_order_id: string | null;
+  promoted_at: string | null;
 }
+
 
 interface SyncArgs {
   period_start?: string;
