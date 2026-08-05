@@ -124,10 +124,15 @@ export default function AuvoAudit() {
   const {
     groups,
     membersByGroup,
+    orphanMembers,
+    queue,
     unlinkTask,
     linkTaskToGroup,
     reanalyzeService,
+    processQueue,
+    retryFailedAnalyses,
   } = useAuvoServiceGroups();
+
 
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
 
