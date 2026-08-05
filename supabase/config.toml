@@ -137,3 +137,11 @@ verify_jwt = false
 # Compactação de memória da sessão de voz da Marina (valida a sessão em código).
 [functions.ai-compact-session]
 verify_jwt = true
+
+# Sincronização de batidas com o relógio de ponto (Control iD) — valida a sessão em código.
+[functions.hr-timeclock-sync]
+verify_jwt = true
+
+# Apuração/fechamento do espelho de ponto — valida a sessão em código.
+[functions.hr-timesheet-compute]
+verify_jwt = true
