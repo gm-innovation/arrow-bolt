@@ -18,6 +18,8 @@ import { Switch } from "@/components/ui/switch";
 import { Copy, Trash2, Plus, AlertTriangle, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import TimeclockDevicesTab from "@/components/super-admin/TimeclockDevicesTab";
+
 
 const ALL_SCOPES = [
   { id: "leads:write", label: "Criar leads e clientes" },
