@@ -51,7 +51,7 @@ import {
 const CLASSIFICATION_LABEL: Record<DiscrepancyClassification, string> = {
   match: "Conforme",
   quantity_mismatch: "Quantidade divergente",
-  stock_not_reported: "Saiu do estoque, não relatado",
+  stock_not_reported: "Baixado do estoque, sem relato",
   reported_not_in_stock: "Relatado, sem baixa no estoque",
   unidentified: "Menção não identificada",
 };
@@ -99,7 +99,7 @@ export default function AuvoAudit() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return discrepancies.filter((d) => {
+    const rows = discrepancies.filter((d) => {
       if (classification !== "all" && d.classification !== classification) return false;
       if (!term) return true;
       return [
@@ -112,6 +112,14 @@ export default function AuvoAudit() {
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(term));
     });
+    // Baixa de estoque sem relato é o caso mais grave: sempre no topo da lista.
+    const weight = (c: string) =>
+      c === "stock_not_reported" ? 0 : c === "quantity_mismatch" ? 1 : c === "reported_not_in_stock" ? 2 : 3;
+    return [...rows].sort(
+      (a, b) =>
+        weight(a.classification) - weight(b.classification) ||
+        Number(b.value_at_risk ?? 0) - Number(a.value_at_risk ?? 0),
+    );
   }, [discrepancies, search, classification]);
 
   const lastRun = runs[0];
@@ -209,15 +217,38 @@ export default function AuvoAudit() {
             <p className="text-xs text-muted-foreground">material sem confirmação no relatório</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => setClassification("stock_not_reported")}
+          onKeyDown={(e) => e.key === "Enter" && setClassification("stock_not_reported")}
+          className={`cursor-pointer transition-colors ${
+            stats.stockNotReported > 0
+              ? "border-destructive/60 bg-destructive/5 hover:bg-destructive/10"
+              : "hover:bg-muted/50"
+          }`}
+        >
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Não relatados</CardTitle>
-            <PackageX className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">
+              Baixado do estoque, sem relato
+            </CardTitle>
+            <PackageX
+              className={`h-4 w-4 ${
+                stats.stockNotReported > 0 ? "text-destructive" : "text-muted-foreground"
+              }`}
+            />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.stockNotReported}</div>
+            <div
+              className={`text-2xl font-bold ${
+                stats.stockNotReported > 0 ? "text-destructive" : ""
+              }`}
+            >
+              {stats.stockNotReported}
+            </div>
             <p className="text-xs text-muted-foreground">
-              {stats.quantityMismatch} qtd. divergente · {stats.reportedNotInStock} sem baixa
+              material saiu do estoque e o técnico não citou · {stats.quantityMismatch} qtd.
+              divergente · {stats.reportedNotInStock} relatado sem baixa
             </p>
           </CardContent>
         </Card>
@@ -298,7 +329,14 @@ export default function AuvoAudit() {
                     </TableHeader>
                     <TableBody>
                       {filtered.map((d) => (
-                        <TableRow key={d.id}>
+                        <TableRow
+                          key={d.id}
+                          className={
+                            d.classification === "stock_not_reported"
+                              ? "bg-destructive/5 hover:bg-destructive/10"
+                              : undefined
+                          }
+                        >
                           <TableCell className="font-medium">
                             {d.order_number ?? "—"}
                             <div className="text-xs text-muted-foreground">
