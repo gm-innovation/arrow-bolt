@@ -512,9 +512,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
       (menuPath !== "/" && location.pathname.startsWith(menuPath + "/")) ||
       (path === "/corp/dashboard" &&
         location.pathname.startsWith("/corp/") &&
-        !location.pathname.startsWith("/corp/feed") &&
-        !location.pathname.startsWith("/corp/profile") &&
-        !location.pathname.startsWith("/corp/university")) ||
+        !["/corp/feed", "/corp/profile", "/corp/university", "/corp/benefits", "/corp/my-documents"].some(
+          (p) => location.pathname.startsWith(p),
+        )) ||
       (path === "/corp/feed" && location.pathname.startsWith("/corp/profile"));
 
     if (!pathMatches) return false;
