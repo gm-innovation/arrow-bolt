@@ -75,7 +75,7 @@ const CorpRequests = () => {
     const typeCategory = (r as any).type?.category;
     const deptStatuses = ['pending_department', 'in_progress'];
     if (isFinanceiro && deptStatuses.includes(r.status) && ['subscription', 'reimbursement'].includes(typeCategory)) return true;
-    if (isSuprimentos && deptStatuses.includes(r.status) && typeCategory === 'product') return true;
+    if (isSuprimentos && deptStatuses.includes(r.status) && ['product', 'marketing_materials'].includes(typeCategory)) return true;
     if (isHR && deptStatuses.includes(r.status) && ['document', 'time_off'].includes(typeCategory)) return true;
     return false;
   }).filter(r => !search || r.title.toLowerCase().includes(search.toLowerCase()));
