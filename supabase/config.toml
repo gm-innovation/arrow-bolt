@@ -3,6 +3,9 @@ project_id = "iyuypkfksxfsutubcpay"
 [functions.check-critical-orders]
 verify_jwt = false
 
+[functions.finance-due-alerts]
+verify_jwt = false
+
 [functions.send-whatsapp]
 verify_jwt = true
 
