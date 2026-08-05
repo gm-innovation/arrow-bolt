@@ -95,6 +95,8 @@ export default function AuvoAudit() {
     runSync,
     reanalyzeTask,
     reviewDiscrepancy,
+    promoteToOS,
+
   } = useAuvoIntegration({ onlyDivergent });
 
   const filtered = useMemo(() => {
