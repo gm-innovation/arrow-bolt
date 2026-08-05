@@ -503,8 +503,10 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
           PDF
         </Button>
         {canEdit && (
-          <Button 
-            onClick={handleFinalize}
+          <Button
+            onClick={() =>
+              auvoDiscrepancies.length > 0 ? setShowAuvoWarning(true) : handleFinalize()
+            }
             disabled={finalizeMeasurement.isPending}
           >
             {finalizeMeasurement.isPending && (
@@ -514,6 +516,63 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
           </Button>
         )}
       </div>
+
+      <AlertDialog open={showAuvoWarning} onOpenChange={setShowAuvoWarning}>
+        <AlertDialogContent className="max-w-lg">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Divergências de material pendentes
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              A auditoria Auvo encontrou {auvoDiscrepancies.length} divergência(s) sem revisão
+              nesta OS
+              {criticalAuvo.length > 0
+                ? `, sendo ${criticalAuvo.length} de material baixado do estoque e não relatado pelo técnico`
+                : ""}
+              . Revise antes de finalizar a medição.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="max-h-56 overflow-y-auto space-y-2">
+            {[...auvoDiscrepancies]
+              .sort((a, b) =>
+                a.classification === "stock_not_reported"
+                  ? -1
+                  : b.classification === "stock_not_reported"
+                    ? 1
+                    : 0,
+              )
+              .map((d) => (
+                <div
+                  key={d.id}
+                  className={`rounded-md p-2 text-sm ${
+                    d.classification === "stock_not_reported"
+                      ? "bg-destructive/10 border border-destructive/40"
+                      : "bg-muted/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{d.item_name}</span>
+                    <Badge variant={d.severity === "high" ? "destructive" : "secondary"}>
+                      {auvoClassificationLabel[d.classification] ?? d.classification}
+                    </Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Estoque: {d.stock_quantity} · Relatado: {d.reported_quantity ?? 0}
+                  </p>
+                </div>
+              ))}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel>Revisar na Auditoria</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinalize}>
+              Finalizar mesmo assim
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* PDF Preview Dialog */}
       {serviceOrder && (
@@ -525,6 +584,7 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
           onOpenChange={setShowPDFPreview}
         />
       )}
+
     </div>
   );
 };
