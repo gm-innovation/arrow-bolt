@@ -29,7 +29,7 @@ Regra de agrupamento (na ordem):
 - No diálogo de revisão, o visualizador de relatório ganha **abas por atendimento** — o revisor lê todos os relatórios do serviço, com fotos e questionários de cada um. Atendimentos sem relatório aparecem sinalizados.
 - "Reanalisar" reprocessa o serviço inteiro.
 
-**Janela de sincronização:** padrão passa a ser **desde 1º de janeiro do ano corrente**, com atalhos de 30/90/180 dias e "ano inteiro". A busca no Auvo passa a paginar até o fim do período (sem o corte atual de páginas) e roda em blocos mensais para não estourar o tempo da função, retomando de onde parou entre chamadas.
+**Janela de sincronização:** padrão passa a ser **desde 1º de janeiro do ano corrente**, com atalhos de 30/90/180 dias e "ano inteiro". A busca no Auvo passa a paginar até o fim do período (sem o corte atual de páginas) e roda em blocos mensais para não estourar o tempo da função, retomando de onde parou entre chamadas. A primeira execução após a mudança faz a carga histórica e traz atendimentos como o do Ismael em maio na OS 4821.
 
 **Alertas** passam a ser por serviço (um alerta consolidado por OS/serviço), não por atendimento.
 
