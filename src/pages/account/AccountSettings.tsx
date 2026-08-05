@@ -11,6 +11,7 @@ import { UserCog, Lock, Palette, Bell, ShieldAlert, Loader2, PenLine, Megaphone,
 import SignatureSection from "@/components/account/SignatureSection";
 import MyAwarenessPanel from "@/components/account/MyAwarenessPanel";
 import { AIPreferencesCard } from "@/components/account/AIPreferencesCard";
+import NotificationPreferencesCard from "@/components/account/NotificationPreferencesCard";
 
 const AccountSettings = () => {
   const { user, profile, updatePassword } = useAuth();
@@ -172,17 +173,9 @@ const AccountSettings = () => {
         </TabsContent>
 
         <TabsContent value="notifications" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Notificações</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Preferências de notificação por canal estarão disponíveis em breve.
-              </p>
-            </CardContent>
-          </Card>
+          <NotificationPreferencesCard />
         </TabsContent>
+
 
         <TabsContent value="session" className="mt-4">
           <Card>

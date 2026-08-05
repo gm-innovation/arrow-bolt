@@ -38,117 +38,83 @@ export const useNotificationService = () => {
   const { sendWhatsAppMessage } = useWhatsAppNotification();
 
   /**
-   * Send a notification to a single user
-   * Creates an in-app notification and optionally sends push notification
+   * Dispatch through the multi-channel edge function, which respects each
+   * user's notification preferences (in-app, push, e-mail, WhatsApp).
+   * Falls back to a direct in-app insert if the function is unavailable.
    */
-  const sendNotification = async (options: NotificationOptions) => {
-    const { userId, title, message, type, referenceId, sendPush = true, sendWhatsApp = false, whatsAppPhone } = options;
-
+  const dispatch = async (payload: {
+    userIds: string[];
+    title: string;
+    message?: string;
+    type: NotificationType;
+    referenceId?: string;
+    url?: string;
+  }) => {
     try {
-      // 1. Create in-app notification
-      const { error: notifError } = await supabase
-        .from("notifications")
-        .insert({
-          user_id: userId,
-          title,
-          message,
-          notification_type: type,
-          reference_id: referenceId || null,
-        });
-
-      if (notifError) {
-        console.error("Error creating notification:", notifError);
-        throw notifError;
-      }
-
-      // 2. Send push notification via edge function
-      if (sendPush) {
-        try {
-          const { error: pushError } = await supabase.functions.invoke("send-push-notification", {
-            body: {
-              user_id: userId,
-              title,
-              body: message || title,
-              url: referenceId ? `/tech/tasks/${referenceId}` : undefined,
-            },
-          });
-
-          if (pushError) {
-            console.warn("Push notification failed:", pushError);
-          }
-        } catch (pushErr) {
-          console.warn("Push notification error:", pushErr);
-        }
-      }
-
-      // 3. Optionally send WhatsApp
-      if (sendWhatsApp && whatsAppPhone) {
-        sendWhatsAppMessage({
-          to: whatsAppPhone,
-          message: `${title}\n\n${message || ""}`,
-          notificationType: type,
-        }).catch(err => console.warn("WhatsApp notification failed:", err));
-      }
-
+      const { error } = await supabase.functions.invoke("notify-dispatch", {
+        body: {
+          userIds: payload.userIds,
+          title: payload.title,
+          message: payload.message ?? null,
+          type: payload.type,
+          referenceId: payload.referenceId ?? null,
+          url: payload.url ?? (payload.referenceId ? `/tech/tasks/${payload.referenceId}` : null),
+        },
+      });
+      if (error) throw error;
       return { success: true };
     } catch (error) {
-      console.error("Error in sendNotification:", error);
-      return { success: false, error };
+      console.warn("notify-dispatch failed, falling back to in-app insert:", error);
+      const { error: insertError } = await supabase.from("notifications").insert(
+        payload.userIds.map((userId) => ({
+          user_id: userId,
+          title: payload.title,
+          message: payload.message,
+          notification_type: payload.type,
+          reference_id: payload.referenceId || null,
+        })),
+      );
+      if (insertError) {
+        console.error("Error creating notification:", insertError);
+        return { success: false, error: insertError };
+      }
+      return { success: true };
     }
+  };
+
+  /**
+   * Send a notification to a single user
+   */
+
+  const sendNotification = async (options: NotificationOptions) => {
+    const { userId, title, message, type, referenceId, sendWhatsApp = false, whatsAppPhone } = options;
+
+    const result = await dispatch({ userIds: [userId], title, message, type, referenceId });
+
+    // Explicit ad-hoc WhatsApp (caller passed a phone directly)
+    if (sendWhatsApp && whatsAppPhone) {
+      sendWhatsAppMessage({
+        to: whatsAppPhone,
+        message: `${title}\n\n${message || ""}`,
+        notificationType: type,
+      }).catch((err) => console.warn("WhatsApp notification failed:", err));
+    }
+
+    return result;
   };
 
   /**
    * Send notifications to multiple users at once
    */
   const sendBulkNotifications = async (options: BulkNotificationOptions) => {
-    const { userIds, title, message, type, referenceId, sendPush = true } = options;
+    const { userIds, title, message, type, referenceId } = options;
 
     if (userIds.length === 0) return { success: true, sent: 0 };
 
-    try {
-      // 1. Create in-app notifications for all users
-      const notifications = userIds.map(userId => ({
-        user_id: userId,
-        title,
-        message,
-        notification_type: type,
-        reference_id: referenceId || null,
-      }));
-
-      const { error: notifError } = await supabase
-        .from("notifications")
-        .insert(notifications);
-
-      if (notifError) {
-        console.error("Error creating bulk notifications:", notifError);
-        throw notifError;
-      }
-
-      // 2. Send push notifications to all users
-      if (sendPush) {
-        const pushPromises = userIds.map(userId =>
-          supabase.functions.invoke("send-push-notification", {
-            body: {
-              user_id: userId,
-              title,
-              body: message || title,
-              url: referenceId ? `/tech/tasks/${referenceId}` : undefined,
-            },
-          }).catch(err => {
-            console.warn(`Push notification failed for user ${userId}:`, err);
-            return null;
-          })
-        );
-
-        await Promise.allSettled(pushPromises);
-      }
-
-      return { success: true, sent: userIds.length };
-    } catch (error) {
-      console.error("Error in sendBulkNotifications:", error);
-      return { success: false, error, sent: 0 };
-    }
+    const result = await dispatch({ userIds, title, message, type, referenceId });
+    return { ...result, sent: result.success ? userIds.length : 0 };
   };
+
 
   /**
    * Notify technicians about a new or updated service order
