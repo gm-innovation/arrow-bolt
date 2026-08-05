@@ -844,13 +844,25 @@ export default function AuvoAudit() {
 
         <TabsContent value="sem-servico">
           <Card>
-            <CardHeader>
-              <CardTitle>Atendimentos sem serviço vinculado</CardTitle>
-              <CardDescription>
-                Normalmente atendimentos sem número de OS. Vincule ao serviço correto para que os
-                relatórios entrem no cruzamento de materiais.
-              </CardDescription>
+            <CardHeader className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div className="space-y-1.5">
+                <CardTitle>Atendimentos sem serviço vinculado</CardTitle>
+                <CardDescription>
+                  Normalmente atendimentos sem número de OS. Use o agrupamento automático (cliente
+                  ou embarcação + técnico/escopo/datas próximas) e vincule manualmente o que restar.
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => autoGroupOrphans.mutate(200)}
+                disabled={autoGroupOrphans.isPending || orphanMembers.length === 0}
+                className="shrink-0"
+              >
+                <Link2 className={`mr-2 h-4 w-4 ${autoGroupOrphans.isPending ? "animate-pulse" : ""}`} />
+                Agrupar automaticamente
+              </Button>
             </CardHeader>
+
             <CardContent className="overflow-x-auto">
               <Table>
                 <TableHeader>
