@@ -43,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AuvoInsightsPanel } from "@/components/admin/auvo/AuvoInsightsPanel";
+import { AuvoTaskReportView } from "@/components/admin/auvo/AuvoTaskReportView";
 import {
   useAuvoIntegration,
   type AuvoDiscrepancy,
