@@ -132,11 +132,30 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.message ?? data.error);
-      return data as {
-        tasks_fetched: number;
-        reports_fetched: number;
-        discrepancies_found: number;
-        pending_analysis: number;
+
+      // A análise com IA roda em lotes curtos para não estourar o tempo da função.
+      let analyzed = 0;
+      let discrepancies = 0;
+      let remaining = data.pending_analysis ?? 0;
+
+      for (let round = 0; round < 40 && remaining > 0; round++) {
+        const { data: batch, error: batchError } = await supabase.functions.invoke("auvo-sync", {
+          body: { mode: "analyze_batch", limit: 4 },
+        });
+        if (batchError || batch?.error) break;
+        analyzed += batch.processed ?? 0;
+        discrepancies += batch.discrepancies ?? 0;
+        remaining = batch.remaining ?? 0;
+        queryClient.invalidateQueries({ queryKey: ["auvo-discrepancies"] });
+        if (!batch.processed) break;
+      }
+
+      return {
+        tasks_fetched: data.tasks_fetched as number,
+        reports_fetched: data.reports_fetched as number,
+        analyzed,
+        discrepancies_found: discrepancies,
+        pending_analysis: remaining,
       };
     },
     onSuccess: (data) => {
@@ -145,7 +164,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
         {
           description: data.pending_analysis
             ? `${data.pending_analysis} relatórios ficaram na fila — rode novamente para concluir.`
-            : undefined,
+            : `${data.analyzed} relatórios analisados pela IA.`,
         },
       );
       queryClient.invalidateQueries({ queryKey: ["auvo-discrepancies"] });
