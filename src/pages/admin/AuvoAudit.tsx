@@ -457,8 +457,8 @@ export default function AuvoAudit() {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[40px]" />
-                        <TableHead>OS</TableHead>
-                        <TableHead>Cliente / Técnico</TableHead>
+                        <TableHead>Serviço (OS)</TableHead>
+                        <TableHead>Cliente / Embarcação / Técnicos</TableHead>
                         <TableHead className="text-center">Divergências</TableHead>
                         <TableHead className="text-right">Risco total</TableHead>
                         <TableHead>Revisão</TableHead>
@@ -467,16 +467,23 @@ export default function AuvoAudit() {
                     </TableHeader>
                     <TableBody>
                       {grouped.map((g) => {
-                        const isOpen = expanded.has(g.taskUid);
+                        const isOpen = expanded.has(g.key);
+                        const members = g.serviceGroupId
+                          ? membersByGroup.get(g.serviceGroupId) ?? []
+                          : [];
+                        const period =
+                          g.firstDate && g.lastDate && g.firstDate !== g.lastDate
+                            ? `${formatDate(g.firstDate)} – ${formatDate(g.lastDate)}`
+                            : formatDate(g.lastDate ?? g.firstDate);
                         return (
-                          <Fragment key={g.taskUid}>
+                          <Fragment key={g.key}>
                             <TableRow
                               className={`cursor-pointer ${
                                 g.stockNotReported > 0
                                   ? "bg-destructive/5 hover:bg-destructive/10"
                                   : ""
                               }`}
-                              onClick={() => toggleExpanded(g.taskUid)}
+                              onClick={() => toggleExpanded(g.key)}
                             >
                               <TableCell>
                                 {isOpen ? (
@@ -486,15 +493,33 @@ export default function AuvoAudit() {
                                 )}
                               </TableCell>
                               <TableCell className="font-medium">
-                                {g.orderNumber ?? "—"}
-                                <div className="text-xs text-muted-foreground">
-                                  {formatDate(g.taskDate)}
+                                {g.orderLabel}
+                                <div className="text-xs text-muted-foreground">{period}</div>
+                                <div className="mt-1 flex flex-wrap items-center gap-1">
+                                  <Badge variant="outline" className="gap-1 text-[10px]">
+                                    <FileText className="h-3 w-3" />
+                                    {g.attendances} atend. · {g.reports} relat.
+                                  </Badge>
+                                  {g.isSimilarityGrouped && (
+                                    <Badge
+                                      variant="secondary"
+                                      className="text-[10px]"
+                                      title={g.groupingReason ?? undefined}
+                                    >
+                                      agrupado por similaridade
+                                    </Badge>
+                                  )}
                                 </div>
                               </TableCell>
-                              <TableCell className="max-w-[220px]">
+                              <TableCell className="max-w-[240px]">
                                 <div className="truncate">{g.customerName ?? "—"}</div>
                                 <div className="truncate text-xs text-muted-foreground">
-                                  {g.technicianName ?? "—"}
+                                  {g.vesselName ?? "—"}
+                                </div>
+                                <div className="truncate text-xs text-muted-foreground">
+                                  {g.technicians.size > 0
+                                    ? Array.from(g.technicians).join(", ")
+                                    : "—"}
                                 </div>
                               </TableCell>
                               <TableCell className="text-center">
@@ -521,14 +546,61 @@ export default function AuvoAudit() {
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    reanalyzeTask.mutate(g.taskUid);
+                                    if (g.serviceGroupId) {
+                                      reanalyzeService.mutate(g.serviceGroupId);
+                                    } else {
+                                      reanalyzeTask.mutate(g.taskUid);
+                                    }
                                   }}
-                                  disabled={reanalyzeTask.isPending}
+                                  disabled={reanalyzeTask.isPending || reanalyzeService.isPending}
                                 >
-                                  Reanalisar
+                                  Reanalisar serviço
                                 </Button>
                               </TableCell>
                             </TableRow>
+
+                            {isOpen && members.length > 0 && (
+                              <TableRow className="hover:bg-transparent">
+                                <TableCell colSpan={7} className="bg-muted/20">
+                                  <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                    Atendimentos deste serviço
+                                  </p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {members.map((m) => (
+                                      <div
+                                        key={m.id}
+                                        className="flex items-center gap-2 rounded-md border bg-background px-2 py-1 text-xs"
+                                      >
+                                        <span className="font-medium">
+                                          {m.order_number ?? `AUVO-${m.auvo_task_id}`}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                          {formatDate(m.task_date)} · {m.technician_name ?? "—"}
+                                        </span>
+                                        <Badge
+                                          variant={m.hasReport ? "secondary" : "outline"}
+                                          className="text-[10px]"
+                                        >
+                                          {m.hasReport ? "com relatório" : "sem relatório"}
+                                        </Badge>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 gap-1 px-1 text-[11px]"
+                                          title="Desvincular deste serviço"
+                                          onClick={() => unlinkTask.mutate(m.id)}
+                                          disabled={unlinkTask.isPending}
+                                        >
+                                          <Link2Off className="h-3 w-3" />
+                                          Desvincular
+                                        </Button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </TableCell>
+                              </TableRow>
+                            )}
+
 
                             {isOpen && (
                               <TableRow className="hover:bg-transparent">
