@@ -99,11 +99,25 @@ export const useAuvoServiceGroups = () => {
     },
   });
 
+  const groups = query.data?.groups ?? [];
+  const members = query.data?.members ?? [];
+
+  /** Situação da fila de análise: o que falta processar e o que falhou de vez. */
+  const queue = {
+    pending: groups.filter((g) => g.analysis_status === "pending").length,
+    error: groups.filter((g) => g.analysis_status === "error").length,
+    done: groups.filter((g) => g.analysis_status === "done").length,
+  };
+
+  /** Atendimentos que não entraram em nenhum serviço (sem nº de OS e sem similaridade). */
+  const orphanMembers = members.filter((m) => !m.service_group_id && !m.unlinked_from_group);
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["auvo-service-groups"] });
     queryClient.invalidateQueries({ queryKey: ["auvo-discrepancies"] });
     queryClient.invalidateQueries({ queryKey: ["auvo-tasks"] });
   };
+
 
   const unlinkTask = useMutation({
     mutationFn: async (taskId: string) => {
