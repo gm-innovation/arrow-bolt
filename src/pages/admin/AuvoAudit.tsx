@@ -45,6 +45,8 @@ import {
 import {
   useAuvoIntegration,
   type AuvoDiscrepancy,
+  type AuvoTaskRow,
+
   type DiscrepancyClassification,
 } from "@/hooks/useAuvoIntegration";
 
