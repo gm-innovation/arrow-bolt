@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { VisitHistoryList } from "./VisitHistoryList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuditTrailViewer } from "./AuditTrailViewer";
+import { AuvoReportPanel } from "./AuvoReportPanel";
 import { formatLocalDate } from "@/lib/utils";
 
 interface ViewOrderDetailsDialogProps {
