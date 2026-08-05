@@ -715,13 +715,14 @@ export default function AuvoAudit() {
                     <TableHead>Técnico</TableHead>
                     <TableHead>Data</TableHead>
                     <TableHead>Check-in / out</TableHead>
+                    <TableHead>Serviço</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {tasks.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
+                      <TableCell colSpan={9} className="py-10 text-center text-muted-foreground">
                         Nenhum atendimento importado ainda.
                       </TableCell>
                     </TableRow>
@@ -742,6 +743,31 @@ export default function AuvoAudit() {
                           {t.checkin_at ? format(parseISO(t.checkin_at), "dd/MM HH:mm") : "—"} ·{" "}
                           {t.checkout_at ? format(parseISO(t.checkout_at), "dd/MM HH:mm") : "—"}
                         </TableCell>
+                        <TableCell>
+                          <Select
+                            value={t.service_group_id ?? "none"}
+                            onValueChange={(value) => {
+                              if (value === "none") {
+                                unlinkTask.mutate(t.id);
+                              } else {
+                                linkTaskToGroup.mutate({ taskId: t.id, groupId: value });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8 w-[190px] text-xs">
+                              <SelectValue placeholder="Sem serviço" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sem serviço</SelectItem>
+                              {groups.slice(0, 200).map((g) => (
+                                <SelectItem key={g.id} value={g.id}>
+                                  {(g.primary_order_number ?? g.service_key) +
+                                    (g.customer_name ? ` · ${g.customer_name}` : "")}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </TableCell>
                         <TableCell className="text-right">
                           {t.service_order_id ? (
                             <Badge variant="secondary" className="gap-1">
@@ -759,6 +785,7 @@ export default function AuvoAudit() {
                             </Button>
                           )}
                         </TableCell>
+
                       </TableRow>
                     ))
                   )}
