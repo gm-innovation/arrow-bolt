@@ -42,7 +42,7 @@ export const EditOrderDialog = ({ orderId, onClose }: EditOrderDialogProps) => {
             <Input
               value={orderNumber}
               onChange={(e) => setOrderNumber(e.target.value)}
-              maxLength={10}
+              maxLength={20}
               className="w-[120px]"
               placeholder="00000"
             />

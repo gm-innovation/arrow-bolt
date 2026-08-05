@@ -43,7 +43,7 @@ export const NewOrderDialog = ({ form, onSuccess }: NewOrderDialogProps) => {
                   <FormControl>
                     <Input 
                       {...field} 
-                      maxLength={5} 
+                      maxLength={20} 
                       className="w-[100px]" 
                       placeholder="00000"
                     />
