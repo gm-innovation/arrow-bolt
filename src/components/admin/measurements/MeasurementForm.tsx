@@ -416,6 +416,8 @@ export const MeasurementForm = ({ serviceOrderId, onClose, readOnly = false }: M
                 disabled={!canEdit}
                 technicianMaterials={technicianMaterials}
                 serviceOrderId={serviceOrderId}
+                orderNumber={serviceOrder?.order_number}
+                vesselName={(serviceOrder as any)?.vessel?.name}
               />
             </TabsContent>
 

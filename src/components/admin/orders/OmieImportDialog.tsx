@@ -14,6 +14,7 @@ import { Loader2, Download, Search, AlertCircle, CheckCircle2, Ship, Users, Cale
 
 export interface OmieImportData {
   orderNumber: string;
+  clientReference?: string;
   omieOsId: number;
   omieIntegrationCode: string;
   clientOmieId?: number;
@@ -98,8 +99,15 @@ export const OmieImportDialog = ({ onSelectOrder }: OmieImportDialogProps) => {
     const info = foundOrder.InformacoesAdicionais || {};
     const parsed = foundOrder.parsedData || {};
 
+    // Omie usually writes the client purchase order inside the service description
+    const purchaseOrderMatch = (foundOrder.serviceDescription || "").match(
+      /pedido de compra\s*[:;-]?\s*([^\n|]+)/i
+    );
+    const clientReference = purchaseOrderMatch?.[1]?.trim().slice(0, 50) || "";
+
     onSelectOrder({
       orderNumber: cab.cNumOS || cab.nCodOS?.toString() || "",
+      clientReference,
       omieOsId: cab.nCodOS || 0,
       omieIntegrationCode: cab.cCodIntOS || "",
       clientOmieId: cab.nCodCli,

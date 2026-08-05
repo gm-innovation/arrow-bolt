@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 export interface EvaMaterial {
@@ -26,12 +25,7 @@ export const useEvaMaterials = () => {
   const fetchEvaMaterials = async (orderNumber: string): Promise<EvaResponse> => {
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('get-eva-materials', {
-        body: null,
-        headers: {},
-      });
-
-      // The function uses query params, so we need to call it differently
+      // The edge function reads the OS number from query params
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-eva-materials?order_number=${encodeURIComponent(orderNumber)}`,
         {
@@ -42,6 +36,7 @@ export const useEvaMaterials = () => {
           },
         }
       );
+
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
