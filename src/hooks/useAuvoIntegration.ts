@@ -88,11 +88,12 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       let query = supabase
         .from("auvo_material_discrepancies")
         .select(
-          `id, auvo_task_uid, order_number, item_name, external_product_code, stock_quantity,
+          `id, auvo_task_uid, service_group_id, order_number, item_name, external_product_code, stock_quantity,
            reported_quantity, unit_value, value_at_risk, classification, severity, ai_notes,
            review_status, review_notes, created_at,
            auvo_tasks:auvo_task_uid ( auvo_task_id, customer_name, technician_name, task_date, auvo_task_type )`,
         )
+
         .order("value_at_risk", { ascending: false })
         .limit(500);
 
