@@ -965,12 +965,20 @@ export default function AuvoAudit() {
                           <Badge variant={r.status === "success" ? "secondary" : r.status === "error" ? "destructive" : "outline"}>
                             {r.status}
                           </Badge>
+                          {r.status === "running" && (r.progress_message || r.current_block) && (
+                            <p className="mt-1 max-w-[280px] text-xs text-muted-foreground">
+                              {r.progress_message ?? r.current_block}
+                              {r.heartbeat_at &&
+                                ` · atualizado ${format(parseISO(r.heartbeat_at), "HH:mm:ss")}`}
+                            </p>
+                          )}
                           {r.error_message && (
                             <p className="mt-1 max-w-[280px] text-xs text-destructive">
                               {r.error_message}
                             </p>
                           )}
                         </TableCell>
+
                         <TableCell className="text-right">{r.tasks_fetched}</TableCell>
                         <TableCell className="text-right">{r.reports_fetched}</TableCell>
                         <TableCell className="text-right">{r.discrepancies_found}</TableCell>
