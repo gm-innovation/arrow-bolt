@@ -596,6 +596,58 @@ export default function AuvoAudit() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!promoteTarget} onOpenChange={(open) => !open && setPromoteTarget(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Promover atendimento para OS do Arrow</DialogTitle>
+            <DialogDescription>
+              Será criada uma OS nativa com os dados do Auvo. Cliente e embarcação são
+              reaproveitados quando já existem no Arrow.
+            </DialogDescription>
+          </DialogHeader>
+          {promoteTarget && (
+            <div className="space-y-2 rounded-md bg-muted p-3 text-sm">
+              <p>
+                <span className="text-muted-foreground">OS: </span>
+                {promoteTarget.order_number ?? `AUVO-${promoteTarget.auvo_task_id}`}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Cliente: </span>
+                {promoteTarget.customer_name ?? "—"}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Embarcação: </span>
+                {promoteTarget.vessel_name ?? "—"}
+              </p>
+              <p>
+                <span className="text-muted-foreground">Data: </span>
+                {formatDate(promoteTarget.task_date)}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Status inicial: {promoteTarget.checkout_at ? "concluída" : "pendente"}
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromoteTarget(null)}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={promoteToOS.isPending}
+              onClick={() => {
+                if (!promoteTarget) return;
+                promoteToOS.mutate(promoteTarget, {
+                  onSuccess: () => setPromoteTarget(null),
+                });
+              }}
+            >
+              {promoteToOS.isPending ? "Criando..." : "Criar OS no Arrow"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
