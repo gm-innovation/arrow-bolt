@@ -6,7 +6,6 @@ import {
   CalendarClock,
   CheckCircle2,
   Clock,
-  Cog,
   Lock,
   RefreshCw,
   Unlock,
@@ -73,7 +72,6 @@ const HRTimesheet = () => {
 
   const ts = useHRTimesheet(year, month, selectedEmployee);
   const [editDay, setEditDay] = useState<TimesheetDay | null>(null);
-  const [deviceDialog, setDeviceDialog] = useState<Partial<TimeclockDevice> | null>(null);
 
   const days = ts.days.data ?? [];
   const overtimePending = (ts.overtime.data ?? []).filter((o) => o.status === 'pending');
