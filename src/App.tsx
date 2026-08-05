@@ -125,6 +125,7 @@ const HROnboardingSettings = lazy(() => import("./pages/hr/OnboardingSettings"))
 const HREmployees = lazy(() => import("./pages/hr/Employees"));
 const HRUniversity = lazy(() => import("./pages/hr/University"));
 const HRTraining = lazy(() => import("./pages/hr/Training"));
+const HRBenefits = lazy(() => import("./pages/hr/Benefits"));
 const HREPI = lazy(() => import("./pages/hr/EPI"));
 const HRHealthExams = lazy(() => import("./pages/hr/HealthExams"));
 const HRVacations = lazy(() => import("./pages/hr/Vacations"));
@@ -152,6 +153,7 @@ const CorpUniversity = lazy(() => import("./pages/corp/University"));
 const CorpUniversityCourse = lazy(() => import("./pages/corp/UniversityCourse"));
 const CorpUniversityTrail = lazy(() => import("./pages/corp/UniversityTrail"));
 const CorpMyLearning = lazy(() => import("./pages/corp/MyLearning"));
+const CorpMyBenefits = lazy(() => import("./pages/corp/MyBenefits"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
 const SuppliesRequests = lazy(() => import("./pages/supplies/Requests"));
@@ -378,6 +380,7 @@ const App = () => {
 
                     <Route path="/hr/university" element={<HRUniversity />} />
                     <Route path="/hr/training" element={<HRTraining />} />
+                    <Route path="/hr/benefits" element={<HRBenefits />} />
                     <Route path="/hr/profile" element={<HRProfile />} />
                     <Route path="/hr/settings" element={<HRSettings />} />
                     <Route path="/hr/chat" element={<Chat />} />
@@ -436,6 +439,7 @@ const App = () => {
                     <Route path="/corp/university/course/:id" element={<CorpUniversityCourse />} />
                     <Route path="/corp/university/trail/:id" element={<CorpUniversityTrail />} />
                     <Route path="/corp/university/my-learning" element={<CorpMyLearning />} />
+                    <Route path="/corp/benefits" element={<CorpMyBenefits />} />
                   </Route>
                   <Route element={<CorpReportsLayoutRoute />}>
                     <Route path="/corp/reports" element={<CorpReports />} />
