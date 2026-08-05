@@ -556,40 +556,61 @@ export default function AuvoAudit() {
       </Tabs>
 
       <Dialog open={!!reviewTarget} onOpenChange={(open) => !open && setReviewTarget(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Revisar divergência</DialogTitle>
             <DialogDescription>
               {reviewTarget?.item_name} · OS {reviewTarget?.order_number ?? "—"}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            {reviewTarget?.ai_notes && (
-              <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                {reviewTarget.ai_notes}
-              </p>
-            )}
-            <div className="space-y-2">
-              <Label>Conclusão</Label>
-              <Select value={reviewStatus} onValueChange={(v) => setReviewStatus(v as typeof reviewStatus)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="confirmed">Divergência confirmada</SelectItem>
-                  <SelectItem value="justified">Justificada pelo técnico</SelectItem>
-                  <SelectItem value="dismissed">Descartar (falso positivo)</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="grid gap-6 md:grid-cols-[1.4fr_1fr]">
+            <div>
+              <AuvoTaskReportView auvoTaskUid={reviewTarget?.auvo_task_uid} />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="review-notes">Observações</Label>
-              <Textarea
-                id="review-notes"
-                value={reviewNotes}
-                onChange={(e) => setReviewNotes(e.target.value)}
-                placeholder="Registre o que foi apurado com o técnico ou com o estoque"
-              />
+            <div className="space-y-4">
+              {reviewTarget && (
+                <div className="rounded-md border p-3 text-sm space-y-1">
+                  <p className="font-medium">{reviewTarget.item_name}</p>
+                  <p className="text-muted-foreground">
+                    Baixa no estoque: {reviewTarget.stock_quantity ?? 0} · Relatado:{" "}
+                    {reviewTarget.reported_quantity ?? "—"}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Classificação: {CLASSIFICATION_LABEL[reviewTarget.classification] ??
+                      reviewTarget.classification}
+                  </p>
+                  <p className="text-muted-foreground">
+                    Valor em risco: {currency(Number(reviewTarget.value_at_risk ?? 0))}
+                  </p>
+                </div>
+              )}
+              {reviewTarget?.ai_notes && (
+                <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                  {reviewTarget.ai_notes}
+                </p>
+              )}
+              <div className="space-y-2">
+                <Label>Conclusão</Label>
+                <Select value={reviewStatus} onValueChange={(v) => setReviewStatus(v as typeof reviewStatus)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="confirmed">Divergência confirmada</SelectItem>
+                    <SelectItem value="justified">Justificada pelo técnico</SelectItem>
+                    <SelectItem value="dismissed">Descartar (falso positivo)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="review-notes">Observações</Label>
+                <Textarea
+                  id="review-notes"
+                  value={reviewNotes}
+                  onChange={(e) => setReviewNotes(e.target.value)}
+                  placeholder="Registre o que foi apurado com o técnico ou com o estoque"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
