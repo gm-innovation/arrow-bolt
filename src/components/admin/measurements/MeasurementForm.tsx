@@ -3,9 +3,21 @@ import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, FileSpreadsheet } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, FileText, FileSpreadsheet, AlertTriangle } from "lucide-react";
 import { useMeasurements } from "@/hooks/useMeasurements";
 import { useServiceRates } from "@/hooks/useServiceRates";
+import { useAuvoOrderDiscrepancies } from "@/hooks/useAuvoOrderDiscrepancies";
 import { supabase } from "@/integrations/supabase/client";
 import { BasicInfoTab } from "./BasicInfoTab";
 import { ManHoursTab } from "./ManHoursTab";
@@ -17,6 +29,14 @@ import { MeasurementSummary } from "./MeasurementSummary";
 import { MeasurementPDFPreview } from "./MeasurementPDFPreview";
 import { exportMeasurementToExcel } from "@/lib/exportMeasurements";
 import { useToast } from "@/hooks/use-toast";
+
+const auvoClassificationLabel: Record<string, string> = {
+  quantity_mismatch: "Quantidade divergente",
+  stock_not_reported: "Baixado do estoque, sem relato",
+  reported_not_in_stock: "Relatado sem baixa",
+  unidentified: "Não identificado",
+};
+
 
 interface MeasurementFormProps {
   serviceOrderId: string;
