@@ -40,6 +40,7 @@ const ServiceOrders = lazy(() => import("./pages/admin/ServiceOrders"));
 const ServiceCalendar = lazy(() => import("./pages/admin/ServiceCalendar"));
 const ServiceTransfers = lazy(() => import("./pages/admin/ServiceTransfers"));
 const ServiceHistory = lazy(() => import("./pages/admin/ServiceHistory"));
+const AuvoAudit = lazy(() => import("./pages/admin/AuvoAudit"));
 const VesselHistory = lazy(() => import("./pages/admin/VesselHistory"));
 const TaskTypes = lazy(() => import("./pages/admin/TaskTypes"));
 const AdminUsers = lazy(() => import("./pages/admin/Users"));
@@ -311,6 +312,7 @@ const App = () => {
                     <Route path="/manager/settings" element={<ManagerSettings />} />
                     
                     <Route path="/manager/measurement-settings" element={<MeasurementSettings />} />
+                    <Route path="/manager/auvo-audit" element={<AuvoAudit />} />
                     <Route path="/manager/chat" element={<Chat />} />
                     <Route path="/manager/install" element={<InstallApp />} />
                   </Route>
@@ -333,6 +335,7 @@ const App = () => {
                     <Route path="/admin/technician-locations" element={<TechnicianLocations />} />
                     <Route path="/admin/audit-logs" element={<AuditLogs />} />
                     <Route path="/admin/reservations" element={<TechnicianReservations />} />
+                    <Route path="/admin/auvo-audit" element={<AuvoAudit />} />
                     <Route path="/admin/employee-documents" element={<AdminEmployeeDocuments />} />
                     <Route path="/admin/leads" element={<Navigate to="/admin/opportunities?tab=leads" replace />} />
                     <Route path="/admin/leads/legacy" element={<AdminLeads />} />
