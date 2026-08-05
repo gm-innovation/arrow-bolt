@@ -19,9 +19,11 @@ export interface PurchaseRequest {
   director_approver_id: string | null;
   director_approved_at: string | null;
   rejection_reason: string | null;
+  service_order_id: string | null;
   created_at: string;
   updated_at: string;
   requester?: { full_name: string } | null;
+  service_order?: { id: string; order_number: string } | null;
   items?: PurchaseRequestItem[];
 }
 
@@ -45,7 +47,9 @@ export const usePurchaseRequests = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("purchase_requests")
-        .select("*, requester:profiles!purchase_requests_requester_id_fkey(full_name)")
+        .select(
+          "*, requester:profiles!purchase_requests_requester_id_fkey(full_name), service_order:service_orders(id, order_number)"
+        )
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -62,6 +66,7 @@ export const usePurchaseRequests = () => {
       priority: string;
       justification?: string;
       supplier_id?: string | null;
+      service_order_id?: string | null;
       items: { description: string; quantity: number; unit: string; estimated_unit_price: number; notes?: string }[];
     }) => {
       const { data: profile } = await supabase
@@ -85,6 +90,7 @@ export const usePurchaseRequests = () => {
           // Aprovação direta pela diretoria (coordenador/gerente não aprova compras)
           status: "pending_director",
           supplier_id: values.supplier_id || null,
+          service_order_id: values.service_order_id || null,
         } as any)
         .select()
         .single();

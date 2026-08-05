@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { usePurchaseRequests } from "@/hooks/usePurchaseRequests";
 import { useQualitySuppliers } from "@/hooks/useQualitySuppliers";
+import { useServiceOrders } from "@/hooks/useServiceOrders";
 import { toast } from "@/hooks/use-toast";
 
 interface NewPurchaseRequestDialogProps {
@@ -29,8 +30,10 @@ const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDial
   const { createRequest } = usePurchaseRequests();
   const { items: suppliers } = useQualitySuppliers({ status: "approved" });
   const { items: conditionalSuppliers } = useQualitySuppliers({ status: "conditional" });
+  const { orders } = useServiceOrders();
   const eligibleSuppliers = [...suppliers, ...conditionalSuppliers].sort((a, b) => a.name.localeCompare(b.name));
   const [supplierId, setSupplierId] = useState<string>("none");
+  const [serviceOrderId, setServiceOrderId] = useState<string>("none");
   const [items, setItems] = useState<ItemForm[]>([]);
   const [newItem, setNewItem] = useState<ItemForm>({
     description: "",
@@ -71,11 +74,13 @@ const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDial
     await createRequest.mutateAsync({
       ...data,
       supplier_id: supplierId === "none" ? null : supplierId,
+      service_order_id: serviceOrderId === "none" ? null : serviceOrderId,
       items,
     });
     reset();
     setItems([]);
     setSupplierId("none");
+    setServiceOrderId("none");
     onOpenChange(false);
   };
 
@@ -137,6 +142,24 @@ const NewPurchaseRequestDialog = ({ open, onOpenChange }: NewPurchaseRequestDial
               </Select>
               <p className="text-xs text-muted-foreground mt-1">
                 Apenas fornecedores aprovados ou condicionais aparecem aqui.
+              </p>
+            </div>
+
+            <div className="md:col-span-2">
+              <Label>Ordem de Serviço (opcional)</Label>
+              <Select value={serviceOrderId} onValueChange={setServiceOrderId}>
+                <SelectTrigger><SelectValue placeholder="Vincular a uma OS..." /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sem vínculo com OS</SelectItem>
+                  {orders.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      OS {o.orderNumber} — {o.client}{o.vessel !== "N/A" ? ` / ${o.vessel}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                Ao aprovar a solicitação, os itens são lançados como materiais dessa OS e entram na medição final.
               </p>
             </div>
 

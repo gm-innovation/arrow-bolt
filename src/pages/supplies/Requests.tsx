@@ -120,7 +120,8 @@ const SuppliesRequests = () => {
                   <TableRow>
                     <TableHead>Título</TableHead>
                     <TableHead>Solicitante</TableHead>
-                    <TableHead>Categoria</TableHead>
+                   <TableHead>Categoria</TableHead>
+                   <TableHead>OS</TableHead>
                     <TableHead>Prioridade</TableHead>
                     <TableHead className="text-right">Valor Est.</TableHead>
                     <TableHead>Status</TableHead>
@@ -138,6 +139,9 @@ const SuppliesRequests = () => {
                       <TableCell className="font-medium">{req.title}</TableCell>
                       <TableCell>{req.requester?.full_name || "—"}</TableCell>
                       <TableCell>{categoryLabels[req.category] || req.category}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {req.service_order?.order_number ? `OS ${req.service_order.order_number}` : "—"}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={req.priority === "urgente" ? "destructive" : "secondary"}>
                           {priorityLabels[req.priority] || req.priority}
