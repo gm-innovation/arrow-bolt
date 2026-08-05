@@ -120,7 +120,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       const { data, error } = await supabase
         .from("auvo_tasks")
         .select(
-          "id, auvo_task_id, order_number, auvo_task_type, customer_name, technician_name, task_date, checkin_at, checkout_at, service_order_id",
+          "id, auvo_task_id, order_number, auvo_task_type, customer_name, vessel_name, technician_name, task_date, checkin_at, checkout_at, address, orientation, service_order_id, promoted_at",
         )
         .order("task_date", { ascending: false, nullsFirst: false })
         .limit(300);
@@ -129,6 +129,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     },
     enabled: !!companyId,
   });
+
 
   const runSync = useMutation({
     mutationFn: async (args: SyncArgs = {}) => {
