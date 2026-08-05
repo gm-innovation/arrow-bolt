@@ -16,6 +16,9 @@ export interface AuvoServiceGroup {
   grouping_reason: string | null;
   analysis_status: string;
   analyzed_at: string | null;
+  analysis_error: string | null;
+  analysis_attempts: number | null;
+  analysis_last_attempt_at: string | null;
 }
 
 export interface AuvoServiceMember {
@@ -23,12 +26,15 @@ export interface AuvoServiceMember {
   auvo_task_id: string;
   order_number: string | null;
   auvo_task_type: string | null;
+  customer_name: string | null;
+  vessel_name: string | null;
   task_date: string | null;
   technician_name: string | null;
   service_group_id: string | null;
   unlinked_from_group: boolean;
   hasReport: boolean;
 }
+
 
 /**
  * Serviços do Auvo: um serviço reúne todos os atendimentos e relatórios do mesmo
