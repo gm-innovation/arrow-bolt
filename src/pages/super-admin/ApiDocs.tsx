@@ -498,6 +498,15 @@ function PublicIntakeTab() {
 export default function ApiDocs() {
   const { profile } = useAuth();
   const [tab, setTab] = useState("docs");
+  const [companies, setCompanies] = useState<Company[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("companies")
+      .select("id, name")
+      .order("name")
+      .then(({ data }) => setCompanies((data ?? []) as Company[]));
+  }, []);
 
   return (
     <div className="container mx-auto p-6 space-y-4">
@@ -511,6 +520,7 @@ export default function ApiDocs() {
           <TabsTrigger value="docs" data-tour="api-tab-docs">Documentação</TabsTrigger>
           <TabsTrigger value="integrations" data-tour="api-tab-integrations">Integrações (B2B)</TabsTrigger>
           <TabsTrigger value="public-intake" data-tour="api-tab-public-intake">Captação pelo site</TabsTrigger>
+          <TabsTrigger value="timeclock" data-tour="api-tab-timeclock">Relógios de ponto</TabsTrigger>
         </TabsList>
         <TabsContent value="docs" className="mt-4">
           <Card data-tour="api-openapi-card">
@@ -531,7 +541,11 @@ export default function ApiDocs() {
         <TabsContent value="public-intake" className="mt-4">
           <PublicIntakeTab />
         </TabsContent>
+        <TabsContent value="timeclock" className="mt-4">
+          <TimeclockDevicesTab companies={companies} />
+        </TabsContent>
       </Tabs>
+
     </div>
   );
 }
