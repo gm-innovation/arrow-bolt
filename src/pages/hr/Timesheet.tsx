@@ -554,9 +554,6 @@ const HRTimesheet = () => {
                       </TableCell>
                     </TableRow>
                   ))}
-
-                    </TableRow>
-                  ))}
                 </TableBody>
               </Table>
             </CardContent>
