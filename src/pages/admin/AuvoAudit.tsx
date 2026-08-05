@@ -248,7 +248,10 @@ export default function AuvoAudit() {
         auvo_task_type: reviewTarget.auvo_tasks?.auvo_task_type ?? null,
         task_date: reviewTarget.auvo_tasks?.task_date ?? null,
         technician_name: reviewTarget.auvo_tasks?.technician_name ?? null,
+        customer_name: null,
+        vessel_name: null,
         service_group_id: null,
+
         unlinked_from_group: false,
         hasReport: true,
       },
