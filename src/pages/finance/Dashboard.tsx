@@ -1,14 +1,22 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowUpCircle, ArrowDownCircle, Receipt, TrendingUp } from "lucide-react";
+import { ArrowUpCircle, ArrowDownCircle, Receipt, TrendingUp, Eye, EyeOff } from "lucide-react";
 import { useFinancePayables, useFinanceReceivables, useFinanceReimbursements } from "@/hooks/useFinance";
+import { useFinanceSettings } from "@/hooks/useFinanceSettings";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { Button } from "@/components/ui/button";
 import { formatLocalDate } from "@/lib/utils";
 
 const FinanceDashboard = () => {
   const { payables } = useFinancePayables();
   const { receivables } = useFinanceReceivables();
   const { reimbursements } = useFinanceReimbursements();
+  const { settings } = useFinanceSettings();
+  const [amountsVisible, setAmountsVisible] = useState(true);
+
+  useEffect(() => {
+    if (settings) setAmountsVisible(!settings.hide_dashboard_amounts);
+  }, [settings?.hide_dashboard_amounts]);
 
   const pendingPayables = payables.filter((p) => ["pending", "approved"].includes(p.status));
   const pendingReceivables = receivables.filter((r) => ["invoiced", "partial"].includes(r.status));
@@ -23,14 +31,27 @@ const FinanceDashboard = () => {
   const overduePayables = payables.filter((p) => ["pending", "approved"].includes(p.status) && p.due_date < today);
   const overdueReceivables = receivables.filter((r) => ["invoiced", "partial"].includes(r.status) && r.due_date < today);
 
-  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const fmt = (v: number) =>
+    amountsVisible ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "R$ ••••••";
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-foreground">Financeiro</h2>
-        <p className="text-muted-foreground">Controle financeiro interno</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold text-foreground">Financeiro</h2>
+          <p className="text-muted-foreground">Controle financeiro interno</p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setAmountsVisible((v) => !v)}
+          aria-label={amountsVisible ? "Ocultar valores" : "Mostrar valores"}
+        >
+          {amountsVisible ? <EyeOff className="h-4 w-4 mr-2" /> : <Eye className="h-4 w-4 mr-2" />}
+          {amountsVisible ? "Ocultar valores" : "Mostrar valores"}
+        </Button>
       </div>
+
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
