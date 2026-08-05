@@ -118,7 +118,11 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       return (data ?? []) as unknown as AuvoSyncRun[];
     },
     enabled: !!companyId,
+    // Enquanto há ingestão em background, acompanhamos o progresso.
+    refetchInterval: (query) =>
+      (query.state.data ?? []).some((r) => r.status === "running") ? 8000 : false,
   });
+
 
   const tasksQuery = useQuery({
     queryKey: ["auvo-tasks", companyId],
