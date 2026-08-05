@@ -179,11 +179,13 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         </DialogHeader>
       
       <Tabs defaultValue="details" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="details">Detalhes</TabsTrigger>
           <TabsTrigger value="visits">Visitas</TabsTrigger>
+          <TabsTrigger value="auvo">Auvo</TabsTrigger>
           <TabsTrigger value="audit">Histórico</TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="details">
           <ScrollArea className="h-[50vh] pr-4">
