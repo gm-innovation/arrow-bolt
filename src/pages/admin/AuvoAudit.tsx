@@ -99,7 +99,7 @@ export default function AuvoAudit() {
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return discrepancies.filter((d) => {
+    const rows = discrepancies.filter((d) => {
       if (classification !== "all" && d.classification !== classification) return false;
       if (!term) return true;
       return [
@@ -112,6 +112,14 @@ export default function AuvoAudit() {
         .filter(Boolean)
         .some((field) => String(field).toLowerCase().includes(term));
     });
+    // Baixa de estoque sem relato é o caso mais grave: sempre no topo da lista.
+    const weight = (c: string) =>
+      c === "stock_not_reported" ? 0 : c === "quantity_mismatch" ? 1 : c === "reported_not_in_stock" ? 2 : 3;
+    return [...rows].sort(
+      (a, b) =>
+        weight(a.classification) - weight(b.classification) ||
+        Number(b.value_at_risk ?? 0) - Number(a.value_at_risk ?? 0),
+    );
   }, [discrepancies, search, classification]);
 
   const lastRun = runs[0];
