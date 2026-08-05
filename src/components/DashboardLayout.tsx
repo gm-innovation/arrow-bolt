@@ -130,7 +130,28 @@ const ROUTE_TITLES_PT: Record<string, string> = {
   feed: "Feed",
   profile: "Perfil",
   notifications: "Notificações",
+  payables: "Contas a Pagar",
+  receivables: "Contas a Receber",
+  reimbursements: "Reembolsos",
+  transactions: "Transações",
+  categories: "Categorias",
+  purchases: "Compras",
+  approvals: "Aprovações",
+  coordinators: "Coordenadores",
+  productivity: "Produtividade",
+  vessels: "Embarcações",
+  contacts: "Contatos",
+  products: "Produtos",
+  stock: "Estoque",
+  recurrences: "Recorrências",
+  "knowledge-base": "Base de Conhecimento",
+  groups: "Grupos",
+  celebrations: "Celebrações",
+  badges: "Conquistas",
+  ranking: "Ranking",
+  chat: "Chat",
 };
+
 
 const isGroup = (e: MenuEntry): e is MenuGroup => "children" in e;
 
