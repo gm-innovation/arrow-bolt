@@ -102,8 +102,9 @@ export default function AuvoAudit() {
     });
 
 
+  // OS podem ficar meses abertas: por padrão auditamos o ano corrente inteiro.
   const [periodStart, setPeriodStart] = useState(
-    format(subDays(new Date(), 14), "yyyy-MM-dd"),
+    format(startOfYear(new Date()), "yyyy-MM-dd"),
   );
   const [periodEnd, setPeriodEnd] = useState(format(new Date(), "yyyy-MM-dd"));
 
@@ -117,8 +118,18 @@ export default function AuvoAudit() {
     reanalyzeTask,
     reviewDiscrepancy,
     promoteToOS,
-
   } = useAuvoIntegration({ onlyDivergent });
+
+  const {
+    groups,
+    membersByGroup,
+    unlinkTask,
+    linkTaskToGroup,
+    reanalyzeService,
+  } = useAuvoServiceGroups();
+
+  const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
+
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
