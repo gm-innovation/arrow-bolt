@@ -49,14 +49,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AuvoInsightsPanel } from "@/components/admin/auvo/AuvoInsightsPanel";
-import { AuvoTaskReportView } from "@/components/admin/auvo/AuvoTaskReportView";
+import { AuvoServiceReportTabs } from "@/components/admin/auvo/AuvoServiceReportTabs";
+import { useAuvoServiceGroups } from "@/hooks/useAuvoServiceGroups";
 import {
   useAuvoIntegration,
   type AuvoDiscrepancy,
   type AuvoTaskRow,
-
   type DiscrepancyClassification,
 } from "@/hooks/useAuvoIntegration";
+
 
 const CLASSIFICATION_LABEL: Record<DiscrepancyClassification, string> = {
   match: "Conforme",
