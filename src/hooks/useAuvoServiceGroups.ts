@@ -217,6 +217,40 @@ export const useAuvoServiceGroups = () => {
     onError: (error: Error) => toast.error("Erro ao reenfileirar", { description: error.message }),
   });
 
+  /** Encaixa automaticamente os atendimentos órfãos em serviços por similaridade. */
+  const autoGroupOrphans = useMutation({
+    mutationFn: async (limit: number = 200) => {
+      const { data, error } = await supabase.functions.invoke("auvo-sync", {
+        body: { mode: "regroup", limit },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message ?? data.error);
+      return data as {
+        scanned?: number;
+        grouped?: number;
+        remaining?: number;
+        touched_groups?: number;
+      };
+    },
+    onSuccess: (data) => {
+      const grouped = data?.grouped ?? 0;
+      if (grouped === 0) {
+        toast.info("Nenhum atendimento pôde ser agrupado automaticamente", {
+          description: `${data?.scanned ?? 0} analisados. Vincule manualmente os que restaram.`,
+        });
+      } else {
+        toast.success(`${grouped} atendimento(s) agrupados por similaridade`, {
+          description: `${data?.touched_groups ?? 0} serviço(s) voltaram para a fila de análise · ${
+            data?.remaining ?? 0
+          } ainda sem serviço.`,
+        });
+      }
+      invalidate();
+    },
+    onError: (error: Error) =>
+      toast.error("Erro ao agrupar automaticamente", { description: error.message }),
+  });
+
   return {
     groups,
     membersByGroup: query.data?.membersByGroup ?? new Map<string, AuvoServiceMember[]>(),
@@ -229,6 +263,8 @@ export const useAuvoServiceGroups = () => {
     reanalyzeService,
     processQueue,
     retryFailedAnalyses,
+    autoGroupOrphans,
+
   };
 
 };
