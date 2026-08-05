@@ -145,3 +145,8 @@ verify_jwt = true
 # Apuração/fechamento do espelho de ponto — valida a sessão em código.
 [functions.hr-timesheet-compute]
 verify_jwt = true
+
+# Sincronização/auditoria do Auvo — valida sessão de gestor ou segredo de agendamento em código.
+[functions.auvo-sync]
+verify_jwt = false
+
