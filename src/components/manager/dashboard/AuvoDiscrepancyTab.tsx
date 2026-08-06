@@ -233,8 +233,14 @@ export const AuvoDiscrepancyTab = () => {
                                   {group.notReportedCount} sem relato
                                 </Badge>
                               )}
+                              {group.photoGaps.length > 0 && (
+                                <Badge className="bg-purple-600 text-purple-50 hover:bg-purple-600">
+                                  {group.photoGaps.length} sem foto
+                                </Badge>
+                              )}
                             </div>
                           </TableCell>
+
                           <TableCell className="text-center">{group.oldestDays}d</TableCell>
                           <TableCell className="text-right font-medium">
                             {currency(group.totalRisk)}
