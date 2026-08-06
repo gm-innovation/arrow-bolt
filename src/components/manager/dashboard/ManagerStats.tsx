@@ -1,8 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, CheckCircle, Clock, Users } from "lucide-react";
+import { ClipboardList, CheckCircle, Clock, Users, PackageX } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuvoCriticalSummary } from "@/hooks/useAuvoCriticalSummary";
+
+const currency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
+
 
 interface DashboardFilters {
   startDate?: Date;
@@ -17,6 +22,7 @@ interface ManagerStatsProps {
 }
 
 export const ManagerStats = ({ filters }: ManagerStatsProps) => {
+  const { data: discrepancies } = useAuvoCriticalSummary();
   const { data: stats, isLoading } = useQuery({
     queryKey: ["manager-stats", filters],
     queryFn: async () => {
@@ -65,8 +71,8 @@ export const ManagerStats = ({ filters }: ManagerStatsProps) => {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map(i => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {[1, 2, 3, 4, 5].map(i => (
           <Skeleton key={i} className="h-32" />
         ))}
       </div>
@@ -74,7 +80,7 @@ export const ManagerStats = ({ filters }: ManagerStatsProps) => {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total de OSs</CardTitle>
@@ -124,6 +130,23 @@ export const ManagerStats = ({ filters }: ManagerStatsProps) => {
           <p className="text-xs text-muted-foreground">Ativos na empresa</p>
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Divergências pendentes</CardTitle>
+          <PackageX className="h-4 w-4 text-destructive" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold text-destructive">
+            {discrepancies?.pendingCount ?? 0}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {currency(discrepancies?.valueAtRisk ?? 0)} em risco ·{" "}
+            {discrepancies?.stockNotReportedCount ?? 0} sem relato
+          </p>
+        </CardContent>
+      </Card>
     </div>
+
   );
 };

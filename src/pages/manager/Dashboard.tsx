@@ -13,6 +13,8 @@ import { TechnicianProductivityReport } from "@/components/manager/dashboard/Tec
 import { CoordinatorProductivityReport } from "@/components/manager/dashboard/CoordinatorProductivityReport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PushNotificationPrompt } from "@/components/notifications/PushNotificationPrompt";
+import { AuvoDiscrepancyAlert } from "@/components/manager/dashboard/AuvoDiscrepancyAlert";
+import { AuvoDiscrepancyTab } from "@/components/manager/dashboard/AuvoDiscrepancyTab";
 
 interface DashboardFilters {
   startDate?: Date;
@@ -51,14 +53,18 @@ const ManagerDashboard = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} storageKey="manager-dashboard" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="discrepancies">Divergências</TabsTrigger>
           <TabsTrigger value="coordinators">Coordenadores</TabsTrigger>
           <TabsTrigger value="productivity">Técnicos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          <AuvoDiscrepancyAlert onOpenDetails={() => setActiveTab("discrepancies")} />
+
           <ManagerStats filters={filters} />
           
           <CriticalOrdersCard />
+
 
           <TrendsComparison filters={filters} />
 
@@ -71,6 +77,12 @@ const ManagerDashboard = () => {
             <ConsolidatedCalendar filters={filters} />
           </div>
         </TabsContent>
+
+        <TabsContent value="discrepancies">
+          <AuvoDiscrepancyTab />
+        </TabsContent>
+
+
 
         <TabsContent value="coordinators">
           <CoordinatorProductivityReport 
