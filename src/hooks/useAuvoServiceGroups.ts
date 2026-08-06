@@ -466,6 +466,10 @@ export const useAuvoServiceGroups = () => {
     mergeSuggestions,
     mergeServices,
     unmergeService,
+    mergeDismissals,
+    dismissMerge,
+    undoDismissMerge,
+
   };
 };
 
