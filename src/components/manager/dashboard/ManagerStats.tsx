@@ -1,8 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ClipboardList, CheckCircle, Clock, Users } from "lucide-react";
+import { ClipboardList, CheckCircle, Clock, Users, PackageX } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuvoCriticalSummary } from "@/hooks/useAuvoCriticalSummary";
+
+const currency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value || 0);
+
 
 interface DashboardFilters {
   startDate?: Date;
