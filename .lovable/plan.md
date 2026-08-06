@@ -1,41 +1,37 @@
-# De onde vieram as atividades de Inmarsat na "OS 4539"
+# Corrigir os falsos positivos da auditoria Auvo (OS 4539)
 
-## O que a investigação mostrou
+Você está certo: o relatório do atendimento 69566199 (Alexsandro Calheiros, 06/02, código externo 4539) existe, tem 9 fotos e todas com legenda. Foram dois defeitos nossos, ambos confirmados no banco.
 
-As atividades apontadas (reinstalação da antena Inmarsat-C, confecção de conector TNC para cabo RGC-213, PV teste, testes de e-mail e de SSAS) **não foram inventadas pela IA**. Elas vêm de um relatório real do Auvo:
+## Defeito 1 — "s/ relatório" falso
 
-- Atendimento Auvo **69566199** — técnico **Alexsandro Calheiros**, data **06/02/2026**, embarcação SKANDI IPANEMA, 9 fotos.
-- O texto desse relatório descreve exatamente: reparo da antena Inmarsat-C em laboratório, reinstalação no topo do mastro, confecção de novo conector, PV teste no passadiço, testes de e-mail e SSAS; material fornecido: conector TNC RGC-213, base de antena, abraçadeiras.
+A tela carrega atendimentos e relatórios com `limit(2000)`, mas o backend devolve no máximo **1000 linhas por consulta**. Hoje existem **1.185 atendimentos** e **1.172 relatórios**: tudo que passa de 1.000 simplesmente não chega ao navegador, e o atendimento fica marcado como "sem relatório" mesmo tendo texto.
 
-O problema é de **agrupamento**: esse atendimento foi lançado no Auvo com o número externo **4539**, o mesmo número dos 13 outros atendimentos do serviço de CFTV/DGPS do Skandi Ipanema (Romulo, Cristiano, Carlos Augusto, Alexandre Starck). Todos caíram no mesmo grupo de serviço, então a tela mostra um serviço "OS 4539 — Manutenção no Sistema CFTV" contendo atividades de um atendimento de rádio/Inmarsat que é outro escopo.
+Correção: paginar as consultas de `auvo_tasks` e `auvo_task_reports` até trazer todas as linhas (blocos de 1.000 com `range`), buscando apenas as colunas necessárias. Enquanto os dados não estiverem completos, não exibir o rótulo "sem relatório" — usar estado neutro em vez de afirmar ausência.
 
-Ou seja: erro humano de numeração no Auvo, e a auditoria hoje não deixa visível de qual relatório cada pendência veio.
+## Defeito 2 — "Sem foto" em atividades que estão fotografadas
 
-## O que fazer
+As pendências de foto desse relatório foram gravadas às **16:15**, e as legendas das fotos só passaram a ser importadas do Auvo às **16:31** (correção da ingestão). Ou seja, a IA auditou um relatório cujas fotos apareciam sem legenda nenhuma — daí os cinco apontamentos falsos (conector TNC, PV teste, SSAS, e-mails, antena), todos com legenda explícita no Auvo: "foto da confecção de um novo conector", "foto do PV teste", "foto do SSAS", "foto de confirmação de envio do SSAS", "foto da base da antena".
 
-1. **Mostrar a origem de cada pendência de foto**
-   - Em cada cartão de atividade no modal de revisão, exibir o atendimento de origem: nº do atendimento Auvo, técnico e data.
-   - Trecho/link para abrir o relatório correspondente na aba de relatórios do serviço, para conferência imediata.
+Correções:
 
-2. **Alertar quando o grupo mistura escopos diferentes**
-   - Faixa de aviso no topo do modal e na linha do serviço quando os atendimentos do mesmo número de OS tiverem técnicos/datas/equipamentos claramente distintos.
-   - Texto explicando que o número da OS pode ter sido reaproveitado no Auvo e indicando quais atendimentos divergem.
+1. **Invalidar e reprocessar** as pendências criadas antes da correção da ingestão: apagar as pendências pendentes de revisão cujos relatórios foram reimportados depois, e recolocar esses relatórios na fila de auditoria de fotos.
+2. **Travar a auditoria contra dado incompleto**: não auditar fotos de um relatório enquanto as legendas do Auvo não tiverem sido importadas (nem gerar pendência quando não há informação sobre as fotos). Sem legenda e sem descrição visual, o relatório vai para a fila da etapa de visão, não para apontamento.
+3. **Exigir evidência do apontamento**: cada pendência só é gravada com o registro do que foi considerado (legendas avaliadas e/ou fotos candidatas). Pendência sem esse lastro é bloqueada.
 
-3. **Permitir desvincular um atendimento do grupo**
-   - Ação "Este atendimento não pertence a esta OS" no relatório/atendimento, que o remove do grupo e o joga para a aba "Sem Serviço", onde já existe o vínculo manual.
-   - As pendências de material e de foto daquele atendimento acompanham a mudança de grupo.
+## Defeito 3 — escopo trocado no mesmo número de OS
 
-4. **Agrupar as pendências de foto por atendimento** dentro do modal, em vez de uma lista única, para que fique claro que cada bloco corresponde a um relatório.
+O atendimento de Inmarsat-C foi lançado no Auvo com o código externo 4539, o mesmo dos 13 atendimentos de CFTV/DGPS do Skandi Ipanema, então tudo caiu no mesmo serviço. Isso é erro humano de numeração, mas a tela precisa deixar claro:
+
+- Cada pendência de foto passa a mostrar a origem: nº do atendimento Auvo, técnico e data.
+- Pendências agrupadas por atendimento dentro do modal de revisão, em vez de lista única.
+- Aviso quando o mesmo número de OS reúne atendimentos de escopos claramente distintos, com ação para desvincular o atendimento do serviço.
 
 ## Notas técnicas
 
-- `auvo_photo_findings` já guarda `auvo_task_uid` e `report_id`; basta cruzar com `auvo_tasks` (nº, técnico, data) no hook `useAuvoIntegration.ts` e passar essa informação ao `AuvoGroupReviewDialog.tsx`.
-- A heterogeneidade do grupo é detectada no frontend a partir dos atendimentos já carregados (conjunto de técnicos, intervalo de datas, equipamento citado no relatório) — sem nova chamada de IA.
-- Desvincular = limpar `service_group_id` do atendimento (e propagar aos registros de divergência), reaproveitando a lógica já existente da aba "Sem Serviço". Nenhuma nova tabela; políticas de acesso atuais já cobrem coordenador e diretoria.
+- `src/hooks/useAuvoServiceGroups.ts` — paginação real de `auvo_tasks`/`auvo_task_reports`; `hasReport` só é `false` quando a busca completou.
+- `src/components/admin/auvo/AuvoServiceReportTabs.tsx` e `src/pages/admin/AuvoAudit.tsx` — rótulo neutro durante o carregamento, origem por atendimento e aviso de escopo divergente.
+- `supabase/functions/auvo-sync/photoAudit.ts` — guarda de dados incompletos e obrigatoriedade de evidência (legendas/candidatas) para gravar pendência.
+- Limpeza pontual: remover pendências de foto `pending` geradas antes da correção da ingestão e marcar os relatórios afetados para reauditoria (nenhuma decisão humana já registrada é apagada).
+- `src/components/admin/auvo/AuvoGroupReviewDialog.tsx` — agrupamento por atendimento e ação de desvincular.
 
-## Arquivos previstos
-
-- `src/hooks/useAuvoIntegration.ts` — origem das pendências e ação de desvincular atendimento.
-- `src/components/admin/auvo/AuvoGroupReviewDialog.tsx` — origem por atendimento, agrupamento e faixa de aviso.
-- `src/components/admin/auvo/AuvoServiceReportTabs.tsx` — ação de desvincular no relatório.
-- `src/pages/admin/AuvoAudit.tsx` — indicador de grupo com escopos divergentes.
+Também vale revisar depois se outras telas com `limit` alto sofrem do mesmo teto de 1.000 linhas.
