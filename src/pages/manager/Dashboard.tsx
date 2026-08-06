@@ -78,6 +78,12 @@ const ManagerDashboard = () => {
           </div>
         </TabsContent>
 
+        <TabsContent value="discrepancies">
+          <AuvoDiscrepancyTab />
+        </TabsContent>
+
+
+
         <TabsContent value="coordinators">
           <CoordinatorProductivityReport 
             dateRange={filters.startDate && filters.endDate ? {
