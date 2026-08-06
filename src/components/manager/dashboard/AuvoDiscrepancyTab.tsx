@@ -49,30 +49,42 @@ interface Group {
 }
 
 
-const buildGroups = (items: AuvoCriticalItem[]): Group[] => {
+const buildGroups = (
+  items: AuvoCriticalItem[],
+  photoGaps: AuvoPhotoGapItem[] = [],
+): Group[] => {
   const map = new Map<string, Group>();
 
-  for (const item of items) {
-    const key = item.orderNumber
-      ? `os:${item.orderNumber}`
-      : `svc:${item.serviceGroupId ?? item.customerName ?? "sem-servico"}`;
-
+  const ensure = (
+    key: string,
+    seed: Partial<Group> & { orderNumber: string | null },
+  ): Group => {
     let group = map.get(key);
     if (!group) {
       group = {
         key,
-        orderNumber: item.orderNumber,
-        customerName: item.customerName,
-        vesselName: item.vesselName,
+        orderNumber: seed.orderNumber,
+        customerName: seed.customerName ?? null,
+        vesselName: seed.vesselName ?? null,
         technicians: [],
         dates: [],
         items: [],
+        photoGaps: [],
         notReportedCount: 0,
         totalRisk: 0,
         oldestDays: 0,
       };
       map.set(key, group);
     }
+    return group;
+  };
+
+  for (const item of items) {
+    const key = item.orderNumber
+      ? `os:${item.orderNumber}`
+      : `svc:${item.serviceGroupId ?? item.customerName ?? "sem-servico"}`;
+
+    const group = ensure(key, item);
 
     group.items.push(item);
     group.totalRisk += item.valueAtRisk;
@@ -86,13 +98,28 @@ const buildGroups = (items: AuvoCriticalItem[]): Group[] => {
     if (!group.vesselName && item.vesselName) group.vesselName = item.vesselName;
   }
 
+  const now = Date.now();
+  for (const gap of photoGaps) {
+    const key = gap.orderNumber
+      ? `os:${gap.orderNumber}`
+      : `svc:${gap.serviceGroupId ?? "sem-servico"}`;
+    const group = ensure(key, { orderNumber: gap.orderNumber });
+    group.photoGaps.push(gap);
+    group.oldestDays = Math.max(
+      group.oldestDays,
+      Math.max(0, Math.floor((now - new Date(gap.createdAt).getTime()) / 86_400_000)),
+    );
+  }
+
   return Array.from(map.values()).sort(
     (a, b) =>
       b.notReportedCount - a.notReportedCount ||
       b.totalRisk - a.totalRisk ||
+      b.photoGaps.length - a.photoGaps.length ||
       b.oldestDays - a.oldestDays,
   );
 };
+
 
 const formatDates = (dates: string[]) => {
   const sorted = dates.slice().sort();
