@@ -123,10 +123,7 @@ export const AuvoDiscrepancyTab = () => {
                         variant="ghost"
                         onClick={() =>
                           navigate("/manager/auvo-audit", {
-                            state: {
-                              serviceGroupId: item.serviceGroupId,
-                              discrepancyId: item.id,
-                            },
+                            state: { search: item.orderNumber || item.itemName },
                           })
                         }
                       >
