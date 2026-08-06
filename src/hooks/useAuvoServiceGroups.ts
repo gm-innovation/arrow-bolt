@@ -14,12 +14,32 @@ export interface AuvoServiceGroup {
   last_task_date: string | null;
   is_similarity_grouped: boolean;
   grouping_reason: string | null;
+  merge_reason: string | null;
+  merged_from: unknown;
   analysis_status: string;
   analyzed_at: string | null;
   analysis_error: string | null;
   analysis_attempts: number | null;
   analysis_last_attempt_at: string | null;
 }
+
+export interface AuvoMergeCandidate {
+  id: string;
+  service_key: string;
+  primary_order_number: string | null;
+  order_numbers: string[];
+  customer_name: string | null;
+  vessel_name: string | null;
+  first_task_date: string | null;
+  last_task_date: string | null;
+}
+
+export interface AuvoMergeSuggestion {
+  primary: AuvoMergeCandidate;
+  duplicate: AuvoMergeCandidate;
+  reason: string;
+}
+
 
 export interface AuvoServiceMember {
   id: string;
