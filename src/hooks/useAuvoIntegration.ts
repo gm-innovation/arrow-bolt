@@ -35,6 +35,20 @@ export interface AuvoDiscrepancy {
     auvo_task_type: string | null;
   } | null;
 }
+export interface AuvoPhotoFinding {
+  id: string;
+  auvo_task_uid: string;
+  service_group_id: string | null;
+  order_number: string | null;
+  activity: string;
+  expected_evidence: string | null;
+  severity: "low" | "medium" | "high";
+  ai_notes: string | null;
+  photo_count: number;
+  review_status: string;
+  review_notes: string | null;
+  created_at: string;
+}
 
 
 export interface AuvoSyncRun {
