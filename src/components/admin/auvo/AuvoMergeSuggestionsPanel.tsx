@@ -74,8 +74,24 @@ export const AuvoMergeSuggestionsPanel = ({
   mergedGroups,
   onUnmerge,
   isUnmerging,
+  membersByGroup,
+  dismissals,
+  onDismiss,
+  isDismissing,
+  onUndoDismiss,
+  groups,
 }: Props) => {
   const [confirm, setConfirm] = useState<AuvoMergeSuggestion | null>(null);
+  const [compare, setCompare] = useState<AuvoMergeSuggestion | null>(null);
+
+  const groupLabel = (id: string) => {
+    const g = groups.find((x) => x.id === id);
+    if (!g) return "Serviço removido";
+    return `${label(g.primary_order_number, g.service_key, g.order_numbers)} · ${
+      g.vessel_name ?? g.customer_name ?? "—"
+    }`;
+  };
+
 
   return (
     <div className="space-y-4">
