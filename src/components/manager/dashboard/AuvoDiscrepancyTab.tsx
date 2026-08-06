@@ -2,7 +2,7 @@ import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ArrowRight, ChevronRight, PackageX } from "lucide-react";
+import { ArrowRight, Camera, ChevronRight, PackageX } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAuvoCriticalSummary, type AuvoCriticalItem } from "@/hooks/useAuvoCriticalSummary";
+import {
+  useAuvoCriticalSummary,
+  type AuvoCriticalItem,
+  type AuvoPhotoGapItem,
+} from "@/hooks/useAuvoCriticalSummary";
+
 import { AuvoInsightsPanel } from "@/components/admin/auvo/AuvoInsightsPanel";
 
 const currency = (value: number) =>
@@ -37,35 +42,49 @@ interface Group {
   technicians: string[];
   dates: string[];
   items: AuvoCriticalItem[];
+  photoGaps: AuvoPhotoGapItem[];
   notReportedCount: number;
   totalRisk: number;
   oldestDays: number;
 }
 
-const buildGroups = (items: AuvoCriticalItem[]): Group[] => {
+
+const buildGroups = (
+  items: AuvoCriticalItem[],
+  photoGaps: AuvoPhotoGapItem[] = [],
+): Group[] => {
   const map = new Map<string, Group>();
 
-  for (const item of items) {
-    const key = item.orderNumber
-      ? `os:${item.orderNumber}`
-      : `svc:${item.serviceGroupId ?? item.customerName ?? "sem-servico"}`;
-
+  const ensure = (
+    key: string,
+    seed: Partial<Group> & { orderNumber: string | null },
+  ): Group => {
     let group = map.get(key);
     if (!group) {
       group = {
         key,
-        orderNumber: item.orderNumber,
-        customerName: item.customerName,
-        vesselName: item.vesselName,
+        orderNumber: seed.orderNumber,
+        customerName: seed.customerName ?? null,
+        vesselName: seed.vesselName ?? null,
         technicians: [],
         dates: [],
         items: [],
+        photoGaps: [],
         notReportedCount: 0,
         totalRisk: 0,
         oldestDays: 0,
       };
       map.set(key, group);
     }
+    return group;
+  };
+
+  for (const item of items) {
+    const key = item.orderNumber
+      ? `os:${item.orderNumber}`
+      : `svc:${item.serviceGroupId ?? item.customerName ?? "sem-servico"}`;
+
+    const group = ensure(key, item);
 
     group.items.push(item);
     group.totalRisk += item.valueAtRisk;
@@ -79,13 +98,28 @@ const buildGroups = (items: AuvoCriticalItem[]): Group[] => {
     if (!group.vesselName && item.vesselName) group.vesselName = item.vesselName;
   }
 
+  const now = Date.now();
+  for (const gap of photoGaps) {
+    const key = gap.orderNumber
+      ? `os:${gap.orderNumber}`
+      : `svc:${gap.serviceGroupId ?? "sem-servico"}`;
+    const group = ensure(key, { orderNumber: gap.orderNumber });
+    group.photoGaps.push(gap);
+    group.oldestDays = Math.max(
+      group.oldestDays,
+      Math.max(0, Math.floor((now - new Date(gap.createdAt).getTime()) / 86_400_000)),
+    );
+  }
+
   return Array.from(map.values()).sort(
     (a, b) =>
       b.notReportedCount - a.notReportedCount ||
       b.totalRisk - a.totalRisk ||
+      b.photoGaps.length - a.photoGaps.length ||
       b.oldestDays - a.oldestDays,
   );
 };
+
 
 const formatDates = (dates: string[]) => {
   const sorted = dates.slice().sort();
@@ -102,7 +136,11 @@ export const AuvoDiscrepancyTab = () => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [visible, setVisible] = useState(PAGE_SIZE);
 
-  const groups = useMemo(() => buildGroups(data?.items ?? []), [data?.items]);
+  const groups = useMemo(
+    () => buildGroups(data?.items ?? [], data?.photoGaps ?? []),
+    [data?.items, data?.photoGaps],
+  );
+
   const shown = groups.slice(0, visible);
 
   const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -195,8 +233,14 @@ export const AuvoDiscrepancyTab = () => {
                                   {group.notReportedCount} sem relato
                                 </Badge>
                               )}
+                              {group.photoGaps.length > 0 && (
+                                <Badge className="bg-purple-600 text-purple-50 hover:bg-purple-600">
+                                  {group.photoGaps.length} sem foto
+                                </Badge>
+                              )}
                             </div>
                           </TableCell>
+
                           <TableCell className="text-center">{group.oldestDays}d</TableCell>
                           <TableCell className="text-right font-medium">
                             {currency(group.totalRisk)}
@@ -219,47 +263,76 @@ export const AuvoDiscrepancyTab = () => {
                         {isOpen && (
                           <TableRow className="bg-muted/40">
                             <TableCell />
-                            <TableCell colSpan={7} className="py-3">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Material</TableHead>
-                                    <TableHead className="text-center">Estoque</TableHead>
-                                    <TableHead className="text-center">Relatório</TableHead>
-                                    <TableHead>Classificação</TableHead>
-                                    <TableHead className="text-right">Valor em risco</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {group.items.map((item) => (
-                                    <TableRow key={item.id}>
-                                      <TableCell>{item.itemName}</TableCell>
-                                      <TableCell className="text-center">
-                                        {item.stockQuantity}
-                                      </TableCell>
-                                      <TableCell className="text-center">
-                                        {item.reportedQuantity}
-                                      </TableCell>
-                                      <TableCell>
-                                        <Badge
-                                          variant={
-                                            item.classification === "stock_not_reported"
-                                              ? "destructive"
-                                              : "outline"
-                                          }
-                                        >
-                                          {CLASSIFICATION_LABEL[item.classification] ??
-                                            item.classification}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        {currency(item.valueAtRisk)}
-                                      </TableCell>
+                            <TableCell colSpan={7} className="space-y-4 py-3">
+                              {group.items.length > 0 && (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Material</TableHead>
+                                      <TableHead className="text-center">Estoque</TableHead>
+                                      <TableHead className="text-center">Relatório</TableHead>
+                                      <TableHead>Classificação</TableHead>
+                                      <TableHead className="text-right">Valor em risco</TableHead>
                                     </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {group.items.map((item) => (
+                                      <TableRow key={item.id}>
+                                        <TableCell>{item.itemName}</TableCell>
+                                        <TableCell className="text-center">
+                                          {item.stockQuantity}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                          {item.reportedQuantity}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Badge
+                                            variant={
+                                              item.classification === "stock_not_reported"
+                                                ? "destructive"
+                                                : "outline"
+                                            }
+                                          >
+                                            {CLASSIFICATION_LABEL[item.classification] ??
+                                              item.classification}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          {currency(item.valueAtRisk)}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              )}
+
+                              {group.photoGaps.length > 0 && (
+                                <div className="space-y-2">
+                                  <p className="flex items-center gap-2 text-sm font-medium">
+                                    <Camera className="h-4 w-4" />
+                                    Atividades sem evidência fotográfica
+                                  </p>
+                                  <ul className="space-y-2">
+                                    {group.photoGaps.map((gap) => (
+                                      <li key={gap.id} className="rounded-md border p-2 text-sm">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <span className="font-medium">{gap.activity}</span>
+                                          <Badge variant="outline">
+                                            {gap.photoCount} foto(s)
+                                          </Badge>
+                                        </div>
+                                        {gap.expectedEvidence && (
+                                          <p className="text-xs text-muted-foreground">
+                                            Esperado: {gap.expectedEvidence}
+                                          </p>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
                             </TableCell>
+
                           </TableRow>
                         )}
                       </Fragment>

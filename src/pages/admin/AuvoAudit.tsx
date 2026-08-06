@@ -122,7 +122,10 @@ export default function AuvoAudit() {
     reviewDiscrepanciesBulk,
     reviewPhotoFindingsBulk,
     promoteToOS,
+    photoAuditProgress,
+    runPhotoAudit,
   } = useAuvoIntegration({ onlyDivergent });
+
 
   const {
     groups,
@@ -482,6 +485,39 @@ export default function AuvoAudit() {
           </CardContent>
         </Card>
       )}
+
+      {photoAuditProgress && (
+        <Card className="border-purple-500/40 bg-purple-500/5">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 py-4">
+            <div className="text-sm">
+              <p className="font-medium">Auditoria de evidência fotográfica</p>
+              <p className="text-muted-foreground">
+                {photoAuditProgress.total - photoAuditProgress.pending} de{" "}
+                {photoAuditProgress.total} relatórios auditados ·{" "}
+                {photoAuditProgress.gaps} com lacuna · {photoAuditProgress.ok} completos
+                {photoAuditProgress.skipped > 0
+                  ? ` · ${photoAuditProgress.skipped} sem texto`
+                  : ""}
+                {photoAuditProgress.error > 0 ? ` · ${photoAuditProgress.error} com erro` : ""}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => runPhotoAudit.mutate(undefined)}
+              disabled={runPhotoAudit.isPending || photoAuditProgress.pending === 0}
+            >
+              {runPhotoAudit.isPending
+                ? "Auditando fotos..."
+                : photoAuditProgress.pending === 0
+                  ? "Fila de fotos concluída"
+                  : `Auditar fotos (${photoAuditProgress.pending} pendentes)`}
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+
 
       <Tabs defaultValue="divergencias">
         <TabsList>
