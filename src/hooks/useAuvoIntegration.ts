@@ -53,7 +53,15 @@ export interface AuvoPhotoFinding {
   review_status: string;
   review_notes: string | null;
   created_at: string;
+  /** Atendimento de origem — o mesmo nº de OS pode reunir serviços distintos. */
+  auvo_tasks?: {
+    auvo_task_id: string | null;
+    technician_name: string | null;
+    task_date: string | null;
+    auvo_task_type: string | null;
+  } | null;
 }
+
 
 
 export interface AuvoSyncRun {
