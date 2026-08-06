@@ -146,10 +146,25 @@ export const AuvoMergeSuggestionsPanel = ({
                     {formatDate(s.duplicate.first_task_date)} – {formatDate(s.duplicate.last_task_date)}
                   </p>
                 </div>
-                <Button className="shrink-0" onClick={() => setConfirm(s)} disabled={isMerging}>
-                  <GitMerge className="mr-2 h-4 w-4" />
-                  Unificar serviços
-                </Button>
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  <Button variant="secondary" onClick={() => setCompare(s)}>
+                    <SplitSquareHorizontal className="mr-2 h-4 w-4" />
+                    Comparar
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={isDismissing}
+                    onClick={() => onDismiss(s.primary.id, s.duplicate.id)}
+                  >
+                    <XCircle className="mr-2 h-4 w-4" />
+                    Não são duplicatas
+                  </Button>
+                  <Button onClick={() => setConfirm(s)} disabled={isMerging}>
+                    <GitMerge className="mr-2 h-4 w-4" />
+                    Unificar serviços
+                  </Button>
+                </div>
+
               </div>
             ))
           )}
