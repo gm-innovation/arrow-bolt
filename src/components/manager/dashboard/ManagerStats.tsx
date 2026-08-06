@@ -22,6 +22,7 @@ interface ManagerStatsProps {
 }
 
 export const ManagerStats = ({ filters }: ManagerStatsProps) => {
+  const { data: discrepancies } = useAuvoCriticalSummary();
   const { data: stats, isLoading } = useQuery({
     queryKey: ["manager-stats", filters],
     queryFn: async () => {
