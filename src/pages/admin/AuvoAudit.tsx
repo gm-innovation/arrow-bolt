@@ -589,21 +589,34 @@ export default function AuvoAudit() {
                                 </span>
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (g.serviceGroupId) {
-                                      reanalyzeService.mutate(g.serviceGroupId);
-                                    } else {
-                                      reanalyzeTask.mutate(g.taskUid);
-                                    }
-                                  }}
-                                  disabled={reanalyzeTask.isPending || reanalyzeService.isPending}
-                                >
-                                  Reanalisar serviço
-                                </Button>
+                                <div className="flex flex-col items-end gap-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setReviewGroupKey(g.key);
+                                      setFocusItemId(null);
+                                    }}
+                                  >
+                                    Revisar divergências ({g.items.length})
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (g.serviceGroupId) {
+                                        reanalyzeService.mutate(g.serviceGroupId);
+                                      } else {
+                                        reanalyzeTask.mutate(g.taskUid);
+                                      }
+                                    }}
+                                    disabled={reanalyzeTask.isPending || reanalyzeService.isPending}
+                                  >
+                                    Reanalisar serviço
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
 
