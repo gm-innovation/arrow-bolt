@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -506,6 +507,8 @@ export const useAuvoIntegration = (filters?: {
       };
     },
     enabled: !!companyId,
+    // Enquanto restam relatórios na fila de fotos, o progresso se atualiza sozinho.
+    refetchInterval: (q) => ((q.state.data?.pending ?? 0) > 0 ? 10000 : false),
   });
 
   const runPhotoAudit = useMutation({
@@ -564,6 +567,15 @@ export const useAuvoIntegration = (filters?: {
       toast.error("Erro ao reprocessar", { description: error.message }),
   });
 
+  const photoAuditPending = photoAuditProgressQuery.data?.pending ?? 0;
+  const isProcessing =
+    !!filters?.live ||
+    photoAuditPending > 0 ||
+    (runsQuery.data ?? []).some((r) => r.status === "running") ||
+    runPhotoAudit.isPending ||
+    runSync.isPending;
+  liveRef.current = isProcessing;
+
   const discrepancies = discrepanciesQuery.data ?? [];
 
   const divergent = discrepancies.filter((d) => d.classification !== "match");
@@ -597,6 +609,7 @@ export const useAuvoIntegration = (filters?: {
     reviewPhotoFindingsBulk,
     promoteToOS,
     photoAuditProgress: photoAuditProgressQuery.data ?? null,
+    isProcessing,
     runPhotoAudit,
     resetPhotoAudit,
 
