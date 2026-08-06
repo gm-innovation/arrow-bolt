@@ -40,6 +40,17 @@ export interface AuvoMergeSuggestion {
   reason: string;
 }
 
+export interface AuvoMergeDismissal {
+  id: string;
+  group_a_id: string;
+  group_b_id: string;
+  reason: string | null;
+  dismissed_by: string | null;
+  created_at: string;
+}
+
+
+
 
 export interface AuvoServiceMember {
   id: string;
