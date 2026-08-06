@@ -124,7 +124,17 @@ export default function AuvoAudit() {
     processQueue,
     retryFailedAnalyses,
     autoGroupOrphans,
+    mergeSuggestions,
+    mergeServices,
+    unmergeService,
   } = useAuvoServiceGroups();
+
+  const mergeSuggestionList = mergeSuggestions.data ?? [];
+  const mergedGroups = useMemo(
+    () => groups.filter((g) => Array.isArray(g.merged_from) && g.merged_from.length > 0),
+    [groups],
+  );
+
 
   const {
     discrepancies,
