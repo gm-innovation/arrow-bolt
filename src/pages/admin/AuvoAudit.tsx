@@ -241,46 +241,37 @@ export default function AuvoAudit() {
     );
   }, [filtered, groupById, membersByGroup]);
 
+  const reviewGroup = useMemo(
+    () => grouped.find((g) => g.key === reviewGroupKey) ?? null,
+    [grouped, reviewGroupKey],
+  );
+
   const reviewMembers = useMemo(() => {
-    if (!reviewTarget) return [];
-    const members = reviewTarget.service_group_id
-      ? membersByGroup.get(reviewTarget.service_group_id) ?? []
+    if (!reviewGroup) return [];
+    const members = reviewGroup.serviceGroupId
+      ? membersByGroup.get(reviewGroup.serviceGroupId) ?? []
       : [];
     if (members.length > 0) return members;
+    const first = reviewGroup.items[0];
     return [
       {
-        id: reviewTarget.auvo_task_uid,
-        auvo_task_id: reviewTarget.auvo_tasks?.auvo_task_id ?? "",
-        order_number: reviewTarget.order_number,
-        auvo_task_type: reviewTarget.auvo_tasks?.auvo_task_type ?? null,
-        task_date: reviewTarget.auvo_tasks?.task_date ?? null,
-        technician_name: reviewTarget.auvo_tasks?.technician_name ?? null,
-        customer_name: null,
-        vessel_name: null,
+        id: reviewGroup.taskUid,
+        auvo_task_id: first?.auvo_tasks?.auvo_task_id ?? "",
+        order_number: first?.order_number ?? null,
+        auvo_task_type: first?.auvo_tasks?.auvo_task_type ?? null,
+        task_date: first?.auvo_tasks?.task_date ?? null,
+        technician_name: first?.auvo_tasks?.technician_name ?? null,
+        customer_name: reviewGroup.customerName ?? null,
+        vessel_name: reviewGroup.vesselName ?? null,
         service_group_id: null,
-
         unlinked_from_group: false,
         hasReport: true,
       },
     ];
-  }, [reviewTarget, membersByGroup]);
-
-
+  }, [reviewGroup, membersByGroup]);
 
   const lastRun = runs[0];
 
-  const submitReview = () => {
-    if (!reviewTarget) return;
-    reviewDiscrepancy.mutate(
-      { id: reviewTarget.id, review_status: reviewStatus, review_notes: reviewNotes || undefined },
-      {
-        onSuccess: () => {
-          setReviewTarget(null);
-          setReviewNotes("");
-        },
-      },
-    );
-  };
 
   return (
     <div className="space-y-6">
