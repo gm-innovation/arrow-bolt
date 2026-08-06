@@ -122,7 +122,10 @@ export default function AuvoAudit() {
     reviewDiscrepanciesBulk,
     reviewPhotoFindingsBulk,
     promoteToOS,
+    photoAuditProgress,
+    runPhotoAudit,
   } = useAuvoIntegration({ onlyDivergent });
+
 
   const {
     groups,
