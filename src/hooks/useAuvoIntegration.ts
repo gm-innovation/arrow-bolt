@@ -431,6 +431,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     runSync,
     reanalyzeTask,
     reviewDiscrepancy,
+    reviewDiscrepanciesBulk,
     promoteToOS,
 
   };
