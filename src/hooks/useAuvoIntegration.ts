@@ -325,6 +325,39 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     onError: (error: Error) => toast.error("Erro ao salvar revisões", { description: error.message }),
   });
 
+  // Revisão em lote das lacunas de evidência fotográfica.
+  const reviewPhotoFindingsBulk = useMutation({
+    mutationFn: async (
+      decisions: {
+        id: string;
+        review_status: "confirmed" | "justified" | "dismissed";
+        review_notes?: string;
+      }[],
+    ) => {
+      const reviewed_at = new Date().toISOString();
+      for (const decision of decisions) {
+        const { error } = await supabase
+          .from("auvo_photo_findings")
+          .update({
+            review_status: decision.review_status,
+            review_notes: decision.review_notes ?? null,
+            reviewed_by: profile?.id,
+            reviewed_at,
+          })
+          .eq("id", decision.id);
+        if (error) throw error;
+      }
+      return decisions.length;
+    },
+    onSuccess: (count) => {
+      toast.success(`${count} ${count === 1 ? "lacuna" : "lacunas"} de foto revisadas`);
+      queryClient.invalidateQueries({ queryKey: ["auvo-photo-findings"] });
+    },
+    onError: (error: Error) =>
+      toast.error("Erro ao salvar revisão de fotos", { description: error.message }),
+  });
+
+
   // Promove um atendimento espelhado do Auvo para uma OS nativa do Arrow,
   // reaproveitando (ou criando) cliente e embarcação pelo nome vindo do Auvo.
   const promoteToOS = useMutation({
