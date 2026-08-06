@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -154,9 +154,8 @@ export const AuvoDiscrepancyTab = () => {
                   {shown.map((group) => {
                     const isOpen = !!expanded[group.key];
                     return (
-                      <>
+                      <Fragment key={group.key}>
                         <TableRow
-                          key={group.key}
                           className="cursor-pointer"
                           onClick={() => toggle(group.key)}
                         >
@@ -218,7 +217,7 @@ export const AuvoDiscrepancyTab = () => {
                         </TableRow>
 
                         {isOpen && (
-                          <TableRow key={`${group.key}-details`} className="bg-muted/40">
+                          <TableRow className="bg-muted/40">
                             <TableCell />
                             <TableCell colSpan={7} className="py-3">
                               <Table>
@@ -263,7 +262,7 @@ export const AuvoDiscrepancyTab = () => {
                             </TableCell>
                           </TableRow>
                         )}
-                      </>
+                      </Fragment>
                     );
                   })}
                 </TableBody>
