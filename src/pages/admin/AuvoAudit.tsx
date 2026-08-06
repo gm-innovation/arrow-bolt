@@ -84,8 +84,10 @@ const severityVariant = (severity: string) =>
   severity === "high" ? "destructive" : severity === "medium" ? "default" : "secondary";
 
 export default function AuvoAudit() {
+  const location = useLocation();
+  const initialSearch = (location.state as { search?: string } | null)?.search ?? "";
   const [onlyDivergent, setOnlyDivergent] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
   const [classification, setClassification] = useState<string>("all");
   const [reviewGroupKey, setReviewGroupKey] = useState<string | null>(null);
   const [focusItemId, setFocusItemId] = useState<string | null>(null);
