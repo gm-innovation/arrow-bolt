@@ -53,8 +53,34 @@ export const useAuvoServiceGroups = () => {
     refetchInterval: (q) =>
       (q.state.data?.groups ?? []).some((g) => g.analysis_status === "pending") ? 10000 : false,
     queryFn: async () => {
+      // O backend devolve no máximo 1000 linhas por consulta, independente do
+      // .limit(): sem paginação, atendimentos e relatórios acima disso ficavam
+      // de fora e apareciam como "sem relatório".
+      const fetchAll = async <T,>(
+        table: "auvo_tasks" | "auvo_task_reports",
+        columns: string,
+        order?: { column: string; ascending: boolean },
+      ): Promise<T[]> => {
+        const PAGE = 1000;
+        const out: T[] = [];
+        for (let page = 0; page < 50; page++) {
+          let q = supabase
+            .from(table)
+            .select(columns)
+            .range(page * PAGE, page * PAGE + PAGE - 1);
+          if (order) {
+            q = q.order(order.column, { ascending: order.ascending, nullsFirst: false });
+          }
+          const { data, error } = await q;
+          if (error) throw error;
+          const rows = (data ?? []) as unknown as T[];
+          out.push(...rows);
+          if (rows.length < PAGE) break;
+        }
+        return out;
+      };
 
-      const [groupsRes, tasksRes, reportsRes] = await Promise.all([
+      const [groupsRes, taskRows, reportRows] = await Promise.all([
         supabase
           .from("auvo_service_groups")
           .select(
@@ -62,31 +88,30 @@ export const useAuvoServiceGroups = () => {
           )
           .order("last_task_date", { ascending: false, nullsFirst: false })
           .limit(1000),
-        supabase
-          .from("auvo_tasks")
-          .select(
-            "id, auvo_task_id, order_number, auvo_task_type, customer_name, vessel_name, task_date, technician_name, service_group_id, unlinked_from_group",
-          )
-          .order("task_date", { ascending: true, nullsFirst: false })
-          .limit(2000),
-        supabase.from("auvo_task_reports").select("auvo_task_uid, report_text").limit(2000),
+        fetchAll<Record<string, unknown>>(
+          "auvo_tasks",
+          "id, auvo_task_id, order_number, auvo_task_type, customer_name, vessel_name, task_date, technician_name, service_group_id, unlinked_from_group",
+          { column: "task_date", ascending: true },
+        ),
+        fetchAll<{ auvo_task_uid: string; report_text: string | null }>(
+          "auvo_task_reports",
+          "auvo_task_uid, report_text",
+        ),
       ]);
 
       if (groupsRes.error) throw groupsRes.error;
-      if (tasksRes.error) throw tasksRes.error;
-      if (reportsRes.error) throw reportsRes.error;
-
 
       const withReport = new Set(
-        (reportsRes.data ?? [])
+        reportRows
           .filter((r) => (r.report_text ?? "").trim().length > 0)
-          .map((r) => r.auvo_task_uid as string),
+          .map((r) => r.auvo_task_uid),
       );
 
-      const members = (tasksRes.data ?? []).map((t) => ({
+      const members = taskRows.map((t) => ({
         ...(t as unknown as Omit<AuvoServiceMember, "hasReport">),
         hasReport: withReport.has(t.id as string),
       })) as AuvoServiceMember[];
+
 
       const membersByGroup = new Map<string, AuvoServiceMember[]>();
       for (const member of members) {
