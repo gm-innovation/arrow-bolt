@@ -12,10 +12,27 @@ Objetivo: a IA ler as atividades declaradas em cada relatório e apontar quais n
    - **Parcial** — parte das atividades sem evidência (lista as atividades descobertas).
    - **Sem evidência** — relatório com serviço executado e nenhuma foto: severidade alta.
    - **Não aplicável** — atendimento sem atividade que exija foto.
-3. As pendências aparecem junto das divergências de materiais:
-   - Na lista agrupada por OS de `/admin/auvo-audit` e `/manager/auvo-audit`, cada serviço mostra um selo de evidência fotográfica ("2 atendimentos sem foto") ao lado do risco de materiais.
-   - No modal de revisão consolidada (`AuvoGroupReviewDialog`), um bloco "Evidência fotográfica" lista, por atendimento (técnico + data), as atividades sem foto, com galeria de miniaturas do que existe e o mesmo fluxo de conclusão (confirmada / justificada / descartar) e observações — inclusive "Aplicar a todos".
-4. Alerta e KPIs: atendimentos "sem evidência" entram na notificação de divergências relevantes do serviço e no resumo crítico já usado no dashboard da diretoria, como uma linha própria ("Relatórios sem evidência fotográfica"), sem se misturar ao valor financeiro em risco.
+3. As pendências aparecem junto das divergências de materiais, sempre com o **tipo de pendência** explícito por OS/serviço (ver seção abaixo).
+4. No modal de revisão consolidada (`AuvoGroupReviewDialog`), um bloco "Evidência fotográfica" lista, por atendimento (técnico + data), as atividades sem foto, com galeria de miniaturas do que existe e o mesmo fluxo de conclusão (confirmada / justificada / descartar) e observações — inclusive "Aplicar a todos". Quando o serviço só tem pendência de um dos tipos, apenas o bloco correspondente é exibido, com uma nota de que o outro está em conformidade.
+5. Alerta e KPIs: atendimentos "sem evidência" entram na notificação de divergências relevantes do serviço e no resumo crítico do dashboard da diretoria, como linha própria ("Relatórios sem evidência fotográfica"), sem se misturar ao valor financeiro em risco.
+
+## Materiais x fotos: pendências independentes
+
+Uma OS pode ter divergência de material sem problema de foto, problema de foto sem divergência de material, ou os dois. Cada serviço passa a ter um **tipo de pendência** calculado a partir das duas auditorias, exibido como selo na lista e nos filtros:
+
+| Selo | Significado |
+| --- | --- |
+| **Materiais** (âmbar) | Divergência de material pendente; evidência fotográfica em conformidade. |
+| **Fotos** (roxo) | Atividades sem evidência fotográfica; materiais conferem. |
+| **Materiais + Fotos** (vermelho) | Os dois problemas no mesmo serviço — prioridade máxima. |
+| **Em conformidade** (verde) | Auditado, sem pendência nos dois eixos. |
+| **Não auditado** (cinza) | Análise pendente ou com erro em pelo menos um dos eixos. |
+
+- Cada selo mostra o próprio número: risco em R$ e nº de materiais no eixo de materiais; nº de atendimentos e de atividades sem foto no eixo de fotos.
+- Filtro na tela de auditoria: "Todas", "Só materiais", "Só fotos", "Ambos", com contagem em cada opção; a ordenação padrão coloca "Materiais + Fotos" no topo.
+- Na diretoria, o resumo crítico e o cartão de KPI passam a distinguir as três contagens (só materiais / só fotos / ambos) em vez de um total único.
+- As conclusões de revisão são independentes: fechar as divergências de material não zera as pendências de foto (e vice-versa); o serviço só sai da fila quando os dois eixos estiverem resolvidos.
+
 
 ## Detalhes técnicos
 
