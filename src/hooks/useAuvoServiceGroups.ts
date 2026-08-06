@@ -40,6 +40,17 @@ export interface AuvoMergeSuggestion {
   reason: string;
 }
 
+export interface AuvoMergeDismissal {
+  id: string;
+  group_a_id: string;
+  group_b_id: string;
+  reason: string | null;
+  dismissed_by: string | null;
+  created_at: string;
+}
+
+
+
 
 export interface AuvoServiceMember {
   id: string;
@@ -371,7 +382,75 @@ export const useAuvoServiceGroups = () => {
       toast.error("Erro ao desfazer unificação", { description: error.message }),
   });
 
+  /** Pares descartados manualmente ("não são duplicatas"). */
+  const mergeDismissals = useQuery({
+    queryKey: ["auvo-merge-dismissals", companyId],
+    enabled: !!companyId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("auvo_merge_dismissals")
+        .select("id, group_a_id, group_b_id, reason, dismissed_by, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (error) throw error;
+      return (data ?? []) as AuvoMergeDismissal[];
+    },
+  });
+
+  /** Registra que os dois serviços não são o mesmo trabalho. */
+  const dismissMerge = useMutation({
+    mutationFn: async ({
+      groupAId,
+      groupBId,
+      reason,
+    }: {
+      groupAId: string;
+      groupBId: string;
+      reason?: string;
+    }) => {
+      const { data, error } = await supabase.functions.invoke("auvo-sync", {
+        body: {
+          mode: "dismiss_merge",
+          group_a_id: groupAId,
+          group_b_id: groupBId,
+          reason: reason ?? null,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message ?? data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Duplicidade descartada", {
+        description: "Este par não voltará a aparecer nas sugestões.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["auvo-merge-suggestions"] });
+      queryClient.invalidateQueries({ queryKey: ["auvo-merge-dismissals"] });
+    },
+    onError: (error: Error) => toast.error("Erro ao descartar", { description: error.message }),
+  });
+
+  /** Reverte o descarte: o par volta a ser sugerido. */
+  const undoDismissMerge = useMutation({
+    mutationFn: async (dismissalId: string) => {
+      const { data, error } = await supabase.functions.invoke("auvo-sync", {
+        body: { mode: "undo_dismiss_merge", dismissal_id: dismissalId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message ?? data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Descarte revertido");
+      queryClient.invalidateQueries({ queryKey: ["auvo-merge-suggestions"] });
+      queryClient.invalidateQueries({ queryKey: ["auvo-merge-dismissals"] });
+    },
+    onError: (error: Error) =>
+      toast.error("Erro ao reverter descarte", { description: error.message }),
+  });
+
   return {
+
     groups,
     membersByGroup: query.data?.membersByGroup ?? new Map<string, AuvoServiceMember[]>(),
     members,
@@ -387,6 +466,10 @@ export const useAuvoServiceGroups = () => {
     mergeSuggestions,
     mergeServices,
     unmergeService,
+    mergeDismissals,
+    dismissMerge,
+    undoDismissMerge,
+
   };
 };
 

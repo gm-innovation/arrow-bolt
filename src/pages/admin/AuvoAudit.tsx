@@ -127,6 +127,10 @@ export default function AuvoAudit() {
     mergeSuggestions,
     mergeServices,
     unmergeService,
+    mergeDismissals,
+    dismissMerge,
+    undoDismissMerge,
+
   } = useAuvoServiceGroups();
 
   const mergeSuggestionList = mergeSuggestions.data ?? [];
@@ -601,7 +605,16 @@ export default function AuvoAudit() {
             mergedGroups={mergedGroups}
             onUnmerge={(groupId) => unmergeService.mutate(groupId)}
             isUnmerging={unmergeService.isPending}
+            membersByGroup={membersByGroup}
+            groups={groups}
+            dismissals={mergeDismissals.data ?? []}
+            onDismiss={(groupAId, groupBId, reason) =>
+              dismissMerge.mutate({ groupAId, groupBId, reason })
+            }
+            isDismissing={dismissMerge.isPending}
+            onUndoDismiss={(dismissalId) => undoDismissMerge.mutate(dismissalId)}
           />
+
         </TabsContent>
 
 
