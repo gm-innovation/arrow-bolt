@@ -4,7 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 export interface AuvoReportAttachment {
   url: string;
   name: string | null;
+  subtitle?: string | null;
+  description?: string | null;
+  /** Legenda resolvida: prioriza o que o técnico escreveu no Auvo. */
+  caption?: string | null;
+  caption_source?: "auvo" | "vision" | null;
 }
+
+export type AuvoPhotoCaption = { url: string; caption: string; source: "auvo" | "vision" };
+
 
 export interface AuvoReportMaterial {
   id: string;
