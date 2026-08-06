@@ -55,6 +55,7 @@ import { useAuvoServiceGroups } from "@/hooks/useAuvoServiceGroups";
 import {
   useAuvoIntegration,
   type AuvoDiscrepancy,
+  type AuvoPhotoFinding,
   type AuvoTaskRow,
   type DiscrepancyClassification,
 } from "@/hooks/useAuvoIntegration";
