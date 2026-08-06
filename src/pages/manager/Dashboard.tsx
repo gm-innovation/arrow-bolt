@@ -53,14 +53,18 @@ const ManagerDashboard = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} storageKey="manager-dashboard" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="discrepancies">Divergências</TabsTrigger>
           <TabsTrigger value="coordinators">Coordenadores</TabsTrigger>
           <TabsTrigger value="productivity">Técnicos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          <AuvoDiscrepancyAlert onOpenDetails={() => setActiveTab("discrepancies")} />
+
           <ManagerStats filters={filters} />
           
           <CriticalOrdersCard />
+
 
           <TrendsComparison filters={filters} />
 
