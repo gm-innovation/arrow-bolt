@@ -472,7 +472,87 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
   });
 
 
+  // Progresso da auditoria de evidência fotográfica (backfill por relatório).
+  const photoAuditProgressQuery = useQuery({
+    queryKey: ["auvo-photo-audit-progress", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("auvo_task_reports")
+        .select("photo_audit_status")
+        .eq("company_id", companyId!);
+      if (error) throw error;
+      const rows = (data ?? []) as Array<{ photo_audit_status: string | null }>;
+      const count = (status: string) =>
+        rows.filter((r) => (r.photo_audit_status ?? "pending") === status).length;
+      return {
+        total: rows.length,
+        pending: count("pending"),
+        gaps: count("gaps"),
+        ok: count("ok"),
+        skipped: count("skipped"),
+        error: count("error"),
+      };
+    },
+    enabled: !!companyId,
+  });
+
+  const runPhotoAudit = useMutation({
+    mutationFn: async (rounds = 20) => {
+      let processed = 0;
+      let gaps = 0;
+      let skipped = 0;
+      let failed = 0;
+      let remaining = 1;
+
+      for (let round = 0; round < rounds && remaining > 0; round++) {
+        const { data, error } = await supabase.functions.invoke("auvo-sync", {
+          body: { mode: "photo_audit_batch", limit: 8 },
+        });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.message ?? data.error);
+        processed += data.processed ?? 0;
+        gaps += data.gaps ?? 0;
+        skipped += data.skipped ?? 0;
+        failed += data.failed ?? 0;
+        remaining = data.remaining ?? 0;
+        queryClient.invalidateQueries({ queryKey: ["auvo-photo-audit-progress"] });
+        queryClient.invalidateQueries({ queryKey: ["auvo-photo-findings"] });
+        if (!data.processed && !data.skipped) break;
+      }
+
+      return { processed, gaps, skipped, failed, remaining };
+    },
+    onSuccess: (result) => {
+      toast.success(`Auditoria de fotos: ${result.processed} relatórios analisados`, {
+        description: result.remaining
+          ? `${result.gaps} lacunas encontradas · ${result.remaining} relatórios ainda na fila.`
+          : `${result.gaps} lacunas encontradas · fila concluída.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["auvo-photo-findings"] });
+      queryClient.invalidateQueries({ queryKey: ["auvo-photo-audit-progress"] });
+    },
+    onError: (error: Error) =>
+      toast.error("Erro na auditoria de fotos", { description: error.message }),
+  });
+
+  const resetPhotoAudit = useMutation({
+    mutationFn: async (reportId: string) => {
+      const { error } = await supabase
+        .from("auvo_task_reports")
+        .update({ photo_audit_status: "pending", photo_audit_notes: null })
+        .eq("id", reportId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Relatório recolocado na fila de auditoria de fotos");
+      queryClient.invalidateQueries({ queryKey: ["auvo-photo-audit-progress"] });
+    },
+    onError: (error: Error) =>
+      toast.error("Erro ao reprocessar", { description: error.message }),
+  });
+
   const discrepancies = discrepanciesQuery.data ?? [];
+
   const divergent = discrepancies.filter((d) => d.classification !== "match");
   const photoFindings = photoFindingsQuery.data ?? [];
 
