@@ -20,13 +20,27 @@ export interface AuvoCriticalItem {
   serviceGroupId: string | null;
 }
 
+export interface AuvoPhotoGapItem {
+  id: string;
+  orderNumber: string | null;
+  serviceGroupId: string | null;
+  activity: string;
+  expectedEvidence: string | null;
+  severity: string | null;
+  photoCount: number;
+  createdAt: string;
+}
+
 export interface AuvoCriticalSummary {
   pendingCount: number;
   stockNotReportedCount: number;
   valueAtRisk: number;
   oldestDays: number | null;
   items: AuvoCriticalItem[];
+  photoGaps: AuvoPhotoGapItem[];
+  photoGapCount: number;
 }
+
 
 interface Row {
   id: string;
