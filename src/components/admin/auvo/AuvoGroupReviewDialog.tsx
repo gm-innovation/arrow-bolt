@@ -69,19 +69,23 @@ export const AuvoGroupReviewDialog = ({
   vesselName,
   totalRisk,
   items,
+  photoFindings = [],
   members,
   focusItemId,
   initialTaskUid,
   isSaving,
   onSubmit,
+  onSubmitPhotos,
   classificationLabel,
   reviewLabel,
   currency,
   severityVariant,
 }: Props) => {
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
+  const [photoDrafts, setPhotoDrafts] = useState<Record<string, Draft>>({});
   const [bulkStatus, setBulkStatus] = useState<ReviewStatus>("confirmed");
   const [bulkNotes, setBulkNotes] = useState("");
+  const [photoBulkStatus, setPhotoBulkStatus] = useState<ReviewStatus>("confirmed");
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   useEffect(() => {
@@ -94,8 +98,16 @@ export const AuvoGroupReviewDialog = ({
       };
     }
     setDrafts(next);
+    const nextPhotos: Record<string, Draft> = {};
+    for (const f of photoFindings) {
+      nextPhotos[f.id] = {
+        status: f.review_status && f.review_status !== "pending" ? (f.review_status as ReviewStatus) : "",
+        notes: f.review_notes ?? "",
+      };
+    }
+    setPhotoDrafts(nextPhotos);
     setBulkNotes("");
-  }, [open, items]);
+  }, [open, items, photoFindings]);
 
   useEffect(() => {
     if (!open || !focusItemId) return;
@@ -120,8 +132,24 @@ export const AuvoGroupReviewDialog = ({
     [items, drafts],
   );
 
+  const photoChanged = useMemo(
+    () =>
+      photoFindings.filter((f) => {
+        const draft = photoDrafts[f.id];
+        if (!draft?.status) return false;
+        return draft.status !== f.review_status || draft.notes !== (f.review_notes ?? "");
+      }),
+    [photoFindings, photoDrafts],
+  );
+
   const setDraft = (id: string, patch: Partial<Draft>) =>
     setDrafts((prev) => ({ ...prev, [id]: { ...(prev[id] ?? { status: "", notes: "" }), ...patch } }));
+
+  const setPhotoDraft = (id: string, patch: Partial<Draft>) =>
+    setPhotoDrafts((prev) => ({
+      ...prev,
+      [id]: { ...(prev[id] ?? { status: "", notes: "" }), ...patch },
+    }));
 
   const applyToAll = () =>
     setDrafts((prev) => {
@@ -134,7 +162,29 @@ export const AuvoGroupReviewDialog = ({
       return next;
     });
 
-  const handleSubmit = () =>
+  const applyToAllPhotos = () =>
+    setPhotoDrafts((prev) => {
+      const next = { ...prev };
+      for (const f of photoFindings) {
+        const current = next[f.id] ?? { status: "", notes: "" };
+        if (current.status) continue;
+        next[f.id] = { status: photoBulkStatus, notes: current.notes };
+      }
+      return next;
+    });
+
+  const totalChanged = changed.length + photoChanged.length;
+
+  const handleSubmit = () => {
+    if (photoChanged.length > 0 && onSubmitPhotos) {
+      onSubmitPhotos(
+        photoChanged.map((f) => ({
+          id: f.id,
+          review_status: photoDrafts[f.id].status as ReviewStatus,
+          review_notes: photoDrafts[f.id].notes || undefined,
+        })),
+      );
+    }
     onSubmit(
       changed.map((d) => ({
         id: d.id,
@@ -142,6 +192,8 @@ export const AuvoGroupReviewDialog = ({
         review_notes: drafts[d.id].notes || undefined,
       })),
     );
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
