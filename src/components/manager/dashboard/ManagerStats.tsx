@@ -71,8 +71,8 @@ export const ManagerStats = ({ filters }: ManagerStatsProps) => {
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[1, 2, 3, 4].map(i => (
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        {[1, 2, 3, 4, 5].map(i => (
           <Skeleton key={i} className="h-32" />
         ))}
       </div>
@@ -80,7 +80,7 @@ export const ManagerStats = ({ filters }: ManagerStatsProps) => {
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total de OSs</CardTitle>
