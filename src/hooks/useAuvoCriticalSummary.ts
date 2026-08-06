@@ -72,7 +72,11 @@ export const useAuvoCriticalSummary = () => {
   return useQuery({
     queryKey: ["auvo-critical-summary", companyId],
     enabled: !!companyId,
+    // A auditoria roda em background (fila da IA): a visão da diretoria se
+    // atualiza sozinha para refletir os achados mais recentes.
+    refetchInterval: 60000,
     queryFn: async (): Promise<AuvoCriticalSummary> => {
+
       const { data, error } = await supabase
         .from("auvo_material_discrepancies")
         .select(
