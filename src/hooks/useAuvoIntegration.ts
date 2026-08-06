@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -95,10 +96,19 @@ interface SyncArgs {
   period_end?: string;
 }
 
-export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
+export const useAuvoIntegration = (filters?: {
+  onlyDivergent?: boolean;
+  /** Sinaliza que há fila de análise externa em andamento (grupos pendentes). */
+  live?: boolean;
+}) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const companyId = profile?.company_id;
+
+  // Atualização viva: enquanto a IA está processando, as listas se atualizam
+  // sozinhas para o revisor começar antes do fim do lote.
+  const liveRef = useRef(false);
+  const liveInterval = () => (liveRef.current ? 8000 : false);
 
   const discrepanciesQuery = useQuery({
     queryKey: ["auvo-discrepancies", companyId, filters?.onlyDivergent],
@@ -122,6 +132,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       return (data ?? []) as unknown as AuvoDiscrepancy[];
     },
     enabled: !!companyId,
+    refetchInterval: liveInterval,
   });
 
   // Auditoria de evidência fotográfica: atividades declaradas sem foto.
@@ -139,7 +150,9 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       return (data ?? []) as unknown as AuvoPhotoFinding[];
     },
     enabled: !!companyId,
+    refetchInterval: liveInterval,
   });
+
 
 
   const runsQuery = useQuery({
@@ -494,6 +507,8 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       };
     },
     enabled: !!companyId,
+    // Enquanto restam relatórios na fila de fotos, o progresso se atualiza sozinho.
+    refetchInterval: (q) => ((q.state.data?.pending ?? 0) > 0 ? 10000 : false),
   });
 
   const runPhotoAudit = useMutation({
@@ -552,6 +567,15 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       toast.error("Erro ao reprocessar", { description: error.message }),
   });
 
+  const photoAuditPending = photoAuditProgressQuery.data?.pending ?? 0;
+  const isProcessing =
+    !!filters?.live ||
+    photoAuditPending > 0 ||
+    (runsQuery.data ?? []).some((r) => r.status === "running") ||
+    runPhotoAudit.isPending ||
+    runSync.isPending;
+  liveRef.current = isProcessing;
+
   const discrepancies = discrepanciesQuery.data ?? [];
 
   const divergent = discrepancies.filter((d) => d.classification !== "match");
@@ -585,6 +609,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     reviewPhotoFindingsBulk,
     promoteToOS,
     photoAuditProgress: photoAuditProgressQuery.data ?? null,
+    isProcessing,
     runPhotoAudit,
     resetPhotoAudit,
 

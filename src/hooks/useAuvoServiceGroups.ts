@@ -48,7 +48,12 @@ export const useAuvoServiceGroups = () => {
   const query = useQuery({
     queryKey: ["auvo-service-groups", companyId],
     enabled: !!companyId,
+    // Enquanto há serviços na fila, a lista se atualiza sozinha para o revisor
+    // ver os achados surgindo sem esperar o fim do processamento.
+    refetchInterval: (q) =>
+      (q.state.data?.groups ?? []).some((g) => g.analysis_status === "pending") ? 10000 : false,
     queryFn: async () => {
+
       const [groupsRes, tasksRes, reportsRes] = await Promise.all([
         supabase
           .from("auvo_service_groups")

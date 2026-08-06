@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { format, parseISO, startOfYear } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -25,6 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Table,
@@ -111,6 +112,19 @@ export default function AuvoAudit() {
   const [periodEnd, setPeriodEnd] = useState(format(new Date(), "yyyy-MM-dd"));
 
   const {
+    groups,
+    membersByGroup,
+    orphanMembers,
+    queue,
+    unlinkTask,
+    linkTaskToGroup,
+    reanalyzeService,
+    processQueue,
+    retryFailedAnalyses,
+    autoGroupOrphans,
+  } = useAuvoServiceGroups();
+
+  const {
     discrepancies,
     photoFindings,
     stats,
@@ -124,21 +138,8 @@ export default function AuvoAudit() {
     promoteToOS,
     photoAuditProgress,
     runPhotoAudit,
-  } = useAuvoIntegration({ onlyDivergent });
-
-
-  const {
-    groups,
-    membersByGroup,
-    orphanMembers,
-    queue,
-    unlinkTask,
-    linkTaskToGroup,
-    reanalyzeService,
-    processQueue,
-    retryFailedAnalyses,
-    autoGroupOrphans,
-  } = useAuvoServiceGroups();
+    isProcessing,
+  } = useAuvoIntegration({ onlyDivergent, live: queue.pending > 0 || processQueue.isPending });
 
 
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
@@ -332,6 +333,21 @@ export default function AuvoAudit() {
     ];
   }, [reviewGroup, membersByGroup]);
 
+  // Achados que surgiram DEPOIS que a revisão começou ganham selo "novo".
+  const seenKeysRef = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!seenKeysRef.current && grouped.length > 0) {
+      seenKeysRef.current = new Set(grouped.map((g) => g.key));
+    }
+  }, [grouped]);
+  const isNewGroup = (key: string) =>
+    seenKeysRef.current ? !seenKeysRef.current.has(key) : false;
+  const newCount = grouped.filter((g) => isNewGroup(g.key)).length;
+
+  const hasFilter = classification !== "all" || search.trim().length > 0;
+  const hiddenByFilter =
+    discrepancies.length - filtered.length + (classification !== "all" ? photoFindings.length : 0);
+
   const lastRun = runs[0];
 
 
@@ -461,6 +477,19 @@ export default function AuvoAudit() {
                 {queue.pending} serviço(s) aguardando análise · {queue.done} concluído(s)
                 {queue.error > 0 ? ` · ${queue.error} com erro` : ""}
               </p>
+              <Progress
+                className="mt-2 h-1.5 w-[260px]"
+                value={
+                  queue.pending + queue.done + queue.error > 0
+                    ? ((queue.done + queue.error) /
+                        (queue.pending + queue.done + queue.error)) *
+                      100
+                    : 0
+                }
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                A lista abaixo se atualiza sozinha conforme a IA encontra divergências.
+              </p>
             </div>
             <div className="flex gap-2">
               <Button
@@ -500,6 +529,16 @@ export default function AuvoAudit() {
                   : ""}
                 {photoAuditProgress.error > 0 ? ` · ${photoAuditProgress.error} com erro` : ""}
               </p>
+              <Progress
+                className="mt-2 h-1.5 w-[260px]"
+                value={
+                  photoAuditProgress.total > 0
+                    ? ((photoAuditProgress.total - photoAuditProgress.pending) /
+                        photoAuditProgress.total) *
+                      100
+                    : 0
+                }
+              />
             </div>
             <Button
               variant="outline"
@@ -572,6 +611,37 @@ export default function AuvoAudit() {
               </div>
             </CardHeader>
             <CardContent>
+              {(isProcessing || newCount > 0) && (
+                <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+                  {isProcessing && (
+                    <span className="flex items-center gap-1 text-muted-foreground">
+                      <RefreshCw className="h-3 w-3 animate-spin" />
+                      Auditoria em andamento — novos achados aparecem aqui automaticamente.
+                    </span>
+                  )}
+                  {newCount > 0 && (
+                    <Badge variant="secondary">{newCount} novo(s) desde que você abriu</Badge>
+                  )}
+                  {hasFilter && hiddenByFilter > 0 && (
+                    <>
+                      <span className="text-muted-foreground">
+                        {hiddenByFilter} achado(s) fora do filtro atual.
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 px-2 text-xs"
+                        onClick={() => {
+                          setClassification("all");
+                          setSearch("");
+                        }}
+                      >
+                        Limpar filtros
+                      </Button>
+                    </>
+                  )}
+                </div>
+              )}
               {isLoading ? (
                 <div className="space-y-2">
                   {[...Array(5)].map((_, i) => (
@@ -634,6 +704,9 @@ export default function AuvoAudit() {
                                     <FileText className="h-3 w-3" />
                                     {g.attendances} atend. · {g.reports} relat.
                                   </Badge>
+                                  {isNewGroup(g.key) && (
+                                    <Badge className="text-[10px]">novo</Badge>
+                                  )}
                                   {g.isSimilarityGrouped && (
                                     <Badge
                                       variant="secondary"
