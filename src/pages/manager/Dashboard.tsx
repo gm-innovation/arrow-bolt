@@ -13,6 +13,8 @@ import { TechnicianProductivityReport } from "@/components/manager/dashboard/Tec
 import { CoordinatorProductivityReport } from "@/components/manager/dashboard/CoordinatorProductivityReport";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PushNotificationPrompt } from "@/components/notifications/PushNotificationPrompt";
+import { AuvoDiscrepancyAlert } from "@/components/manager/dashboard/AuvoDiscrepancyAlert";
+import { AuvoDiscrepancyTab } from "@/components/manager/dashboard/AuvoDiscrepancyTab";
 
 interface DashboardFilters {
   startDate?: Date;
