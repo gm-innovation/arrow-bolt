@@ -44,7 +44,10 @@ export const parseReportSections = (reportText: string): ReportSection[] => {
   return sections.map((s) => ({ ...s, body: s.body.trim() }));
 };
 
-const MATERIAL_TITLE = /materi(a|ai)s?\s+fornecid|materi(a|ai)s?\s+utilizad|material\s*$/i;
+// Aceita qualquer título que comece por material/materiais/materials:
+// "MATERIAL FORNECIDO", "MATERIAIS FORNECIDOS", "MATERIAL UTILIZADO",
+// "MATERIAL FORNECIDOS PELA GOOGLEMARINE", "MATERIALS SUPPLIED", etc.
+const MATERIAL_TITLE = /^\s*materi(?:al|ais|als)\b/i;
 
 /** Retorna o texto da seção de material fornecido, ou null quando não declarada. */
 export const extractSuppliedMaterialSection = (
