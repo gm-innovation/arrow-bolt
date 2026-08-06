@@ -15,7 +15,8 @@ O RH não baixa nem importa nada. Se um dia a nuvem falhar, a importação manua
 
 Não localizei documentação pública dos endpoints do RHiD. Então a primeira etapa é confirmar, com a sua conta, quais chamadas o portal usa:
 
-- Fazer login no `rhid.com.br` de forma automatizada e capturar as requisições de autenticação e de "Baixar AFD do REP" / relatório de marcações (URL, cabeçalhos, formato da resposta).
+- Abrir primeiro o menu **Integração** e a tela **Monitoramento iDCloud** do portal: é o lugar mais provável de haver chave/token de API, webhook ou envio automático de marcações. Se houver, é esse o caminho oficial e o mais estável.
+- Se não houver token ali, fazer login no `rhid.com.br` de forma automatizada e capturar as requisições de autenticação e de "Baixar AFD do REP" / relatório de marcações (URL, cabeçalhos, formato da resposta).
 - Só depois disso codifico o conector — assim ele nasce alinhado ao que o portal realmente expõe, sem chute.
 
 Se o RHiD oferecer token de API dedicado, uso o token em vez de usuário/senha (mais seguro e estável).
