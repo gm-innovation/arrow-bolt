@@ -68,7 +68,7 @@ export const useAuvoTaskReport = (auvoTaskUid?: string | null) => {
           .maybeSingle(),
         supabase
           .from("auvo_task_reports")
-          .select("id, report_text, extraction_status, questionnaire, attachments")
+          .select("id, report_text, extraction_status, questionnaire, attachments, photo_captions")
           .eq("auvo_task_uid", auvoTaskUid!)
           .maybeSingle(),
         supabase
