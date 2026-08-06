@@ -246,39 +246,62 @@ export const AuvoTaskReportView = ({ auvoTaskUid }: Props) => {
       >
         <DialogContent className="max-w-4xl p-2">
           {lightboxIndex !== null && images[lightboxIndex] && (
-            <div className="relative">
-              <img
-                src={images[lightboxIndex].url}
-                alt={images[lightboxIndex].name ?? `Foto ${lightboxIndex + 1}`}
-                className="max-h-[75vh] w-full object-contain"
-              />
-              {images.length > 1 && (
-                <>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute left-2 top-1/2 -translate-y-1/2"
-                    onClick={() => move(-1)}
-                    aria-label="Foto anterior"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className="absolute right-2 top-1/2 -translate-y-1/2"
-                    onClick={() => move(1)}
-                    aria-label="Próxima foto"
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-              <Badge variant="secondary" className="absolute bottom-2 left-1/2 -translate-x-1/2">
-                {lightboxIndex + 1} de {images.length}
-              </Badge>
+            <div className="space-y-2">
+              <div className="relative">
+                <img
+                  src={images[lightboxIndex].url}
+                  alt={
+                    images[lightboxIndex].caption ??
+                    images[lightboxIndex].name ??
+                    `Foto ${lightboxIndex + 1}`
+                  }
+                  className="max-h-[70vh] w-full object-contain"
+                />
+                {images.length > 1 && (
+                  <>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute left-2 top-1/2 -translate-y-1/2"
+                      onClick={() => move(-1)}
+                      aria-label="Foto anterior"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      size="icon"
+                      className="absolute right-2 top-1/2 -translate-y-1/2"
+                      onClick={() => move(1)}
+                      aria-label="Próxima foto"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+              <div className="flex items-start gap-2 border-t px-2 pb-1 pt-2">
+                <Badge variant="secondary" className="shrink-0">
+                  {lightboxIndex + 1} de {images.length}
+                </Badge>
+                <p className="text-xs text-muted-foreground">
+                  {images[lightboxIndex].caption ? (
+                    <>
+                      {images[lightboxIndex].caption}
+                      {images[lightboxIndex].caption_source === "vision" && (
+                        <span className="ml-1 italic opacity-70">
+                          (legenda gerada por IA)
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="italic opacity-70">Sem legenda</span>
+                  )}
+                </p>
+              </div>
             </div>
           )}
+
         </DialogContent>
       </Dialog>
     </div>
