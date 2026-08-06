@@ -327,6 +327,106 @@ export const AuvoGroupReviewDialog = ({
                   );
                 })}
               </div>
+
+              {photoFindings.length > 0 && (
+                <div className="space-y-3 rounded-md border border-purple-300/60 bg-purple-50/40 p-3 dark:border-purple-900/60 dark:bg-purple-950/20">
+                  <div className="flex items-center gap-2">
+                    <Camera className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    <p className="text-sm font-medium">
+                      Evidência fotográfica · {photoFindings.length}{" "}
+                      {photoFindings.length === 1 ? "atividade sem foto" : "atividades sem foto"}
+                    </p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Atividades declaradas nos relatórios sem imagem correspondente. Excesso de fotos
+                    não é apontado — apenas a falta.
+                  </p>
+
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <Select
+                      value={photoBulkStatus}
+                      onValueChange={(v) => setPhotoBulkStatus(v as ReviewStatus)}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((o) => (
+                          <SelectItem key={o.value} value={o.value}>
+                            {o.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={applyToAllPhotos}
+                      className="shrink-0"
+                    >
+                      Aplicar a todas
+                    </Button>
+                  </div>
+
+                  {photoFindings.map((f) => {
+                    const draft = photoDrafts[f.id] ?? { status: "", notes: "" };
+                    return (
+                      <div key={f.id} className="space-y-2 rounded-md border bg-background p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium">{f.activity}</p>
+                          <Badge variant={severityVariant(f.severity)} className="shrink-0">
+                            Sem foto
+                          </Badge>
+                        </div>
+                        <p className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <ImageOff className="h-3 w-3" />
+                          {f.photo_count} foto(s) no atendimento
+                          {f.expected_evidence ? ` · esperado: ${f.expected_evidence}` : ""}
+                        </p>
+                        {f.ai_notes && (
+                          <p className="rounded bg-muted p-2 text-xs text-muted-foreground">
+                            {f.ai_notes}
+                          </p>
+                        )}
+                        {f.review_status && f.review_status !== "pending" && (
+                          <Badge variant="secondary" className="text-[10px]">
+                            Já revisado: {reviewLabel[f.review_status] ?? f.review_status}
+                          </Badge>
+                        )}
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Conclusão</Label>
+                            <Select
+                              value={draft.status || undefined}
+                              onValueChange={(v) => setPhotoDraft(f.id, { status: v as ReviewStatus })}
+                            >
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Selecionar" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUS_OPTIONS.map((o) => (
+                                  <SelectItem key={o.value} value={o.value}>
+                                    {o.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Observações</Label>
+                            <Textarea
+                              className="min-h-[36px]"
+                              value={draft.notes}
+                              onChange={(e) => setPhotoDraft(f.id, { notes: e.target.value })}
+                              placeholder="O que foi apurado"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
 
@@ -334,9 +434,10 @@ export const AuvoGroupReviewDialog = ({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleSubmit} disabled={isSaving || changed.length === 0}>
-              {changed.length > 0 ? `Salvar ${changed.length} revisões` : "Salvar revisões"}
+            <Button onClick={handleSubmit} disabled={isSaving || totalChanged === 0}>
+              {totalChanged > 0 ? `Salvar ${totalChanged} revisões` : "Salvar revisões"}
             </Button>
+
           </DialogFooter>
         </div>
       </DialogContent>
