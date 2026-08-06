@@ -114,13 +114,38 @@ export const useAuvoCriticalSummary = () => {
         (i) => i.classification === "stock_not_reported",
       ).length;
 
+      const { data: photoData, error: photoError } = await supabase
+        .from("auvo_photo_findings")
+        .select(
+          "id, order_number, service_group_id, activity, expected_evidence, severity, photo_count, created_at",
+        )
+        .eq("review_status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(500);
+
+      if (photoError) throw photoError;
+
+      const photoGaps: AuvoPhotoGapItem[] = (photoData ?? []).map((p) => ({
+        id: p.id,
+        orderNumber: p.order_number,
+        serviceGroupId: p.service_group_id,
+        activity: p.activity ?? "Atividade sem descrição",
+        expectedEvidence: p.expected_evidence,
+        severity: p.severity,
+        photoCount: Number(p.photo_count ?? 0),
+        createdAt: p.created_at,
+      }));
+
       return {
         pendingCount: items.length,
         stockNotReportedCount,
         valueAtRisk: items.reduce((sum, i) => sum + i.valueAtRisk, 0),
         oldestDays: items.length ? Math.max(...items.map((i) => i.daysOpen)) : null,
         items,
+        photoGaps,
+        photoGapCount: photoGaps.length,
       };
+
     },
   });
 };
