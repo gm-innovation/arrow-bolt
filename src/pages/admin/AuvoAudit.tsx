@@ -184,8 +184,10 @@ export default function AuvoAudit() {
         isSimilarityGrouped: boolean;
         groupingReason?: string | null;
         items: AuvoDiscrepancy[];
+        photoItems: AuvoPhotoFinding[];
         totalRisk: number;
         pending: number;
+        photoPending: number;
         stockNotReported: number;
         worstWeight: number;
       }
