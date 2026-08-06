@@ -116,7 +116,7 @@ export default function AuvoAudit() {
     isLoading,
     runSync,
     reanalyzeTask,
-    reviewDiscrepancy,
+    reviewDiscrepanciesBulk,
     promoteToOS,
   } = useAuvoIntegration({ onlyDivergent });
 
