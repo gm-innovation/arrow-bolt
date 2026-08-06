@@ -51,6 +51,7 @@ import {
 } from "@/components/ui/select";
 import { AuvoInsightsPanel } from "@/components/admin/auvo/AuvoInsightsPanel";
 import { AuvoServiceReportTabs } from "@/components/admin/auvo/AuvoServiceReportTabs";
+import { AuvoGroupReviewDialog } from "@/components/admin/auvo/AuvoGroupReviewDialog";
 import { useAuvoServiceGroups } from "@/hooks/useAuvoServiceGroups";
 import {
   useAuvoIntegration,
