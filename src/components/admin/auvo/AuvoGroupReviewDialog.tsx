@@ -358,7 +358,7 @@ export const AuvoGroupReviewDialog = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {STATUS_OPTIONS.map((o) => (
+                        {PHOTO_STATUS_OPTIONS.map((o) => (
                           <SelectItem key={o.value} value={o.value}>
                             {o.label}
                           </SelectItem>
