@@ -584,6 +584,10 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     reviewDiscrepanciesBulk,
     reviewPhotoFindingsBulk,
     promoteToOS,
+    photoAuditProgress: photoAuditProgressQuery.data ?? null,
+    runPhotoAudit,
+    resetPhotoAudit,
+
 
 
   };
