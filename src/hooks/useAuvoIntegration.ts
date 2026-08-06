@@ -46,6 +46,10 @@ export interface AuvoPhotoFinding {
   severity: "low" | "medium" | "high";
   ai_notes: string | null;
   photo_count: number;
+  /** Fotos mais próximas da atividade, para conferência humana. */
+  candidate_photos: Array<{ url: string; caption: string | null }> | null;
+  /** "captions" = confronto por legenda; "vision" = confirmado por análise visual. */
+  evidence_source: "captions" | "vision" | null;
   review_status: string;
   review_notes: string | null;
   created_at: string;
