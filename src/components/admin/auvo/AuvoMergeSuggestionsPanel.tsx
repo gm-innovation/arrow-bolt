@@ -214,6 +214,56 @@ export const AuvoMergeSuggestionsPanel = ({
         </Card>
       )}
 
+      {dismissals.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Descartados como não duplicatas</CardTitle>
+            <CardDescription>
+              Pares revisados que não voltam às sugestões. É possível reverter o descarte.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {dismissals.map((d) => (
+              <div
+                key={d.id}
+                className="flex flex-col gap-3 rounded-lg border p-4 md:flex-row md:items-center md:justify-between"
+              >
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <Badge variant="secondary">{groupLabel(d.group_a_id)}</Badge>
+                    <XCircle className="h-4 w-4 text-muted-foreground" />
+                    <Badge variant="outline">{groupLabel(d.group_b_id)}</Badge>
+                  </div>
+                  {d.reason && <p className="text-sm text-muted-foreground">{d.reason}</p>}
+                  <p className="text-xs text-muted-foreground">
+                    Descartado em {formatDate(d.created_at)}
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => onUndoDismiss(d.id)}
+                >
+                  <Undo2 className="mr-2 h-4 w-4" />
+                  Voltar às sugestões
+                </Button>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
+
+      <AuvoMergeCompareDialog
+        suggestion={compare}
+        membersByGroup={membersByGroup}
+        onOpenChange={(open) => !open && setCompare(null)}
+        onMerge={onMerge}
+        onDismiss={onDismiss}
+        isMerging={isMerging}
+        isDismissing={isDismissing}
+      />
+
+
       <AlertDialog open={!!confirm} onOpenChange={(open) => !open && setConfirm(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
