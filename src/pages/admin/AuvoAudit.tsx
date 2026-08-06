@@ -622,10 +622,17 @@ export default function AuvoAudit() {
                               </TableCell>
                               <TableCell className="text-center">
                                 <div className="flex flex-wrap items-center justify-center gap-1">
-                                  <Badge variant="secondary">{g.items.length} itens</Badge>
+                                  {g.items.length > 0 && (
+                                    <Badge variant="secondary">{g.items.length} materiais</Badge>
+                                  )}
                                   {g.stockNotReported > 0 && (
                                     <Badge variant="destructive">
                                       {g.stockNotReported} sem relato
+                                    </Badge>
+                                  )}
+                                  {g.photoItems.length > 0 && (
+                                    <Badge className="border-purple-300 bg-purple-100 text-purple-900 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-200">
+                                      {g.photoItems.length} sem foto
                                     </Badge>
                                   )}
                                 </div>
@@ -635,7 +642,9 @@ export default function AuvoAudit() {
                               </TableCell>
                               <TableCell>
                                 <span className="text-sm text-muted-foreground">
-                                  {g.pending} pendentes · {g.items.length - g.pending} tratadas
+                                  {g.pending + g.photoPending} pendentes ·{" "}
+                                  {g.items.length + g.photoItems.length - g.pending - g.photoPending}{" "}
+                                  tratadas
                                 </span>
                               </TableCell>
                               <TableCell className="text-right">
@@ -649,8 +658,9 @@ export default function AuvoAudit() {
                                       setFocusItemId(null);
                                     }}
                                   >
-                                    Revisar divergências ({g.items.length})
+                                    Revisar ({g.items.length + g.photoItems.length})
                                   </Button>
+
                                   <Button
                                     variant="ghost"
                                     size="sm"
