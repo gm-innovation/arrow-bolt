@@ -474,6 +474,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
 
   const discrepancies = discrepanciesQuery.data ?? [];
   const divergent = discrepancies.filter((d) => d.classification !== "match");
+  const photoFindings = photoFindingsQuery.data ?? [];
 
   const stats = {
     auditedOrders: new Set(discrepancies.map((d) => d.order_number).filter(Boolean)).size,
@@ -484,11 +485,14 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     stockNotReported: divergent.filter((d) => d.classification === "stock_not_reported").length,
     quantityMismatch: divergent.filter((d) => d.classification === "quantity_mismatch").length,
     reportedNotInStock: divergent.filter((d) => d.classification === "reported_not_in_stock").length,
+    photoGaps: photoFindings.length,
+    photoGapsPending: photoFindings.filter((f) => f.review_status === "pending").length,
   };
 
   return {
     discrepancies,
     divergent,
+    photoFindings,
     stats,
     runs: runsQuery.data ?? [],
     tasks: tasksQuery.data ?? [],
@@ -497,7 +501,9 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     reanalyzeTask,
     reviewDiscrepancy,
     reviewDiscrepanciesBulk,
+    reviewPhotoFindingsBulk,
     promoteToOS,
+
 
   };
 };
