@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
-import { GitMerge, RefreshCw, Undo2 } from "lucide-react";
+import { GitMerge, RefreshCw, SplitSquareHorizontal, Undo2, XCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,9 +22,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { AuvoMergeCompareDialog } from "./AuvoMergeCompareDialog";
 import type {
+  AuvoMergeDismissal,
   AuvoMergeSuggestion,
   AuvoServiceGroup,
+  AuvoServiceMember,
 } from "@/hooks/useAuvoServiceGroups";
 
 const formatDate = (value?: string | null) =>
@@ -49,7 +52,14 @@ interface Props {
   mergedGroups: AuvoServiceGroup[];
   onUnmerge: (groupId: string) => void;
   isUnmerging: boolean;
+  membersByGroup: Map<string, AuvoServiceMember[]>;
+  dismissals: AuvoMergeDismissal[];
+  onDismiss: (groupAId: string, groupBId: string, reason?: string) => void;
+  isDismissing: boolean;
+  onUndoDismiss: (dismissalId: string) => void;
+  groups: AuvoServiceGroup[];
 }
+
 
 /**
  * Serviços que provavelmente são o mesmo trabalho registrado com números de OS
