@@ -136,7 +136,11 @@ export const AuvoDiscrepancyTab = () => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [visible, setVisible] = useState(PAGE_SIZE);
 
-  const groups = useMemo(() => buildGroups(data?.items ?? []), [data?.items]);
+  const groups = useMemo(
+    () => buildGroups(data?.items ?? [], data?.photoGaps ?? []),
+    [data?.items, data?.photoGaps],
+  );
+
   const shown = groups.slice(0, visible);
 
   const toggle = (key: string) => setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
