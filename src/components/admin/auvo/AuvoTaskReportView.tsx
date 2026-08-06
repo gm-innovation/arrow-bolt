@@ -193,17 +193,33 @@ export const AuvoTaskReportView = ({ auvoTaskUid }: Props) => {
                 key={img.url}
                 type="button"
                 onClick={() => setLightboxIndex(i)}
-                className="overflow-hidden rounded-md border transition hover:opacity-80"
+                className="overflow-hidden rounded-md border text-left transition hover:opacity-80"
+                title={img.caption ?? undefined}
               >
                 <img
                   src={img.url}
-                  alt={img.name ?? `Foto ${i + 1} do atendimento`}
+                  alt={img.caption ?? img.name ?? `Foto ${i + 1} do atendimento`}
                   loading="lazy"
                   className="h-20 w-full object-cover"
                 />
+                <div className="p-1">
+                  {img.caption ? (
+                    <p className="line-clamp-2 text-[11px] leading-tight text-muted-foreground">
+                      {img.caption}
+                      {img.caption_source === "vision" && (
+                        <span className="ml-1 italic opacity-70">(IA)</span>
+                      )}
+                    </p>
+                  ) : (
+                    <p className="text-[11px] italic leading-tight text-muted-foreground/60">
+                      Sem legenda
+                    </p>
+                  )}
+                </div>
               </button>
             ))}
           </div>
+
         </div>
       )}
 
