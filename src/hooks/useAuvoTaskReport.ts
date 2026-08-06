@@ -82,10 +82,35 @@ export const useAuvoTaskReport = (auvoTaskUid?: string | null) => {
       if (reportRes.error) throw reportRes.error;
       if (materialsRes.error) throw materialsRes.error;
 
-      const rawReport = reportRes.data;
-      const attachments = Array.isArray(rawReport?.attachments)
-        ? (rawReport!.attachments as unknown as AuvoReportAttachment[]).filter((a) => a?.url)
-        : [];
+      const rawReport = reportRes.data as (typeof reportRes.data & {
+        photo_captions?: unknown;
+      }) | null;
+      const storedCaptions = new Map<string, AuvoPhotoCaption>(
+        (Array.isArray(rawReport?.photo_captions)
+          ? (rawReport!.photo_captions as unknown as AuvoPhotoCaption[])
+          : []
+        )
+          .filter((c) => c?.url && c?.caption)
+          .map((c) => [c.url, c]),
+      );
+      const attachments = (
+        Array.isArray(rawReport?.attachments)
+          ? (rawReport!.attachments as unknown as AuvoReportAttachment[]).filter((a) => a?.url)
+          : []
+      ).map((a) => {
+        const auvoCaption = [a.subtitle, a.description]
+          .map((v) => (typeof v === "string" ? v.trim() : ""))
+          .filter(Boolean)
+          .join(" — ");
+        const stored = storedCaptions.get(a.url);
+        const caption = auvoCaption || stored?.caption?.trim() || null;
+        return {
+          ...a,
+          caption,
+          caption_source: caption ? (auvoCaption ? "auvo" : (stored?.source ?? "vision")) : null,
+        } as AuvoReportAttachment;
+      });
+
       const questionnaire = Array.isArray(rawReport?.questionnaire)
         ? (rawReport!.questionnaire as unknown as AuvoQuestionnaire[])
         : [];
