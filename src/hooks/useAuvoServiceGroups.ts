@@ -104,7 +104,7 @@ export const useAuvoServiceGroups = () => {
         supabase
           .from("auvo_service_groups")
           .select(
-            "id, service_key, order_numbers, primary_order_number, customer_name, vessel_name, first_task_date, last_task_date, is_similarity_grouped, grouping_reason, analysis_status, analyzed_at, analysis_error, analysis_attempts, analysis_last_attempt_at",
+            "id, service_key, order_numbers, primary_order_number, customer_name, vessel_name, first_task_date, last_task_date, is_similarity_grouped, grouping_reason, merge_reason, merged_from, analysis_status, analyzed_at, analysis_error, analysis_attempts, analysis_last_attempt_at",
           )
           .order("last_task_date", { ascending: false, nullsFirst: false })
           .limit(1000),
