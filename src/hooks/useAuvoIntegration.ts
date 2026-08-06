@@ -95,10 +95,19 @@ interface SyncArgs {
   period_end?: string;
 }
 
-export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
+export const useAuvoIntegration = (filters?: {
+  onlyDivergent?: boolean;
+  /** Sinaliza que há fila de análise externa em andamento (grupos pendentes). */
+  live?: boolean;
+}) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const companyId = profile?.company_id;
+
+  // Atualização viva: enquanto a IA está processando, as listas se atualizam
+  // sozinhas para o revisor começar antes do fim do lote.
+  const liveRef = useRef(false);
+  const liveInterval = () => (liveRef.current ? 8000 : false);
 
   const discrepanciesQuery = useQuery({
     queryKey: ["auvo-discrepancies", companyId, filters?.onlyDivergent],
@@ -122,6 +131,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       return (data ?? []) as unknown as AuvoDiscrepancy[];
     },
     enabled: !!companyId,
+    refetchInterval: liveInterval,
   });
 
   // Auditoria de evidência fotográfica: atividades declaradas sem foto.
@@ -139,7 +149,9 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
       return (data ?? []) as unknown as AuvoPhotoFinding[];
     },
     enabled: !!companyId,
+    refetchInterval: liveInterval,
   });
+
 
 
   const runsQuery = useQuery({
