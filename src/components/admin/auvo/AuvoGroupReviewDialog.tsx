@@ -58,6 +58,13 @@ const STATUS_OPTIONS: { value: ReviewStatus; label: string }[] = [
   { value: "dismissed", label: "Descartar (falso positivo)" },
 ];
 
+/** Na auditoria de fotos, o falso positivo mais comum é foto existente sem legenda. */
+const PHOTO_STATUS_OPTIONS: { value: ReviewStatus; label: string }[] = [
+  { value: "confirmed", label: "Falta de foto confirmada" },
+  { value: "justified", label: "Justificada pelo técnico" },
+  { value: "dismissed", label: "Evidência existe (foto sem legenda)" },
+];
+
 type Draft = { status: ReviewStatus | ""; notes: string };
 
 /** Revisão de TODAS as divergências de um serviço/OS em um único modal. */
@@ -351,7 +358,7 @@ export const AuvoGroupReviewDialog = ({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {STATUS_OPTIONS.map((o) => (
+                        {PHOTO_STATUS_OPTIONS.map((o) => (
                           <SelectItem key={o.value} value={o.value}>
                             {o.label}
                           </SelectItem>
@@ -374,9 +381,14 @@ export const AuvoGroupReviewDialog = ({
                       <div key={f.id} className="space-y-2 rounded-md border bg-background p-3">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-sm font-medium">{f.activity}</p>
-                          <Badge variant={severityVariant(f.severity)} className="shrink-0">
-                            Sem foto
-                          </Badge>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {f.evidence_source === "vision" && (
+                              <Badge variant="outline" className="text-[10px]">
+                                Conferido na imagem
+                              </Badge>
+                            )}
+                            <Badge variant={severityVariant(f.severity)}>Sem foto</Badge>
+                          </div>
                         </div>
                         <p className="flex items-center gap-1 text-xs text-muted-foreground">
                           <ImageOff className="h-3 w-3" />
@@ -387,6 +399,34 @@ export const AuvoGroupReviewDialog = ({
                           <p className="rounded bg-muted p-2 text-xs text-muted-foreground">
                             {f.ai_notes}
                           </p>
+                        )}
+                        {(f.candidate_photos?.length ?? 0) > 0 && (
+                          <div className="space-y-1">
+                            <p className="text-[11px] font-medium text-muted-foreground">
+                              Fotos mais próximas — confira antes de confirmar a falta:
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {(f.candidate_photos ?? []).map((p) => (
+                                <a
+                                  key={p.url}
+                                  href={p.url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="w-24 space-y-1 text-[10px] text-muted-foreground hover:underline"
+                                >
+                                  <img
+                                    src={p.url}
+                                    alt={p.caption ?? "Foto do atendimento"}
+                                    loading="lazy"
+                                    className="h-20 w-24 rounded border object-cover"
+                                  />
+                                  <span className="line-clamp-2 block">
+                                    {p.caption ?? "sem legenda"}
+                                  </span>
+                                </a>
+                              ))}
+                            </div>
+                          </div>
                         )}
                         {f.review_status && f.review_status !== "pending" && (
                           <Badge variant="secondary" className="text-[10px]">
@@ -404,7 +444,7 @@ export const AuvoGroupReviewDialog = ({
                                 <SelectValue placeholder="Selecionar" />
                               </SelectTrigger>
                               <SelectContent>
-                                {STATUS_OPTIONS.map((o) => (
+                                {PHOTO_STATUS_OPTIONS.map((o) => (
                                   <SelectItem key={o.value} value={o.value}>
                                     {o.label}
                                   </SelectItem>

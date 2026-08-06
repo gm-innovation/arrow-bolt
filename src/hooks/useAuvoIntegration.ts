@@ -46,6 +46,10 @@ export interface AuvoPhotoFinding {
   severity: "low" | "medium" | "high";
   ai_notes: string | null;
   photo_count: number;
+  /** Fotos mais próximas da atividade, para conferência humana. */
+  candidate_photos: Array<{ url: string; caption: string | null }> | null;
+  /** "captions" = confronto por legenda; "vision" = confirmado por análise visual. */
+  evidence_source: "captions" | "vision" | null;
   review_status: string;
   review_notes: string | null;
   created_at: string;
@@ -142,7 +146,7 @@ export const useAuvoIntegration = (filters?: {
       const { data, error } = await supabase
         .from("auvo_photo_findings")
         .select(
-          "id, auvo_task_uid, service_group_id, order_number, activity, expected_evidence, severity, ai_notes, photo_count, review_status, review_notes, created_at",
+          "id, auvo_task_uid, service_group_id, order_number, activity, expected_evidence, severity, ai_notes, photo_count, candidate_photos, evidence_source, review_status, review_notes, created_at",
         )
         .order("created_at", { ascending: false })
         .limit(1000);
