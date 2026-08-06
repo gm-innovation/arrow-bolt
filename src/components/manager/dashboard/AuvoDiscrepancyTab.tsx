@@ -37,10 +37,12 @@ interface Group {
   technicians: string[];
   dates: string[];
   items: AuvoCriticalItem[];
+  photoGaps: AuvoPhotoGapItem[];
   notReportedCount: number;
   totalRisk: number;
   oldestDays: number;
 }
+
 
 const buildGroups = (items: AuvoCriticalItem[]): Group[] => {
   const map = new Map<string, Group>();
