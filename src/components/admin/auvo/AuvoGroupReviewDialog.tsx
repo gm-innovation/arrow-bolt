@@ -58,6 +58,13 @@ const STATUS_OPTIONS: { value: ReviewStatus; label: string }[] = [
   { value: "dismissed", label: "Descartar (falso positivo)" },
 ];
 
+/** Na auditoria de fotos, o falso positivo mais comum é foto existente sem legenda. */
+const PHOTO_STATUS_OPTIONS: { value: ReviewStatus; label: string }[] = [
+  { value: "confirmed", label: "Falta de foto confirmada" },
+  { value: "justified", label: "Justificada pelo técnico" },
+  { value: "dismissed", label: "Evidência existe (foto sem legenda)" },
+];
+
 type Draft = { status: ReviewStatus | ""; notes: string };
 
 /** Revisão de TODAS as divergências de um serviço/OS em um único modal. */
