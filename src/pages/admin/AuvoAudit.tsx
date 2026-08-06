@@ -55,6 +55,7 @@ import { useAuvoServiceGroups } from "@/hooks/useAuvoServiceGroups";
 import {
   useAuvoIntegration,
   type AuvoDiscrepancy,
+  type AuvoPhotoFinding,
   type AuvoTaskRow,
   type DiscrepancyClassification,
 } from "@/hooks/useAuvoIntegration";
@@ -111,6 +112,7 @@ export default function AuvoAudit() {
 
   const {
     discrepancies,
+    photoFindings,
     stats,
     runs,
     tasks,
@@ -118,6 +120,7 @@ export default function AuvoAudit() {
     runSync,
     reanalyzeTask,
     reviewDiscrepanciesBulk,
+    reviewPhotoFindingsBulk,
     promoteToOS,
   } = useAuvoIntegration({ onlyDivergent });
 
@@ -182,8 +185,10 @@ export default function AuvoAudit() {
         isSimilarityGrouped: boolean;
         groupingReason?: string | null;
         items: AuvoDiscrepancy[];
+        photoItems: AuvoPhotoFinding[];
         totalRisk: number;
         pending: number;
+        photoPending: number;
         stockNotReported: number;
         worstWeight: number;
       }
@@ -217,8 +222,10 @@ export default function AuvoAudit() {
           isSimilarityGrouped: sg?.is_similarity_grouped ?? false,
           groupingReason: sg?.grouping_reason ?? null,
           items: [],
+          photoItems: [],
           totalRisk: 0,
           pending: 0,
+          photoPending: 0,
           stockNotReported: 0,
           worstWeight: 99,
         };
@@ -235,10 +242,63 @@ export default function AuvoAudit() {
       group.worstWeight = Math.min(group.worstWeight, weight(d.classification));
     }
 
+    // Lacunas de evidência fotográfica entram na MESMA lista: um serviço pode ter
+    // só problema de foto, só de material, ou os dois.
+    const term = search.trim().toLowerCase();
+    for (const f of photoFindings) {
+      const key = f.service_group_id ?? f.auvo_task_uid;
+      const sg = f.service_group_id ? groupById.get(f.service_group_id) : undefined;
+      const members = f.service_group_id ? membersByGroup.get(f.service_group_id) ?? [] : [];
+
+      let group = map.get(key);
+      if (!group) {
+        if (
+          term &&
+          ![f.order_number, f.activity, sg?.customer_name, sg?.vessel_name]
+            .filter(Boolean)
+            .some((field) => String(field).toLowerCase().includes(term))
+        ) {
+          continue;
+        }
+        // Filtro por classificação de material não se aplica a lacunas de foto.
+        if (classification !== "all") continue;
+
+        const orderNumbers = sg?.order_numbers?.length
+          ? sg.order_numbers
+          : ([f.order_number].filter(Boolean) as string[]);
+        group = {
+          key,
+          serviceGroupId: f.service_group_id ?? null,
+          taskUid: f.auvo_task_uid,
+          orderLabel: orderNumbers.length ? orderNumbers.join(" / ") : "—",
+          firstDate: sg?.first_task_date ?? null,
+          lastDate: sg?.last_task_date ?? null,
+          customerName: sg?.customer_name ?? null,
+          vesselName: sg?.vessel_name ?? null,
+          technicians: new Set<string>(),
+          attendances: members.length || 1,
+          reports: members.filter((m) => m.hasReport).length,
+          isSimilarityGrouped: sg?.is_similarity_grouped ?? false,
+          groupingReason: sg?.grouping_reason ?? null,
+          items: [],
+          photoItems: [],
+          totalRisk: 0,
+          pending: 0,
+          photoPending: 0,
+          stockNotReported: 0,
+          worstWeight: 3,
+        };
+        for (const m of members) if (m.technician_name) group.technicians.add(m.technician_name);
+        map.set(key, group);
+      }
+      group.photoItems.push(f);
+      if (f.review_status === "pending") group.photoPending += 1;
+    }
+
     return Array.from(map.values()).sort(
       (a, b) => a.worstWeight - b.worstWeight || b.totalRisk - a.totalRisk,
     );
-  }, [filtered, groupById, membersByGroup]);
+  }, [filtered, groupById, membersByGroup, photoFindings, search, classification]);
 
   const reviewGroup = useMemo(
     () => grouped.find((g) => g.key === reviewGroupKey) ?? null,
@@ -562,10 +622,17 @@ export default function AuvoAudit() {
                               </TableCell>
                               <TableCell className="text-center">
                                 <div className="flex flex-wrap items-center justify-center gap-1">
-                                  <Badge variant="secondary">{g.items.length} itens</Badge>
+                                  {g.items.length > 0 && (
+                                    <Badge variant="secondary">{g.items.length} materiais</Badge>
+                                  )}
                                   {g.stockNotReported > 0 && (
                                     <Badge variant="destructive">
                                       {g.stockNotReported} sem relato
+                                    </Badge>
+                                  )}
+                                  {g.photoItems.length > 0 && (
+                                    <Badge className="border-purple-300 bg-purple-100 text-purple-900 hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-200">
+                                      {g.photoItems.length} sem foto
                                     </Badge>
                                   )}
                                 </div>
@@ -575,7 +642,9 @@ export default function AuvoAudit() {
                               </TableCell>
                               <TableCell>
                                 <span className="text-sm text-muted-foreground">
-                                  {g.pending} pendentes · {g.items.length - g.pending} tratadas
+                                  {g.pending + g.photoPending} pendentes ·{" "}
+                                  {g.items.length + g.photoItems.length - g.pending - g.photoPending}{" "}
+                                  tratadas
                                 </span>
                               </TableCell>
                               <TableCell className="text-right">
@@ -589,8 +658,9 @@ export default function AuvoAudit() {
                                       setFocusItemId(null);
                                     }}
                                   >
-                                    Revisar divergências ({g.items.length})
+                                    Revisar ({g.items.length + g.photoItems.length})
                                   </Button>
+
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -1022,21 +1092,29 @@ export default function AuvoAudit() {
           vesselName={reviewGroup.vesselName}
           totalRisk={reviewGroup.totalRisk}
           items={reviewGroup.items}
+          photoFindings={reviewGroup.photoItems}
           members={reviewMembers}
           focusItemId={focusItemId}
           initialTaskUid={
             reviewGroup.items.find((d) => d.id === focusItemId)?.auvo_task_uid ??
             reviewGroup.taskUid
           }
-          isSaving={reviewDiscrepanciesBulk.isPending}
-          onSubmit={(decisions) =>
+          isSaving={reviewDiscrepanciesBulk.isPending || reviewPhotoFindingsBulk.isPending}
+          onSubmit={(decisions) => {
+            if (decisions.length === 0) {
+              setReviewGroupKey(null);
+              setFocusItemId(null);
+              return;
+            }
             reviewDiscrepanciesBulk.mutate(decisions, {
               onSuccess: () => {
                 setReviewGroupKey(null);
                 setFocusItemId(null);
               },
-            })
-          }
+            });
+          }}
+          onSubmitPhotos={(decisions) => reviewPhotoFindingsBulk.mutate(decisions)}
+
           classificationLabel={CLASSIFICATION_LABEL}
           reviewLabel={REVIEW_LABEL}
           currency={currency}

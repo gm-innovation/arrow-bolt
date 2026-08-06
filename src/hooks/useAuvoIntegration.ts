@@ -35,6 +35,20 @@ export interface AuvoDiscrepancy {
     auvo_task_type: string | null;
   } | null;
 }
+export interface AuvoPhotoFinding {
+  id: string;
+  auvo_task_uid: string;
+  service_group_id: string | null;
+  order_number: string | null;
+  activity: string;
+  expected_evidence: string | null;
+  severity: "low" | "medium" | "high";
+  ai_notes: string | null;
+  photo_count: number;
+  review_status: string;
+  review_notes: string | null;
+  created_at: string;
+}
 
 
 export interface AuvoSyncRun {
@@ -109,6 +123,24 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     },
     enabled: !!companyId,
   });
+
+  // Auditoria de evidência fotográfica: atividades declaradas sem foto.
+  const photoFindingsQuery = useQuery({
+    queryKey: ["auvo-photo-findings", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("auvo_photo_findings")
+        .select(
+          "id, auvo_task_uid, service_group_id, order_number, activity, expected_evidence, severity, ai_notes, photo_count, review_status, review_notes, created_at",
+        )
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return (data ?? []) as unknown as AuvoPhotoFinding[];
+    },
+    enabled: !!companyId,
+  });
+
 
   const runsQuery = useQuery({
     queryKey: ["auvo-sync-runs", companyId],
@@ -293,6 +325,39 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     onError: (error: Error) => toast.error("Erro ao salvar revisões", { description: error.message }),
   });
 
+  // Revisão em lote das lacunas de evidência fotográfica.
+  const reviewPhotoFindingsBulk = useMutation({
+    mutationFn: async (
+      decisions: {
+        id: string;
+        review_status: "confirmed" | "justified" | "dismissed";
+        review_notes?: string;
+      }[],
+    ) => {
+      const reviewed_at = new Date().toISOString();
+      for (const decision of decisions) {
+        const { error } = await supabase
+          .from("auvo_photo_findings")
+          .update({
+            review_status: decision.review_status,
+            review_notes: decision.review_notes ?? null,
+            reviewed_by: profile?.id,
+            reviewed_at,
+          })
+          .eq("id", decision.id);
+        if (error) throw error;
+      }
+      return decisions.length;
+    },
+    onSuccess: (count) => {
+      toast.success(`${count} ${count === 1 ? "lacuna" : "lacunas"} de foto revisadas`);
+      queryClient.invalidateQueries({ queryKey: ["auvo-photo-findings"] });
+    },
+    onError: (error: Error) =>
+      toast.error("Erro ao salvar revisão de fotos", { description: error.message }),
+  });
+
+
   // Promove um atendimento espelhado do Auvo para uma OS nativa do Arrow,
   // reaproveitando (ou criando) cliente e embarcação pelo nome vindo do Auvo.
   const promoteToOS = useMutation({
@@ -409,6 +474,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
 
   const discrepancies = discrepanciesQuery.data ?? [];
   const divergent = discrepancies.filter((d) => d.classification !== "match");
+  const photoFindings = photoFindingsQuery.data ?? [];
 
   const stats = {
     auditedOrders: new Set(discrepancies.map((d) => d.order_number).filter(Boolean)).size,
@@ -419,11 +485,14 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     stockNotReported: divergent.filter((d) => d.classification === "stock_not_reported").length,
     quantityMismatch: divergent.filter((d) => d.classification === "quantity_mismatch").length,
     reportedNotInStock: divergent.filter((d) => d.classification === "reported_not_in_stock").length,
+    photoGaps: photoFindings.length,
+    photoGapsPending: photoFindings.filter((f) => f.review_status === "pending").length,
   };
 
   return {
     discrepancies,
     divergent,
+    photoFindings,
     stats,
     runs: runsQuery.data ?? [],
     tasks: tasksQuery.data ?? [],
@@ -432,7 +501,9 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     reanalyzeTask,
     reviewDiscrepancy,
     reviewDiscrepanciesBulk,
+    reviewPhotoFindingsBulk,
     promoteToOS,
+
 
   };
 };
