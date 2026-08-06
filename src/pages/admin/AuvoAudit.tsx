@@ -51,7 +51,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AuvoInsightsPanel } from "@/components/admin/auvo/AuvoInsightsPanel";
+import { AuvoMergeSuggestionsPanel } from "@/components/admin/auvo/AuvoMergeSuggestionsPanel";
 import { AuvoGroupReviewDialog } from "@/components/admin/auvo/AuvoGroupReviewDialog";
+
 import { useAuvoServiceGroups } from "@/hooks/useAuvoServiceGroups";
 import {
   useAuvoIntegration,
@@ -122,7 +124,17 @@ export default function AuvoAudit() {
     processQueue,
     retryFailedAnalyses,
     autoGroupOrphans,
+    mergeSuggestions,
+    mergeServices,
+    unmergeService,
   } = useAuvoServiceGroups();
+
+  const mergeSuggestionList = mergeSuggestions.data ?? [];
+  const mergedGroups = useMemo(
+    () => groups.filter((g) => Array.isArray(g.merged_from) && g.merged_from.length > 0),
+    [groups],
+  );
+
 
   const {
     discrepancies,
@@ -566,6 +578,9 @@ export default function AuvoAudit() {
           <TabsTrigger value="sem-servico">
             Sem serviço {orphanMembers.length > 0 ? `(${orphanMembers.length})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="duplicados">
+            Duplicados {mergeSuggestionList.length > 0 ? `(${mergeSuggestionList.length})` : ""}
+          </TabsTrigger>
           <TabsTrigger value="execucoes">Execuções</TabsTrigger>
         </TabsList>
 
@@ -573,6 +588,22 @@ export default function AuvoAudit() {
         <TabsContent value="indicadores">
           <AuvoInsightsPanel />
         </TabsContent>
+
+        <TabsContent value="duplicados">
+          <AuvoMergeSuggestionsPanel
+            suggestions={mergeSuggestionList}
+            isLoading={mergeSuggestions.isFetching}
+            onRefresh={() => mergeSuggestions.refetch()}
+            onMerge={(primaryGroupId, duplicateGroupIds) =>
+              mergeServices.mutate({ primaryGroupId, duplicateGroupIds })
+            }
+            isMerging={mergeServices.isPending}
+            mergedGroups={mergedGroups}
+            onUnmerge={(groupId) => unmergeService.mutate(groupId)}
+            isUnmerging={unmergeService.isPending}
+          />
+        </TabsContent>
+
 
         <TabsContent value="divergencias" className="space-y-4">
           <Card>

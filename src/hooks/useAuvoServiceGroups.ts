@@ -14,12 +14,32 @@ export interface AuvoServiceGroup {
   last_task_date: string | null;
   is_similarity_grouped: boolean;
   grouping_reason: string | null;
+  merge_reason: string | null;
+  merged_from: unknown;
   analysis_status: string;
   analyzed_at: string | null;
   analysis_error: string | null;
   analysis_attempts: number | null;
   analysis_last_attempt_at: string | null;
 }
+
+export interface AuvoMergeCandidate {
+  id: string;
+  service_key: string;
+  primary_order_number: string | null;
+  order_numbers: string[];
+  customer_name: string | null;
+  vessel_name: string | null;
+  first_task_date: string | null;
+  last_task_date: string | null;
+}
+
+export interface AuvoMergeSuggestion {
+  primary: AuvoMergeCandidate;
+  duplicate: AuvoMergeCandidate;
+  reason: string;
+}
+
 
 export interface AuvoServiceMember {
   id: string;
@@ -84,7 +104,7 @@ export const useAuvoServiceGroups = () => {
         supabase
           .from("auvo_service_groups")
           .select(
-            "id, service_key, order_numbers, primary_order_number, customer_name, vessel_name, first_task_date, last_task_date, is_similarity_grouped, grouping_reason, analysis_status, analyzed_at, analysis_error, analysis_attempts, analysis_last_attempt_at",
+            "id, service_key, order_numbers, primary_order_number, customer_name, vessel_name, first_task_date, last_task_date, is_similarity_grouped, grouping_reason, merge_reason, merged_from, analysis_status, analyzed_at, analysis_error, analysis_attempts, analysis_last_attempt_at",
           )
           .order("last_task_date", { ascending: false, nullsFirst: false })
           .limit(1000),
@@ -281,6 +301,76 @@ export const useAuvoServiceGroups = () => {
       toast.error("Erro ao agrupar automaticamente", { description: error.message }),
   });
 
+  /** Sugestões de serviços duplicados (mesmo trabalho registrado com OS diferentes). */
+  const mergeSuggestions = useQuery({
+    queryKey: ["auvo-merge-suggestions", companyId],
+    enabled: !!companyId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("auvo-sync", {
+        body: { mode: "suggest_merges", limit: 30 },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message ?? data.error);
+      return (data?.suggestions ?? []) as AuvoMergeSuggestion[];
+    },
+  });
+
+  /** Unifica serviços que são o mesmo trabalho e recoloca a auditoria na fila. */
+  const mergeServices = useMutation({
+    mutationFn: async ({
+      primaryGroupId,
+      duplicateGroupIds,
+    }: {
+      primaryGroupId: string;
+      duplicateGroupIds: string[];
+    }) => {
+      const { data, error } = await supabase.functions.invoke("auvo-sync", {
+        body: {
+          mode: "merge_groups",
+          primary_group_id: primaryGroupId,
+          duplicate_group_ids: duplicateGroupIds,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message ?? data.error);
+      return data as { moved_tasks?: number; merged_groups?: number };
+    },
+    onSuccess: (data) => {
+      toast.success("Serviços unificados", {
+        description: `${data?.merged_groups ?? 0} serviço(s) absorvidos · ${
+          data?.moved_tasks ?? 0
+        } atendimento(s) movidos. A auditoria será refeita.`,
+      });
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ["auvo-merge-suggestions"] });
+    },
+    onError: (error: Error) => toast.error("Erro ao unificar", { description: error.message }),
+  });
+
+  /** Desfaz a unificação, recriando os serviços absorvidos. */
+  const unmergeService = useMutation({
+    mutationFn: async (groupId: string) => {
+      const { data, error } = await supabase.functions.invoke("auvo-sync", {
+        body: { mode: "unmerge_group", service_group_id: groupId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message ?? data.error);
+      return data as { restored_tasks?: number; restored_groups?: number };
+    },
+    onSuccess: (data) => {
+      toast.success("Unificação desfeita", {
+        description: `${data?.restored_groups ?? 0} serviço(s) recriados · ${
+          data?.restored_tasks ?? 0
+        } atendimento(s) devolvidos.`,
+      });
+      invalidate();
+      queryClient.invalidateQueries({ queryKey: ["auvo-merge-suggestions"] });
+    },
+    onError: (error: Error) =>
+      toast.error("Erro ao desfazer unificação", { description: error.message }),
+  });
+
   return {
     groups,
     membersByGroup: query.data?.membersByGroup ?? new Map<string, AuvoServiceMember[]>(),
@@ -294,7 +384,9 @@ export const useAuvoServiceGroups = () => {
     processQueue,
     retryFailedAnalyses,
     autoGroupOrphans,
-
+    mergeSuggestions,
+    mergeServices,
+    unmergeService,
   };
-
 };
+
