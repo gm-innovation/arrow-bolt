@@ -1092,21 +1092,29 @@ export default function AuvoAudit() {
           vesselName={reviewGroup.vesselName}
           totalRisk={reviewGroup.totalRisk}
           items={reviewGroup.items}
+          photoFindings={reviewGroup.photoItems}
           members={reviewMembers}
           focusItemId={focusItemId}
           initialTaskUid={
             reviewGroup.items.find((d) => d.id === focusItemId)?.auvo_task_uid ??
             reviewGroup.taskUid
           }
-          isSaving={reviewDiscrepanciesBulk.isPending}
-          onSubmit={(decisions) =>
+          isSaving={reviewDiscrepanciesBulk.isPending || reviewPhotoFindingsBulk.isPending}
+          onSubmit={(decisions) => {
+            if (decisions.length === 0) {
+              setReviewGroupKey(null);
+              setFocusItemId(null);
+              return;
+            }
             reviewDiscrepanciesBulk.mutate(decisions, {
               onSuccess: () => {
                 setReviewGroupKey(null);
                 setFocusItemId(null);
               },
-            })
-          }
+            });
+          }}
+          onSubmitPhotos={(decisions) => reviewPhotoFindingsBulk.mutate(decisions)}
+
           classificationLabel={CLASSIFICATION_LABEL}
           reviewLabel={REVIEW_LABEL}
           currency={currency}
