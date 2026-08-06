@@ -22,7 +22,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,7 +49,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AuvoInsightsPanel } from "@/components/admin/auvo/AuvoInsightsPanel";
-import { AuvoServiceReportTabs } from "@/components/admin/auvo/AuvoServiceReportTabs";
+import { AuvoGroupReviewDialog } from "@/components/admin/auvo/AuvoGroupReviewDialog";
 import { useAuvoServiceGroups } from "@/hooks/useAuvoServiceGroups";
 import {
   useAuvoIntegration,
@@ -88,11 +87,8 @@ export default function AuvoAudit() {
   const [onlyDivergent, setOnlyDivergent] = useState(true);
   const [search, setSearch] = useState("");
   const [classification, setClassification] = useState<string>("all");
-  const [reviewTarget, setReviewTarget] = useState<AuvoDiscrepancy | null>(null);
-  const [reviewStatus, setReviewStatus] = useState<"confirmed" | "justified" | "dismissed">(
-    "confirmed",
-  );
-  const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewGroupKey, setReviewGroupKey] = useState<string | null>(null);
+  const [focusItemId, setFocusItemId] = useState<string | null>(null);
   const [promoteTarget, setPromoteTarget] = useState<AuvoTaskRow | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
@@ -118,7 +114,7 @@ export default function AuvoAudit() {
     isLoading,
     runSync,
     reanalyzeTask,
-    reviewDiscrepancy,
+    reviewDiscrepanciesBulk,
     promoteToOS,
   } = useAuvoIntegration({ onlyDivergent });
 
@@ -241,46 +237,37 @@ export default function AuvoAudit() {
     );
   }, [filtered, groupById, membersByGroup]);
 
+  const reviewGroup = useMemo(
+    () => grouped.find((g) => g.key === reviewGroupKey) ?? null,
+    [grouped, reviewGroupKey],
+  );
+
   const reviewMembers = useMemo(() => {
-    if (!reviewTarget) return [];
-    const members = reviewTarget.service_group_id
-      ? membersByGroup.get(reviewTarget.service_group_id) ?? []
+    if (!reviewGroup) return [];
+    const members = reviewGroup.serviceGroupId
+      ? membersByGroup.get(reviewGroup.serviceGroupId) ?? []
       : [];
     if (members.length > 0) return members;
+    const first = reviewGroup.items[0];
     return [
       {
-        id: reviewTarget.auvo_task_uid,
-        auvo_task_id: reviewTarget.auvo_tasks?.auvo_task_id ?? "",
-        order_number: reviewTarget.order_number,
-        auvo_task_type: reviewTarget.auvo_tasks?.auvo_task_type ?? null,
-        task_date: reviewTarget.auvo_tasks?.task_date ?? null,
-        technician_name: reviewTarget.auvo_tasks?.technician_name ?? null,
-        customer_name: null,
-        vessel_name: null,
+        id: reviewGroup.taskUid,
+        auvo_task_id: first?.auvo_tasks?.auvo_task_id ?? "",
+        order_number: first?.order_number ?? null,
+        auvo_task_type: first?.auvo_tasks?.auvo_task_type ?? null,
+        task_date: first?.auvo_tasks?.task_date ?? null,
+        technician_name: first?.auvo_tasks?.technician_name ?? null,
+        customer_name: reviewGroup.customerName ?? null,
+        vessel_name: reviewGroup.vesselName ?? null,
         service_group_id: null,
-
         unlinked_from_group: false,
         hasReport: true,
       },
     ];
-  }, [reviewTarget, membersByGroup]);
-
-
+  }, [reviewGroup, membersByGroup]);
 
   const lastRun = runs[0];
 
-  const submitReview = () => {
-    if (!reviewTarget) return;
-    reviewDiscrepancy.mutate(
-      { id: reviewTarget.id, review_status: reviewStatus, review_notes: reviewNotes || undefined },
-      {
-        onSuccess: () => {
-          setReviewTarget(null);
-          setReviewNotes("");
-        },
-      },
-    );
-  };
 
   return (
     <div className="space-y-6">
@@ -589,21 +576,34 @@ export default function AuvoAudit() {
                                 </span>
                               </TableCell>
                               <TableCell className="text-right">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (g.serviceGroupId) {
-                                      reanalyzeService.mutate(g.serviceGroupId);
-                                    } else {
-                                      reanalyzeTask.mutate(g.taskUid);
-                                    }
-                                  }}
-                                  disabled={reanalyzeTask.isPending || reanalyzeService.isPending}
-                                >
-                                  Reanalisar serviço
-                                </Button>
+                                <div className="flex flex-col items-end gap-1">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setReviewGroupKey(g.key);
+                                      setFocusItemId(null);
+                                    }}
+                                  >
+                                    Revisar divergências ({g.items.length})
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (g.serviceGroupId) {
+                                        reanalyzeService.mutate(g.serviceGroupId);
+                                      } else {
+                                        reanalyzeTask.mutate(g.taskUid);
+                                      }
+                                    }}
+                                    disabled={reanalyzeTask.isPending || reanalyzeService.isPending}
+                                  >
+                                    Reanalisar serviço
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
 
@@ -717,9 +717,8 @@ export default function AuvoAudit() {
                                               variant="outline"
                                               size="sm"
                                               onClick={() => {
-                                                setReviewTarget(d);
-                                                setReviewStatus("confirmed");
-                                                setReviewNotes(d.review_notes ?? "");
+                                                setReviewGroupKey(g.key);
+                                                setFocusItemId(d.id);
                                               }}
                                             >
                                               Revisar
@@ -1006,78 +1005,41 @@ export default function AuvoAudit() {
         </TabsContent>
       </Tabs>
 
-      <Dialog open={!!reviewTarget} onOpenChange={(open) => !open && setReviewTarget(null)}>
-        <DialogContent className="max-w-5xl max-h-[92vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Revisar divergência</DialogTitle>
-            <DialogDescription>
-              {reviewTarget?.item_name} · OS {reviewTarget?.order_number ?? "—"}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-6 md:grid-cols-[1.4fr_1fr]">
-            <div>
-              <AuvoServiceReportTabs
-                members={reviewMembers}
-                initialTaskUid={reviewTarget?.auvo_task_uid}
-              />
-
-            </div>
-            <div className="space-y-4">
-              {reviewTarget && (
-                <div className="rounded-md border p-3 text-sm space-y-1">
-                  <p className="font-medium">{reviewTarget.item_name}</p>
-                  <p className="text-muted-foreground">
-                    Baixa no estoque: {reviewTarget.stock_quantity ?? 0} · Relatado:{" "}
-                    {reviewTarget.reported_quantity ?? "—"}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Classificação: {CLASSIFICATION_LABEL[reviewTarget.classification] ??
-                      reviewTarget.classification}
-                  </p>
-                  <p className="text-muted-foreground">
-                    Valor em risco: {currency(Number(reviewTarget.value_at_risk ?? 0))}
-                  </p>
-                </div>
-              )}
-              {reviewTarget?.ai_notes && (
-                <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
-                  {reviewTarget.ai_notes}
-                </p>
-              )}
-              <div className="space-y-2">
-                <Label>Conclusão</Label>
-                <Select value={reviewStatus} onValueChange={(v) => setReviewStatus(v as typeof reviewStatus)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="confirmed">Divergência confirmada</SelectItem>
-                    <SelectItem value="justified">Justificada pelo técnico</SelectItem>
-                    <SelectItem value="dismissed">Descartar (falso positivo)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="review-notes">Observações</Label>
-                <Textarea
-                  id="review-notes"
-                  value={reviewNotes}
-                  onChange={(e) => setReviewNotes(e.target.value)}
-                  placeholder="Registre o que foi apurado com o técnico ou com o estoque"
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setReviewTarget(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={submitReview} disabled={reviewDiscrepancy.isPending}>
-              Salvar revisão
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {reviewGroup && (
+        <AuvoGroupReviewDialog
+          open={!!reviewGroup}
+          onOpenChange={(open) => {
+            if (!open) {
+              setReviewGroupKey(null);
+              setFocusItemId(null);
+            }
+          }}
+          orderLabel={reviewGroup.orderLabel}
+          customerName={reviewGroup.customerName}
+          vesselName={reviewGroup.vesselName}
+          totalRisk={reviewGroup.totalRisk}
+          items={reviewGroup.items}
+          members={reviewMembers}
+          focusItemId={focusItemId}
+          initialTaskUid={
+            reviewGroup.items.find((d) => d.id === focusItemId)?.auvo_task_uid ??
+            reviewGroup.taskUid
+          }
+          isSaving={reviewDiscrepanciesBulk.isPending}
+          onSubmit={(decisions) =>
+            reviewDiscrepanciesBulk.mutate(decisions, {
+              onSuccess: () => {
+                setReviewGroupKey(null);
+                setFocusItemId(null);
+              },
+            })
+          }
+          classificationLabel={CLASSIFICATION_LABEL}
+          reviewLabel={REVIEW_LABEL}
+          currency={currency}
+          severityVariant={severityVariant}
+        />
+      )}
 
       <Dialog open={!!promoteTarget} onOpenChange={(open) => !open && setPromoteTarget(null)}>
         <DialogContent>
