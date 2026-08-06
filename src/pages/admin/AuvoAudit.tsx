@@ -88,11 +88,8 @@ export default function AuvoAudit() {
   const [onlyDivergent, setOnlyDivergent] = useState(true);
   const [search, setSearch] = useState("");
   const [classification, setClassification] = useState<string>("all");
-  const [reviewTarget, setReviewTarget] = useState<AuvoDiscrepancy | null>(null);
-  const [reviewStatus, setReviewStatus] = useState<"confirmed" | "justified" | "dismissed">(
-    "confirmed",
-  );
-  const [reviewNotes, setReviewNotes] = useState("");
+  const [reviewGroupKey, setReviewGroupKey] = useState<string | null>(null);
+  const [focusItemId, setFocusItemId] = useState<string | null>(null);
   const [promoteTarget, setPromoteTarget] = useState<AuvoTaskRow | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
