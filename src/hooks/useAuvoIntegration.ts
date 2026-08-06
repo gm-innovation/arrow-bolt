@@ -124,6 +124,24 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
     enabled: !!companyId,
   });
 
+  // Auditoria de evidência fotográfica: atividades declaradas sem foto.
+  const photoFindingsQuery = useQuery({
+    queryKey: ["auvo-photo-findings", companyId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("auvo_photo_findings")
+        .select(
+          "id, auvo_task_uid, service_group_id, order_number, activity, expected_evidence, severity, ai_notes, photo_count, review_status, review_notes, created_at",
+        )
+        .order("created_at", { ascending: false })
+        .limit(1000);
+      if (error) throw error;
+      return (data ?? []) as unknown as AuvoPhotoFinding[];
+    },
+    enabled: !!companyId,
+  });
+
+
   const runsQuery = useQuery({
     queryKey: ["auvo-sync-runs", companyId],
     queryFn: async () => {
