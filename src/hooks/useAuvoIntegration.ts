@@ -497,7 +497,7 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
   });
 
   const runPhotoAudit = useMutation({
-    mutationFn: async (rounds = 20) => {
+    mutationFn: async (rounds: number = 20) => {
       let processed = 0;
       let gaps = 0;
       let skipped = 0;
