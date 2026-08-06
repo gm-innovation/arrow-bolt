@@ -497,14 +497,15 @@ export const useAuvoIntegration = (filters?: { onlyDivergent?: boolean }) => {
   });
 
   const runPhotoAudit = useMutation({
-    mutationFn: async (rounds: number = 20) => {
+    mutationFn: async (rounds?: number) => {
+      const maxRounds = rounds ?? 20;
       let processed = 0;
       let gaps = 0;
       let skipped = 0;
       let failed = 0;
       let remaining = 1;
 
-      for (let round = 0; round < rounds && remaining > 0; round++) {
+      for (let round = 0; round < maxRounds && remaining > 0; round++) {
         const { data, error } = await supabase.functions.invoke("auvo-sync", {
           body: { mode: "photo_audit_batch", limit: 8 },
         });
