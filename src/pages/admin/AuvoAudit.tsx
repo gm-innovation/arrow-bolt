@@ -566,6 +566,9 @@ export default function AuvoAudit() {
           <TabsTrigger value="sem-servico">
             Sem serviço {orphanMembers.length > 0 ? `(${orphanMembers.length})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="duplicados">
+            Duplicados {mergeSuggestionList.length > 0 ? `(${mergeSuggestionList.length})` : ""}
+          </TabsTrigger>
           <TabsTrigger value="execucoes">Execuções</TabsTrigger>
         </TabsList>
 
@@ -573,6 +576,22 @@ export default function AuvoAudit() {
         <TabsContent value="indicadores">
           <AuvoInsightsPanel />
         </TabsContent>
+
+        <TabsContent value="duplicados">
+          <AuvoMergeSuggestionsPanel
+            suggestions={mergeSuggestionList}
+            isLoading={mergeSuggestions.isFetching}
+            onRefresh={() => mergeSuggestions.refetch()}
+            onMerge={(primaryGroupId, duplicateGroupIds) =>
+              mergeServices.mutate({ primaryGroupId, duplicateGroupIds })
+            }
+            isMerging={mergeServices.isPending}
+            mergedGroups={mergedGroups}
+            onUnmerge={(groupId) => unmergeService.mutate(groupId)}
+            isUnmerging={unmergeService.isPending}
+          />
+        </TabsContent>
+
 
         <TabsContent value="divergencias" className="space-y-4">
           <Card>
