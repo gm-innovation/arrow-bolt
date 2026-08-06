@@ -22,6 +22,18 @@ import { AuvoServiceReportTabs } from "./AuvoServiceReportTabs";
 import type { AuvoServiceMember } from "@/hooks/useAuvoServiceGroups";
 import type { AuvoDiscrepancy, AuvoPhotoFinding } from "@/hooks/useAuvoIntegration";
 import { Camera, ImageOff } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+const formatDay = (value?: string | null) => {
+  if (!value) return null;
+  try {
+    return format(parseISO(value), "dd/MM/yyyy", { locale: ptBR });
+  } catch {
+    return null;
+  }
+};
+
 
 export type ReviewStatus = "confirmed" | "justified" | "dismissed";
 
