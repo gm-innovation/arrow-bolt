@@ -44,10 +44,10 @@ export const parseReportSections = (reportText: string): ReportSection[] => {
   return sections.map((s) => ({ ...s, body: s.body.trim() }));
 };
 
-// Aceita singular e plural, com ou sem complemento:
-// "MATERIAL FORNECIDO", "MATERIAIS FORNECIDOS", "MATERIAL UTILIZADO", "MATERIAL", etc.
-const MATERIAL_TITLE =
-  /^\s*materi(?:al|ais)(?:\s+(?:fornecid\w*|utilizad\w*|aplicad\w*|empregad\w*|consumid\w*|usad\w*|gast\w*))?\s*:?\s*$/i;
+// Aceita qualquer título que comece por material/materiais/materials:
+// "MATERIAL FORNECIDO", "MATERIAIS FORNECIDOS", "MATERIAL UTILIZADO",
+// "MATERIAL FORNECIDOS PELA GOOGLEMARINE", "MATERIALS SUPPLIED", etc.
+const MATERIAL_TITLE = /^\s*materi(?:al|ais|als)\b/i;
 
 /** Retorna o texto da seção de material fornecido, ou null quando não declarada. */
 export const extractSuppliedMaterialSection = (
