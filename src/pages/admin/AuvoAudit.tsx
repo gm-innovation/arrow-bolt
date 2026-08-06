@@ -717,9 +717,8 @@ export default function AuvoAudit() {
                                               variant="outline"
                                               size="sm"
                                               onClick={() => {
-                                                setReviewTarget(d);
-                                                setReviewStatus("confirmed");
-                                                setReviewNotes(d.review_notes ?? "");
+                                                setReviewGroupKey(g.key);
+                                                setFocusItemId(d.id);
                                               }}
                                             >
                                               Revisar
