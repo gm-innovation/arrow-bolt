@@ -15,7 +15,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAuvoCriticalSummary, type AuvoCriticalItem } from "@/hooks/useAuvoCriticalSummary";
+import {
+  useAuvoCriticalSummary,
+  type AuvoCriticalItem,
+  type AuvoPhotoGapItem,
+} from "@/hooks/useAuvoCriticalSummary";
+
 import { AuvoInsightsPanel } from "@/components/admin/auvo/AuvoInsightsPanel";
 
 const currency = (value: number) =>
