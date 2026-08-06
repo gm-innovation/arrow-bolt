@@ -111,6 +111,7 @@ export default function AuvoAudit() {
 
   const {
     discrepancies,
+    photoFindings,
     stats,
     runs,
     tasks,
@@ -118,6 +119,7 @@ export default function AuvoAudit() {
     runSync,
     reanalyzeTask,
     reviewDiscrepanciesBulk,
+    reviewPhotoFindingsBulk,
     promoteToOS,
   } = useAuvoIntegration({ onlyDivergent });
 
