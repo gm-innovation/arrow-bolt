@@ -20,7 +20,8 @@ import {
 } from "@/components/ui/select";
 import { AuvoServiceReportTabs } from "./AuvoServiceReportTabs";
 import type { AuvoServiceMember } from "@/hooks/useAuvoServiceGroups";
-import type { AuvoDiscrepancy } from "@/hooks/useAuvoIntegration";
+import type { AuvoDiscrepancy, AuvoPhotoFinding } from "@/hooks/useAuvoIntegration";
+import { Camera, ImageOff } from "lucide-react";
 
 export type ReviewStatus = "confirmed" | "justified" | "dismissed";
 
@@ -38,11 +39,13 @@ interface Props {
   vesselName?: string | null;
   totalRisk: number;
   items: AuvoDiscrepancy[];
+  photoFindings?: AuvoPhotoFinding[];
   members: AuvoServiceMember[];
   focusItemId?: string | null;
   initialTaskUid?: string | null;
   isSaving: boolean;
   onSubmit: (decisions: AuvoReviewDecision[]) => void;
+  onSubmitPhotos?: (decisions: AuvoReviewDecision[]) => void;
   classificationLabel: Record<string, string>;
   reviewLabel: Record<string, string>;
   currency: (v: number) => string;
