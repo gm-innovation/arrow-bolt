@@ -127,6 +127,10 @@ export default function AuvoAudit() {
     mergeSuggestions,
     mergeServices,
     unmergeService,
+    mergeDismissals,
+    dismissMerge,
+    undoDismissMerge,
+
   } = useAuvoServiceGroups();
 
   const mergeSuggestionList = mergeSuggestions.data ?? [];
