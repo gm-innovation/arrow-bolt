@@ -221,8 +221,10 @@ export default function AuvoAudit() {
           isSimilarityGrouped: sg?.is_similarity_grouped ?? false,
           groupingReason: sg?.grouping_reason ?? null,
           items: [],
+          photoItems: [],
           totalRisk: 0,
           pending: 0,
+          photoPending: 0,
           stockNotReported: 0,
           worstWeight: 99,
         };
@@ -239,10 +241,63 @@ export default function AuvoAudit() {
       group.worstWeight = Math.min(group.worstWeight, weight(d.classification));
     }
 
+    // Lacunas de evidência fotográfica entram na MESMA lista: um serviço pode ter
+    // só problema de foto, só de material, ou os dois.
+    const term = search.trim().toLowerCase();
+    for (const f of photoFindings) {
+      const key = f.service_group_id ?? f.auvo_task_uid;
+      const sg = f.service_group_id ? groupById.get(f.service_group_id) : undefined;
+      const members = f.service_group_id ? membersByGroup.get(f.service_group_id) ?? [] : [];
+
+      let group = map.get(key);
+      if (!group) {
+        if (
+          term &&
+          ![f.order_number, f.activity, sg?.customer_name, sg?.vessel_name]
+            .filter(Boolean)
+            .some((field) => String(field).toLowerCase().includes(term))
+        ) {
+          continue;
+        }
+        // Filtro por classificação de material não se aplica a lacunas de foto.
+        if (classification !== "all") continue;
+
+        const orderNumbers = sg?.order_numbers?.length
+          ? sg.order_numbers
+          : ([f.order_number].filter(Boolean) as string[]);
+        group = {
+          key,
+          serviceGroupId: f.service_group_id ?? null,
+          taskUid: f.auvo_task_uid,
+          orderLabel: orderNumbers.length ? orderNumbers.join(" / ") : "—",
+          firstDate: sg?.first_task_date ?? null,
+          lastDate: sg?.last_task_date ?? null,
+          customerName: sg?.customer_name ?? null,
+          vesselName: sg?.vessel_name ?? null,
+          technicians: new Set<string>(),
+          attendances: members.length || 1,
+          reports: members.filter((m) => m.hasReport).length,
+          isSimilarityGrouped: sg?.is_similarity_grouped ?? false,
+          groupingReason: sg?.grouping_reason ?? null,
+          items: [],
+          photoItems: [],
+          totalRisk: 0,
+          pending: 0,
+          photoPending: 0,
+          stockNotReported: 0,
+          worstWeight: 3,
+        };
+        for (const m of members) if (m.technician_name) group.technicians.add(m.technician_name);
+        map.set(key, group);
+      }
+      group.photoItems.push(f);
+      if (f.review_status === "pending") group.photoPending += 1;
+    }
+
     return Array.from(map.values()).sort(
       (a, b) => a.worstWeight - b.worstWeight || b.totalRisk - a.totalRisk,
     );
-  }, [filtered, groupById, membersByGroup]);
+  }, [filtered, groupById, membersByGroup, photoFindings, search, classification]);
 
   const reviewGroup = useMemo(
     () => grouped.find((g) => g.key === reviewGroupKey) ?? null,
