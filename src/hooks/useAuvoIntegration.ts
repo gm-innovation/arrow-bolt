@@ -53,7 +53,15 @@ export interface AuvoPhotoFinding {
   review_status: string;
   review_notes: string | null;
   created_at: string;
+  /** Atendimento de origem — o mesmo nº de OS pode reunir serviços distintos. */
+  auvo_tasks?: {
+    auvo_task_id: string | null;
+    technician_name: string | null;
+    task_date: string | null;
+    auvo_task_type: string | null;
+  } | null;
 }
+
 
 
 export interface AuvoSyncRun {
@@ -146,10 +154,13 @@ export const useAuvoIntegration = (filters?: {
       const { data, error } = await supabase
         .from("auvo_photo_findings")
         .select(
-          "id, auvo_task_uid, service_group_id, order_number, activity, expected_evidence, severity, ai_notes, photo_count, candidate_photos, evidence_source, review_status, review_notes, created_at",
+          `id, auvo_task_uid, service_group_id, order_number, activity, expected_evidence, severity, ai_notes,
+           photo_count, candidate_photos, evidence_source, review_status, review_notes, created_at,
+           auvo_tasks:auvo_task_uid ( auvo_task_id, technician_name, task_date, auvo_task_type )`,
         )
         .order("created_at", { ascending: false })
         .limit(1000);
+
       if (error) throw error;
       return (data ?? []) as unknown as AuvoPhotoFinding[];
     },

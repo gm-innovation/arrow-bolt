@@ -22,6 +22,18 @@ import { AuvoServiceReportTabs } from "./AuvoServiceReportTabs";
 import type { AuvoServiceMember } from "@/hooks/useAuvoServiceGroups";
 import type { AuvoDiscrepancy, AuvoPhotoFinding } from "@/hooks/useAuvoIntegration";
 import { Camera, ImageOff } from "lucide-react";
+import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
+
+const formatDay = (value?: string | null) => {
+  if (!value) return null;
+  try {
+    return format(parseISO(value), "dd/MM/yyyy", { locale: ptBR });
+  } catch {
+    return null;
+  }
+};
+
 
 export type ReviewStatus = "confirmed" | "justified" | "dismissed";
 
@@ -377,6 +389,16 @@ export const AuvoGroupReviewDialog = ({
 
                   {photoFindings.map((f) => {
                     const draft = photoDrafts[f.id] ?? { status: "", notes: "" };
+                    const origin = f.auvo_tasks;
+                    const originLabel = origin
+                      ? [
+                          origin.auvo_task_id ? `Atendimento ${origin.auvo_task_id}` : null,
+                          origin.technician_name,
+                          origin.task_date ? formatDay(origin.task_date) : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")
+                      : null;
                     return (
                       <div key={f.id} className="space-y-2 rounded-md border bg-background p-3">
                         <div className="flex items-start justify-between gap-2">
@@ -390,11 +412,17 @@ export const AuvoGroupReviewDialog = ({
                             <Badge variant={severityVariant(f.severity)}>Sem foto</Badge>
                           </div>
                         </div>
+                        {originLabel && (
+                          <p className="text-[11px] text-muted-foreground">
+                            Origem: {originLabel}
+                          </p>
+                        )}
                         <p className="flex items-center gap-1 text-xs text-muted-foreground">
                           <ImageOff className="h-3 w-3" />
                           {f.photo_count} foto(s) no atendimento
                           {f.expected_evidence ? ` · esperado: ${f.expected_evidence}` : ""}
                         </p>
+
                         {f.ai_notes && (
                           <p className="rounded bg-muted p-2 text-xs text-muted-foreground">
                             {f.ai_notes}
