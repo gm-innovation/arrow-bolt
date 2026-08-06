@@ -263,47 +263,76 @@ export const AuvoDiscrepancyTab = () => {
                         {isOpen && (
                           <TableRow className="bg-muted/40">
                             <TableCell />
-                            <TableCell colSpan={7} className="py-3">
-                              <Table>
-                                <TableHeader>
-                                  <TableRow>
-                                    <TableHead>Material</TableHead>
-                                    <TableHead className="text-center">Estoque</TableHead>
-                                    <TableHead className="text-center">Relatório</TableHead>
-                                    <TableHead>Classificação</TableHead>
-                                    <TableHead className="text-right">Valor em risco</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {group.items.map((item) => (
-                                    <TableRow key={item.id}>
-                                      <TableCell>{item.itemName}</TableCell>
-                                      <TableCell className="text-center">
-                                        {item.stockQuantity}
-                                      </TableCell>
-                                      <TableCell className="text-center">
-                                        {item.reportedQuantity}
-                                      </TableCell>
-                                      <TableCell>
-                                        <Badge
-                                          variant={
-                                            item.classification === "stock_not_reported"
-                                              ? "destructive"
-                                              : "outline"
-                                          }
-                                        >
-                                          {CLASSIFICATION_LABEL[item.classification] ??
-                                            item.classification}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell className="text-right">
-                                        {currency(item.valueAtRisk)}
-                                      </TableCell>
+                            <TableCell colSpan={7} className="space-y-4 py-3">
+                              {group.items.length > 0 && (
+                                <Table>
+                                  <TableHeader>
+                                    <TableRow>
+                                      <TableHead>Material</TableHead>
+                                      <TableHead className="text-center">Estoque</TableHead>
+                                      <TableHead className="text-center">Relatório</TableHead>
+                                      <TableHead>Classificação</TableHead>
+                                      <TableHead className="text-right">Valor em risco</TableHead>
                                     </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                                  </TableHeader>
+                                  <TableBody>
+                                    {group.items.map((item) => (
+                                      <TableRow key={item.id}>
+                                        <TableCell>{item.itemName}</TableCell>
+                                        <TableCell className="text-center">
+                                          {item.stockQuantity}
+                                        </TableCell>
+                                        <TableCell className="text-center">
+                                          {item.reportedQuantity}
+                                        </TableCell>
+                                        <TableCell>
+                                          <Badge
+                                            variant={
+                                              item.classification === "stock_not_reported"
+                                                ? "destructive"
+                                                : "outline"
+                                            }
+                                          >
+                                            {CLASSIFICATION_LABEL[item.classification] ??
+                                              item.classification}
+                                          </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                          {currency(item.valueAtRisk)}
+                                        </TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              )}
+
+                              {group.photoGaps.length > 0 && (
+                                <div className="space-y-2">
+                                  <p className="flex items-center gap-2 text-sm font-medium">
+                                    <Camera className="h-4 w-4" />
+                                    Atividades sem evidência fotográfica
+                                  </p>
+                                  <ul className="space-y-2">
+                                    {group.photoGaps.map((gap) => (
+                                      <li key={gap.id} className="rounded-md border p-2 text-sm">
+                                        <div className="flex items-start justify-between gap-2">
+                                          <span className="font-medium">{gap.activity}</span>
+                                          <Badge variant="outline">
+                                            {gap.photoCount} foto(s)
+                                          </Badge>
+                                        </div>
+                                        {gap.expectedEvidence && (
+                                          <p className="text-xs text-muted-foreground">
+                                            Esperado: {gap.expectedEvidence}
+                                          </p>
+                                        )}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
                             </TableCell>
+
                           </TableRow>
                         )}
                       </Fragment>
