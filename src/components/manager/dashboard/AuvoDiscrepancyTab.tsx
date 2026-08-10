@@ -29,6 +29,7 @@ const currency = (value: number) =>
 const CLASSIFICATION_LABEL: Record<string, string> = {
   stock_not_reported: "Baixa sem relato",
   reported_not_in_stock: "Relato sem baixa",
+  stock_returned: "Devolvido ao estoque",
   quantity_mismatch: "Quantidade divergente",
 };
 

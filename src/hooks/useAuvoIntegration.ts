@@ -9,6 +9,7 @@ export type DiscrepancyClassification =
   | "quantity_mismatch"
   | "stock_not_reported"
   | "reported_not_in_stock"
+  | "stock_returned"
   | "unidentified";
 
 export interface AuvoDiscrepancy {
@@ -25,6 +26,8 @@ export interface AuvoDiscrepancy {
   classification: DiscrepancyClassification;
   severity: "low" | "medium" | "high";
   ai_notes: string | null;
+  returned_quantity?: number | null;
+  return_reference?: string | null;
   review_status: string;
   review_notes: string | null;
   created_at: string;
@@ -130,6 +133,7 @@ export const useAuvoIntegration = (filters?: {
         .select(
           `id, auvo_task_uid, service_group_id, order_number, item_name, external_product_code, stock_quantity,
            reported_quantity, unit_value, value_at_risk, classification, severity, ai_notes,
+           returned_quantity, return_reference,
            review_status, review_notes, created_at,
            auvo_tasks:auvo_task_uid ( auvo_task_id, customer_name, technician_name, task_date, auvo_task_type )`,
         )
@@ -137,7 +141,10 @@ export const useAuvoIntegration = (filters?: {
         .order("value_at_risk", { ascending: false })
         .limit(500);
 
-      if (filters?.onlyDivergent) query = query.neq("classification", "match");
+      // "match" e "stock_returned" são linhas informativas, não pendências.
+      if (filters?.onlyDivergent) {
+        query = query.not("classification", "in", "(match,stock_returned)");
+      }
 
       const { data, error } = await query;
       if (error) throw error;
@@ -593,7 +600,9 @@ export const useAuvoIntegration = (filters?: {
 
   const discrepancies = discrepanciesQuery.data ?? [];
 
-  const divergent = discrepancies.filter((d) => d.classification !== "match");
+  const divergent = discrepancies.filter(
+    (d) => d.classification !== "match" && d.classification !== "stock_returned",
+  );
   const photoFindings = photoFindingsQuery.data ?? [];
 
   const stats = {
@@ -605,6 +614,7 @@ export const useAuvoIntegration = (filters?: {
     stockNotReported: divergent.filter((d) => d.classification === "stock_not_reported").length,
     quantityMismatch: divergent.filter((d) => d.classification === "quantity_mismatch").length,
     reportedNotInStock: divergent.filter((d) => d.classification === "reported_not_in_stock").length,
+    stockReturned: discrepancies.filter((d) => d.classification === "stock_returned").length,
     photoGaps: photoFindings.length,
     photoGapsPending: photoFindings.filter((f) => f.review_status === "pending").length,
   };

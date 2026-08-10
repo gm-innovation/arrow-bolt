@@ -16,6 +16,7 @@ const classificationLabel: Record<string, string> = {
   quantity_mismatch: "Quantidade divergente",
   stock_not_reported: "Baixado do estoque, sem relato",
   reported_not_in_stock: "Relatado sem baixa",
+  stock_returned: "Devolvido ao estoque",
   unidentified: "Não identificado",
 };
 
