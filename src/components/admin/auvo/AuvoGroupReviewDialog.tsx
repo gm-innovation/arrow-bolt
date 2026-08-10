@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AuvoServiceReportTabs } from "./AuvoServiceReportTabs";
-import type { AuvoServiceMember } from "@/hooks/useAuvoServiceGroups";
+import { useAuvoServiceGroups, type AuvoServiceMember } from "@/hooks/useAuvoServiceGroups";
 import type { AuvoDiscrepancy, AuvoPhotoFinding } from "@/hooks/useAuvoIntegration";
 import { Camera, ImageOff } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -106,6 +106,19 @@ export const AuvoGroupReviewDialog = ({
   const [bulkNotes, setBulkNotes] = useState("");
   const [photoBulkStatus, setPhotoBulkStatus] = useState<ReviewStatus>("confirmed");
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const { decideCrossOs } = useAuvoServiceGroups();
+
+  // Chave estável do item, igual à usada no backend para registrar a decisão.
+  const crossOsKey = (d: AuvoDiscrepancy) =>
+    d.external_product_id != null
+      ? `pid:${d.external_product_id}`
+      : `name:${d.item_name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
+          .replace(/[^A-Z0-9 ]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()}`;
 
   useEffect(() => {
     if (!open) return;

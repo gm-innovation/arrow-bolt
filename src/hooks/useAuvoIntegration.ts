@@ -19,6 +19,7 @@ export interface AuvoDiscrepancy {
   service_group_id: string | null;
   order_number: string | null;
   item_name: string;
+  external_product_id?: number | null;
   external_product_code: string | null;
   stock_quantity: number;
   reported_quantity: number | null;
