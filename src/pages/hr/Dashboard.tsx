@@ -11,7 +11,7 @@ import { useAbsences, getAbsenceTypeLabel } from '@/hooks/useAbsences';
 import { useOnCall } from '@/hooks/useOnCall';
 import { formatLocalDate } from '@/lib/utils';
 import { PushNotificationPrompt } from '@/components/notifications/PushNotificationPrompt';
-import { statusFromExpiry, techDocLabel } from '@/lib/hr/documentStatus';
+import { statusFromExpiry, techDocLabel, pickCurrentDocs } from '@/lib/hr/documentStatus';
 
 
 interface DashboardStats {
