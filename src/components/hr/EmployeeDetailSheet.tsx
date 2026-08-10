@@ -40,6 +40,8 @@ import { toast } from "@/hooks/use-toast";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
 import { sanitizeFileName, formatLocalDate } from "@/lib/utils";
 import type { EmployeeRow } from "@/pages/hr/Employees";
+import { statusFromExpiry } from "@/lib/hr/documentStatus";
+
 
 const ROLE_LABELS: Record<string, string> = {
   technician: "Técnico",
