@@ -358,6 +358,9 @@ export default function Employees() {
             <SelectItem value="active">Ativos</SelectItem>
             <SelectItem value="inactive">Inativos</SelectItem>
             <SelectItem value="archived">Arquivados</SelectItem>
+            <SelectItem value="doc_expired">Documentação vencida</SelectItem>
+            <SelectItem value="doc_expiring">Documentação a vencer</SelectItem>
+
           </SelectContent>
         </Select>
       </div>
