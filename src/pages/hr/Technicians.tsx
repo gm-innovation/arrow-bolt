@@ -21,6 +21,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/lib/utils';
+import { pickCurrentDocs } from '@/lib/hr/documentStatus';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { NewTechnicianForm } from '@/components/admin/technicians/NewTechnicianForm';
 import { useToast } from '@/hooks/use-toast';
@@ -925,8 +927,15 @@ const Technicians = () => {
                   <h4 className="font-semibold mb-3">Documentos</h4>
                   {selectedTechnician.technician_documents && selectedTechnician.technician_documents.length > 0 ? (
                     <div className="space-y-2">
-                      {selectedTechnician.technician_documents.map((doc) => {
+                      {(() => {
+                        const { isSuperseded } = pickCurrentDocs(selectedTechnician.technician_documents as any[]);
+                        return [...(selectedTechnician.technician_documents as any[])].sort(
+                          (a, b) => Number(isSuperseded(a)) - Number(isSuperseded(b))
+                        );
+                      })().map((doc: any) => {
+                        const { isSuperseded } = pickCurrentDocs(selectedTechnician.technician_documents as any[]);
                         const getDocumentStatus = (expiryDate?: string) => {
+                          if (isSuperseded(doc)) return { label: 'Substituído', variant: 'secondary' as const };
                           if (!expiryDate) return { label: 'Sem validade', variant: 'secondary' as const };
                           const date = new Date(expiryDate + 'T00:00:00');
                           const today = new Date();
@@ -937,6 +946,7 @@ const Technicians = () => {
                           return { label: 'Válido', variant: 'success' as const };
                         };
                         const docStatus = getDocumentStatus(doc.expiry_date);
+
                         
                         return (
                           <div

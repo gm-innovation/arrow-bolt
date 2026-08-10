@@ -40,7 +40,7 @@ import { toast } from "@/hooks/use-toast";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
 import { sanitizeFileName, formatLocalDate } from "@/lib/utils";
 import type { EmployeeRow } from "@/pages/hr/Employees";
-import { statusFromExpiry } from "@/lib/hr/documentStatus";
+import { statusFromExpiry, pickCurrentDocs } from "@/lib/hr/documentStatus";
 
 
 const ROLE_LABELS: Record<string, string> = {
@@ -1047,34 +1047,52 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
         {techDocs.length === 0 ? (
           <p className="text-sm text-muted-foreground">Nenhum documento técnico</p>
         ) : (
-          techDocs.map((doc: any) => (
-            <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors">
-              <div className="flex items-center gap-3 min-w-0">
-                <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium truncate">{doc.certificate_name || doc.file_name || doc.document_type}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {doc.document_type === "aso" ? "ASO" : "Certificação"}
-                    {doc.expiry_date && ` • Validade: ${formatLocalDate(doc.expiry_date)}`}
-                  </p>
+          (() => {
+            const { isSuperseded } = pickCurrentDocs(techDocs as any[]);
+            const ordered = [...(techDocs as any[])].sort(
+              (a, b) => Number(isSuperseded(a)) - Number(isSuperseded(b))
+            );
+            return ordered.map((doc: any) => {
+              const superseded = isSuperseded(doc);
+              return (
+                <div
+                  key={doc.id}
+                  className={`flex items-center justify-between p-3 border rounded-lg hover:bg-muted/30 transition-colors ${superseded ? "opacity-60" : ""}`}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{doc.certificate_name || doc.file_name || doc.document_type}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {doc.document_type === "aso" ? "ASO" : "Certificação"}
+                        {doc.expiry_date && ` • Validade: ${formatLocalDate(doc.expiry_date)}`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {superseded ? (
+                      <Badge variant="outline" className="text-xs text-muted-foreground" title="Substituído por uma versão mais recente">
+                        Substituído
+                      </Badge>
+                    ) : (
+                      (() => {
+                        const { status, daysLeft } = statusFromExpiry(doc.expiry_date);
+                        if (status === "none") return null;
+                        if (status === "expired") return <Badge variant="destructive" className="text-xs">Vencido</Badge>;
+                        if (status === "expiring") return <Badge variant="secondary" className="text-xs">A vencer em {daysLeft}d</Badge>;
+                        return <Badge variant="outline" className="text-xs">Válido</Badge>;
+                      })()
+                    )}
+                    <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)}>
+                      <Download className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                {(() => {
-                  const { status, daysLeft } = statusFromExpiry(doc.expiry_date);
-                  if (status === "none") return null;
-                  if (status === "expired") return <Badge variant="destructive" className="text-xs">Vencido</Badge>;
-                  if (status === "expiring") return <Badge variant="secondary" className="text-xs">A vencer em {daysLeft}d</Badge>;
-                  return <Badge variant="outline" className="text-xs">Válido</Badge>;
-                })()}
-                <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)}>
-                  <Download className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-
-          ))
+              );
+            });
+          })()
         )}
+
       </div>
 
       {/* Edit Dialog */}

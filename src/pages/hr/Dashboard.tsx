@@ -11,7 +11,7 @@ import { useAbsences, getAbsenceTypeLabel } from '@/hooks/useAbsences';
 import { useOnCall } from '@/hooks/useOnCall';
 import { formatLocalDate } from '@/lib/utils';
 import { PushNotificationPrompt } from '@/components/notifications/PushNotificationPrompt';
-import { statusFromExpiry, techDocLabel } from '@/lib/hr/documentStatus';
+import { statusFromExpiry, techDocLabel, pickCurrentDocs } from '@/lib/hr/documentStatus';
 
 
 interface DashboardStats {
@@ -64,42 +64,49 @@ const Dashboard = () => {
 
         const techList = technicians || [];
 
-        // Documentos (ASO + certificações) vencidos ou a vencer em 30 dias
+        // Documentos (ASO + certificações) vencidos ou a vencer em 30 dias.
+        // Apenas a versão vigente de cada documento gera alerta.
         const techIds = techList.map((t: any) => t.id);
         const nameById: Record<string, string> = {};
         techList.forEach((t: any) => { nameById[t.id] = t.profiles?.full_name || 'Sem nome'; });
 
-        const alerts: Array<{ id: string; name: string; label: string; expiry: string }> = [];
-
+        const docsByTech: Record<string, any[]> = {};
         techList.forEach((t: any) => {
-          if (!t.aso_valid_until) return;
-          const { status } = statusFromExpiry(t.aso_valid_until);
-          if (status === 'expired' || status === 'expiring') {
-            alerts.push({ id: `aso-${t.id}`, name: nameById[t.id], label: 'ASO', expiry: t.aso_valid_until });
-          }
+          docsByTech[t.id] = t.aso_valid_until
+            ? [{ id: `aso-${t.id}`, document_type: 'aso', expiry_date: t.aso_valid_until }]
+            : [];
         });
 
         if (techIds.length) {
           const { data: docs } = await supabase
             .from('technician_documents')
-            .select('id, technician_id, document_type, certificate_name, file_name, expiry_date')
-            .in('technician_id', techIds)
-            .eq('document_type', 'certification')
-            .not('expiry_date', 'is', null);
+            .select('id, technician_id, document_type, certificate_name, file_name, expiry_date, issue_date, uploaded_at')
+            .in('technician_id', techIds);
           (docs || []).forEach((d: any) => {
+            if (!docsByTech[d.technician_id]) return;
+            docsByTech[d.technician_id].push(d);
+          });
+        }
+
+        const alerts: Array<{ id: string; name: string; label: string; expiry: string }> = [];
+        Object.entries(docsByTech).forEach(([techId, docs]) => {
+          const { current } = pickCurrentDocs(docs);
+          current.forEach((d: any) => {
+            if (!d.expiry_date) return;
             const { status } = statusFromExpiry(d.expiry_date);
             if (status === 'expired' || status === 'expiring') {
               alerts.push({
-                id: `doc-${d.id}`,
-                name: nameById[d.technician_id] || 'Sem nome',
+                id: `${techId}-${d.id}`,
+                name: nameById[techId] || 'Sem nome',
                 label: techDocLabel(d),
                 expiry: d.expiry_date,
               });
             }
           });
-        }
+        });
 
         alerts.sort((a, b) => a.expiry.localeCompare(b.expiry));
+
 
         setExpiringAsos(alerts);
         setStats({

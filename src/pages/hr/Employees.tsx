@@ -13,7 +13,7 @@ import { EmployeeDetailSheet } from "@/components/hr/EmployeeDetailSheet";
 import { NewEmployeeForm, EmployeeFormValues } from "@/components/hr/NewEmployeeForm";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeFileName, formatLocalDate } from "@/lib/utils";
-import { aggregateDocCompliance, techDocLabel, type DocLike, type DocComplianceResult } from "@/lib/hr/documentStatus";
+import { aggregateDocCompliance, pickCurrentDocs, techDocLabel, type DocLike, type DocComplianceResult } from "@/lib/hr/documentStatus";
 
 
 const ROLE_LABELS: Record<string, string> = {
@@ -123,24 +123,31 @@ export default function Employees() {
         techMap[t.user_id] = t;
       });
 
-      // Certificações e ASOs anexados: a conformidade considera todos, não só o ASO.
+      // Conformidade considera ASO + certificações, apenas na versão vigente de cada documento.
       const techIds = (techRes.data || []).map((t: any) => t.id);
-      const docsByTech: Record<string, DocLike[]> = {};
+      const docsByTech: Record<string, any[]> = {};
       if (techIds.length) {
         const { data: docs } = await supabase
           .from("technician_documents")
-          .select("technician_id, document_type, certificate_name, file_name, expiry_date")
+          .select("technician_id, document_type, certificate_name, file_name, expiry_date, issue_date, uploaded_at")
           .in("technician_id", techIds);
         (docs || []).forEach((d: any) => {
           if (!docsByTech[d.technician_id]) docsByTech[d.technician_id] = [];
-          docsByTech[d.technician_id].push({ label: techDocLabel(d), expiry_date: d.expiry_date });
+          docsByTech[d.technician_id].push(d);
         });
       }
 
       return (profiles || []).map((p: any) => {
         const tech = techMap[p.id] || null;
-        const docs: DocLike[] = tech ? [...(docsByTech[tech.id] || [])] : [];
-        if (tech?.aso_valid_until) docs.push({ label: "ASO", expiry_date: tech.aso_valid_until });
+        const rawDocs: any[] = tech ? [...(docsByTech[tech.id] || [])] : [];
+        if (tech?.aso_valid_until) {
+          rawDocs.push({ document_type: "aso", expiry_date: tech.aso_valid_until });
+        }
+        const { current } = pickCurrentDocs(rawDocs);
+        const docs: DocLike[] = current.map((d) => ({
+          label: techDocLabel(d),
+          expiry_date: d.expiry_date,
+        }));
         return {
           ...p,
           status: p.status || "active",
@@ -149,6 +156,7 @@ export default function Employees() {
           docCompliance: aggregateDocCompliance(docs),
         };
       }) as EmployeeRow[];
+
 
     },
   });
