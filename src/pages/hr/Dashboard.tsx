@@ -62,21 +62,51 @@ const Dashboard = () => {
 
         const techList = technicians || [];
 
-        // Check ASOs expiring in 30 days
-        const thirtyDaysFromNow = addDays(today, 30);
-        const expiring = techList.filter((t) => {
-          if (!t.aso_valid_until) return false;
-          const asoDate = new Date(t.aso_valid_until);
-          return asoDate <= thirtyDaysFromNow;
+        // Documentos (ASO + certificações) vencidos ou a vencer em 30 dias
+        const techIds = techList.map((t: any) => t.id);
+        const nameById: Record<string, string> = {};
+        techList.forEach((t: any) => { nameById[t.id] = t.profiles?.full_name || 'Sem nome'; });
+
+        const alerts: Array<{ id: string; name: string; label: string; expiry: string }> = [];
+
+        techList.forEach((t: any) => {
+          if (!t.aso_valid_until) return;
+          const { status } = statusFromExpiry(t.aso_valid_until);
+          if (status === 'expired' || status === 'expiring') {
+            alerts.push({ id: `aso-${t.id}`, name: nameById[t.id], label: 'ASO', expiry: t.aso_valid_until });
+          }
         });
 
-        setExpiringAsos(expiring);
+        if (techIds.length) {
+          const { data: docs } = await supabase
+            .from('technician_documents')
+            .select('id, technician_id, document_type, certificate_name, file_name, expiry_date')
+            .in('technician_id', techIds)
+            .eq('document_type', 'certification')
+            .not('expiry_date', 'is', null);
+          (docs || []).forEach((d: any) => {
+            const { status } = statusFromExpiry(d.expiry_date);
+            if (status === 'expired' || status === 'expiring') {
+              alerts.push({
+                id: `doc-${d.id}`,
+                name: nameById[d.technician_id] || 'Sem nome',
+                label: techDocLabel(d),
+                expiry: d.expiry_date,
+              });
+            }
+          });
+        }
+
+        alerts.sort((a, b) => a.expiry.localeCompare(b.expiry));
+
+        setExpiringAsos(alerts);
         setStats({
           totalTechnicians: techList.length,
-          asoExpiringSoon: expiring.length,
+          asoExpiringSoon: alerts.length,
           absencesThisWeek: absences.filter(a => a.status !== 'cancelled').length,
           onCallToday: onCallList.length,
         });
+
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
