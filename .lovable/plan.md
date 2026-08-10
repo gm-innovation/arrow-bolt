@@ -16,12 +16,13 @@ Correções:
 
 ## 2. "Baixa no estoque: 1 · Relatado: —" quando saíram 2 unidades
 
-Confirmado consultando o EVA para a OS 4542: a resposta traz **uma única linha** para o KIT OVERHAUL STD22, sem campo de quantidade. A auditoria conta linhas, então grava baixa = 1, enquanto a tela do LOGVI mostra quantidade 2. Ou seja: o dado de quantidade não vem no endpoint usado hoje.
+Confirmado chamando o EVA para a OS 4542: a resposta traz **uma única linha** do KIT OVERHAUL STD22, sem nenhum campo de quantidade (`{"count":1, data:[{produto_id, codigo, nome, custo_unitario, embarcacao}]}`). A auditoria conta linhas, então grava baixa = 1, enquanto a tela do LOGVI mostra quantidade 2. A estrutura com `itens[].quantidade` é a do endpoint de **retornos** (que já lemos com quantidade correta); não existe hoje rota de saídas com quantidade — testei as variações e todas respondem 404.
 
 Correções:
-- Usar a quantidade quando o EVA a enviar (`quantidade`/`quantity`/`qtd`), em vez de contar linhas às cegas; continuar somando linhas repetidas apenas quando não houver campo de quantidade.
-- Nunca acusar divergência quando o relatado for **maior ou igual** à baixa registrada: nesse caso a baixa do estoque é que está subdimensionada. O item passa a aparecer como conferido, com nota explicando que o relatório declara quantidade maior que a baixa importada.
-- Registrar na conclusão da auditoria um aviso quando a quantidade do estoque vier sem campo próprio, para não induzir a leitura de "1 unidade" como fato.
+- Ler quantidade do payload de saídas quando ela existir (`quantidade`/`quantity`/`qtd`, inclusive em `itens[]`, no mesmo estilo tolerante do leitor de retornos), para funcionar automaticamente quando a rota passar a devolvê-la; sem o campo, continuar somando linhas.
+- Nunca acusar divergência quando o relatado for **maior ou igual** à baixa registrada: aí é a baixa importada que está subdimensionada. O item passa a "Conferido", com nota explicando que o relatório declara quantidade maior que a baixa trazida pelo EVA.
+- No card da divergência, rotular a baixa como "baixa registrada (EVA)" e avisar quando a quantidade veio estimada por linhas, para não ler "1 unidade" como fato.
+
 
 ## 3. Orientações da IA (prompt de extração)
 
@@ -41,6 +42,7 @@ Após as correções, reprocessar os serviços que hoje têm divergência do tip
 - `src/components/admin/auvo/AuvoTaskReportView.tsx`: exibir todas as seções de material encontradas.
 - Migração pontual para devolver ao status `pending` os grupos com `stock_not_reported`, disparando a reauditoria.
 
-## Pendência a confirmar
+## Sobre a quantidade exata da saída
 
-O EVA não devolve quantidade nesta OS. Se a LOGVI tiver um endpoint de **saídas** (a tela "Suprimentos - Saídas Serviços - Estoque" mostra quantidade 2), me envie a URL: com ela a baixa passa a ser exata em vez de estimada por linhas. Sem isso, a regra "relatado ≥ baixa não é divergência" já elimina o falso positivo.
+Enquanto a rota de saídas não devolver `quantidade`, a baixa continua estimada por linhas — a regra "relatado ≥ baixa não é divergência" elimina o falso positivo deste caso. Se a LOGVI publicar uma rota de saídas no mesmo formato dos retornos (`movimentacao` + `itens[].quantidade`), o leitor já ficará pronto para consumi-la e a baixa passa a ser exata.
+
