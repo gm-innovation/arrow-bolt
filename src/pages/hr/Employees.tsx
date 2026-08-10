@@ -120,12 +120,33 @@ export default function Employees() {
         techMap[t.user_id] = t;
       });
 
-      return (profiles || []).map((p: any) => ({
-        ...p,
-        status: p.status || "active",
-        roles: roleMap[p.id] || [],
-        technician: techMap[p.id] || null,
-      })) as EmployeeRow[];
+      // Certificações e ASOs anexados: a conformidade considera todos, não só o ASO.
+      const techIds = (techRes.data || []).map((t: any) => t.id);
+      const docsByTech: Record<string, DocLike[]> = {};
+      if (techIds.length) {
+        const { data: docs } = await supabase
+          .from("technician_documents")
+          .select("technician_id, document_type, certificate_name, file_name, expiry_date")
+          .in("technician_id", techIds);
+        (docs || []).forEach((d: any) => {
+          if (!docsByTech[d.technician_id]) docsByTech[d.technician_id] = [];
+          docsByTech[d.technician_id].push({ label: techDocLabel(d), expiry_date: d.expiry_date });
+        });
+      }
+
+      return (profiles || []).map((p: any) => {
+        const tech = techMap[p.id] || null;
+        const docs: DocLike[] = tech ? [...(docsByTech[tech.id] || [])] : [];
+        if (tech?.aso_valid_until) docs.push({ label: "ASO", expiry_date: tech.aso_valid_until });
+        return {
+          ...p,
+          status: p.status || "active",
+          roles: roleMap[p.id] || [],
+          technician: tech,
+          docCompliance: aggregateDocCompliance(docs),
+        };
+      }) as EmployeeRow[];
+
     },
   });
 
