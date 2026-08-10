@@ -199,11 +199,13 @@ export const useUploadEmployeeDocument = () => {
       if (!user || !profile?.company_id) throw new Error("Sessão inválida");
       const safe = sanitizeFileName(input.file.name);
       const code = (input.catalog_code ?? input.catalog_id).toString().replace(/[^a-zA-Z0-9_-]/g, "_");
-      const path = `${profile.company_id}/employees/${input.employee_id}/${code}/${Date.now()}_${safe}`;
+      // A primeira pasta precisa ser o id do colaborador (regras do armazenamento).
+      const path = `${input.employee_id}/hr/${code}/${Date.now()}_${safe}`;
       const { error: upErr } = await supabase.storage
         .from(DEFAULT_HR_DOC_BUCKET)
         .upload(path, input.file);
-      if (upErr) throw upErr;
+      if (upErr) throw new Error(hrDocUploadErrorMessage(upErr));
+
 
       const { error: insErr } = await (supabase as any).from("hr_employee_documents").insert({
         company_id: profile.company_id,
