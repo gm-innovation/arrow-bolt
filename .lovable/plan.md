@@ -42,6 +42,7 @@ Após as correções, reprocessar os serviços que hoje têm divergência do tip
 - `src/components/admin/auvo/AuvoTaskReportView.tsx`: exibir todas as seções de material encontradas.
 - Migração pontual para devolver ao status `pending` os grupos com `stock_not_reported`, disparando a reauditoria.
 
-## Pendência a confirmar
+## Sobre a quantidade exata da saída
 
-O EVA não devolve quantidade nesta OS. Se a LOGVI tiver um endpoint de **saídas** (a tela "Suprimentos - Saídas Serviços - Estoque" mostra quantidade 2), me envie a URL: com ela a baixa passa a ser exata em vez de estimada por linhas. Sem isso, a regra "relatado ≥ baixa não é divergência" já elimina o falso positivo.
+Enquanto a rota de saídas não devolver `quantidade`, a baixa continua estimada por linhas — a regra "relatado ≥ baixa não é divergência" elimina o falso positivo deste caso. Se a LOGVI publicar uma rota de saídas no mesmo formato dos retornos (`movimentacao` + `itens[].quantidade`), o leitor já ficará pronto para consumi-la e a baixa passa a ser exata.
+
