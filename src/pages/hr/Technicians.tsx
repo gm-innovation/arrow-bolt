@@ -21,6 +21,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { formatLocalDate } from '@/lib/utils';
+import { pickCurrentDocs } from '@/lib/hr/documentStatus';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { NewTechnicianForm } from '@/components/admin/technicians/NewTechnicianForm';
 import { useToast } from '@/hooks/use-toast';
