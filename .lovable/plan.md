@@ -40,16 +40,29 @@ Correções:
 
 ## 3. Materiais faltando na auditoria da OS 4400
 
-No estoque a OS 4400 tem **9 linhas de saída com 6 produtos distintos** (Filtro de linha 2, Régua de tomada 1+1+1, Conversor HDMI/TVI 3, Extensor HDMI 2, Bandeja fixa 1+3, Distribuidor BNC 10) e **1 retorno** (Conversor SDI p/ HDMI, 2).
+No estoque a OS 4400 tem **9 linhas de saída com 6 produtos distintos** e **1 retorno** (Conversor SDI p/ HDMI). O endpoint atual devolve menos linhas e sem quantidade — parte disso se resolve na correção do endpoint que você pediu.
 
-O endpoint atual devolve 8 linhas sem quantidade e traz o produto retornado (PRD00261) como saída, ou seja: já divergente da tela de estoque — parte disso se resolve na correção do endpoint que você pediu. Independentemente disso, há um problema no nosso lado: a auditoria filtra os itens pela grafia do nome da embarcação (`PARCEL DO BANDOLIM`, `PARCEL DO BANDOLIN`, `BARCO PARCEL DO BANDOLIM`) e descarta silenciosamente as linhas cuja grafia não casa — Régua duplicada, Distribuidor BNC e Bandeja fixa saem da auditoria.
+Do nosso lado há um problema independente: a auditoria filtra os itens de saída pela grafia do nome da embarcação e descarta silenciosamente as linhas que não casam. Isso é errado por princípio — a OS é o vínculo. Não vou afirmar que a 4400 tem grafias divergentes (você não encontrou outra grafia de "Parcel do Bandolim"); a verificação de qual grafia veio em cada linha entra como primeiro passo da implementação, e o resultado fica registrado na tela.
 
 Correções:
-- **O número da OS é o critério.** Consulta feita por número de OS: todos os itens retornados entram na auditoria, sem nenhum filtro por embarcação. Grafia divergente deixa de excluir material.
+- **O número da OS é o critério.** Consulta feita por número de OS: todos os itens retornados entram na auditoria, sem nenhum filtro por embarcação.
 - Remover o descarte por embarcação no fluxo de saídas; o nome da embarcação fica apenas informativo no card do item.
 - Manter similaridade (embarcação, data, tipo, técnico) **somente** onde ela é necessária: agrupamento de serviços sem número de OS e casamento de devoluções sem OS.
 - Registrar no resultado da sincronização quantos itens vieram por OS, para conferir contra a tela do estoque (esperado para a 4400: 6 produtos e 1 devolução).
-- Saídas em datas diferentes na mesma OS continuam somadas por produto (comportamento atual e correto).
+- Saídas em datas diferentes na mesma OS continuam somadas por produto.
+
+## 3b. Material baixado em uma OS e usado em outra (OceanPact / Parcel do Bandolim)
+
+Clientes como a OceanPact exigem **uma OS por serviço**. Na prática o material sai do estoque na OS 4400 e é aplicado no serviço da OS 4558 — o relatório da 4400 não menciona esse item e o da 4558 menciona um item que não teve baixa na própria OS. Hoje isso gera **dois falsos positivos** ao mesmo tempo: "baixado sem relato" na 4400 e "relatado sem baixa" na 4558.
+
+Como vai funcionar:
+- Depois do cruzamento por OS, roda uma segunda passada que procura, entre as OS **do mesmo cliente/embarcação** e dentro de uma janela de tempo (padrão 60 dias), pares complementares: mesmo produto com sobra de baixa em uma OS e sobra de relato em outra.
+- Ao casar, as duas linhas mudam de status para **"Baixado em outra OS do mesmo serviço"** (severidade baixa, risco financeiro zero), com link cruzado: no card da 4400 aparece "aplicado na OS 4558"; no card da 4558, "baixado na OS 4400".
+- O casamento é por quantidade: se a 4400 baixou 3 e a 4558 relatou 2, 2 unidades ficam conciliadas e 1 permanece como divergência real.
+- Casamento é uma **sugestão auditável**: o revisor pode confirmar ou desfazer o vínculo, e o desfazer não é refeito automaticamente (mesmo padrão do descarte de duplicatas já existente).
+- Quando não há OS complementar, nada muda: continua divergência crítica.
+- A conciliação entre OS ocorre **antes** de considerar o item como sem relato, e depois do abatimento das devoluções LOGVI.
+
 
 
 
