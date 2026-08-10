@@ -253,7 +253,7 @@ const Dashboard = () => {
             {expiringAsos.length === 0 ? (
               <p className="text-muted-foreground text-sm">Nenhum documento vencido ou vencendo nos próximos 30 dias</p>
             ) : (
-              <ScrollArea className="max-h-[420px] pr-3">
+              <ScrollArea className="h-[420px] pr-3">
                 <div className="space-y-3">
                   {docAlertGroups.map((group) => (
                     <div key={group.techId} className="p-3 rounded-lg bg-muted/50 space-y-2">
