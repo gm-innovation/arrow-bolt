@@ -372,14 +372,15 @@ export default function Employees() {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Cargo</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Especialidade</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">ASO</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Documentação</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Desde</th>
                   <th className="text-right py-3 px-4 font-medium text-muted-foreground">Ação</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((emp) => {
-                  const aso = emp.technician ? getAsoStatus(emp.technician.aso_valid_until) : null;
+                  const compliance = emp.docCompliance;
+
                   const empStatus = emp.status || "active";
                   const statusVariant = empStatus === "active" ? "default" as const : empStatus === "inactive" ? "secondary" as const : "outline" as const;
                   return (
