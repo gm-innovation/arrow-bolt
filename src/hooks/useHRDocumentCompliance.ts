@@ -69,6 +69,22 @@ export const hrDocErrorMessage = (error: any): string => {
   return error?.message || "Não foi possível abrir o documento.";
 };
 
+/** Mensagem de erro em pt-BR para falhas de envio de documento. */
+export const hrDocUploadErrorMessage = (error: any): string => {
+  const raw = `${error?.message ?? ""} ${error?.error ?? ""}`.toLowerCase();
+  if (raw.includes("unauthorized") || raw.includes("permission") || raw.includes("policy") || raw.includes("row-level")) {
+    return "Você não tem permissão para enviar documentos deste colaborador.";
+  }
+  if (raw.includes("already exists") || raw.includes("duplicate")) {
+    return "Já existe um arquivo com este nome. Renomeie o arquivo e tente novamente.";
+  }
+  if (raw.includes("payload too large") || raw.includes("maximum allowed size")) {
+    return "Arquivo muito grande para o envio.";
+  }
+  return error?.message || "Não foi possível enviar o documento.";
+};
+
+
 
 export type ComplianceStatus =
   | "missing"
