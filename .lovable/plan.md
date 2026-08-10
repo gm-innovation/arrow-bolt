@@ -38,16 +38,19 @@ Correções:
 - Não acusar divergência quando o relatado for **maior ou igual** à baixa registrada — aí é a baixa importada que está subdimensionada; o item vira "Conferido" com nota explicativa.
 - No card, rotular como "baixa registrada (estoque)" e sinalizar quando a quantidade veio estimada por linhas.
 
-## 3. Materiais faltando na auditoria da OS 4400 (filtro de embarcação indevido)
+## 3. Materiais faltando na auditoria da OS 4400
 
-Confirmado chamando o endpoint para a OS 4400: ele devolve 8 linhas / 7 produtos, todas com o mesmo número de OS. A auditoria, porém, filtra os itens pela grafia do nome da embarcação vinda do estoque (`PARCEL DO BANDOLIM`, `PARCEL DO BANDOLIN`, `BARCO PARCEL DO BANDOLIM`) e descarta silenciosamente as linhas cuja grafia não casa — Régua duplicada, Distribuidor BNC e Bandeja fixa saem da auditoria. Daí a revisão mostrar menos material do que o estoque registra.
+No estoque a OS 4400 tem **9 linhas de saída com 6 produtos distintos** (Filtro de linha 2, Régua de tomada 1+1+1, Conversor HDMI/TVI 3, Extensor HDMI 2, Bandeja fixa 1+3, Distribuidor BNC 10) e **1 retorno** (Conversor SDI p/ HDMI, 2).
+
+O endpoint atual devolve 8 linhas sem quantidade e traz o produto retornado (PRD00261) como saída, ou seja: já divergente da tela de estoque — parte disso se resolve na correção do endpoint que você pediu. Independentemente disso, há um problema no nosso lado: a auditoria filtra os itens pela grafia do nome da embarcação (`PARCEL DO BANDOLIM`, `PARCEL DO BANDOLIN`, `BARCO PARCEL DO BANDOLIM`) e descarta silenciosamente as linhas cuja grafia não casa — Régua duplicada, Distribuidor BNC e Bandeja fixa saem da auditoria.
 
 Correções:
-- **O número da OS é o critério.** Quando a consulta é feita pelo número da OS, todos os itens retornados entram na auditoria — sem nenhum filtro por embarcação. A grafia divergente deixa de excluir material.
-- Remover o descarte por embarcação do fluxo de saídas; o nome da embarcação passa a ser apenas informativo no card do item.
-- Manter similaridade (embarcação, data, tipo, técnico) **somente** onde ela já é necessária: agrupamento de serviços sem número de OS e casamento de devoluções que vêm sem OS.
-- Registrar no resultado da sincronização quantos itens foram trazidos por OS, para conferência.
+- **O número da OS é o critério.** Consulta feita por número de OS: todos os itens retornados entram na auditoria, sem nenhum filtro por embarcação. Grafia divergente deixa de excluir material.
+- Remover o descarte por embarcação no fluxo de saídas; o nome da embarcação fica apenas informativo no card do item.
+- Manter similaridade (embarcação, data, tipo, técnico) **somente** onde ela é necessária: agrupamento de serviços sem número de OS e casamento de devoluções sem OS.
+- Registrar no resultado da sincronização quantos itens vieram por OS, para conferir contra a tela do estoque (esperado para a 4400: 6 produtos e 1 devolução).
 - Saídas em datas diferentes na mesma OS continuam somadas por produto (comportamento atual e correto).
+
 
 
 ## 4. Orientações da IA (prompt de extração)
