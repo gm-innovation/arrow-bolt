@@ -157,10 +157,18 @@ export default function Employees() {
     return employees.filter((e) => {
       const matchesSearch = !search || e.full_name?.toLowerCase().includes(search.toLowerCase()) || e.email?.toLowerCase().includes(search.toLowerCase());
       const matchesRole = roleFilter === "all" || e.roles.includes(roleFilter);
-      const matchesStatus = statusFilter === "all" || (e.status || "active") === statusFilter;
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "doc_expired"
+          ? e.docCompliance?.status === "expired"
+          : statusFilter === "doc_expiring"
+          ? e.docCompliance?.status === "expiring"
+          : (e.status || "active") === statusFilter;
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [employees, search, roleFilter, statusFilter]);
+
 
   const uniqueRoles = useMemo(() => {
     const set = new Set<string>();
