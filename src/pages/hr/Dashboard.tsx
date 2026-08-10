@@ -224,36 +224,65 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Alertas de documentos (ASO + certificações) */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Documentos com Vencimento Próximo
-            </CardTitle>
+          <CardHeader className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                Documentos com Vencimento Próximo
+              </CardTitle>
+              {expiringAsos.length > 0 && (
+                <Button asChild variant="outline" size="sm" className="flex-shrink-0">
+                  <Link to="/hr/employees?filter=doc_expired">Ver todos</Link>
+                </Button>
+              )}
+            </div>
+            {expiringAsos.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {docAlertGroups.length} colaborador{docAlertGroups.length === 1 ? '' : 'es'} ·{' '}
+                {expiringAsos.length} documento{expiringAsos.length === 1 ? '' : 's'}
+                {' • '}
+                {expiredCount} vencido{expiredCount === 1 ? '' : 's'} / {expiringCount} a vencer
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             {expiringAsos.length === 0 ? (
               <p className="text-muted-foreground text-sm">Nenhum documento vencido ou vencendo nos próximos 30 dias</p>
             ) : (
-              <div className="space-y-3">
-                {expiringAsos.slice(0, 5).map((item) => {
-                  const expired = statusFromExpiry(item.expiry).status === 'expired';
-                  return (
-                    <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{item.name}</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {item.label} • {expired ? 'Venceu' : 'Vence'} em: {formatLocalDate(item.expiry)}
-                        </p>
+              <ScrollArea className="max-h-[420px] pr-3">
+                <div className="space-y-3">
+                  {docAlertGroups.map((group) => (
+                    <div key={group.techId} className="p-3 rounded-lg bg-muted/50 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium truncate">{group.name}</p>
+                        <Badge
+                          variant={group.items.some((i) => i.expired) ? 'destructive' : 'secondary'}
+                          className="flex-shrink-0"
+                        >
+                          {group.items.some((i) => i.expired) ? 'Vencido' : 'A vencer'}
+                        </Badge>
                       </div>
-                      <Badge variant={expired ? 'destructive' : 'secondary'} className="flex-shrink-0">
-                        {expired ? 'Vencido' : 'A vencer'}
-                      </Badge>
+                      <ul className="space-y-1">
+                        {group.items.map((item) => (
+                          <li key={item.id} className="text-sm text-muted-foreground flex items-start gap-2">
+                            <span
+                              className={`mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0 ${
+                                item.expired ? 'bg-destructive' : 'bg-yellow-500'
+                              }`}
+                            />
+                            <span className="min-w-0">
+                              {item.label} • {item.expired ? 'venceu' : 'vence'} em {formatLocalDate(item.expiry)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </CardContent>
+
 
         </Card>
 
