@@ -449,7 +449,70 @@ export const useAuvoServiceGroups = () => {
       toast.error("Erro ao reverter descarte", { description: error.message }),
   });
 
+  /**
+   * Confirma ou descarta o vínculo "material baixado em uma OS, aplicado em outra".
+   * O descarte impede que o par volte a ser conciliado e reabre a divergência.
+   */
+  const decideCrossOs = useMutation({
+    mutationFn: async ({
+      groupId,
+      counterpartGroupId,
+      itemKey,
+      externalProductId,
+      decision,
+      notes,
+    }: {
+      groupId: string;
+      counterpartGroupId: string;
+      itemKey: string;
+      externalProductId?: number | null;
+      decision: "confirmed" | "dismissed";
+      notes?: string | null;
+    }) => {
+      if (!companyId) throw new Error("Empresa não identificada");
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase.from("auvo_cross_os_decisions").upsert(
+        {
+          company_id: companyId,
+          group_id: groupId,
+          counterpart_group_id: counterpartGroupId,
+          item_key: itemKey,
+          external_product_id: externalProductId ?? null,
+          decision,
+          notes: notes ?? null,
+          decided_by: auth.user?.id ?? null,
+        },
+        { onConflict: "group_id,counterpart_group_id,item_key" },
+      );
+      if (error) throw error;
+
+      if (decision === "dismissed") {
+        // Reanalisa para a divergência voltar a ser apontada.
+        const { error: fnError } = await supabase.functions.invoke("auvo-sync", {
+          body: { mode: "reanalyze_service", group_id: groupId },
+        });
+        if (fnError) throw fnError;
+      }
+    },
+    onSuccess: (_data, vars) => {
+      toast.success(
+        vars.decision === "confirmed" ? "Vínculo confirmado" : "Vínculo desfeito",
+        {
+          description:
+            vars.decision === "confirmed"
+              ? "O material fica registrado como aplicado na outra OS."
+              : "A divergência volta a ser apontada nesta OS.",
+        },
+      );
+      queryClient.invalidateQueries({ queryKey: ["auvo-discrepancies"] });
+      queryClient.invalidateQueries({ queryKey: ["auvo-service-groups"] });
+    },
+    onError: (error: Error) => toast.error("Erro ao registrar decisão", { description: error.message }),
+  });
+
   return {
+
+
 
     groups,
     membersByGroup: query.data?.membersByGroup ?? new Map<string, AuvoServiceMember[]>(),
