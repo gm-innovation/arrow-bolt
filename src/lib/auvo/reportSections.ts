@@ -50,10 +50,13 @@ export const parseReportSections = (reportText: string): ReportSection[] => {
 // "MATERIAL FORNECIDOS PELA GOOGLEMARINE", "MATERIALS SUPPLIED", etc.
 const MATERIAL_TITLE = /^\s*materi(?:al|ais|als)\b/i;
 
-const isMaterialSection = (s: ReportSection) =>
-  MATERIAL_TITLE.test(s.title) ||
-  // Em muitos relatórios a letra F é a seção de material e vem sem título.
-  (s.key === "F" && !s.title);
+const isMaterialSection = (s: ReportSection) => MATERIAL_TITLE.test(s.title) || s.key === "F";
+
+/** Converte respostas inline como "F) 02 kits" em conteúdo auditável. */
+const materialBody = (section: ReportSection) => {
+  if (section.key !== "F" || MATERIAL_TITLE.test(section.title)) return section.body;
+  return [section.title, section.body].filter((value) => value.trim()).join("\n").trim();
+};
 
 /**
  * Todas as seções de material declaradas no relatório (um relatório pode ter
@@ -66,8 +69,8 @@ export const extractSuppliedMaterialSections = (
   return parseReportSections(reportText)
     .filter(isMaterialSection)
     .map((s, index) => ({
-      title: s.title || "Material fornecido",
-      body: s.body,
+      title: MATERIAL_TITLE.test(s.title) ? s.title : "Material fornecido",
+      body: materialBody(s),
       index: index + 1,
     }));
 };
