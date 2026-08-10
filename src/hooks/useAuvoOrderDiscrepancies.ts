@@ -43,7 +43,7 @@ export const useAuvoOrderDiscrepancies = (
           tasks.map((t) => t.id),
         )
         .eq("review_status", "pending")
-        .neq("classification", "match");
+        .not("classification", "in", "(match,stock_returned)");
 
       if (error) throw error;
       return (data ?? []) as OpenAuvoDiscrepancy[];

@@ -81,7 +81,7 @@ export const useAuvoInsights = ({ periodStart, periodEnd }: Params) => {
           `id, classification, review_status, value_at_risk, created_at, reviewed_at,
            auvo_tasks:auvo_task_uid ( technician_name, customer_name, task_date )`,
         )
-        .neq("classification", "match")
+        .not("classification", "in", "(match,stock_returned)")
         .gte("created_at", `${periodStart}T00:00:00`)
         .lte("created_at", `${periodEnd}T23:59:59`)
         .limit(5000);
