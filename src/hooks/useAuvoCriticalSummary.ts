@@ -84,7 +84,7 @@ export const useAuvoCriticalSummary = () => {
            reported_quantity, value_at_risk, created_at, service_group_id,
            auvo_tasks:auvo_task_uid ( customer_name, vessel_name, technician_name, task_date )`,
         )
-        .neq("classification", "match")
+        .not("classification", "in", "(match,stock_returned)")
         .eq("review_status", "pending")
         .order("value_at_risk", { ascending: false })
         .limit(500);

@@ -69,6 +69,7 @@ const CLASSIFICATION_LABEL: Record<DiscrepancyClassification, string> = {
   quantity_mismatch: "Quantidade divergente",
   stock_not_reported: "Baixado do estoque, sem relato",
   reported_not_in_stock: "Relatado, sem baixa no estoque",
+  stock_returned: "Devolvido ao estoque",
   unidentified: "Menção não identificada",
 };
 
@@ -178,7 +179,7 @@ export default function AuvoAudit() {
     });
     // Baixa de estoque sem relato é o caso mais grave: sempre no topo da lista.
     const weight = (c: string) =>
-      c === "stock_not_reported" ? 0 : c === "quantity_mismatch" ? 1 : c === "reported_not_in_stock" ? 2 : 3;
+      c === "stock_not_reported" ? 0 : c === "quantity_mismatch" ? 1 : c === "reported_not_in_stock" ? 2 : c === "stock_returned" ? 4 : 3;
     return [...rows].sort(
       (a, b) =>
         weight(a.classification) - weight(b.classification) ||
@@ -215,7 +216,7 @@ export default function AuvoAudit() {
     >();
 
     const weight = (c: string) =>
-      c === "stock_not_reported" ? 0 : c === "quantity_mismatch" ? 1 : c === "reported_not_in_stock" ? 2 : 3;
+      c === "stock_not_reported" ? 0 : c === "quantity_mismatch" ? 1 : c === "reported_not_in_stock" ? 2 : c === "stock_returned" ? 4 : 3;
 
     for (const d of filtered) {
       const key = d.service_group_id ?? d.auvo_task_uid;
