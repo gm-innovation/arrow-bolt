@@ -10,7 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuvoTaskReport } from "@/hooks/useAuvoTaskReport";
 import {
-  extractSuppliedMaterialSection,
+  extractSuppliedMaterialSections,
+  areAllMaterialSectionsEmpty,
   isEmptyMaterialSection,
 } from "@/lib/auvo/reportSections";
 
@@ -58,7 +59,7 @@ export const AuvoTaskReportView = ({ auvoTaskUid }: Props) => {
   }
 
   const { task, report, materials } = data;
-  const materialSection = extractSuppliedMaterialSection(report?.report_text);
+  const materialSections = extractSuppliedMaterialSections(report?.report_text);
   const attachments = report?.attachments ?? [];
   const images = attachments.filter((a) => /\.(png|jpe?g|webp|gif)(\?|$)/i.test(a.url));
   const otherFiles = attachments.filter((a) => !images.includes(a));
@@ -101,7 +102,7 @@ export const AuvoTaskReportView = ({ auvoTaskUid }: Props) => {
               <Package className="h-4 w-4 text-primary" />
               <h4 className="text-sm font-semibold">Material fornecido (fonte da auditoria)</h4>
             </div>
-            {!materialSection ? (
+            {materialSections.length === 0 ? (
               <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>
@@ -109,14 +110,25 @@ export const AuvoTaskReportView = ({ auvoTaskUid }: Props) => {
                   auditoria não considera materiais deste atendimento.
                 </span>
               </div>
-            ) : isEmptyMaterialSection(materialSection.body) ? (
+            ) : areAllMaterialSectionsEmpty(materialSections) ? (
               <p className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
                 O técnico declarou que não houve fornecimento de material.
               </p>
             ) : (
-              <pre className="max-h-52 overflow-auto whitespace-pre-wrap rounded-md border border-primary/30 bg-primary/5 p-3 text-sm font-sans">
-                {materialSection.body}
-              </pre>
+              <div className="space-y-2">
+                {materialSections.map((section) => (
+                  <div key={section.index}>
+                    {materialSections.length > 1 && (
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">
+                        Bloco {section.index} · {section.title}
+                      </p>
+                    )}
+                    <pre className="max-h-52 overflow-auto whitespace-pre-wrap rounded-md border border-primary/30 bg-primary/5 p-3 text-sm font-sans">
+                      {section.body}
+                    </pre>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 
