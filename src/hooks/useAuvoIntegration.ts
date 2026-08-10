@@ -10,6 +10,7 @@ export type DiscrepancyClassification =
   | "stock_not_reported"
   | "reported_not_in_stock"
   | "stock_returned"
+  | "cross_os_matched"
   | "unidentified";
 
 export interface AuvoDiscrepancy {
@@ -28,6 +29,9 @@ export interface AuvoDiscrepancy {
   ai_notes: string | null;
   returned_quantity?: number | null;
   return_reference?: string | null;
+  matched_group_id?: string | null;
+  matched_order_number?: string | null;
+  matched_quantity?: number | null;
   review_status: string;
   review_notes: string | null;
   created_at: string;
