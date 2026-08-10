@@ -12,8 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { EmployeeDetailSheet } from "@/components/hr/EmployeeDetailSheet";
 import { NewEmployeeForm, EmployeeFormValues } from "@/components/hr/NewEmployeeForm";
 import { useToast } from "@/hooks/use-toast";
-import { addDays } from "date-fns";
 import { sanitizeFileName, formatLocalDate } from "@/lib/utils";
+import { aggregateDocCompliance, techDocLabel, type DocLike, type DocComplianceResult } from "@/lib/hr/documentStatus";
+
 
 const ROLE_LABELS: Record<string, string> = {
   technician: "Técnico",
@@ -67,17 +68,12 @@ export interface EmployeeRow {
     blood_rh_factor: string | null;
     medical_status: string | null;
   } | null;
+  docCompliance?: DocComplianceResult;
 }
 
-const getAsoStatus = (asoDate?: string | null) => {
-  if (!asoDate) return { label: "—", variant: "secondary" as const };
-  const date = new Date(asoDate);
-  const today = new Date();
-  const thirtyDays = addDays(today, 30);
-  if (date < today) return { label: "Vencido", variant: "destructive" as const };
-  if (date <= thirtyDays) return { label: "A vencer", variant: "secondary" as const };
-  return { label: "Válido", variant: "default" as const };
-};
+
+const DOC_FILTERS = ["doc_expired", "doc_expiring"];
+
 
 export default function Employees() {
   const { user } = useAuth();
@@ -127,12 +123,33 @@ export default function Employees() {
         techMap[t.user_id] = t;
       });
 
-      return (profiles || []).map((p: any) => ({
-        ...p,
-        status: p.status || "active",
-        roles: roleMap[p.id] || [],
-        technician: techMap[p.id] || null,
-      })) as EmployeeRow[];
+      // Certificações e ASOs anexados: a conformidade considera todos, não só o ASO.
+      const techIds = (techRes.data || []).map((t: any) => t.id);
+      const docsByTech: Record<string, DocLike[]> = {};
+      if (techIds.length) {
+        const { data: docs } = await supabase
+          .from("technician_documents")
+          .select("technician_id, document_type, certificate_name, file_name, expiry_date")
+          .in("technician_id", techIds);
+        (docs || []).forEach((d: any) => {
+          if (!docsByTech[d.technician_id]) docsByTech[d.technician_id] = [];
+          docsByTech[d.technician_id].push({ label: techDocLabel(d), expiry_date: d.expiry_date });
+        });
+      }
+
+      return (profiles || []).map((p: any) => {
+        const tech = techMap[p.id] || null;
+        const docs: DocLike[] = tech ? [...(docsByTech[tech.id] || [])] : [];
+        if (tech?.aso_valid_until) docs.push({ label: "ASO", expiry_date: tech.aso_valid_until });
+        return {
+          ...p,
+          status: p.status || "active",
+          roles: roleMap[p.id] || [],
+          technician: tech,
+          docCompliance: aggregateDocCompliance(docs),
+        };
+      }) as EmployeeRow[];
+
     },
   });
 
@@ -140,10 +157,18 @@ export default function Employees() {
     return employees.filter((e) => {
       const matchesSearch = !search || e.full_name?.toLowerCase().includes(search.toLowerCase()) || e.email?.toLowerCase().includes(search.toLowerCase());
       const matchesRole = roleFilter === "all" || e.roles.includes(roleFilter);
-      const matchesStatus = statusFilter === "all" || (e.status || "active") === statusFilter;
+      const matchesStatus =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "doc_expired"
+          ? e.docCompliance?.status === "expired"
+          : statusFilter === "doc_expiring"
+          ? e.docCompliance?.status === "expiring"
+          : (e.status || "active") === statusFilter;
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [employees, search, roleFilter, statusFilter]);
+
 
   const uniqueRoles = useMemo(() => {
     const set = new Set<string>();
@@ -333,6 +358,9 @@ export default function Employees() {
             <SelectItem value="active">Ativos</SelectItem>
             <SelectItem value="inactive">Inativos</SelectItem>
             <SelectItem value="archived">Arquivados</SelectItem>
+            <SelectItem value="doc_expired">Documentação vencida</SelectItem>
+            <SelectItem value="doc_expiring">Documentação a vencer</SelectItem>
+
           </SelectContent>
         </Select>
       </div>
@@ -355,14 +383,15 @@ export default function Employees() {
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Cargo</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Status</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Especialidade</th>
-                  <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">ASO</th>
+                  <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden md:table-cell">Documentação</th>
                   <th className="text-left py-3 px-4 font-medium text-muted-foreground hidden lg:table-cell">Desde</th>
                   <th className="text-right py-3 px-4 font-medium text-muted-foreground">Ação</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((emp) => {
-                  const aso = emp.technician ? getAsoStatus(emp.technician.aso_valid_until) : null;
+                  const compliance = emp.docCompliance;
+
                   const empStatus = emp.status || "active";
                   const statusVariant = empStatus === "active" ? "default" as const : empStatus === "inactive" ? "secondary" as const : "outline" as const;
                   return (
@@ -396,12 +425,15 @@ export default function Employees() {
                         {emp.technician?.specialty || "—"}
                       </td>
                       <td className="py-3 px-4 hidden md:table-cell">
-                        {aso ? (
-                          <Badge variant={aso.variant} className="text-xs">{aso.label}</Badge>
+                        {compliance && compliance.status !== "none" ? (
+                          <Badge variant={compliance.variant} className="text-xs" title={compliance.detail || undefined}>
+                            {compliance.label}
+                          </Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
+
                       <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">
                         {emp.hire_date ? formatLocalDate(emp.hire_date) : formatLocalDate(emp.created_at)}
                       </td>

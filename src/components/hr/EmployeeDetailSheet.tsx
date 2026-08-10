@@ -40,6 +40,8 @@ import { toast } from "@/hooks/use-toast";
 import { NewTechnicianForm } from "@/components/admin/technicians/NewTechnicianForm";
 import { sanitizeFileName, formatLocalDate } from "@/lib/utils";
 import type { EmployeeRow } from "@/pages/hr/Employees";
+import { statusFromExpiry } from "@/lib/hr/documentStatus";
+
 
 const ROLE_LABELS: Record<string, string> = {
   technician: "Técnico",
@@ -1057,10 +1059,20 @@ function TechnicianTab({ employee }: { employee: EmployeeRow }) {
                   </p>
                 </div>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)}>
-                <Download className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {(() => {
+                  const { status, daysLeft } = statusFromExpiry(doc.expiry_date);
+                  if (status === "none") return null;
+                  if (status === "expired") return <Badge variant="destructive" className="text-xs">Vencido</Badge>;
+                  if (status === "expiring") return <Badge variant="secondary" className="text-xs">A vencer em {daysLeft}d</Badge>;
+                  return <Badge variant="outline" className="text-xs">Válido</Badge>;
+                })()}
+                <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)}>
+                  <Download className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
+
           ))
         )}
       </div>

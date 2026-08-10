@@ -11,6 +11,8 @@ import { useAbsences, getAbsenceTypeLabel } from '@/hooks/useAbsences';
 import { useOnCall } from '@/hooks/useOnCall';
 import { formatLocalDate } from '@/lib/utils';
 import { PushNotificationPrompt } from '@/components/notifications/PushNotificationPrompt';
+import { statusFromExpiry, techDocLabel } from '@/lib/hr/documentStatus';
+
 
 interface DashboardStats {
   totalTechnicians: number;
@@ -62,21 +64,51 @@ const Dashboard = () => {
 
         const techList = technicians || [];
 
-        // Check ASOs expiring in 30 days
-        const thirtyDaysFromNow = addDays(today, 30);
-        const expiring = techList.filter((t) => {
-          if (!t.aso_valid_until) return false;
-          const asoDate = new Date(t.aso_valid_until);
-          return asoDate <= thirtyDaysFromNow;
+        // Documentos (ASO + certificações) vencidos ou a vencer em 30 dias
+        const techIds = techList.map((t: any) => t.id);
+        const nameById: Record<string, string> = {};
+        techList.forEach((t: any) => { nameById[t.id] = t.profiles?.full_name || 'Sem nome'; });
+
+        const alerts: Array<{ id: string; name: string; label: string; expiry: string }> = [];
+
+        techList.forEach((t: any) => {
+          if (!t.aso_valid_until) return;
+          const { status } = statusFromExpiry(t.aso_valid_until);
+          if (status === 'expired' || status === 'expiring') {
+            alerts.push({ id: `aso-${t.id}`, name: nameById[t.id], label: 'ASO', expiry: t.aso_valid_until });
+          }
         });
 
-        setExpiringAsos(expiring);
+        if (techIds.length) {
+          const { data: docs } = await supabase
+            .from('technician_documents')
+            .select('id, technician_id, document_type, certificate_name, file_name, expiry_date')
+            .in('technician_id', techIds)
+            .eq('document_type', 'certification')
+            .not('expiry_date', 'is', null);
+          (docs || []).forEach((d: any) => {
+            const { status } = statusFromExpiry(d.expiry_date);
+            if (status === 'expired' || status === 'expiring') {
+              alerts.push({
+                id: `doc-${d.id}`,
+                name: nameById[d.technician_id] || 'Sem nome',
+                label: techDocLabel(d),
+                expiry: d.expiry_date,
+              });
+            }
+          });
+        }
+
+        alerts.sort((a, b) => a.expiry.localeCompare(b.expiry));
+
+        setExpiringAsos(alerts);
         setStats({
           totalTechnicians: techList.length,
-          asoExpiringSoon: expiring.length,
+          asoExpiringSoon: alerts.length,
           absencesThisWeek: absences.filter(a => a.status !== 'cancelled').length,
           onCallToday: onCallList.length,
         });
+
       } catch (error) {
         console.error('Error fetching stats:', error);
       } finally {
@@ -126,12 +158,13 @@ const Dashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ASOs Vencendo</CardTitle>
+            <CardTitle className="text-sm font-medium">Documentos Irregulares</CardTitle>
             <AlertTriangle className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.asoExpiringSoon}</div>
-            <p className="text-xs text-muted-foreground">Próximos 30 dias</p>
+            <p className="text-xs text-muted-foreground">Vencidos ou nos próximos 30 dias</p>
+
           </CardContent>
         </Card>
 
@@ -162,35 +195,39 @@ const Dashboard = () => {
 
       {/* Alerts and Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ASO Alerts */}
+        {/* Alertas de documentos (ASO + certificações) */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              ASOs com Vencimento Próximo
+              Documentos com Vencimento Próximo
             </CardTitle>
           </CardHeader>
           <CardContent>
             {expiringAsos.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Nenhum ASO vencendo nos próximos 30 dias</p>
+              <p className="text-muted-foreground text-sm">Nenhum documento vencido ou vencendo nos próximos 30 dias</p>
             ) : (
               <div className="space-y-3">
-                {expiringAsos.slice(0, 5).map((tech) => (
-                  <div key={tech.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div>
-                      <p className="font-medium">{tech.profiles?.full_name || 'Sem nome'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Vence em: {formatLocalDate(tech.aso_valid_until)}
-                      </p>
+                {expiringAsos.slice(0, 5).map((item) => {
+                  const expired = statusFromExpiry(item.expiry).status === 'expired';
+                  return (
+                    <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{item.name}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {item.label} • {expired ? 'Venceu' : 'Vence'} em: {formatLocalDate(item.expiry)}
+                        </p>
+                      </div>
+                      <Badge variant={expired ? 'destructive' : 'secondary'} className="flex-shrink-0">
+                        {expired ? 'Vencido' : 'A vencer'}
+                      </Badge>
                     </div>
-                    <Badge variant={new Date(tech.aso_valid_until) < today ? "destructive" : "secondary"}>
-                      {new Date(tech.aso_valid_until) < today ? 'Vencido' : 'A vencer'}
-                    </Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
+
         </Card>
 
         {/* Today's Absences */}
