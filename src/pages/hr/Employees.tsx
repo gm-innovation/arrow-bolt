@@ -13,7 +13,7 @@ import { EmployeeDetailSheet } from "@/components/hr/EmployeeDetailSheet";
 import { NewEmployeeForm, EmployeeFormValues } from "@/components/hr/NewEmployeeForm";
 import { useToast } from "@/hooks/use-toast";
 import { sanitizeFileName, formatLocalDate } from "@/lib/utils";
-import { aggregateDocCompliance, techDocLabel, type DocLike, type DocComplianceResult } from "@/lib/hr/documentStatus";
+import { aggregateDocCompliance, pickCurrentDocs, techDocLabel, type DocLike, type DocComplianceResult } from "@/lib/hr/documentStatus";
 
 
 const ROLE_LABELS: Record<string, string> = {
