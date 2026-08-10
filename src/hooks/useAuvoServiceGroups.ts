@@ -489,7 +489,7 @@ export const useAuvoServiceGroups = () => {
       if (decision === "dismissed") {
         // Reanalisa para a divergência voltar a ser apontada.
         const { error: fnError } = await supabase.functions.invoke("auvo-sync", {
-          body: { mode: "reanalyze_service", group_id: groupId },
+          body: { mode: "analyze", service_group_id: groupId },
         });
         if (fnError) throw fnError;
       }
