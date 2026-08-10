@@ -30,6 +30,7 @@ const CLASSIFICATION_LABEL: Record<string, string> = {
   stock_not_reported: "Baixa sem relato",
   reported_not_in_stock: "Relato sem baixa",
   stock_returned: "Devolvido ao estoque",
+  cross_os_matched: "Aplicado em outra OS",
   quantity_mismatch: "Quantidade divergente",
 };
 

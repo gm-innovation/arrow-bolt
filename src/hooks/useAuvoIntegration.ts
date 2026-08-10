@@ -10,6 +10,7 @@ export type DiscrepancyClassification =
   | "stock_not_reported"
   | "reported_not_in_stock"
   | "stock_returned"
+  | "cross_os_matched"
   | "unidentified";
 
 export interface AuvoDiscrepancy {
@@ -18,6 +19,7 @@ export interface AuvoDiscrepancy {
   service_group_id: string | null;
   order_number: string | null;
   item_name: string;
+  external_product_id?: number | null;
   external_product_code: string | null;
   stock_quantity: number;
   reported_quantity: number | null;
@@ -28,6 +30,9 @@ export interface AuvoDiscrepancy {
   ai_notes: string | null;
   returned_quantity?: number | null;
   return_reference?: string | null;
+  matched_group_id?: string | null;
+  matched_order_number?: string | null;
+  matched_quantity?: number | null;
   review_status: string;
   review_notes: string | null;
   created_at: string;
@@ -131,9 +136,10 @@ export const useAuvoIntegration = (filters?: {
       let query = supabase
         .from("auvo_material_discrepancies")
         .select(
-          `id, auvo_task_uid, service_group_id, order_number, item_name, external_product_code, stock_quantity,
+          `id, auvo_task_uid, service_group_id, order_number, item_name, external_product_id, external_product_code, stock_quantity,
            reported_quantity, unit_value, value_at_risk, classification, severity, ai_notes,
            returned_quantity, return_reference,
+           matched_group_id, matched_order_number, matched_quantity,
            review_status, review_notes, created_at,
            auvo_tasks:auvo_task_uid ( auvo_task_id, customer_name, technician_name, task_date, auvo_task_type )`,
         )

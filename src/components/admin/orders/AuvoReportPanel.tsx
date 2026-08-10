@@ -17,6 +17,7 @@ const classificationLabel: Record<string, string> = {
   stock_not_reported: "Baixado do estoque, sem relato",
   reported_not_in_stock: "Relatado sem baixa",
   stock_returned: "Devolvido ao estoque",
+  cross_os_matched: "Aplicado em outra OS",
   unidentified: "Não identificado",
 };
 

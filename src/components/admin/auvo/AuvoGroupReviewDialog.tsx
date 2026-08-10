@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { AuvoServiceReportTabs } from "./AuvoServiceReportTabs";
-import type { AuvoServiceMember } from "@/hooks/useAuvoServiceGroups";
+import { useAuvoServiceGroups, type AuvoServiceMember } from "@/hooks/useAuvoServiceGroups";
 import type { AuvoDiscrepancy, AuvoPhotoFinding } from "@/hooks/useAuvoIntegration";
 import { Camera, ImageOff } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -106,6 +106,19 @@ export const AuvoGroupReviewDialog = ({
   const [bulkNotes, setBulkNotes] = useState("");
   const [photoBulkStatus, setPhotoBulkStatus] = useState<ReviewStatus>("confirmed");
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const { decideCrossOs } = useAuvoServiceGroups();
+
+  // Chave estável do item, igual à usada no backend para registrar a decisão.
+  const crossOsKey = (d: AuvoDiscrepancy) =>
+    d.external_product_id != null
+      ? `pid:${d.external_product_id}`
+      : `name:${d.item_name
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
+          .replace(/[^A-Z0-9 ]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim()}`;
 
   useEffect(() => {
     if (!open) return;
@@ -307,6 +320,57 @@ export const AuvoGroupReviewDialog = ({
                           {d.return_reference ? ` · ${d.return_reference}` : ""}
                         </p>
                       )}
+
+                      {d.matched_group_id && (
+                        <div className="rounded-md border border-sky-300/60 bg-sky-50/60 p-2 text-xs dark:border-sky-900/60 dark:bg-sky-950/30">
+                          <p className="font-medium text-sky-900 dark:text-sky-200">
+                            Conciliado com a OS {d.matched_order_number ?? "—"}
+                            {d.matched_quantity ? ` · ${Number(d.matched_quantity)} un.` : ""}
+                          </p>
+                          <p className="mt-0.5 text-sky-800/80 dark:text-sky-300/80">
+                            Mesmo cliente/embarcação em período próximo: o material saiu nesta OS e
+                            foi aplicado no outro serviço.
+                          </p>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              disabled={decideCrossOs.isPending}
+                              onClick={() =>
+                                decideCrossOs.mutate({
+                                  groupId: d.service_group_id as string,
+                                  counterpartGroupId: d.matched_group_id as string,
+                                  itemKey: crossOsKey(d),
+                                  externalProductId: d.external_product_id ?? null,
+                                  decision: "confirmed",
+                                })
+                              }
+                            >
+                              Confirmar vínculo
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              disabled={decideCrossOs.isPending}
+                              onClick={() =>
+                                decideCrossOs.mutate({
+                                  groupId: d.service_group_id as string,
+                                  counterpartGroupId: d.matched_group_id as string,
+                                  itemKey: crossOsKey(d),
+                                  externalProductId: d.external_product_id ?? null,
+                                  decision: "dismissed",
+                                })
+                              }
+                            >
+                              Não é o mesmo material
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+
 
 
                       {d.ai_notes && (
