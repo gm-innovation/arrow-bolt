@@ -69,15 +69,8 @@ export interface EmployeeRow {
   } | null;
 }
 
-const getAsoStatus = (asoDate?: string | null) => {
-  if (!asoDate) return { label: "—", variant: "secondary" as const };
-  const date = new Date(asoDate);
-  const today = new Date();
-  const thirtyDays = addDays(today, 30);
-  if (date < today) return { label: "Vencido", variant: "destructive" as const };
-  if (date <= thirtyDays) return { label: "A vencer", variant: "secondary" as const };
-  return { label: "Válido", variant: "default" as const };
-};
+const DOC_FILTERS = ["doc_expired", "doc_expiring"];
+
 
 export default function Employees() {
   const { user } = useAuth();
