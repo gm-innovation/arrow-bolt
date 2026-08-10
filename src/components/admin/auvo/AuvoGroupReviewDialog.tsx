@@ -301,6 +301,14 @@ export const AuvoGroupReviewDialog = ({
                         {Number(d.value_at_risk ?? 0) > 0 ? currency(Number(d.value_at_risk)) : "—"}
                       </p>
 
+                      {Number(d.returned_quantity ?? 0) > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Devolvido ao estoque: {Number(d.returned_quantity)}
+                          {d.return_reference ? ` · ${d.return_reference}` : ""}
+                        </p>
+                      )}
+
+
                       {d.ai_notes && (
                         <p className="rounded bg-muted p-2 text-xs text-muted-foreground">
                           {d.ai_notes}
