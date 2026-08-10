@@ -38,17 +38,17 @@ Correções:
 - Não acusar divergência quando o relatado for **maior ou igual** à baixa registrada — aí é a baixa importada que está subdimensionada; o item vira "Conferido" com nota explicativa.
 - No card, rotular como "baixa registrada (estoque)" e sinalizar quando a quantidade veio estimada por linhas.
 
-## 3. Materiais faltando na auditoria da OS 4400 (filtro de embarcação)
+## 3. Materiais faltando na auditoria da OS 4400 (filtro de embarcação indevido)
 
-Confirmado chamando o endpoint para a OS 4400: ele devolve 8 linhas / 7 produtos, mas com **três grafias diferentes de embarcação** na mesma OS: `PARCEL DO BANDOLIM`, `PARCEL DO BANDOLIN` (com N) e `BARCO PARCEL DO BANDOLIM`.
-
-A auditoria restringe os itens à embarcação do atendimento. A comparação atual é por igualdade ou "contém": `BARCO PARCEL DO BANDOLIM` passa, mas `PARCEL DO BANDOLIN` **não** — e essas linhas (Régua duplicada, Distribuidor BNC, Bandeja fixa) são descartadas silenciosamente. É por isso que a revisão mostra menos materiais do que o estoque registra para a OS.
+Confirmado chamando o endpoint para a OS 4400: ele devolve 8 linhas / 7 produtos, todas com o mesmo número de OS. A auditoria, porém, filtra os itens pela grafia do nome da embarcação vinda do estoque (`PARCEL DO BANDOLIM`, `PARCEL DO BANDOLIN`, `BARCO PARCEL DO BANDOLIM`) e descarta silenciosamente as linhas cuja grafia não casa — Régua duplicada, Distribuidor BNC e Bandeja fixa saem da auditoria. Daí a revisão mostrar menos material do que o estoque registra.
 
 Correções:
-- Casamento de embarcação tolerante a erro de digitação: normalizar, remover prefixos genéricos ("BARCO", "NAVIO", "MV", "M/V"), comparar por tokens e aceitar diferença mínima de caracteres (distância ≤ 2 ou ≥ 85% de similaridade). "PARCEL DO BANDOLIN" passa a casar com "PARCEL DO BANDOLIM".
-- Quando o número da OS é o mesmo, **não descartar** item por embarcação: manter o item na auditoria marcado como "embarcação divergente no estoque", para o coordenador decidir. Nada de exclusão silenciosa.
-- Registrar no resultado da sincronização quantos itens foram trazidos e quantos tiveram grafia divergente, para auditar o próprio filtro.
-- Saídas em datas diferentes na mesma OS continuam somadas por produto (é o comportamento atual e o correto).
+- **O número da OS é o critério.** Quando a consulta é feita pelo número da OS, todos os itens retornados entram na auditoria — sem nenhum filtro por embarcação. A grafia divergente deixa de excluir material.
+- Remover o descarte por embarcação do fluxo de saídas; o nome da embarcação passa a ser apenas informativo no card do item.
+- Manter similaridade (embarcação, data, tipo, técnico) **somente** onde ela já é necessária: agrupamento de serviços sem número de OS e casamento de devoluções que vêm sem OS.
+- Registrar no resultado da sincronização quantos itens foram trazidos por OS, para conferência.
+- Saídas em datas diferentes na mesma OS continuam somadas por produto (comportamento atual e correto).
+
 
 ## 4. Orientações da IA (prompt de extração)
 
@@ -64,6 +64,6 @@ Reprocessar os serviços com divergência "baixado do estoque, sem relato" e "qu
 ## Detalhes técnicos
 
 - `src/lib/auvo/reportSections.ts` e `supabase/functions/auvo-sync/reportSections.ts`: `SECTION_REGEX` → `^\s*([A-Z])\s*[.)\-:]\s*(.*)$`; retorno de lista de seções de material e avaliação de vazio sobre o conjunto.
-- `supabase/functions/auvo-sync/crosscheck.ts`: `fetchEvaMaterials` lê quantidade quando existir e passa a marcar `vessel_mismatch` em vez de excluir; novo utilitário de similaridade de embarcação; `extractMaterialsFromReport` recebe o texto concatenado das seções (corrige também o uso atual do objeto de seção como string); `crossCheck` classifica `reported >= stock` como `match`.
+- `supabase/functions/auvo-sync/crosscheck.ts`: `fetchEvaMaterials` lê quantidade quando existir e deixa de filtrar por embarcação (retorna todos os itens da OS); `extractMaterialsFromReport` recebe o texto concatenado das seções (corrige também o uso atual do objeto de seção como string); `crossCheck` classifica `reported >= stock` como `match`.
 - `src/components/admin/auvo/AuvoTaskReportView.tsx` e o card de divergência: exibir todas as seções de material e o aviso de embarcação divergente / baixa estimada.
 - Migração pontual devolvendo ao status `pending` os grupos afetados para disparar a reauditoria.
