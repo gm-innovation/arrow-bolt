@@ -532,6 +532,8 @@ export const useAuvoServiceGroups = () => {
     mergeDismissals,
     dismissMerge,
     undoDismissMerge,
+    decideCrossOs,
+
 
   };
 };
