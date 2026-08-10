@@ -132,12 +132,26 @@ const Dashboard = () => {
     fetchStats();
   }, [user, absences, onCallList]);
 
+  // Agrupa as pendências por colaborador, preservando a ordem (vencidos primeiro).
+  const docAlertGroups = (() => {
+    const map = new Map<string, { techId: string; name: string; items: any[] }>();
+    expiringAsos.forEach((a) => {
+      const key = a.techId || a.name;
+      if (!map.has(key)) map.set(key, { techId: key, name: a.name, items: [] });
+      map.get(key)!.items.push(a);
+    });
+    return Array.from(map.values());
+  })();
+  const expiredCount = expiringAsos.filter((a) => a.expired).length;
+  const expiringCount = expiringAsos.length - expiredCount;
+
   // Filter absences happening today
   const todayAbsences = absences.filter((absence) => {
     const start = new Date(absence.start_date);
     const end = new Date(absence.end_date);
     return isWithinInterval(today, { start, end }) && absence.status !== 'cancelled';
   });
+
 
   if (loading || loadingAbsences || loadingOnCall) {
     return (
