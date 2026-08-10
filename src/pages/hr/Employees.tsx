@@ -414,12 +414,15 @@ export default function Employees() {
                         {emp.technician?.specialty || "—"}
                       </td>
                       <td className="py-3 px-4 hidden md:table-cell">
-                        {aso ? (
-                          <Badge variant={aso.variant} className="text-xs">{aso.label}</Badge>
+                        {compliance && compliance.status !== "none" ? (
+                          <Badge variant={compliance.variant} className="text-xs" title={compliance.detail || undefined}>
+                            {compliance.label}
+                          </Badge>
                         ) : (
                           <span className="text-muted-foreground">—</span>
                         )}
                       </td>
+
                       <td className="py-3 px-4 hidden lg:table-cell text-muted-foreground">
                         {emp.hire_date ? formatLocalDate(emp.hire_date) : formatLocalDate(emp.created_at)}
                       </td>
