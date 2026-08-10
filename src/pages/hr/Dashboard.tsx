@@ -1,6 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Link } from 'react-router-dom';
+
 import { Users, Calendar, Clock, AlertTriangle, Umbrella, Stethoscope, GraduationCap, Phone } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -88,7 +92,7 @@ const Dashboard = () => {
           });
         }
 
-        const alerts: Array<{ id: string; name: string; label: string; expiry: string }> = [];
+        const alerts: Array<{ id: string; techId: string; name: string; label: string; expiry: string; expired: boolean }> = [];
         Object.entries(docsByTech).forEach(([techId, docs]) => {
           const { current } = pickCurrentDocs(docs);
           current.forEach((d: any) => {
@@ -97,15 +101,21 @@ const Dashboard = () => {
             if (status === 'expired' || status === 'expiring') {
               alerts.push({
                 id: `${techId}-${d.id}`,
+                techId,
                 name: nameById[techId] || 'Sem nome',
                 label: techDocLabel(d),
                 expiry: d.expiry_date,
+                expired: status === 'expired',
               });
             }
           });
         });
 
-        alerts.sort((a, b) => a.expiry.localeCompare(b.expiry));
+        // Vencidos primeiro (mais antigos), depois os a vencer por proximidade.
+        alerts.sort((a, b) =>
+          a.expired === b.expired ? a.expiry.localeCompare(b.expiry) : a.expired ? -1 : 1
+        );
+
 
 
         setExpiringAsos(alerts);
@@ -126,12 +136,26 @@ const Dashboard = () => {
     fetchStats();
   }, [user, absences, onCallList]);
 
+  // Agrupa as pendências por colaborador, preservando a ordem (vencidos primeiro).
+  const docAlertGroups = (() => {
+    const map = new Map<string, { techId: string; name: string; items: any[] }>();
+    expiringAsos.forEach((a) => {
+      const key = a.techId || a.name;
+      if (!map.has(key)) map.set(key, { techId: key, name: a.name, items: [] });
+      map.get(key)!.items.push(a);
+    });
+    return Array.from(map.values());
+  })();
+  const expiredCount = expiringAsos.filter((a) => a.expired).length;
+  const expiringCount = expiringAsos.length - expiredCount;
+
   // Filter absences happening today
   const todayAbsences = absences.filter((absence) => {
     const start = new Date(absence.start_date);
     const end = new Date(absence.end_date);
     return isWithinInterval(today, { start, end }) && absence.status !== 'cancelled';
   });
+
 
   if (loading || loadingAbsences || loadingOnCall) {
     return (
@@ -204,36 +228,65 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Alertas de documentos (ASO + certificações) */}
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              Documentos com Vencimento Próximo
-            </CardTitle>
+          <CardHeader className="space-y-2">
+            <div className="flex items-start justify-between gap-3">
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                Documentos com Vencimento Próximo
+              </CardTitle>
+              {expiringAsos.length > 0 && (
+                <Button asChild variant="outline" size="sm" className="flex-shrink-0">
+                  <Link to="/hr/employees?filter=doc_expired">Ver todos</Link>
+                </Button>
+              )}
+            </div>
+            {expiringAsos.length > 0 && (
+              <p className="text-sm text-muted-foreground">
+                {docAlertGroups.length} colaborador{docAlertGroups.length === 1 ? '' : 'es'} ·{' '}
+                {expiringAsos.length} documento{expiringAsos.length === 1 ? '' : 's'}
+                {' • '}
+                {expiredCount} vencido{expiredCount === 1 ? '' : 's'} / {expiringCount} a vencer
+              </p>
+            )}
           </CardHeader>
           <CardContent>
             {expiringAsos.length === 0 ? (
               <p className="text-muted-foreground text-sm">Nenhum documento vencido ou vencendo nos próximos 30 dias</p>
             ) : (
-              <div className="space-y-3">
-                {expiringAsos.slice(0, 5).map((item) => {
-                  const expired = statusFromExpiry(item.expiry).status === 'expired';
-                  return (
-                    <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{item.name}</p>
-                        <p className="text-sm text-muted-foreground truncate">
-                          {item.label} • {expired ? 'Venceu' : 'Vence'} em: {formatLocalDate(item.expiry)}
-                        </p>
+              <ScrollArea className="max-h-[420px] pr-3">
+                <div className="space-y-3">
+                  {docAlertGroups.map((group) => (
+                    <div key={group.techId} className="p-3 rounded-lg bg-muted/50 space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="font-medium truncate">{group.name}</p>
+                        <Badge
+                          variant={group.items.some((i) => i.expired) ? 'destructive' : 'secondary'}
+                          className="flex-shrink-0"
+                        >
+                          {group.items.some((i) => i.expired) ? 'Vencido' : 'A vencer'}
+                        </Badge>
                       </div>
-                      <Badge variant={expired ? 'destructive' : 'secondary'} className="flex-shrink-0">
-                        {expired ? 'Vencido' : 'A vencer'}
-                      </Badge>
+                      <ul className="space-y-1">
+                        {group.items.map((item) => (
+                          <li key={item.id} className="text-sm text-muted-foreground flex items-start gap-2">
+                            <span
+                              className={`mt-1.5 h-1.5 w-1.5 rounded-full flex-shrink-0 ${
+                                item.expired ? 'bg-destructive' : 'bg-yellow-500'
+                              }`}
+                            />
+                            <span className="min-w-0">
+                              {item.label} • {item.expired ? 'venceu' : 'vence'} em {formatLocalDate(item.expiry)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                  );
-                })}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </CardContent>
+
 
         </Card>
 

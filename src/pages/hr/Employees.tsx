@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
@@ -79,9 +81,15 @@ export default function Employees() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams] = useSearchParams();
+  const initialStatus = (() => {
+    const f = searchParams.get("filter");
+    return f === "doc_expired" || f === "doc_expiring" ? f : "active";
+  })();
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("active");
+  const [statusFilter, setStatusFilter] = useState(initialStatus);
+
   const [selectedEmployee, setSelectedEmployee] = useState<EmployeeRow | null>(null);
   const [isNewTechOpen, setIsNewTechOpen] = useState(false);
 
