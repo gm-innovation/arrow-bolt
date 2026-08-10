@@ -194,35 +194,39 @@ const Dashboard = () => {
 
       {/* Alerts and Lists */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* ASO Alerts */}
+        {/* Alertas de documentos (ASO + certificações) */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-yellow-500" />
-              ASOs com Vencimento Próximo
+              Documentos com Vencimento Próximo
             </CardTitle>
           </CardHeader>
           <CardContent>
             {expiringAsos.length === 0 ? (
-              <p className="text-muted-foreground text-sm">Nenhum ASO vencendo nos próximos 30 dias</p>
+              <p className="text-muted-foreground text-sm">Nenhum documento vencido ou vencendo nos próximos 30 dias</p>
             ) : (
               <div className="space-y-3">
-                {expiringAsos.slice(0, 5).map((tech) => (
-                  <div key={tech.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div>
-                      <p className="font-medium">{tech.profiles?.full_name || 'Sem nome'}</p>
-                      <p className="text-sm text-muted-foreground">
-                        Vence em: {formatLocalDate(tech.aso_valid_until)}
-                      </p>
+                {expiringAsos.slice(0, 5).map((item) => {
+                  const expired = statusFromExpiry(item.expiry).status === 'expired';
+                  return (
+                    <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-muted/50">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{item.name}</p>
+                        <p className="text-sm text-muted-foreground truncate">
+                          {item.label} • {expired ? 'Venceu' : 'Vence'} em: {formatLocalDate(item.expiry)}
+                        </p>
+                      </div>
+                      <Badge variant={expired ? 'destructive' : 'secondary'} className="flex-shrink-0">
+                        {expired ? 'Vencido' : 'A vencer'}
+                      </Badge>
                     </div>
-                    <Badge variant={new Date(tech.aso_valid_until) < today ? "destructive" : "secondary"}>
-                      {new Date(tech.aso_valid_until) < today ? 'Vencido' : 'A vencer'}
-                    </Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
+
         </Card>
 
         {/* Today's Absences */}
