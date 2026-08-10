@@ -68,7 +68,9 @@ export interface EmployeeRow {
     blood_rh_factor: string | null;
     medical_status: string | null;
   } | null;
+  docCompliance?: DocComplianceResult;
 }
+
 
 const DOC_FILTERS = ["doc_expired", "doc_expiring"];
 
