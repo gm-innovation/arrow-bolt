@@ -563,8 +563,40 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
     );
   };
 
+  const asoCatalog = (catalog as any[]).find((c: any) => c.code === "aso");
+  const asoDoc = asoCatalog ? currentDocs.find((d: any) => d.catalog_id === asoCatalog.id) : undefined;
+
   return (
     <div className="py-4 space-y-3">
+      <div className="rounded-lg border p-3 flex flex-wrap items-center gap-2">
+        <FileText className="h-4 w-4 text-primary" />
+        <span className="text-sm font-medium">ASO</span>
+        {asoDoc ? (
+          <>
+            {expiryBadge(asoDoc) ?? <Badge variant="secondary">Sem validade informada</Badge>}
+            {reviewBadge(asoDoc.review_status)}
+            <Button size="sm" variant="ghost" className="ml-auto" onClick={() => handleDownload(asoDoc)}>
+              <Download className="h-4 w-4 mr-1" /> Baixar
+            </Button>
+          </>
+        ) : (
+          <>
+            <Badge variant="destructive">Não anexado</Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              className="ml-auto"
+              onClick={() => {
+                if (asoCatalog) setCatalogId(asoCatalog.id);
+                setShowUpload(true);
+              }}
+            >
+              <Plus className="h-4 w-4 mr-1" /> Anexar ASO
+            </Button>
+          </>
+        )}
+      </div>
+
       <div className="rounded-lg border bg-muted/20 p-3 space-y-2">
         <div className="flex items-start gap-2">
           <Share2 className="h-4 w-4 text-primary mt-0.5" />

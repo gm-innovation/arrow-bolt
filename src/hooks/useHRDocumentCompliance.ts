@@ -69,6 +69,22 @@ export const hrDocErrorMessage = (error: any): string => {
   return error?.message || "Não foi possível abrir o documento.";
 };
 
+/** Mensagem de erro em pt-BR para falhas de envio de documento. */
+export const hrDocUploadErrorMessage = (error: any): string => {
+  const raw = `${error?.message ?? ""} ${error?.error ?? ""}`.toLowerCase();
+  if (raw.includes("unauthorized") || raw.includes("permission") || raw.includes("policy") || raw.includes("row-level")) {
+    return "Você não tem permissão para enviar documentos deste colaborador.";
+  }
+  if (raw.includes("already exists") || raw.includes("duplicate")) {
+    return "Já existe um arquivo com este nome. Renomeie o arquivo e tente novamente.";
+  }
+  if (raw.includes("payload too large") || raw.includes("maximum allowed size")) {
+    return "Arquivo muito grande para o envio.";
+  }
+  return error?.message || "Não foi possível enviar o documento.";
+};
+
+
 
 export type ComplianceStatus =
   | "missing"
@@ -199,11 +215,13 @@ export const useUploadEmployeeDocument = () => {
       if (!user || !profile?.company_id) throw new Error("Sessão inválida");
       const safe = sanitizeFileName(input.file.name);
       const code = (input.catalog_code ?? input.catalog_id).toString().replace(/[^a-zA-Z0-9_-]/g, "_");
-      const path = `${profile.company_id}/employees/${input.employee_id}/${code}/${Date.now()}_${safe}`;
+      // A primeira pasta precisa ser o id do colaborador (regras do armazenamento).
+      const path = `${input.employee_id}/hr/${code}/${Date.now()}_${safe}`;
       const { error: upErr } = await supabase.storage
         .from(DEFAULT_HR_DOC_BUCKET)
         .upload(path, input.file);
-      if (upErr) throw upErr;
+      if (upErr) throw new Error(hrDocUploadErrorMessage(upErr));
+
 
       const { error: insErr } = await (supabase as any).from("hr_employee_documents").insert({
         company_id: profile.company_id,
