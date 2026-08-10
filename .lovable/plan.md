@@ -81,5 +81,6 @@ Reprocessar os serviços com divergência "baixado do estoque, sem relato" e "qu
 
 - `src/lib/auvo/reportSections.ts` e `supabase/functions/auvo-sync/reportSections.ts`: `SECTION_REGEX` → `^\s*([A-Z])\s*[.)\-:]\s*(.*)$`; retorno de lista de seções de material e avaliação de vazio sobre o conjunto.
 - `supabase/functions/auvo-sync/crosscheck.ts`: `fetchEvaMaterials` lê quantidade quando existir e deixa de filtrar por embarcação (retorna todos os itens da OS); `extractMaterialsFromReport` recebe o texto concatenado das seções (corrige também o uso atual do objeto de seção como string); `crossCheck` classifica `reported >= stock` como `match`.
-- `src/components/admin/auvo/AuvoTaskReportView.tsx` e o card de divergência: exibir todas as seções de material e o aviso de embarcação divergente / baixa estimada.
+- Conciliação entre OS: nova etapa em `crosscheck.ts` (ou `crossOsReconcile.ts`) executada após o cruzamento por grupo, consultando `auvo_material_discrepancies` do mesmo cliente/embarcação na janela de 60 dias; novo status `cross_os_matched` com colunas de vínculo (`matched_group_id`, `matched_order_number`, `matched_quantity`) e tabela de dispensa/confirmação no padrão de `auvo_merge_dismissals`.
+- `src/components/admin/auvo/AuvoTaskReportView.tsx` e o card de divergência: exibir todas as seções de material, o vínculo cruzado entre OS e o aviso de baixa estimada.
 - Migração pontual devolvendo ao status `pending` os grupos afetados para disparar a reauditoria.
