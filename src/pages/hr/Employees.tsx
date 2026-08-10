@@ -12,8 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { EmployeeDetailSheet } from "@/components/hr/EmployeeDetailSheet";
 import { NewEmployeeForm, EmployeeFormValues } from "@/components/hr/NewEmployeeForm";
 import { useToast } from "@/hooks/use-toast";
-import { addDays } from "date-fns";
 import { sanitizeFileName, formatLocalDate } from "@/lib/utils";
+import { aggregateDocCompliance, techDocLabel, type DocLike, type DocComplianceResult } from "@/lib/hr/documentStatus";
+
 
 const ROLE_LABELS: Record<string, string> = {
   technician: "Técnico",
