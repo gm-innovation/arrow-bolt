@@ -88,7 +88,7 @@ const Dashboard = () => {
           });
         }
 
-        const alerts: Array<{ id: string; name: string; label: string; expiry: string }> = [];
+        const alerts: Array<{ id: string; techId: string; name: string; label: string; expiry: string; expired: boolean }> = [];
         Object.entries(docsByTech).forEach(([techId, docs]) => {
           const { current } = pickCurrentDocs(docs);
           current.forEach((d: any) => {
@@ -97,15 +97,21 @@ const Dashboard = () => {
             if (status === 'expired' || status === 'expiring') {
               alerts.push({
                 id: `${techId}-${d.id}`,
+                techId,
                 name: nameById[techId] || 'Sem nome',
                 label: techDocLabel(d),
                 expiry: d.expiry_date,
+                expired: status === 'expired',
               });
             }
           });
         });
 
-        alerts.sort((a, b) => a.expiry.localeCompare(b.expiry));
+        // Vencidos primeiro (mais antigos), depois os a vencer por proximidade.
+        alerts.sort((a, b) =>
+          a.expired === b.expired ? a.expiry.localeCompare(b.expiry) : a.expired ? -1 : 1
+        );
+
 
 
         setExpiringAsos(alerts);
