@@ -43,7 +43,7 @@ export const useEvaStockProducts = (options?: { enabled?: boolean; onlySellable?
   const query = useQuery({
     queryKey: ["eva-stock-products", options?.onlySellable ?? false],
     queryFn: async (): Promise<EvaProductsResponse> => {
-      const { data, error } = await supabase.functions.invoke("logvi-products", {
+      const { data, error } = await supabase.functions.invoke("eva-products", {
         body: { only_sellable: options?.onlySellable ?? false },
       });
       if (error) throw new Error(await readError(error));
