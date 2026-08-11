@@ -24,8 +24,8 @@ A busca devolve os dois corretamente, com o exato em primeiro lugar. O erro est�
 ## Detalhes técnicos
 
 - `supabase/functions/_shared/eva-products.ts`: exportar os helpers de normalização já existentes (`matchKey`, `compactKey`) sem alterar `filterEvaProducts` — a busca que hoje funciona fica intacta.
-- `supabase/functions/ai-assistant/tools.ts` (`add_opportunity_product`): trocar a comparação `toLowerCase() === term` por comparação via chave normalizada, com precedência nome exato > código exato; manter a desambiguação para os casos genuinamente ambíguos (ex.: "antena") e manter os campos formatados nos candidatos.
-- `supabase/functions/ai-assistant/index.ts`: acrescentar às regras E (estoque) a obrigação de listar todos os candidatos e a proibição de negar existência de item presente na consulta do turno; e regra de re-resolução após correção do usuário.
+- `supabase/functions/ai-assistant/tools.ts` (`add_opportunity_product`): trocar a comparação `toLowerCase() === term` por comparação via chave normalizada, com precedência nome exato > código exato; manter a desambiguação para os casos genuinamente ambíguos (ex.: "antena") e manter os campos formatados nos candidatos; incluir `quantidade_atual`/`saldo_texto` e um aviso de saldo insuficiente no retorno de sucesso.
+- `supabase/functions/ai-assistant/index.ts`: acrescentar às regras E (estoque) a obrigação de listar todos os candidatos com saldo, informar o saldo ao confirmar/adicionar item, e a proibição de negar existência de item presente na consulta do turno; e regra de re-resolução após correção do usuário.
 
 ## Cuidado com regressão
 
