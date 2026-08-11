@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Plus, Search, Edit, Trash2, Package, ArrowUpDown, AlertTriangle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import LogviStockPanel from "@/components/commercial/products/LogviStockPanel";
 
 const Products = () => {
   const { products, isLoading, createProduct, updateProduct, deleteProduct } = useStockProducts();
@@ -90,6 +91,8 @@ const Products = () => {
         <h2 className="text-2xl font-bold text-foreground">Catálogo de Estoque</h2>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-2" />Novo Produto</Button>
       </div>
+
+      <LogviStockPanel />
 
       <Card>
         <CardHeader>
