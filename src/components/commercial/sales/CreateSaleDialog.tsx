@@ -132,27 +132,42 @@ const CreateSaleDialog = ({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar produto no estoque..."
+                placeholder="Buscar produto no estoque EVA..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
             </div>
+            {catalogLoading && (
+              <p className="text-xs text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" /> Consultando o estoque EVA...
+              </p>
+            )}
+            {catalogError && <p className="text-xs text-destructive">{catalogError.message}</p>}
+            {searchTerm && !catalogLoading && filteredProducts.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nenhum produto disponível no EVA para esta busca.</p>
+            )}
             {searchTerm && filteredProducts.length > 0 && (
               <div className="border rounded-md max-h-40 overflow-y-auto">
-                {filteredProducts.slice(0, 8).map(p => (
+                {filteredProducts.map(p => (
                   <button
-                    key={p.id}
+                    key={p.produto_id}
                     onClick={() => addItem(p)}
-                    disabled={!!items.find(i => i.stock_product_id === p.id)}
+                    disabled={
+                      adding === p.produto_id ||
+                      !!items.find(i => i.external_product_id === p.produto_id)
+                    }
                     className="w-full text-left px-3 py-2 hover:bg-muted flex justify-between items-center text-sm disabled:opacity-50"
                   >
-                    <span>{p.name} <span className="text-muted-foreground">({p.external_product_code})</span></span>
-                    <span className="text-muted-foreground">{Number(p.current_quantity)} {p.unit} | {formatCurrency(p.sell_price > 0 ? p.sell_price : p.unit_cost)}</span>
+                    <span>{p.nome} <span className="text-muted-foreground">({p.codigo ?? "sem código"})</span></span>
+                    <span className="text-muted-foreground">
+                      {adding === p.produto_id ? "vinculando..." : `${p.quantidade_atual} | ${formatCurrency(p.preco_venda > 0 ? p.preco_venda : p.custo_unitario_atual)}`}
+                    </span>
                   </button>
                 ))}
               </div>
             )}
+
           </div>
 
           {/* Items table */}
