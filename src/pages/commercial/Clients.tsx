@@ -126,6 +126,18 @@ const CommercialClients = () => {
     onError: (e: any) => toast.error(e.message),
   });
 
+  const assignMutation = useMutation({
+    mutationFn: async ({ id, userId }: { id: string; userId: string | null }) => {
+      const { error } = await supabase.from('clients').update({ assigned_to: userId } as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      toast.success('Responsável atualizado');
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const groupMutation = useMutation({
     mutationFn: async ({ parentId, childIds }: { parentId: string; childIds: string[] }) => {
       for (const childId of childIds) {
@@ -336,6 +348,7 @@ const CommercialClients = () => {
         onSelectionChange={setSelectedIds}
         canManage={canManage}
         onDelete={canManage ? requestSingleDelete : undefined}
+        onAssign={(id, userId) => assignMutation.mutate({ id, userId })}
       />
 
       <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingClient(null); }}>

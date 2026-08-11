@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Opportunity } from "@/hooks/useOpportunities";
+import { UserRound } from "lucide-react";
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', notation: 'compact' }).format(v);
@@ -39,6 +40,11 @@ export const OpportunityCard = ({ opportunity, onClick }: Props) => {
             {priorityLabels[opportunity.priority] || opportunity.priority}
           </Badge>
         )}
+      </div>
+
+      <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+        <UserRound className="h-3 w-3" />
+        <span className="truncate">{(opportunity as any).profiles?.full_name || "Não atribuído"}</span>
       </div>
 
       {opportunity.probability != null && (

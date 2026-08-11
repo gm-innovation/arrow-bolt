@@ -9,6 +9,7 @@ import { Pencil, Eye, Search, Download, ArrowUpDown, ArrowUp, ArrowDown, Link2, 
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { formatLocalDate } from "@/lib/utils";
+import { AssigneeSelect } from "@/components/commercial/AssigneeSelect";
 
 const STATUS_BADGES: Record<string, string> = {
   prospect: 'bg-blue-100 text-blue-800',
@@ -44,6 +45,7 @@ interface Client {
   parent_client_id?: string | null;
   omie_client_id?: string | number | null;
   ignore_omie_sync?: boolean | null;
+  assigned_to?: string | null;
 }
 
 interface Props {
@@ -55,6 +57,7 @@ interface Props {
   onSelectionChange: (ids: Set<string>) => void;
   canManage?: boolean;
   onDelete?: (id: string) => void;
+  onAssign?: (id: string, userId: string | null) => void;
 }
 
 type SortKey = 'name' | 'annual_revenue' | 'last_contact_date';
@@ -86,7 +89,7 @@ const TriCheckbox = ({
 };
 
 export const ClientsTable = ({
-  clients, isLoading, onEdit, onRowClick, selectedIds, onSelectionChange, canManage = false, onDelete,
+  clients, isLoading, onEdit, onRowClick, selectedIds, onSelectionChange, canManage = false, onDelete, onAssign,
 }: Props) => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -227,6 +230,12 @@ export const ClientsTable = ({
             {STATUS_LABELS[client.commercial_status || ''] || 'N/A'}
           </Badge>
         </TableCell>
+        <TableCell onClick={e => e.stopPropagation()}>
+          <AssigneeSelect
+            value={client.assigned_to}
+            onChange={onAssign ? (userId) => onAssign(client.id, userId) : undefined}
+          />
+        </TableCell>
         <TableCell className="hidden lg:table-cell text-right">{formatCurrency(client.annual_revenue)}</TableCell>
         <TableCell className="hidden md:table-cell">
           {client.last_contact_date ? formatLocalDate(client.last_contact_date) : '—'}
@@ -323,6 +332,7 @@ export const ClientsTable = ({
                 <TableHead className="hidden md:table-cell">CNPJ</TableHead>
                 <TableHead className="hidden lg:table-cell">Segmento</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Responsável</TableHead>
                 <TableHead className="hidden lg:table-cell text-right">
                   <button className="flex items-center ml-auto font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('annual_revenue')}>
                     Receita Anual <SortIcon active={sortKey === 'annual_revenue'} dir={sortDir} />
