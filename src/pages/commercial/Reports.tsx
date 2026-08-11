@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useOpportunitiesRealtime } from "@/hooks/useOpportunitiesRealtime";
 import { useOpportunities } from "@/hooks/useOpportunities";
 import { useCommercialStats } from "@/hooks/useCommercialStats";
 import { useRecurrences } from "@/hooks/useRecurrences";
@@ -29,6 +30,7 @@ const stageLabels: Record<string, string> = {
 const Reports = () => {
   const { data: stats } = useCommercialStats();
   const { opportunities } = useOpportunities();
+  useOpportunitiesRealtime();
   const { recurrences } = useRecurrences();
 
   // Filters

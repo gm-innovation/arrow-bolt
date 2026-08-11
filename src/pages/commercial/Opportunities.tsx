@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useOpportunities, Opportunity } from "@/hooks/useOpportunities";
+import { useOpportunitiesRealtime } from "@/hooks/useOpportunitiesRealtime";
 import { useBuyers } from "@/hooks/useBuyers";
 import { useCommercialClientOptions } from "@/hooks/useCommercialClientOptions";
 import { useSearchParams } from "react-router-dom";
@@ -52,6 +53,7 @@ const CommercialOpportunities = () => {
   const { profile } = useAuth();
   const { opportunities, isLoading, updateOpportunity, createOpportunity, deleteOpportunity } = useOpportunities();
   const { buyers } = useBuyers();
+  useOpportunitiesRealtime();
   const { openLeads, setStatus: setLeadStatus } = useSiteLeads();
   const [view, setView] = useState<'kanban' | 'list'>(() => (localStorage.getItem('opp-view') as any) || 'kanban');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -141,6 +143,10 @@ const CommercialOpportunities = () => {
   const currentEditSheetOpp = editSheetOpp
     ? opportunities.find((opportunity) => opportunity.id === editSheetOpp.id) ?? editSheetOpp
     : null;
+  const currentDetailOpp = detailOpp
+    ? opportunities.find((opportunity) => opportunity.id === detailOpp.id) ?? detailOpp
+    : null;
+
 
   return (
     <div className="space-y-4">
@@ -273,7 +279,7 @@ const CommercialOpportunities = () => {
         isLoading={createOpportunity.isPending || updateOpportunity.isPending}
       />
 
-      <OpportunityDetails opportunity={detailOpp} open={detailOpen} onOpenChange={setDetailOpen} />
+      <OpportunityDetails opportunity={currentDetailOpp} open={detailOpen} onOpenChange={setDetailOpen} />
 
       <EditOpportunitySheet
         open={editSheetOpen}

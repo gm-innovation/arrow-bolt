@@ -1,5 +1,6 @@
 import { useCommercialStats } from "@/hooks/useCommercialStats";
 import { useOpportunities } from "@/hooks/useOpportunities";
+import { useOpportunitiesRealtime } from "@/hooks/useOpportunitiesRealtime";
 import { useRecurrences } from "@/hooks/useRecurrences";
 import { useCommercialTasks } from "@/hooks/useCommercialTasks";
 import { CommercialStats } from "@/components/commercial/dashboard/CommercialStats";
@@ -15,6 +16,7 @@ import { useMemo } from "react";
 const CommercialDashboard = () => {
   const { data, isLoading } = useCommercialStats();
   const { opportunities } = useOpportunities();
+  useOpportunitiesRealtime();
   const { recurrences } = useRecurrences();
   const { tasks } = useCommercialTasks();
 
