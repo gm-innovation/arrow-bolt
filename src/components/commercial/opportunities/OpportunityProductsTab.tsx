@@ -1,13 +1,11 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useOpportunityProducts } from "@/hooks/useOpportunityProducts";
 import { useEvaCatalog, EvaProduct } from "@/hooks/useEvaCatalog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Plus, Trash2, Wand2, ChevronsUpDown, AlertTriangle, Loader2 } from "lucide-react";
+import { Plus, Trash2, Wand2, AlertTriangle, Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 
 const fmt = (v: number | null) =>
@@ -24,13 +22,11 @@ export const OpportunityProductsTab = ({ opportunityId, onApplyTotal }: Props) =
   const { products: evaProducts, isLoading: catalogLoading, error: catalogError, search, ensureLocalProduct } =
     useEvaCatalog({ onlySellable: true });
   const [open, setOpen] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [term, setTerm] = useState("");
   const [selected, setSelected] = useState<EvaProduct | null>(null);
   const [quantity, setQuantity] = useState<string>("1");
   const [unitValue, setUnitValue] = useState<string>("");
   const [saving, setSaving] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const results = useMemo(() => search(term, 40), [search, term]);
 
@@ -86,63 +82,55 @@ export const OpportunityProductsTab = ({ opportunityId, onApplyTotal }: Props) =
         <div className="space-y-3 rounded-md border p-3 bg-muted/30">
           <div className="space-y-1.5">
             <Label className="text-xs">Produto (estoque EVA) *</Label>
-            <Popover open={pickerOpen} onOpenChange={setPickerOpen} modal>
-              <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
-                  <span className="truncate">
-                    {selected ? `${selected.codigo ?? ""} ${selected.nome}`.trim() : "Buscar por nome, código ou NCM..."}
-                  </span>
-                  <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-[--radix-popover-trigger-width] p-0"
-                align="start"
-                onOpenAutoFocus={(e) => {
-                  e.preventDefault();
-                  requestAnimationFrame(() => searchInputRef.current?.focus());
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                autoFocus
+                className="pl-9"
+                placeholder="Buscar por nome, código ou NCM..."
+                value={term}
+                onChange={(event) => {
+                  setTerm(event.target.value);
+                  setSelected(null);
                 }}
-              >
-                <Command shouldFilter={false}>
-                  <CommandInput ref={searchInputRef} autoFocus placeholder="Buscar no EVA..." value={term} onValueChange={setTerm} />
-                  <CommandList>
-                    {catalogLoading ? (
-                      <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Consultando o estoque EVA...
-                      </div>
-                    ) : catalogError ? (
-                      <div className="p-4 text-sm text-destructive">{catalogError.message}</div>
-                    ) : (
-                      <>
-                        <CommandEmpty>Nenhum produto encontrado no estoque EVA.</CommandEmpty>
-                        <CommandGroup>
-                          {results.map((p) => (
-                            <CommandItem
-                              key={p.produto_id}
-                              value={String(p.produto_id)}
-                              onSelect={() => {
-                                setSelected(p);
-                                setUnitValue(String(Number(p.preco_venda) || ""));
-                                setPickerOpen(false);
-                              }}
-                            >
-                              <div className="min-w-0">
-                                <p className="text-sm truncate">{p.nome}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {p.codigo || "sem código"} · {fmt(Number(p.preco_venda) || null)} ·{" "}
-                                  {p.quantidade_atual} em estoque
-                                  {p.posicao ? ` · ${p.posicao}` : ""}
-                                </p>
-                              </div>
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </>
-                    )}
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+              />
+            </div>
+            <div className="max-h-64 overflow-y-auto rounded-md border bg-background">
+              {catalogLoading ? (
+                <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Consultando o estoque EVA...
+                </div>
+              ) : catalogError ? (
+                <div className="p-4 text-sm text-destructive">{catalogError.message}</div>
+              ) : results.length === 0 ? (
+                <div className="p-4 text-sm text-muted-foreground">Nenhum produto encontrado no estoque EVA.</div>
+              ) : (
+                results.map((product) => {
+                  const isSelected = selected?.produto_id === product.produto_id;
+                  return (
+                    <Button
+                      key={product.produto_id}
+                      type="button"
+                      variant={isSelected ? "secondary" : "ghost"}
+                      className="h-auto w-full justify-start rounded-none px-3 py-2 text-left"
+                      onClick={() => {
+                        setSelected(product);
+                        setTerm(`${product.codigo ?? ""} ${product.nome}`.trim());
+                        setUnitValue(String(Number(product.preco_venda) || ""));
+                      }}
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm">{product.nome}</span>
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          {product.codigo || "sem código"} · {fmt(Number(product.preco_venda) || null)} · {product.quantidade_atual} em estoque
+                          {product.posicao ? ` · ${product.posicao}` : ""}
+                        </span>
+                      </span>
+                    </Button>
+                  );
+                })
+              )}
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
