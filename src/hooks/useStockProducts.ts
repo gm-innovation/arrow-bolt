@@ -118,8 +118,8 @@ export const useStockProducts = () => {
     queryClient.invalidateQueries({ queryKey: ["stock-products"] });
   };
 
-  // Sync the LOGVI commercial stock catalog into stock_products
-  const syncFromLogvi = useMutation({
+  // Sync the EVA commercial stock catalog into stock_products
+  const syncFromEva = useMutation({
     mutationFn: async (
       items: Array<{
         produto_id: number;
@@ -185,5 +185,5 @@ export const useStockProducts = () => {
     onError: (err: any) => toast.error(err.message || "Erro ao sincronizar estoque"),
   });
 
-  return { products, isLoading, createProduct, updateProduct, deleteProduct, upsertFromEva, syncFromLogvi };
+  return { products, isLoading, createProduct, updateProduct, deleteProduct, upsertFromEva, syncFromEva };
 };
