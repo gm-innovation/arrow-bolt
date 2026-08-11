@@ -112,7 +112,13 @@ export const EditOpportunitySheet = ({
       setCloseDate(opportunity.expected_close_date ? parseISO(opportunity.expected_close_date) : undefined);
       setTab("details");
     }
-  }, [open, opportunity]);
+  }, [open, opportunity?.id]);
+
+  useEffect(() => {
+    if (open && opportunity) {
+      setForm((current) => ({ ...current, estimated_value: opportunity.estimated_value }));
+    }
+  }, [open, opportunity?.estimated_value]);
 
   const filteredBuyers = useMemo(
     () => buyers.filter((b) => b.client_id === form.client_id),
