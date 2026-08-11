@@ -42,6 +42,7 @@ export interface Lead {
   opportunity_id: string | null;
   converted_at: string | null;
   source?: string | null;
+  assigned_to?: string | null;
 }
 
 interface ClientOption { id: string; name: string; cnpj: string | null }
