@@ -528,9 +528,9 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
                         />
                       )}
                       <SpeakMessageButton
-                        text={msg.content}
+                        text={plainContent}
                         isSpeaking={isSpeaking && speakingId === (msg.id ?? `idx-${i}`)}
-                        onSpeak={() => speak(msg.content, msg.id ?? `idx-${i}`, voiceOpts)}
+                        onSpeak={() => speak(plainContent, msg.id ?? `idx-${i}`, voiceOpts)}
                         onStop={stopSpeaking}
                       />
                     </div>
