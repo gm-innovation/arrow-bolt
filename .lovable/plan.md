@@ -71,3 +71,20 @@ Também validar que remoção, saldo zero, saldo insuficiente e desambiguação 
 - Testes da função `ai-assistant` para cobrir confirmação verdadeira, falha de escrita e falsa alegação do modelo.
 
 Não haverá alteração de schema nem correção manual dos dados: a oportunidade está atualmente sem itens porque a remoção posterior foi uma ação real.
+
+## Sobre usar subagentes para ajudar a Marina
+
+Hoje a Marina atua sozinha: um único modelo em um laço de ferramentas, decidindo e respondendo no mesmo turno.
+
+Para o problema desta conversa, **subagente não é a solução**. A falha não foi de raciocínio, foi de conferência: ela afirmou uma gravação que nunca ocorreu. Um segundo modelo revisando o primeiro herdaria o mesmo defeito — ele também só teria texto para julgar, e passaria a custar mais tokens, mais tempo de resposta e uma nova fonte possível de invenção. A checagem correta é determinística e barata: reler o banco depois de gravar e bloquear a frase de sucesso sem comprovante, exatamente como descrito nas seções acima.
+
+Onde subagentes valem a pena, como fase posterior e separada:
+
+- **Auditor de conversa (assíncrono)**: roda fora do turno, compara o que a Marina afirmou com o registro de ações e sinaliza divergências para o Super Admin. Serve para vigilância contínua, não para autorizar a resposta.
+- **Pesquisador de catálogo**: varreduras longas no EVA (equivalências, alternativas quando falta saldo) sem travar a conversa.
+- **Analista de auditoria Auvo**: cruzamento de relatórios e fotos, tarefa pesada e paralelizável.
+- **Redator**: minutas longas de documento ou proposta, onde o resultado é texto e não gravação.
+
+Regra que vale para todos: **subagente nunca confirma escrita**. Quem autoriza uma confirmação é a releitura do banco.
+
+Ordem sugerida: primeiro as travas de verificação deste plano; depois, se você quiser, o auditor assíncrono como segunda etapa.
