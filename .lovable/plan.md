@@ -19,7 +19,10 @@ A busca devolve os dois corretamente, com o exato em primeiro lugar. O erro est�
 2. **Desempate por código quando o usuário informa variante**: se o termo casar exatamente com um nome/código pela chave normalizada, esse item ganha, mesmo que outro tenha mais saldo.
 3. **Quando a pergunta for necessária, listar todos os candidatos**: regra de persona obrigando a apresentar a lista numerada completa devolvida pela ferramenta (nome, código, moeda, preço formatado e saldo), nunca um único item; e proibindo afirmar que um produto "não existe" quando ele aparece na lista de candidatos ou na consulta ao estoque do turno.
 4. **Correção do usuário reabre a escolha**: ao receber uma correção sobre qual variante é ("não, é a X", "sem o /S"), a Marina refaz a resolução do produto com o novo termo em vez de responder de memória.
-5. **Saldo sempre informado**: ao citar, confirmar ou adicionar um produto, a Marina informa a quantidade disponível exatamente como vem do EVA (ex.: "15 em estoque", "sem estoque"). Ao adicionar um item, o retorno da ferramenta passa a incluir o saldo do produto e, se a quantidade pedida for maior que o saldo, ela avisa que o estoque é insuficiente — sem bloquear a inclusão na oportunidade.
+5. **Saldo sempre informado**: ao citar, confirmar ou adicionar um produto, a Marina informa a quantidade disponível exatamente como vem do EVA (ex.: "15 em estoque", "sem estoque"). O retorno da ferramenta passa a incluir o saldo do produto.
+6. **Comportamento quando falta estoque**:
+   - Saldo maior que zero, mas menor que o pedido: ela avisa quanto há e pergunta se deve adicionar apenas a quantidade disponível (ou incluir a quantidade cheia mesmo assim) — só grava depois da resposta.
+   - Saldo zero: ela apenas avisa que não há esse item em estoque e pergunta se ainda quer incluir na proposta, sem adicionar por conta própria.
 
 ## Detalhes técnicos
 
