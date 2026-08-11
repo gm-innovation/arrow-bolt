@@ -16,6 +16,10 @@ export interface StockProduct {
   unit_cost: number;
   sell_price: number;
   is_active: boolean;
+  ncm: string | null;
+  stock_position: string | null;
+  currency: string | null;
+  margin_percentage: number | null;
   last_synced_at: string | null;
   created_at: string;
   updated_at: string;
