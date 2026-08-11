@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useStockProducts, StockProduct } from "@/hooks/useStockProducts";
+import { useMemo, useState } from "react";
+import { useEvaCatalog, EvaProduct } from "@/hooks/useEvaCatalog";
 import { useCrmSales } from "@/hooks/useCrmSales";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, ShoppingCart } from "lucide-react";
+import { Plus, Trash2, Search, ShoppingCart, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface SaleItem {
+  external_product_id: number;
   stock_product_id: string;
   name: string;
   quantity: number;
@@ -34,29 +36,41 @@ const CreateSaleDialog = ({
   clientId,
   opportunityTitle,
 }: CreateSaleDialogProps) => {
-  const { products } = useStockProducts();
+  const { search, isLoading: catalogLoading, error: catalogError, ensureLocalProduct } = useEvaCatalog({
+    onlySellable: true,
+    enabled: open,
+  });
   const { createSale } = useCrmSales();
   const [items, setItems] = useState<SaleItem[]>([]);
   const [notes, setNotes] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [adding, setAdding] = useState<number | null>(null);
 
-  const activeProducts = products.filter(p => p.is_active && p.current_quantity > 0);
-  const filteredProducts = activeProducts.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.external_product_code?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProducts = useMemo(
+    () => search(searchTerm, 8).filter(p => p.quantidade_atual > 0),
+    [search, searchTerm]
   );
 
-  const addItem = (product: StockProduct) => {
-    if (items.find(i => i.stock_product_id === product.id)) return;
-    setItems(prev => [...prev, {
-      stock_product_id: product.id,
-      name: product.name,
-      quantity: 1,
-      unit_value: product.sell_price > 0 ? product.sell_price : product.unit_cost,
-      markup_percentage: 0,
-      available: Number(product.current_quantity),
-    }]);
-    setSearchTerm("");
+  const addItem = async (product: EvaProduct) => {
+    if (items.find(i => i.external_product_id === product.produto_id)) return;
+    setAdding(product.produto_id);
+    try {
+      const stockProductId = await ensureLocalProduct(product);
+      setItems(prev => [...prev, {
+        external_product_id: product.produto_id,
+        stock_product_id: stockProductId,
+        name: product.nome,
+        quantity: 1,
+        unit_value: product.preco_venda > 0 ? product.preco_venda : product.custo_unitario_atual,
+        markup_percentage: 0,
+        available: Number(product.quantidade_atual),
+      }]);
+      setSearchTerm("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao vincular o produto do EVA");
+    } finally {
+      setAdding(null);
+    }
   };
 
   const removeItem = (productId: string) => {
@@ -82,7 +96,7 @@ const CreateSaleDialog = ({
       opportunity_id: opportunityId,
       client_id: clientId,
       notes,
-      items: items.map(({ available, ...rest }) => rest),
+      items: items.map(({ available, external_product_id, ...rest }) => rest),
     }, {
       onSuccess: () => {
         setItems([]);
@@ -91,6 +105,7 @@ const CreateSaleDialog = ({
       }
     });
   };
+
 
   const formatCurrency = (v: number) =>
     `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
