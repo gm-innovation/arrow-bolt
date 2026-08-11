@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useOpportunityProducts } from "@/hooks/useOpportunityProducts";
 import { useEvaCatalog, EvaProduct } from "@/hooks/useEvaCatalog";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ export const OpportunityProductsTab = ({ opportunityId, onApplyTotal }: Props) =
   const [quantity, setQuantity] = useState<string>("1");
   const [unitValue, setUnitValue] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const results = useMemo(() => search(term, 40), [search, term]);
 
@@ -85,7 +86,7 @@ export const OpportunityProductsTab = ({ opportunityId, onApplyTotal }: Props) =
         <div className="space-y-3 rounded-md border p-3 bg-muted/30">
           <div className="space-y-1.5">
             <Label className="text-xs">Produto (estoque EVA) *</Label>
-            <Popover open={pickerOpen} onOpenChange={setPickerOpen}>
+            <Popover open={pickerOpen} onOpenChange={setPickerOpen} modal>
               <PopoverTrigger asChild>
                 <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
                   <span className="truncate">
@@ -94,9 +95,16 @@ export const OpportunityProductsTab = ({ opportunityId, onApplyTotal }: Props) =
                   <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+              <PopoverContent
+                className="w-[--radix-popover-trigger-width] p-0"
+                align="start"
+                onOpenAutoFocus={(e) => {
+                  e.preventDefault();
+                  requestAnimationFrame(() => searchInputRef.current?.focus());
+                }}
+              >
                 <Command shouldFilter={false}>
-                  <CommandInput placeholder="Buscar no EVA..." value={term} onValueChange={setTerm} />
+                  <CommandInput ref={searchInputRef} autoFocus placeholder="Buscar no EVA..." value={term} onValueChange={setTerm} />
                   <CommandList>
                     {catalogLoading ? (
                       <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
