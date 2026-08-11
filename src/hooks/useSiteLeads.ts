@@ -40,7 +40,23 @@ export const useSiteLeads = () => {
     onError: (err: any) => toast.error(err.message),
   });
 
+  const setAssignee = useMutation({
+    mutationFn: async ({ id, userId }: { id: string; userId: string | null }) => {
+      const { error } = await supabase
+        .from("public_site_leads")
+        .update({ assigned_to: userId })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["site-leads"] });
+      toast.success("Responsável atualizado");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   const openLeads = leads.filter((l) => l.status === "new" || l.status === "reviewed");
 
-  return { leads, openLeads, isLoading, setStatus };
+  return { leads, openLeads, isLoading, setStatus, setAssignee };
 };
+
