@@ -244,6 +244,19 @@ export function ConvertLeadDialog({
       return;
     }
 
+    let linkSummary = "";
+    if (lead.items?.length) {
+      try {
+        const { linked, pending } = await linkLeadItemsToOpportunity(opp.id, companyId, lead.items);
+        linkSummary =
+          pending > 0
+            ? ` ${linked} item(ns) vinculado(s) ao estoque EVA e ${pending} pendente(s) de vínculo.`
+            : ` ${linked} item(ns) vinculado(s) ao estoque EVA.`;
+      } catch (e: any) {
+        linkSummary = " Não foi possível vincular os itens do lead: " + e.message;
+      }
+    }
+
     const { error: updErr } = await supabase
       .from("public_site_leads")
       .update({
@@ -258,8 +271,9 @@ export function ConvertLeadDialog({
       toast.error("Oportunidade criada, mas falhou ao vincular ao lead: " + updErr.message);
       return;
     }
-    toast.success("Lead convertido em oportunidade");
+    toast.success("Lead convertido em oportunidade." + linkSummary);
     onConverted(lead.id, opp.id);
+
   };
 
   return (
