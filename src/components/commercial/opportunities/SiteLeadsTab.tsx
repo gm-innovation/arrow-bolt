@@ -13,6 +13,7 @@ import { useSiteLeads } from "@/hooks/useSiteLeads";
 import { ConvertLeadDialog, type Lead } from "./ConvertLeadDialog";
 import { LeadDetailsDialog } from "./LeadDetailsDialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { AssigneeSelect } from "@/components/commercial/AssigneeSelect";
 
 const STATUS_LABEL: Record<Lead["status"], string> = {
   new: "Novo",
@@ -35,7 +36,8 @@ interface Props {
 export const SiteLeadsTab = ({ onConverted }: Props) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { profile } = useAuth();
-  const { leads, isLoading, setStatus } = useSiteLeads();
+  const { leads, isLoading, setStatus, setAssignee } = useSiteLeads();
+  const [onlyMine, setOnlyMine] = useState(false);
   const [search, setSearch] = useState("");
   const statusFilter = (searchParams.get("status") as Lead["status"] | "all") || "all";
   const [selected, setSelected] = useState<Lead | null>(null);
@@ -51,6 +53,7 @@ export const SiteLeadsTab = ({ onConverted }: Props) => {
   const filtered = useMemo(() => {
     return leads.filter((l) => {
       if (statusFilter !== "all" && l.status !== statusFilter) return false;
+      if (onlyMine && l.assigned_to !== profile?.id) return false;
       if (search) {
         const q = search.toLowerCase();
         return (l.name || "").toLowerCase().includes(q)
@@ -59,7 +62,7 @@ export const SiteLeadsTab = ({ onConverted }: Props) => {
       }
       return true;
     });
-  }, [leads, statusFilter, search]);
+  }, [leads, statusFilter, search, onlyMine, profile?.id]);
 
   return (
     <Card>
@@ -74,6 +77,13 @@ export const SiteLeadsTab = ({ onConverted }: Props) => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input placeholder="Buscar…" value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 w-56" />
             </div>
+            <Button
+              variant={onlyMine ? "default" : "outline"}
+              size="sm"
+              onClick={() => setOnlyMine((v) => !v)}
+            >
+              {onlyMine ? "Meus leads" : "Todos"}
+            </Button>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -95,15 +105,16 @@ export const SiteLeadsTab = ({ onConverted }: Props) => {
               <TableHead>Tipo</TableHead>
               <TableHead>Empresa / Contato</TableHead>
               <TableHead className="hidden md:table-cell">Contato</TableHead>
+              <TableHead>Responsável</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Carregando…</TableCell></TableRow>
             ) : filtered.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Nenhum lead.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Nenhum lead.</TableCell></TableRow>
             ) : filtered.map((l) => (
               <TableRow
                 key={l.id}
@@ -123,6 +134,13 @@ export const SiteLeadsTab = ({ onConverted }: Props) => {
                 <TableCell className="hidden md:table-cell text-sm">
                   {l.email && <div className="flex items-center gap-1"><Mail className="w-3 h-3" />{l.email}</div>}
                   {l.phone && <div className="flex items-center gap-1 text-xs text-muted-foreground"><Phone className="w-3 h-3" />{l.phone}</div>}
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
+                  <AssigneeSelect
+                    value={l.assigned_to}
+                    onChange={(userId) => setAssignee.mutate({ id: l.id, userId })}
+                    disabled={setAssignee.isPending}
+                  />
                 </TableCell>
                 <TableCell>
                   <Badge variant={STATUS_VARIANT[l.status]}>{STATUS_LABEL[l.status]}</Badge>
@@ -150,6 +168,7 @@ export const SiteLeadsTab = ({ onConverted }: Props) => {
         onOpenChange={(v) => !v && setSelected(null)}
         onConvert={(lead) => setConvertLead(lead)}
         onStatusChange={(id, status) => setStatus.mutate({ id, status })}
+        onAssigneeChange={(id, userId) => setAssignee.mutate({ id, userId })}
       />
 
       {convertLead && profile?.company_id && profile?.id && (

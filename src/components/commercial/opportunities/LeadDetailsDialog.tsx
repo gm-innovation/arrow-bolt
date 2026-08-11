@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Mail, Phone, Building2, Sparkles } from "lucide-react";
 import type { Lead } from "./ConvertLeadDialog";
+import { AssigneeSelect } from "@/components/commercial/AssigneeSelect";
 
 const STATUS_LABEL: Record<Lead["status"], string> = {
   new: "Novo",
@@ -17,9 +18,10 @@ interface Props {
   onOpenChange: (v: boolean) => void;
   onConvert?: (lead: Lead) => void;
   onStatusChange?: (id: string, status: Lead["status"]) => void;
+  onAssigneeChange?: (id: string, userId: string | null) => void;
 }
 
-export const LeadDetailsDialog = ({ lead, open, onOpenChange, onConvert, onStatusChange }: Props) => {
+export const LeadDetailsDialog = ({ lead, open, onOpenChange, onConvert, onStatusChange, onAssigneeChange }: Props) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -57,6 +59,14 @@ export const LeadDetailsDialog = ({ lead, open, onOpenChange, onConvert, onStatu
                 </div>
               </div>
             )}
+            <div className="flex items-center gap-2 pt-2 border-t">
+              <span className="text-xs text-muted-foreground">Responsável:</span>
+              <AssigneeSelect
+                value={lead.assigned_to}
+                onChange={onAssigneeChange ? (userId) => onAssigneeChange(lead.id, userId) : undefined}
+                className="h-8 w-52 text-xs"
+              />
+            </div>
             <div className="flex items-center gap-2 pt-2 border-t">
               <span className="text-xs text-muted-foreground">Status:</span>
               <Select
