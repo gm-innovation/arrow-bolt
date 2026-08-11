@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { toPlainText } from '@/lib/ai/plainText';
 import { useAIChat, type ReportFields } from '@/hooks/useAIChat';
 import { AIMessageFeedback } from './AIMessageFeedback';
 import { AIConversationList } from './AIConversationList';
@@ -460,8 +461,10 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
         ) : (
           <div className="space-y-4">
             {messages.map((msg, i) => {
-              const actions = msg.role === 'assistant' && msg.content 
-                ? detectActionsFromResponse(msg.content) 
+              // Conversa é texto simples: nada de Markdown na tela nem na voz.
+              const plainContent = msg.role === 'assistant' ? toPlainText(msg.content) : msg.content;
+              const actions = msg.role === 'assistant' && plainContent
+                ? detectActionsFromResponse(plainContent)
                 : [];
 
               return (
@@ -481,8 +484,8 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
                     )}
                   >
                     {msg.role === 'assistant' ? (
-                      <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap">
-                        {msg.content || (
+                      <div className="max-w-none whitespace-pre-wrap break-words">
+                        {plainContent || (
                           <span className="flex items-center gap-2">
                             <Loader2 className="h-3 w-3 animate-spin" />
                             Pensando...
@@ -525,9 +528,9 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
                         />
                       )}
                       <SpeakMessageButton
-                        text={msg.content}
+                        text={plainContent}
                         isSpeaking={isSpeaking && speakingId === (msg.id ?? `idx-${i}`)}
-                        onSpeak={() => speak(msg.content, msg.id ?? `idx-${i}`, voiceOpts)}
+                        onSpeak={() => speak(plainContent, msg.id ?? `idx-${i}`, voiceOpts)}
                         onStop={stopSpeaking}
                       />
                     </div>
