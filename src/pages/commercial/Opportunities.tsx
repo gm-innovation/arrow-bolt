@@ -141,6 +141,10 @@ const CommercialOpportunities = () => {
   const currentEditSheetOpp = editSheetOpp
     ? opportunities.find((opportunity) => opportunity.id === editSheetOpp.id) ?? editSheetOpp
     : null;
+  const currentDetailOpp = detailOpp
+    ? opportunities.find((opportunity) => opportunity.id === detailOpp.id) ?? detailOpp
+    : null;
+
 
   return (
     <div className="space-y-4">
