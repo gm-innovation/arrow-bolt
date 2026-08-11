@@ -83,8 +83,8 @@ export const useOpportunityProducts = (opportunityId: string | null) => {
       } as any);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["crm-opportunity-products", opportunityId] });
+    onSuccess: async () => {
+      await afterChange();
       toast.success("Item adicionado");
     },
     onError: (e: any) => toast.error(e.message),
@@ -100,7 +100,7 @@ export const useOpportunityProducts = (opportunityId: string | null) => {
       const { error } = await supabase.from("crm_opportunity_products").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm-opportunity-products", opportunityId] }),
+    onSuccess: () => afterChange(),
     onError: (e: any) => toast.error(e.message),
   });
 
@@ -109,8 +109,8 @@ export const useOpportunityProducts = (opportunityId: string | null) => {
       const { error } = await supabase.from("crm_opportunity_products").delete().eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["crm-opportunity-products", opportunityId] });
+    onSuccess: async () => {
+      await afterChange();
       toast.success("Item removido");
     },
     onError: (e: any) => toast.error(e.message),
