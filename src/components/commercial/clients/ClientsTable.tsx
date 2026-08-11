@@ -332,6 +332,7 @@ export const ClientsTable = ({
                 <TableHead className="hidden md:table-cell">CNPJ</TableHead>
                 <TableHead className="hidden lg:table-cell">Segmento</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Responsável</TableHead>
                 <TableHead className="hidden lg:table-cell text-right">
                   <button className="flex items-center ml-auto font-medium hover:text-foreground transition-colors" onClick={() => toggleSort('annual_revenue')}>
                     Receita Anual <SortIcon active={sortKey === 'annual_revenue'} dir={sortDir} />
