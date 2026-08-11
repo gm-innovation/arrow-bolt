@@ -2,14 +2,15 @@
 
 ## Diagnóstico confirmado
 
-Nos logs da função da assistente, a consulta obrigatória ao estoque foi executada com o termo `"oi kit overhaul"` e retornou `count: 0`.
+Você digitou "oi, Marina, temos kit overhaul no estoque?". Antes de consultar o EVA, o sistema limpa a frase removendo verbos e ruídos ("temos", "no estoque", "Marina", "?"). Sobrou `"oi kit overhaul"` — foi exatamente esse termo que apareceu no log da consulta, com `count: 0`.
 
 Duas causas se somam:
 
-1. A limpeza do termo não remove saudações e vocativos ("oi", "olá", "bom dia", "e aí"), então a palavra "oi" ficou dentro da busca.
-2. O filtro do catálogo EVA exige que **todos** os termos apareçam no produto. Como nenhum item contém "oi", o item real "KIT OVERHAUL STD22" foi descartado — mesmo tendo "kit" e "overhaul".
+1. A limpeza remove "Marina", mas não remove saudações ("oi", "olá", "bom dia", "e aí"). Então "oi" ficou colado no termo de busca.
+2. O filtro do catálogo EVA exige que **todos** os termos apareçam no produto. Nenhum item contém "oi", então "KIT OVERHAUL STD22" foi descartado mesmo tendo "kit" e "overhaul".
 
-Ou seja: não é regressão de comportamento da Marina, é o termo de busca contaminado com uma palavra que zera o filtro AND.
+Sobre a frase dela: ela realmente entendeu o pedido — inclusive repetiu "kit overhaul" corretamente. O que falhou foi a consulta feita nos bastidores, que voltou vazia; ela então relatou ausência com base num resultado errado. Nas vezes em que funcionou, a pergunta não começava com saudação, por isso o termo saía limpo. Ou seja: não é a compreensão dela, é o termo de busca contaminado por uma palavra que zera o filtro.
+
 
 ## Correção
 
