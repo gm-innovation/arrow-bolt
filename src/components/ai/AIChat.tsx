@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { toPlainText } from '@/lib/ai/plainText';
 import { useAIChat, type ReportFields } from '@/hooks/useAIChat';
 import { AIMessageFeedback } from './AIMessageFeedback';
 import { AIConversationList } from './AIConversationList';
