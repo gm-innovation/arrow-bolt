@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { FunctionsHttpError } from "@supabase/supabase-js";
 
-export interface LogviProduct {
+export interface EvaProduct {
   produto_id: number;
   codigo: string | null;
   ncm: string | null;
@@ -18,12 +18,12 @@ export interface LogviProduct {
   data_definicao: string | null;
 }
 
-interface LogviProductsResponse {
+interface EvaProductsResponse {
   success: boolean;
   stock: { id: string; codigo: string; nome: string } | null;
   total: number;
   count: number;
-  products: LogviProduct[];
+  products: EvaProduct[];
 }
 
 async function readError(error: unknown): Promise<string> {
@@ -35,20 +35,20 @@ async function readError(error: unknown): Promise<string> {
       return error.message;
     }
   }
-  return (error as Error)?.message ?? "Erro ao consultar produtos do LOGVI";
+  return (error as Error)?.message ?? "Erro ao consultar produtos do EVA";
 }
 
-/** Reads the LOGVI commercial stock catalog through the backend (token never leaves the server). */
-export const useLogviProducts = (options?: { enabled?: boolean; onlySellable?: boolean }) => {
+/** Reads the EVA commercial stock catalog through the backend (token never leaves the server). */
+export const useEvaStockProducts = (options?: { enabled?: boolean; onlySellable?: boolean }) => {
   const query = useQuery({
-    queryKey: ["logvi-products", options?.onlySellable ?? false],
-    queryFn: async (): Promise<LogviProductsResponse> => {
+    queryKey: ["eva-stock-products", options?.onlySellable ?? false],
+    queryFn: async (): Promise<EvaProductsResponse> => {
       const { data, error } = await supabase.functions.invoke("logvi-products", {
         body: { only_sellable: options?.onlySellable ?? false },
       });
       if (error) throw new Error(await readError(error));
       if (data?.error) throw new Error(data.error);
-      return data as LogviProductsResponse;
+      return data as EvaProductsResponse;
     },
     enabled: options?.enabled ?? true,
     staleTime: 5 * 60 * 1000,
