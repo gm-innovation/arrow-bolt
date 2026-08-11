@@ -31,6 +31,16 @@ Você disse "oportunidade da Camorim solicitada pelo Cahuã" — informação su
 - Antes de gravar o item, resume em uma linha ("Incluo 1 × KIT OVERHAUL STD22 a R$ 4.212,60 na oportunidade RFQ pelo site — Cahuã / Camorim?") e executa após o "pode".
 - Continuam valendo as regras anti-invenção do EVA: código, NCM, custo e preço apenas como vêm da consulta.
 
+### 4. Paridade de ações nos demais módulos (mesma leva)
+Fechar as lacunas de escrita onde a Marina hoje só lê, sempre limitada ao que o perfil do usuário já pode fazer na tela:
+- **Comercial**: itens de venda, mover oportunidade de estágio, marcar ganha/perdida com motivo, criar/concluir tarefa, converter lead.
+- **Operação (OS)**: vincular/retirar material da OS, criar e concluir tarefa da OS, alterar status e datas, lançar itens de medição.
+- **RH**: solicitar/aprovar férias, registrar exame ocupacional, registrar ausência, atualizar validade e revisão de documento do colaborador.
+- **Suprimentos/Financeiro/Qualidade**: itens de requisição de compra, baixa de contas, itens de plano de ação e fechamento de NCR.
+- **Regra transversal**: toda ação de escrita passa por resumo + confirmação; exclusões seguem o fluxo de duas etapas com token; erro de permissão é informado ao usuário sem tentativa de contorno.
+- Cada módulo ganha também a mesma desambiguação por linguagem natural (nome de cliente, número de OS, nome do colaborador) — nunca pedir ID.
+
+
 ## Detalhes técnicos
 
 - `supabase/functions/ai-assistant/tools.ts`: substituir o `basicQueryTool` de `crm_opportunities` por uma ferramenta dedicada com `select` incluindo `clients(name)`, `crm_buyers(name)` e `profiles(full_name)`; busca em `title/description/notes` mais resolução de `client_id` por nome do cliente (consulta em `clients` e filtro `in`). Novas ferramentas `list_opportunity_products`, `add_opportunity_product` e `remove_opportunity_product` operando em `crm_opportunity_products` (`opportunity_id`, `stock_product_id`, `item_name`, `item_code`, `quantity`, `unit_value`, `list_unit_value`, `total_value`), reaproveitando o leitor `_shared/eva-products.ts` e a materialização local do produto.
