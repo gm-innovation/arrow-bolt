@@ -43,6 +43,10 @@ Antes de encerrar, rodar uma checagem determinística dos casos que já funciona
 "PRD00031"        -> ANTENA GPA 017/S (PRD00031) escolha direta
 "antena"          -> pergunta com lista numerada completa
 "kit overhaul"    -> segue como hoje (sem mudança)
+
+PRD00020 (saldo 0)   + qualquer quantidade -> recusa: "não temos em estoque"
+PRD00031 (saldo 15)  + 20 unidades         -> avisa e oferece 15; grava no máximo 15
+PRD00031 (saldo 15)  + 2 unidades          -> grava 2 normalmente
 ```
 
 Nada de alteração em busca de oportunidades, remoção de itens, recálculo de valor ou realtime — esses fluxos ficam como estão.
