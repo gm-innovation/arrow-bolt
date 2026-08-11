@@ -347,25 +347,54 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
 
   const commercialMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/commercial/dashboard" },
-    { title: "Clientes", icon: Users, path: "/commercial/clients" },
-    { title: "Oportunidades", icon: Target, path: "/commercial/opportunities" },
-    { title: "Tarefas", icon: ClipboardList, path: "/commercial/tasks" },
-    { title: "Compradores", icon: ShoppingBag, path: "/commercial/buyers" },
+    {
+      title: "CRM",
+      icon: Target,
+      key: "c-crm",
+      children: [
+        { title: "Leads & Oportunidades", icon: Target, path: "/commercial/opportunities" },
+        { title: "Clientes", icon: Users, path: "/commercial/clients" },
+        { title: "Compradores", icon: ShoppingBag, path: "/commercial/buyers" },
+        { title: "Tarefas", icon: ClipboardList, path: "/commercial/tasks" },
+        { title: "Vendas", icon: Calculator, path: "/commercial/sales" },
+        { title: "Recorrências", icon: RefreshCw, path: "/commercial/recurrences" },
+      ],
+    },
     { title: "Produtos", icon: Package, path: "/commercial/products" },
-    { title: "Recorrências", icon: RefreshCw, path: "/commercial/recurrences" },
-    { title: "Vendas", icon: Calculator, path: "/commercial/sales" },
-    { title: "Relatórios", icon: FileBarChart, path: "/commercial/reports" },
-    { title: "Conhecimento", icon: BookOpen, path: "/commercial/knowledge-base" },
-    { title: "Inteligência (IA)", icon: Bot, path: "/commercial/ai-insights" },
-    { title: "Notificações", icon: Bell, path: "/commercial/notifications" },
-    { title: "Admin", icon: Settings, path: "/commercial/admin" },
-    { title: "Configurações", icon: Settings, path: "/commercial/settings" },
-    { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
-    { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
-    { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
-    { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
-    { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
+    {
+      title: "Análise",
+      icon: FileBarChart,
+      key: "c-analysis",
+      children: [
+        { title: "Relatórios", icon: FileBarChart, path: "/commercial/reports" },
+        { title: "Inteligência (IA)", icon: Bot, path: "/commercial/ai-insights" },
+        { title: "Conhecimento", icon: BookOpen, path: "/commercial/knowledge-base" },
+      ],
+    },
+    {
+      title: "Corporativo",
+      icon: MessageSquare,
+      key: "c-corp",
+      children: [
+        { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
+        { title: "Solicitações", icon: Inbox, path: "/corp/dashboard" },
+        { title: "Notificações", icon: Bell, path: "/commercial/notifications" },
+        { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },
+        { title: "Benefícios", icon: Gift, path: "/corp/benefits" },
+        { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
+      ],
+    },
+    {
+      title: "Sistema",
+      icon: Settings,
+      key: "c-system",
+      children: [
+        { title: "Admin", icon: Settings, path: "/commercial/admin" },
+        { title: "Configurações", icon: Settings, path: "/commercial/settings" },
+      ],
+    },
   ];
+
 
   const directorMenuItems = [
     { title: "Dashboard", icon: LayoutDashboard, path: "/manager/dashboard" },
