@@ -139,11 +139,17 @@ export const useStockProducts = () => {
       if (!profile?.company_id) throw new Error("Empresa não identificada");
       if (items.length === 0) return { created: 0, updated: 0 };
 
-      const existingIds = new Set(
-        products.filter(p => p.external_product_id != null).map(p => Number(p.external_product_id))
+      const localByExternalId = new Map(
+        products
+          .filter(p => p.external_product_id != null)
+          .map(p => [Number(p.external_product_id), p])
       );
 
-      const rows = items.map(i => ({
+      const rows = items.map(i => {
+        const local = localByExternalId.get(i.produto_id);
+        // Preserve a manually set sell price (item never synced but priced locally)
+        const keepLocalPrice = !!local && !local.last_synced_at && Number(local.sell_price) > 0;
+        return {
         company_id: profile.company_id,
         external_product_id: i.produto_id,
         external_product_code: i.codigo,
@@ -155,10 +161,11 @@ export const useStockProducts = () => {
         margin_percentage: i.margem_percentual,
         current_quantity: i.quantidade_atual,
         unit_cost: i.custo_unitario_atual,
-        sell_price: i.preco_venda,
+        sell_price: keepLocalPrice ? Number(local!.sell_price) : i.preco_venda,
         is_active: i.vendavel,
         last_synced_at: new Date().toISOString(),
-      }));
+        };
+      });
 
       // Chunked upsert to stay within request limits
       for (let i = 0; i < rows.length; i += 200) {
@@ -168,7 +175,7 @@ export const useStockProducts = () => {
         if (error) throw error;
       }
 
-      const created = items.filter(i => !existingIds.has(i.produto_id)).length;
+      const created = items.filter(i => !localByExternalId.has(i.produto_id)).length;
       return { created, updated: items.length - created };
     },
     onSuccess: ({ created, updated }) => {
