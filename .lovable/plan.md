@@ -1,6 +1,11 @@
-# Marina: identificar a oportunidade sozinha e incluir o item
+# Marina com paridade de ações do usuário
 
-## O problema
+## Princípio
+
+Marina deve poder fazer tudo que o usuário logado pode fazer nas telas, com as mesmas permissões (RLS/perfil) e sempre com confirmação antes de gravar. Hoje ela é majoritariamente de leitura: há escrita para apenas 14 entidades (OS, clientes, embarcações, oportunidades, tarefas CRM, compradores, produtos CRM, requisições de compra, NCR, auditorias, documentos da qualidade, solicitações corporativas, contas a pagar e a receber). O resto — itens de oportunidade, itens de venda, materiais de OS, medições, férias, exames, documentos e ausências de RH — ela só lê.
+
+## O problema imediato
+
 
 Você disse "oportunidade da Camorim solicitada pelo Cahuã" — informação suficiente. A Marina pediu o ID porque:
 
