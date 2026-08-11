@@ -18,28 +18,15 @@ export interface OpportunityProduct {
   product_code?: string | null;
 }
 
-/**
- * Recalcula o valor estimado da oportunidade a partir dos itens gravados.
- * Sem itens, o valor volta a zero (mesma regra usada pela assistente).
- */
-const syncOpportunityValue = async (opportunityId: string) => {
-  const { data, error } = await supabase
-    .from("crm_opportunity_products")
-    .select("total_value")
-    .eq("opportunity_id", opportunityId);
-  if (error) return;
-  const total = (data ?? []).reduce((acc: number, r: any) => acc + (Number(r.total_value) || 0), 0);
-  await supabase.from("crm_opportunities").update({ estimated_value: total }).eq("id", opportunityId);
-};
-
 export const useOpportunityProducts = (opportunityId: string | null) => {
   const qc = useQueryClient();
 
   const afterChange = async () => {
-    if (opportunityId) await syncOpportunityValue(opportunityId);
-    qc.invalidateQueries({ queryKey: ["crm-opportunity-products", opportunityId] });
-    qc.invalidateQueries({ queryKey: ["crm-opportunities"] });
-    qc.invalidateQueries({ queryKey: ["commercial-stats"] });
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ["crm-opportunity-products", opportunityId] }),
+      qc.invalidateQueries({ queryKey: ["crm-opportunities"] }),
+      qc.invalidateQueries({ queryKey: ["commercial-stats"] }),
+    ]);
   };
 
 
@@ -100,7 +87,9 @@ export const useOpportunityProducts = (opportunityId: string | null) => {
       const { error } = await supabase.from("crm_opportunity_products").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => afterChange(),
+    onSuccess: async () => {
+      await afterChange();
+    },
     onError: (e: any) => toast.error(e.message),
   });
 

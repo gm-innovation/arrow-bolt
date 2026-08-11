@@ -138,6 +138,9 @@ const CommercialOpportunities = () => {
     ? Math.round(openOpps.reduce((s, o) => s + Math.floor((Date.now() - new Date(o.created_at || Date.now()).getTime()) / 86400000), 0) / openOpps.length)
     : 0;
   const activeStages = new Set(openOpps.map(o => o.stage)).size;
+  const currentEditSheetOpp = editSheetOpp
+    ? opportunities.find((opportunity) => opportunity.id === editSheetOpp.id) ?? editSheetOpp
+    : null;
 
   return (
     <div className="space-y-4">
@@ -275,7 +278,7 @@ const CommercialOpportunities = () => {
       <EditOpportunitySheet
         open={editSheetOpen}
         onOpenChange={setEditSheetOpen}
-        opportunity={editSheetOpp}
+        opportunity={currentEditSheetOpp}
         clients={clients}
         buyers={buyers.map(b => ({ id: b.id, name: b.name, client_id: b.client_id }))}
         onSave={(data) => {
