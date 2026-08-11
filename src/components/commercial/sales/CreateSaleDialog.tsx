@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useStockProducts, StockProduct } from "@/hooks/useStockProducts";
+import { useMemo, useState } from "react";
+import { useEvaCatalog, EvaProduct } from "@/hooks/useEvaCatalog";
 import { useCrmSales } from "@/hooks/useCrmSales";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Search, ShoppingCart } from "lucide-react";
+import { Plus, Trash2, Search, ShoppingCart, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 interface SaleItem {
+  external_product_id: number;
   stock_product_id: string;
   name: string;
   quantity: number;
@@ -34,29 +36,41 @@ const CreateSaleDialog = ({
   clientId,
   opportunityTitle,
 }: CreateSaleDialogProps) => {
-  const { products } = useStockProducts();
+  const { search, isLoading: catalogLoading, error: catalogError, ensureLocalProduct } = useEvaCatalog({
+    onlySellable: true,
+    enabled: open,
+  });
   const { createSale } = useCrmSales();
   const [items, setItems] = useState<SaleItem[]>([]);
   const [notes, setNotes] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [adding, setAdding] = useState<number | null>(null);
 
-  const activeProducts = products.filter(p => p.is_active && p.current_quantity > 0);
-  const filteredProducts = activeProducts.filter(p =>
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.external_product_code?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredProducts = useMemo(
+    () => search(searchTerm, 8).filter(p => p.quantidade_atual > 0),
+    [search, searchTerm]
   );
 
-  const addItem = (product: StockProduct) => {
-    if (items.find(i => i.stock_product_id === product.id)) return;
-    setItems(prev => [...prev, {
-      stock_product_id: product.id,
-      name: product.name,
-      quantity: 1,
-      unit_value: product.sell_price > 0 ? product.sell_price : product.unit_cost,
-      markup_percentage: 0,
-      available: Number(product.current_quantity),
-    }]);
-    setSearchTerm("");
+  const addItem = async (product: EvaProduct) => {
+    if (items.find(i => i.external_product_id === product.produto_id)) return;
+    setAdding(product.produto_id);
+    try {
+      const stockProductId = await ensureLocalProduct(product);
+      setItems(prev => [...prev, {
+        external_product_id: product.produto_id,
+        stock_product_id: stockProductId,
+        name: product.nome,
+        quantity: 1,
+        unit_value: product.preco_venda > 0 ? product.preco_venda : product.custo_unitario_atual,
+        markup_percentage: 0,
+        available: Number(product.quantidade_atual),
+      }]);
+      setSearchTerm("");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Falha ao vincular o produto do EVA");
+    } finally {
+      setAdding(null);
+    }
   };
 
   const removeItem = (productId: string) => {
@@ -82,7 +96,7 @@ const CreateSaleDialog = ({
       opportunity_id: opportunityId,
       client_id: clientId,
       notes,
-      items: items.map(({ available, ...rest }) => rest),
+      items: items.map(({ available, external_product_id, ...rest }) => rest),
     }, {
       onSuccess: () => {
         setItems([]);
@@ -91,6 +105,7 @@ const CreateSaleDialog = ({
       }
     });
   };
+
 
   const formatCurrency = (v: number) =>
     `R$ ${v.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
@@ -117,27 +132,42 @@ const CreateSaleDialog = ({
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar produto no estoque..."
+                placeholder="Buscar produto no estoque EVA..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="pl-9"
               />
             </div>
+            {catalogLoading && (
+              <p className="text-xs text-muted-foreground flex items-center gap-2">
+                <Loader2 className="h-3 w-3 animate-spin" /> Consultando o estoque EVA...
+              </p>
+            )}
+            {catalogError && <p className="text-xs text-destructive">{catalogError.message}</p>}
+            {searchTerm && !catalogLoading && filteredProducts.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nenhum produto disponível no EVA para esta busca.</p>
+            )}
             {searchTerm && filteredProducts.length > 0 && (
               <div className="border rounded-md max-h-40 overflow-y-auto">
-                {filteredProducts.slice(0, 8).map(p => (
+                {filteredProducts.map(p => (
                   <button
-                    key={p.id}
+                    key={p.produto_id}
                     onClick={() => addItem(p)}
-                    disabled={!!items.find(i => i.stock_product_id === p.id)}
+                    disabled={
+                      adding === p.produto_id ||
+                      !!items.find(i => i.external_product_id === p.produto_id)
+                    }
                     className="w-full text-left px-3 py-2 hover:bg-muted flex justify-between items-center text-sm disabled:opacity-50"
                   >
-                    <span>{p.name} <span className="text-muted-foreground">({p.external_product_code})</span></span>
-                    <span className="text-muted-foreground">{Number(p.current_quantity)} {p.unit} | {formatCurrency(p.sell_price > 0 ? p.sell_price : p.unit_cost)}</span>
+                    <span>{p.nome} <span className="text-muted-foreground">({p.codigo ?? "sem código"})</span></span>
+                    <span className="text-muted-foreground">
+                      {adding === p.produto_id ? "vinculando..." : `${p.quantidade_atual} | ${formatCurrency(p.preco_venda > 0 ? p.preco_venda : p.custo_unitario_atual)}`}
+                    </span>
                   </button>
                 ))}
               </div>
             )}
+
           </div>
 
           {/* Items table */}

@@ -151,6 +151,6 @@ verify_jwt = true
 verify_jwt = false
 
 
-# Consulta de produtos do estoque LOGVI (comercial) — valida a sessão em código.
-[functions.logvi-products]
+# Consulta de produtos do estoque EVA (comercial) — valida a sessão em código.
+[functions.eva-products]
 verify_jwt = true

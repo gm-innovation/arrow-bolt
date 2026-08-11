@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { EvaProduct } from "@/hooks/useEvaStockProducts";
 
 export interface OpportunityProduct {
   id: string;
@@ -100,70 +101,58 @@ export const useOpportunityProducts = (opportunityId: string | null) => {
 };
 
 /**
- * Matches free-text lead items against the EVA stock catalog and creates the
+ * Matches free-text lead items against the live EVA catalog and creates the
  * opportunity items. Unmatched entries are stored as free items for the sales rep.
  */
 export const linkLeadItemsToOpportunity = async (
   opportunityId: string,
-  companyId: string,
-  leadItems: Array<{ name: string; qty?: number; notes?: string }>
+  leadItems: Array<{ name: string; qty?: number; notes?: string }>,
+  catalog: {
+    findBest: (term: string) => EvaProduct | null;
+    ensureLocalProduct: (product: EvaProduct) => Promise<string>;
+  }
 ): Promise<{ linked: number; pending: number }> => {
   const entries = (leadItems || []).filter((i) => i?.name?.trim());
   if (entries.length === 0) return { linked: 0, pending: 0 };
 
-  const { data: stock } = await supabase
-    .from("stock_products")
-    .select("id, name, external_product_code, sell_price")
-    .eq("company_id", companyId)
-    .eq("is_active", true);
-
-  const norm = (s: string) =>
-    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
-
-  const byCode = new Map<string, any>();
-  const byName = new Map<string, any>();
-  for (const p of stock || []) {
-    if (p.external_product_code) byCode.set(norm(p.external_product_code), p);
-    byName.set(norm(p.name), p);
-  }
-
   let linked = 0;
   let pending = 0;
-  const rows = entries.map((entry) => {
-    const key = norm(entry.name);
-    const match =
-      byCode.get(key) ||
-      byName.get(key) ||
-      (stock || []).find((p) => norm(p.name).includes(key) || key.includes(norm(p.name)));
+  const rows: any[] = [];
+
+  for (const entry of entries) {
     const quantity = Number(entry.qty) > 0 ? Math.round(Number(entry.qty)) : 1;
+    const match = catalog.findBest(entry.name);
     if (match) {
+      const stockProductId = await catalog.ensureLocalProduct(match);
+      const unit = Number(match.preco_venda) || null;
       linked += 1;
-      const unit = Number(match.sell_price) || null;
-      return {
+      rows.push({
         opportunity_id: opportunityId,
-        stock_product_id: match.id,
-        item_name: match.name,
-        item_code: match.external_product_code,
+        stock_product_id: stockProductId,
+        item_name: match.nome,
+        item_code: match.codigo,
         list_unit_value: unit,
         quantity,
         unit_value: unit,
         total_value: unit != null ? unit * quantity : null,
-      };
+      });
+    } else {
+      pending += 1;
+      rows.push({
+        opportunity_id: opportunityId,
+        stock_product_id: null,
+        item_name: entry.name.trim(),
+        item_code: null,
+        list_unit_value: null,
+        quantity,
+        unit_value: null,
+        total_value: null,
+      });
     }
-    pending += 1;
-    return {
-      opportunity_id: opportunityId,
-      stock_product_id: null,
-      item_name: entry.name.trim(),
-      item_code: null,
-      list_unit_value: null,
-      quantity,
-      unit_value: null,
-      total_value: null,
-    };
-  });
+  }
 
   const { error } = await supabase.from("crm_opportunity_products").insert(rows as any);
   if (error) throw error;
   return { linked, pending };
 };
+

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { linkLeadItemsToOpportunity } from "@/hooks/useOpportunityProducts";
+import { useEvaCatalog } from "@/hooks/useEvaCatalog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -92,6 +93,7 @@ export function ConvertLeadDialog({
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const [stage, setStage] = useState<string>("qualified");
+  const { findBest, ensureLocalProduct } = useEvaCatalog({ enabled: open });
 
   useEffect(() => {
     if (!open) return;
@@ -248,7 +250,10 @@ export function ConvertLeadDialog({
     let linkSummary = "";
     if (lead.items?.length) {
       try {
-        const { linked, pending } = await linkLeadItemsToOpportunity(opp.id, companyId, lead.items);
+        const { linked, pending } = await linkLeadItemsToOpportunity(opp.id, lead.items, {
+          findBest,
+          ensureLocalProduct,
+        });
         linkSummary =
           pending > 0
             ? ` ${linked} item(ns) vinculado(s) ao estoque EVA e ${pending} pendente(s) de vínculo.`
