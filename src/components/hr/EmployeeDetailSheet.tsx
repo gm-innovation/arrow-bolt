@@ -33,7 +33,13 @@ type EmployeeDocumentRow = {
 };
 
 import { Switch } from "@/components/ui/switch";
-import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3 } from "lucide-react";
+import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3, Briefcase, Phone, MapPin, Users, IdCard, ShieldCheck } from "lucide-react";
+import { ProfessionalTab } from "@/components/hr/employee/ProfessionalTab";
+import { ContactsTab } from "@/components/hr/employee/ContactsTab";
+import { AddressTab } from "@/components/hr/employee/AddressTab";
+import { DependentsTab } from "@/components/hr/employee/DependentsTab";
+import { IdentityDocumentsTab } from "@/components/hr/employee/IdentityDocumentsTab";
+import { AssignmentHistoryTab, SensitiveAuditTab } from "@/components/hr/employee/HistoryTabs";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -177,10 +183,17 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
         </SheetHeader>
 
         <Tabs defaultValue="personal" storageKey={`employee-detail:${employee.id}`} className="mt-2">
-          <TabsList className={`w-full grid`} style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
-            <TabsTrigger value="personal"><User className="h-4 w-4 mr-1 hidden sm:inline" />Dados</TabsTrigger>
+          <TabsList className="w-full flex flex-wrap h-auto justify-start gap-1">
+            <TabsTrigger value="personal"><User className="h-4 w-4 mr-1 hidden sm:inline" />Pessoal</TabsTrigger>
+            <TabsTrigger value="professional"><Briefcase className="h-4 w-4 mr-1 hidden sm:inline" />Profissional</TabsTrigger>
+            <TabsTrigger value="contacts"><Phone className="h-4 w-4 mr-1 hidden sm:inline" />Contatos</TabsTrigger>
+            <TabsTrigger value="address"><MapPin className="h-4 w-4 mr-1 hidden sm:inline" />Endereço</TabsTrigger>
+            <TabsTrigger value="dependents"><Users className="h-4 w-4 mr-1 hidden sm:inline" />Dependentes</TabsTrigger>
+            <TabsTrigger value="identity"><IdCard className="h-4 w-4 mr-1 hidden sm:inline" />Identificação</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-4 w-4 mr-1 hidden sm:inline" />Docs</TabsTrigger>
-            <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Histórico</TabsTrigger>
+            <TabsTrigger value="assignments"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Histórico</TabsTrigger>
+            <TabsTrigger value="audit"><ShieldCheck className="h-4 w-4 mr-1 hidden sm:inline" />Auditoria</TabsTrigger>
+            <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Atividade</TabsTrigger>
             <TabsTrigger value="notes"><MessageSquare className="h-4 w-4 mr-1 hidden sm:inline" />Anotações</TabsTrigger>
             {isTechnician && (
               <TabsTrigger value="technician"><Wrench className="h-4 w-4 mr-1 hidden sm:inline" />Técnico</TabsTrigger>
@@ -190,8 +203,29 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
           <TabsContent value="personal">
             <PersonalTab employee={employee} />
           </TabsContent>
+          <TabsContent value="professional">
+            <ProfessionalTab employeeId={employee.id} />
+          </TabsContent>
+          <TabsContent value="contacts">
+            <ContactsTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
+          <TabsContent value="address">
+            <AddressTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
+          <TabsContent value="dependents">
+            <DependentsTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
+          <TabsContent value="identity">
+            <IdentityDocumentsTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
           <TabsContent value="documents">
             <DocumentsTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
+          <TabsContent value="assignments">
+            <AssignmentHistoryTab employeeId={employee.id} />
+          </TabsContent>
+          <TabsContent value="audit">
+            <SensitiveAuditTab employeeId={employee.id} />
           </TabsContent>
           <TabsContent value="history">
             <HistoryTab employeeId={employee.id} />
@@ -205,6 +239,7 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
             </TabsContent>
           )}
         </Tabs>
+
 
         {/* Archive Confirmation */}
         <AlertDialog open={archiveConfirmOpen} onOpenChange={setArchiveConfirmOpen}>
