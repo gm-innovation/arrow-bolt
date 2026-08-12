@@ -33,7 +33,14 @@ type EmployeeDocumentRow = {
 };
 
 import { Switch } from "@/components/ui/switch";
-import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3 } from "lucide-react";
+import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3, Briefcase, Phone, MapPin, Users, IdCard, ShieldCheck } from "lucide-react";
+import { ProfessionalTab } from "@/components/hr/employee/ProfessionalTab";
+import { ContactsTab } from "@/components/hr/employee/ContactsTab";
+import { AddressTab } from "@/components/hr/employee/AddressTab";
+import { DependentsTab } from "@/components/hr/employee/DependentsTab";
+import { IdentityDocumentsTab } from "@/components/hr/employee/IdentityDocumentsTab";
+import { AssignmentHistoryTab, SensitiveAuditTab } from "@/components/hr/employee/HistoryTabs";
+import { MARITAL_STATUS_OPTIONS, EDUCATION_OPTIONS } from "@/lib/hr/employeeRegistry";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
@@ -89,7 +96,7 @@ const normalizeStoragePath = (fileUrl: string) => {
 
 export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailSheetProps) {
   const isTechnician = !!employee.technician;
-  const tabCount = isTechnician ? 5 : 4;
+  
   const queryClient = useQueryClient();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
@@ -177,10 +184,17 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
         </SheetHeader>
 
         <Tabs defaultValue="personal" storageKey={`employee-detail:${employee.id}`} className="mt-2">
-          <TabsList className={`w-full grid`} style={{ gridTemplateColumns: `repeat(${tabCount}, minmax(0, 1fr))` }}>
-            <TabsTrigger value="personal"><User className="h-4 w-4 mr-1 hidden sm:inline" />Dados</TabsTrigger>
+          <TabsList className="w-full flex flex-wrap h-auto justify-start gap-1">
+            <TabsTrigger value="personal"><User className="h-4 w-4 mr-1 hidden sm:inline" />Pessoal</TabsTrigger>
+            <TabsTrigger value="professional"><Briefcase className="h-4 w-4 mr-1 hidden sm:inline" />Profissional</TabsTrigger>
+            <TabsTrigger value="contacts"><Phone className="h-4 w-4 mr-1 hidden sm:inline" />Contatos</TabsTrigger>
+            <TabsTrigger value="address"><MapPin className="h-4 w-4 mr-1 hidden sm:inline" />Endereço</TabsTrigger>
+            <TabsTrigger value="dependents"><Users className="h-4 w-4 mr-1 hidden sm:inline" />Dependentes</TabsTrigger>
+            <TabsTrigger value="identity"><IdCard className="h-4 w-4 mr-1 hidden sm:inline" />Identificação</TabsTrigger>
             <TabsTrigger value="documents"><FileText className="h-4 w-4 mr-1 hidden sm:inline" />Docs</TabsTrigger>
-            <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Histórico</TabsTrigger>
+            <TabsTrigger value="assignments"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Histórico</TabsTrigger>
+            <TabsTrigger value="audit"><ShieldCheck className="h-4 w-4 mr-1 hidden sm:inline" />Auditoria</TabsTrigger>
+            <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Atividade</TabsTrigger>
             <TabsTrigger value="notes"><MessageSquare className="h-4 w-4 mr-1 hidden sm:inline" />Anotações</TabsTrigger>
             {isTechnician && (
               <TabsTrigger value="technician"><Wrench className="h-4 w-4 mr-1 hidden sm:inline" />Técnico</TabsTrigger>
@@ -190,8 +204,29 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
           <TabsContent value="personal">
             <PersonalTab employee={employee} />
           </TabsContent>
+          <TabsContent value="professional">
+            <ProfessionalTab employeeId={employee.id} />
+          </TabsContent>
+          <TabsContent value="contacts">
+            <ContactsTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
+          <TabsContent value="address">
+            <AddressTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
+          <TabsContent value="dependents">
+            <DependentsTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
+          <TabsContent value="identity">
+            <IdentityDocumentsTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
           <TabsContent value="documents">
             <DocumentsTab employeeId={employee.id} companyId={employee.company_id} />
+          </TabsContent>
+          <TabsContent value="assignments">
+            <AssignmentHistoryTab employeeId={employee.id} />
+          </TabsContent>
+          <TabsContent value="audit">
+            <SensitiveAuditTab employeeId={employee.id} />
           </TabsContent>
           <TabsContent value="history">
             <HistoryTab employeeId={employee.id} />
@@ -205,6 +240,7 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
             </TabsContent>
           )}
         </Tabs>
+
 
         {/* Archive Confirmation */}
         <AlertDialog open={archiveConfirmOpen} onOpenChange={setArchiveConfirmOpen}>
@@ -252,6 +288,12 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
   const [gender, setGender] = useState(employee.gender || employee.technician?.gender || "");
   const [nationality, setNationality] = useState(employee.nationality || employee.technician?.nationality || "");
   const [height, setHeight] = useState(employee.height ? String(employee.height) : employee.technician?.height ? String(employee.technician.height) : "");
+  const [socialName, setSocialName] = useState((employee as any).social_name || "");
+  const [rgIssuer, setRgIssuer] = useState((employee as any).rg_issuer || "");
+  const [rgIssuerState, setRgIssuerState] = useState((employee as any).rg_issuer_state || "");
+  const [maritalStatus, setMaritalStatus] = useState((employee as any).marital_status || "");
+  const [educationLevel, setEducationLevel] = useState((employee as any).education_level || "");
+  const [birthPlace, setBirthPlace] = useState((employee as any).birth_place || "");
   const [emergencyName, setEmergencyName] = useState((employee as any).emergency_contact_name || "");
   const [emergencyPhone, setEmergencyPhone] = useState((employee as any).emergency_contact_phone || "");
   const [hireDate, setHireDate] = useState((employee as any).hire_date || "");
@@ -270,6 +312,12 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
         gender: gender || null,
         nationality: nationality.trim() || null,
         height: height ? parseInt(height) : null,
+        social_name: socialName.trim() || null,
+        rg_issuer: rgIssuer.trim() || null,
+        rg_issuer_state: rgIssuerState.trim().toUpperCase() || null,
+        marital_status: maritalStatus || null,
+        education_level: educationLevel || null,
+        birth_place: birthPlace.trim() || null,
         emergency_contact_name: emergencyName.trim() || null,
         emergency_contact_phone: emergencyPhone.trim() || null,
         hire_date: hireDate || null,
@@ -377,6 +425,43 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
 
       {editableField("Nacionalidade", nationality, setNationality)}
       {editableField("Altura (cm)", height, setHeight, height ? `${height} cm` : "—")}
+      {editableField("Nome social", socialName, setSocialName)}
+      {editableField("Órgão emissor do RG", rgIssuer, setRgIssuer)}
+      {editableField("UF do RG", rgIssuerState, setRgIssuerState)}
+      {editableField("Naturalidade", birthPlace, setBirthPlace)}
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Estado civil</span>
+        {isEditing ? (
+          <Select value={maritalStatus} onValueChange={setMaritalStatus}>
+            <SelectTrigger className="h-8"><SelectValue placeholder="Selecionar" /></SelectTrigger>
+            <SelectContent>
+              {MARITAL_STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        ) : (
+          <span className="text-sm text-foreground">
+            {MARITAL_STATUS_OPTIONS.find((o) => o.value === maritalStatus)?.label || "—"}
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Escolaridade</span>
+        {isEditing ? (
+          <Select value={educationLevel} onValueChange={setEducationLevel}>
+            <SelectTrigger className="h-8"><SelectValue placeholder="Selecionar" /></SelectTrigger>
+            <SelectContent>
+              {EDUCATION_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        ) : (
+          <span className="text-sm text-foreground">
+            {EDUCATION_OPTIONS.find((o) => o.value === educationLevel)?.label || "—"}
+          </span>
+        )}
+      </div>
+
 
       {/* Emergency Contact */}
       <div className="pt-2">

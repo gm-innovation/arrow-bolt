@@ -5,10 +5,11 @@ import { Separator } from "@/components/ui/separator";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, FileText, Palette, Network, BookCheck } from "lucide-react";
+import { Bell, FileText, Palette, Network, BookCheck, Briefcase } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HierarchySettings } from "@/components/hr/HierarchySettings";
 import { DocumentCatalog } from "@/components/hr/DocumentCatalog";
+import { HRCatalogSettings } from "@/components/hr/HRCatalogSettings";
 
 const HRSettings = () => {
   const { toast } = useToast();
@@ -45,7 +46,7 @@ const HRSettings = () => {
       </div>
 
       <Tabs defaultValue="notifications" storageKey="hr-settings" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="notifications" className="flex items-center gap-2">
             <Bell className="h-4 w-4" />
             Notificações
@@ -53,6 +54,10 @@ const HRSettings = () => {
           <TabsTrigger value="hierarchy" className="flex items-center gap-2">
             <Network className="h-4 w-4" />
             Hierarquia
+          </TabsTrigger>
+          <TabsTrigger value="structure" className="flex items-center gap-2">
+            <Briefcase className="h-4 w-4" />
+            Setores e Funções
           </TabsTrigger>
           <TabsTrigger value="catalog" className="flex items-center gap-2">
             <BookCheck className="h-4 w-4" />
@@ -72,9 +77,14 @@ const HRSettings = () => {
           <HierarchySettings />
         </TabsContent>
 
+        <TabsContent value="structure" className="space-y-6">
+          <HRCatalogSettings />
+        </TabsContent>
+
         <TabsContent value="catalog" className="space-y-6">
           <DocumentCatalog />
         </TabsContent>
+
 
         <TabsContent value="notifications" className="space-y-6">
           <Card>
