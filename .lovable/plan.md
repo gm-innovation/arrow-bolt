@@ -32,9 +32,9 @@ Cada bloqueio pode ser liberado como exceção por diretoria/RH, com motivo obri
 ### Períodos aquisitivo e concessivo (CLT)
 
 - **Período aquisitivo:** 12 meses a partir da admissão (ou do aniversário do período anterior) — ex.: admissão 16/05/2023 → aquisitivo 16/05/2025 a 15/05/2026.
-- **Período concessivo:** os 12 meses seguintes ao fim do aquisitivo. Ou seja, as férias precisam ser gozadas até o mês 23/24 contado do início do aquisitivo — no exemplo, até 15/05/2027.
-- **Limite p/ gozo** (coluna da planilha): último dia em que as férias podem **começar**, isto é, fim do concessivo menos 30 dias — no exemplo, 16/04/2027, exatamente o valor da planilha. O sistema calculará os dois: `fim_concessivo` e `limite_inicio_gozo`.
-- **Férias vencidas:** passou do fim do concessivo com saldo em aberto (gera pagamento em dobro).
+- **Período concessivo:** a partir do fim do aquisitivo, mas limitado a **23 meses contados do início do aquisitivo** (nunca 24). As férias precisam terminar até esse limite — ex.: início aquisitivo 16/05/2025 → último dia para terminar as férias = **15/04/2027** (completaria 24 meses em 16/05/2027, então o limite é um dia antes, 15/04/2027).
+- **Limite p/ gozo** (coluna da planilha): último dia em que as férias podem **começar**, isto é, o limite de 23 meses menos a quantidade de dias da própria gozação. Para gozo de 30 dias a partir de 17/03/2027, o limite de início cai em 16/04/2027 — exatamente o valor da planilha para o Adriano. O sistema calculará os dois: `limite_concessivo` (23 meses do início aquisitivo) e `limite_inicio_gozo`.
+- **Férias vencidas:** passou do limite concessivo (23 meses) com saldo em aberto (gera pagamento em dobro).
 
 Campos calculados pelo sistema (nunca digitados): fim do período concessivo, limite de início de gozo, quantidade de dias, saldo, meses proporcionais, férias vencidas e status do período.
 
