@@ -29,7 +29,15 @@ Ao criar ou aprovar uma programação, o sistema avalia e registra:
 
 Cada bloqueio pode ser liberado como exceção por diretoria/RH, com motivo obrigatório e registro no log.
 
-Campos calculados pelo sistema (nunca digitados): limite de gozo (fim do aquisitivo + 12 meses), quantidade de dias, saldo, meses proporcionais, férias vencidas e status do período.
+### Períodos aquisitivo e concessivo (CLT)
+
+- **Período aquisitivo:** 12 meses a partir da admissão (ou do aniversário do período anterior) — ex.: admissão 16/05/2023 → aquisitivo 16/05/2025 a 15/05/2026.
+- **Período concessivo:** os 12 meses seguintes ao fim do aquisitivo. Ou seja, as férias precisam ser gozadas até o mês 23/24 contado do início do aquisitivo — no exemplo, até 15/05/2027.
+- **Limite p/ gozo** (coluna da planilha): último dia em que as férias podem **começar**, isto é, fim do concessivo menos 30 dias — no exemplo, 16/04/2027, exatamente o valor da planilha. O sistema calculará os dois: `fim_concessivo` e `limite_inicio_gozo`.
+- **Férias vencidas:** passou do fim do concessivo com saldo em aberto (gera pagamento em dobro).
+
+Campos calculados pelo sistema (nunca digitados): fim do período concessivo, limite de início de gozo, quantidade de dias, saldo, meses proporcionais, férias vencidas e status do período.
+
 
 ## Importação da planilha
 
