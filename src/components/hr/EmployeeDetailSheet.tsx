@@ -383,6 +383,10 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
           .eq("employee_id", employee.id),
       ]);
       const list: string[] = [];
+      if (!(employee as any).hire_date) list.push("Data de admissão não informada");
+      if (!(employee as any).emergency_contact_name && (employee as any).emergency_contact_phone) {
+        list.push("Nome do contato de emergência não informado");
+      }
       const rg = (idDocs.data || []).find((d: any) => d.doc_type === "rg");
       const cnh = (idDocs.data || []).find((d: any) => d.doc_type === "cnh");
       if (rg && !rg.issuer) list.push("Órgão emissor do RG não informado");
