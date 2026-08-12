@@ -493,7 +493,12 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
       </div>
 
       {editableField("Nome completo", fullName, setFullName)}
-      {editableField("Telefone", phone, setPhone)}
+      {editableField(
+        "Telefone",
+        phone,
+        setPhone,
+        phone || (personalPhone ? `${personalPhone} (pessoal)` : "—")
+      )}
       {editableField("CPF", cpf, setCpf)}
       {editableField("RG", rg, setRg)}
       
