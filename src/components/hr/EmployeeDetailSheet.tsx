@@ -40,6 +40,7 @@ import { AddressTab } from "@/components/hr/employee/AddressTab";
 import { DependentsTab } from "@/components/hr/employee/DependentsTab";
 import { IdentityDocumentsTab } from "@/components/hr/employee/IdentityDocumentsTab";
 import { AssignmentHistoryTab, SensitiveAuditTab } from "@/components/hr/employee/HistoryTabs";
+import { MARITAL_STATUS_OPTIONS, EDUCATION_OPTIONS } from "@/lib/hr/employeeRegistry";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
