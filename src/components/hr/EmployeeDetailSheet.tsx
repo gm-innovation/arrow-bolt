@@ -287,6 +287,12 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
   const [gender, setGender] = useState(employee.gender || employee.technician?.gender || "");
   const [nationality, setNationality] = useState(employee.nationality || employee.technician?.nationality || "");
   const [height, setHeight] = useState(employee.height ? String(employee.height) : employee.technician?.height ? String(employee.technician.height) : "");
+  const [socialName, setSocialName] = useState((employee as any).social_name || "");
+  const [rgIssuer, setRgIssuer] = useState((employee as any).rg_issuer || "");
+  const [rgIssuerState, setRgIssuerState] = useState((employee as any).rg_issuer_state || "");
+  const [maritalStatus, setMaritalStatus] = useState((employee as any).marital_status || "");
+  const [educationLevel, setEducationLevel] = useState((employee as any).education_level || "");
+  const [birthPlace, setBirthPlace] = useState((employee as any).birth_place || "");
   const [emergencyName, setEmergencyName] = useState((employee as any).emergency_contact_name || "");
   const [emergencyPhone, setEmergencyPhone] = useState((employee as any).emergency_contact_phone || "");
   const [hireDate, setHireDate] = useState((employee as any).hire_date || "");
