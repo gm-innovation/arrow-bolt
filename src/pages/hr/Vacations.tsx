@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,14 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   Dialog,
   DialogContent,
   DialogFooter,
@@ -29,25 +20,37 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Palmtree, Plus, Check, X, CalendarClock, Wallet, AlertTriangle } from "lucide-react";
+import {
+  Palmtree,
+  Plus,
+  Check,
+  X,
+  CalendarClock,
+  Wallet,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
-import { ptBR } from "date-fns/locale";
 import {
   daysBetween,
-  requestStatusLabel,
   requestTypeLabel,
   useCancelVacationRequest,
   useCreateVacationRequest,
   useDecideVacationRequest,
-  useVacationBalance,
+  useVacationConflicts,
   useVacationPeriods,
   useVacationRequests,
-  VacationRequestStatus,
+  useVacationRules,
   VacationRequestType,
 } from "@/hooks/useVacations";
 import { useAuth } from "@/contexts/AuthContext";
+import { VacationYearGrid } from "@/components/hr/vacations/VacationYearGrid";
+import { PeriodsTable } from "@/components/hr/vacations/PeriodsTable";
+import { RequestsTable } from "@/components/hr/vacations/RequestsTable";
+import { VacationRulesForm } from "@/components/hr/vacations/VacationRulesForm";
 
 function useEmployeeOptions() {
   return useQuery({
@@ -67,12 +70,6 @@ function useEmployeeOptions() {
       }[];
     },
   });
-}
-
-function statusVariant(s: VacationRequestStatus) {
-  if (s === "approved") return "default" as const;
-  if (s === "rejected" || s === "cancelled") return "destructive" as const;
-  return "secondary" as const;
 }
 
 function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
@@ -262,20 +259,31 @@ function DecisionDialog({
 
 export default function Vacations() {
   const { profile, userRole } = useAuth();
-  const [tab, setTab] = useState("all");
+  const [mainTab, setMainTab] = useState("schedule");
+  const [listFilter, setListFilter] = useState("all");
+  const [year, setYear] = useState(new Date().getFullYear());
   const requests = useVacationRequests();
   const periods = useVacationPeriods();
+  const conflicts = useVacationConflicts();
+  const rules = useVacationRules(profile?.company_id);
   const cancel = useCancelVacationRequest();
   const isHR = ["hr", "director", "admin", "super_admin"].includes(userRole ?? "");
 
   const filteredRequests = useMemo(() => {
     const list = requests.data ?? [];
-    if (tab === "pending") return list.filter((r) => r.status === "pending_manager" || r.status === "pending_hr");
-    if (tab === "approved") return list.filter((r) => r.status === "approved");
-    if (tab === "mine") return list.filter((r) => r.employee_id === profile?.id);
-    if (tab === "team") return list.filter((r) => r.manager_id === profile?.id);
+    if (listFilter === "pending")
+      return list.filter((r) => r.status === "pending_manager" || r.status === "pending_hr");
+    if (listFilter === "approved") return list.filter((r) => r.status === "approved");
+    if (listFilter === "conflicts") {
+      const ids = new Set(
+        (conflicts.data ?? []).filter((c) => !c.resolvido).map((c) => c.programacao_id)
+      );
+      return list.filter((r) => ids.has(r.id));
+    }
+    if (listFilter === "mine") return list.filter((r) => r.employee_id === profile?.id);
+    if (listFilter === "team") return list.filter((r) => r.manager_id === profile?.id);
     return list;
-  }, [requests.data, tab, profile?.id]);
+  }, [requests.data, listFilter, profile?.id, conflicts.data]);
 
   const counters = useMemo(() => {
     const list = requests.data ?? [];
@@ -283,8 +291,15 @@ export default function Vacations() {
       pending: list.filter((r) => r.status === "pending_manager" || r.status === "pending_hr").length,
       approved: list.filter((r) => r.status === "approved").length,
       total: list.length,
+      conflicts: (conflicts.data ?? []).filter((c) => !c.resolvido).length,
     };
-  }, [requests.data]);
+  }, [requests.data, conflicts.data]);
+
+  const expiringPeriods = useMemo(
+    () =>
+      (periods.data ?? []).filter((p) => p.status === "open" || p.status === "partially_used").length,
+    [periods.data]
+  );
 
   return (
     <div className="space-y-6">
@@ -295,7 +310,8 @@ export default function Vacations() {
             Gestão de Férias
           </h1>
           <p className="text-sm text-muted-foreground">
-            Períodos aquisitivos, saldo de dias e fluxo de aprovação em duas etapas (Gestor → RH).
+            Programação anual, períodos aquisitivos (limite de gozo em 23 meses) e aprovação em duas
+            etapas (Gestor → RH).
           </p>
         </div>
         <NewRequestDialog
@@ -309,146 +325,146 @@ export default function Vacations() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">{counters.total}</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><CalendarClock className="h-4 w-4 text-amber-600" />Pendentes</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
+              <CalendarClock className="h-4 w-4 text-amber-600" />Pendentes
+            </CardTitle>
+          </CardHeader>
           <CardContent className="text-2xl font-semibold text-amber-600">{counters.pending}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Check className="h-4 w-4 text-emerald-600" />Aprovadas</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
+              <Check className="h-4 w-4 text-emerald-600" />Aprovadas
+            </CardTitle>
+          </CardHeader>
           <CardContent className="text-2xl font-semibold text-emerald-600">{counters.approved}</CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground flex items-center gap-1"><Wallet className="h-4 w-4" />Períodos Ativos</CardTitle></CardHeader>
-          <CardContent className="text-2xl font-semibold">
-            {(periods.data ?? []).filter((p) => p.status === "open" || p.status === "partially_used").length}
-          </CardContent>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
+              <AlertTriangle className="h-4 w-4 text-destructive" />Conflitos abertos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-semibold text-destructive">{counters.conflicts}</CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground flex items-center gap-1">
+              <Wallet className="h-4 w-4" />Períodos Ativos
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-2xl font-semibold">{expiringPeriods}</CardContent>
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList>
-              <TabsTrigger value="all">Todas</TabsTrigger>
-              <TabsTrigger value="pending">Pendentes</TabsTrigger>
-              <TabsTrigger value="approved">Aprovadas</TabsTrigger>
-              <TabsTrigger value="mine">Minhas</TabsTrigger>
-              <TabsTrigger value="team">Minha Equipe</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </CardHeader>
-        <CardContent>
-          <div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Colaborador</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Período</TableHead>
-                  <TableHead>Dias</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.isLoading && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Carregando...</TableCell></TableRow>
-                )}
-                {!requests.isLoading && filteredRequests.length === 0 && (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Nenhuma solicitação.</TableCell></TableRow>
-                )}
-                {filteredRequests.map((r) => {
-                  const canManager = r.status === "pending_manager" && r.manager_id === profile?.id;
-                  const canHR = r.status === "pending_hr" && isHR;
-                  const canCancel =
-                    (r.employee_id === profile?.id && r.status !== "approved" && r.status !== "cancelled") || isHR;
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-medium">
-                        {r.employee?.full_name ?? "—"}
-                        {r.employee?.position && <div className="text-xs text-muted-foreground">{r.employee.position}</div>}
-                      </TableCell>
-                      <TableCell>{requestTypeLabel[r.request_type]}</TableCell>
-                      <TableCell className="text-sm">
-                        {format(parseISO(r.start_date), "dd/MM/yyyy", { locale: ptBR })}
-                        {" → "}
-                        {format(parseISO(r.end_date), "dd/MM/yyyy", { locale: ptBR })}
-                      </TableCell>
-                      <TableCell>
-                        {r.requested_days}d
-                        {r.sell_days > 0 && <span className="text-xs text-muted-foreground"> + {r.sell_days}d abono</span>}
-                      </TableCell>
-                      <TableCell><Badge variant={statusVariant(r.status)}>{requestStatusLabel[r.status]}</Badge></TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          {canManager && (
-                            <DecisionDialog requestId={r.id} stage="manager" trigger={<Button size="sm">Decidir</Button>} />
-                          )}
-                          {canHR && (
-                            <DecisionDialog requestId={r.id} stage="hr" trigger={<Button size="sm">Homologar</Button>} />
-                          )}
-                          {canCancel && (
-                            <Button size="sm" variant="ghost" onClick={() => cancel.mutate(r.id)}>
-                              Cancelar
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+      <Tabs value={mainTab} onValueChange={setMainTab}>
+        <TabsList>
+          <TabsTrigger value="schedule">Programação</TabsTrigger>
+          <TabsTrigger value="requests">Solicitações</TabsTrigger>
+          <TabsTrigger value="periods">Períodos Aquisitivos</TabsTrigger>
+          <TabsTrigger value="rules">Regras</TabsTrigger>
+        </TabsList>
 
-      {isHR && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              Períodos Aquisitivos — próximos vencimentos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Colaborador</TableHead>
-                  <TableHead>Período</TableHead>
-                  <TableHead>Prazo de Gozo</TableHead>
-                  <TableHead>Saldo</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {(periods.data ?? []).slice(0, 20).map((p) => {
-                  const balance = p.entitled_days - p.used_days - p.sold_days;
-                  return (
-                    <TableRow key={p.id}>
-                      <TableCell>{p.employee?.full_name ?? "—"}</TableCell>
-                      <TableCell className="text-sm">
-                        {format(parseISO(p.period_start), "dd/MM/yy")} → {format(parseISO(p.period_end), "dd/MM/yy")}
-                      </TableCell>
-                      <TableCell>{format(parseISO(p.concession_deadline), "dd/MM/yyyy")}</TableCell>
-                      <TableCell>{balance}d</TableCell>
-                      <TableCell>
-                        <Badge variant={p.status === "fully_used" ? "secondary" : p.status === "expired" ? "destructive" : "default"}>
-                          {p.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+        <TabsContent value="schedule" className="mt-4">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between gap-3">
+              <CardTitle className="text-base">Programação anual {year}</CardTitle>
+              <div className="flex items-center gap-1">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  aria-label="Ano anterior"
+                  onClick={() => setYear(year - 1)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="w-16 text-center font-medium">{year}</span>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  aria-label="Próximo ano"
+                  onClick={() => setYear(year + 1)}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {requests.isLoading ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>
+              ) : (
+                <VacationYearGrid
+                  year={year}
+                  requests={requests.data ?? []}
+                  conflicts={conflicts.data ?? []}
+                  rules={rules.data ?? null}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="requests" className="mt-4">
+          <Card>
+            <CardHeader>
+              <Tabs value={listFilter} onValueChange={setListFilter}>
+                <TabsList>
+                  <TabsTrigger value="all">Todas</TabsTrigger>
+                  <TabsTrigger value="pending">Pendentes</TabsTrigger>
+                  <TabsTrigger value="approved">Aprovadas</TabsTrigger>
+                  <TabsTrigger value="conflicts">Com conflito</TabsTrigger>
+                  <TabsTrigger value="mine">Minhas</TabsTrigger>
+                  <TabsTrigger value="team">Minha Equipe</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </CardHeader>
+            <CardContent>
+              <RequestsTable
+                requests={filteredRequests}
+                conflicts={conflicts.data ?? []}
+                isLoading={requests.isLoading}
+                isHR={isHR}
+                profileId={profile?.id}
+                onCancel={(id) => cancel.mutate(id)}
+                renderActions={(r) => (
+                  <>
+                    {r.status === "pending_manager" && r.manager_id === profile?.id && (
+                      <DecisionDialog
+                        requestId={r.id}
+                        stage="manager"
+                        trigger={<Button size="sm">Decidir</Button>}
+                      />
+                    )}
+                    {r.status === "pending_hr" && isHR && (
+                      <DecisionDialog
+                        requestId={r.id}
+                        stage="hr"
+                        trigger={<Button size="sm">Homologar</Button>}
+                      />
+                    )}
+                  </>
+                )}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="periods" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Períodos aquisitivos e limite de gozo</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PeriodsTable periods={periods.data ?? []} isLoading={periods.isLoading} />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="rules" className="mt-4">
+          <VacationRulesForm canEdit={isHR} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
