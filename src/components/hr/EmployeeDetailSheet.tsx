@@ -569,7 +569,12 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
       <div className="pt-2">
         <p className="text-sm font-semibold text-muted-foreground mb-2">🚨 Contato de Emergência</p>
       </div>
-      {editableField("Nome do contato", emergencyName, setEmergencyName)}
+      {editableField(
+        "Nome do contato",
+        emergencyName,
+        setEmergencyName,
+        emergencyName || (emergencyPhone ? "— (pendente de preenchimento)" : "—")
+      )}
       {editableField("Telefone emergência", emergencyPhone, setEmergencyPhone)}
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
