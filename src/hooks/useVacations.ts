@@ -252,3 +252,140 @@ export function daysBetween(start: string, end: string) {
   const e = new Date(end + "T00:00:00");
   return Math.max(0, Math.round((e.getTime() - s.getTime()) / 86400000) + 1);
 }
+
+/* ------------------------------------------------------------------ */
+/* Conflitos                                                          */
+/* ------------------------------------------------------------------ */
+
+export type VacationConflictType =
+  | "limite_tecnicos_mes"
+  | "limite_ferias_mes"
+  | "divisao_nao_permitida"
+  | "abono_excedido"
+  | "periodo_vencido"
+  | "sobreposicao_datas"
+  | "colaborador_inativo";
+
+export const conflictTypeLabel: Record<VacationConflictType, string> = {
+  limite_tecnicos_mes: "Técnicos simultâneos",
+  limite_ferias_mes: "Limite de férias no mês",
+  divisao_nao_permitida: "Divisão não permitida",
+  abono_excedido: "Abono excedido",
+  periodo_vencido: "Fora do limite concessivo",
+  sobreposicao_datas: "Sobreposição de datas",
+  colaborador_inativo: "Colaborador inativo",
+};
+
+export interface VacationConflict {
+  id: string;
+  programacao_id: string;
+  tipo_conflito: VacationConflictType;
+  descricao: string;
+  resolvido: boolean;
+  motivo_excecao: string | null;
+  resolvido_por: string | null;
+  resolvido_em: string | null;
+  created_at: string;
+}
+
+export function useVacationConflicts() {
+  return useQuery({
+    queryKey: ["vacation-conflicts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hr_vacation_conflicts")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as unknown as VacationConflict[];
+    },
+  });
+}
+
+export function useResolveVacationConflict() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { id: string; motivo: string; approver_id: string }) => {
+      const { error } = await supabase
+        .from("hr_vacation_conflicts")
+        .update({
+          resolvido: true,
+          motivo_excecao: params.motivo,
+          resolvido_por: params.approver_id,
+          resolvido_em: new Date().toISOString(),
+        })
+        .eq("id", params.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vacation-conflicts"] });
+      toast.success("Exceção registrada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Regras da empresa                                                  */
+/* ------------------------------------------------------------------ */
+
+export interface VacationRules {
+  id: string;
+  company_id: string;
+  max_ferias_por_mes: number;
+  max_tecnicos_simultaneos: number;
+  max_dias_abono: number;
+  max_parcelas: number;
+  permite_divisao_ferias: boolean;
+  permite_ferias_em_periodo_experiencia: boolean;
+  antecedencia_minima_solicitacao_dias: number;
+  tolerancia_sobreposicao_dias: number;
+  notificar_financeiro: boolean;
+  observacoes: string | null;
+}
+
+export function useVacationRules(companyId?: string | null) {
+  return useQuery({
+    queryKey: ["vacation-rules", companyId ?? "any"],
+    queryFn: async () => {
+      let q = supabase.from("hr_vacation_rules").select("*").limit(1);
+      if (companyId) q = q.eq("company_id", companyId);
+      const { data, error } = await q.maybeSingle();
+      if (error) throw error;
+      return (data ?? null) as unknown as VacationRules | null;
+    },
+  });
+}
+
+export function useUpdateVacationRules() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { id: string; patch: Partial<VacationRules>; updated_by?: string }) => {
+      const { error } = await supabase
+        .from("hr_vacation_rules")
+        .update({ ...params.patch, updated_by: params.updated_by ?? null })
+        .eq("id", params.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vacation-rules"] });
+      toast.success("Regras atualizadas");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Utilidades                                                         */
+/* ------------------------------------------------------------------ */
+
+export function deadlineSeverity(deadline: string): "expired" | "critical" | "warning" | "ok" {
+  const d = new Date(deadline + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
+  if (diff < 0) return "expired";
+  if (diff <= 90) return "critical";
+  if (diff <= 180) return "warning";
+  return "ok";
+}
