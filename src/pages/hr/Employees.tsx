@@ -108,7 +108,7 @@ export default function Employees() {
     queryFn: async () => {
       const { data: profiles, error } = await supabase
         .from("profiles")
-        .select("id, full_name, email, avatar_url, phone, company_id, created_at, hire_date, status, cpf, rg, birth_date, gender, nationality, height, emergency_contact_name, emergency_contact_phone")
+        .select("id, full_name, email, avatar_url, phone, company_id, created_at, hire_date, status, cpf, rg, birth_date, gender, nationality, height, emergency_contact_name, emergency_contact_phone, social_name, rg_issuer, rg_issuer_state, marital_status, education_level, birth_place, registration_number, employment_type, employee_status, department_id, position_id, position_level, position_start_date, has_dependents, dependents_count")
         .eq("company_id", profile!.company_id!)
         .order("full_name");
       if (error) throw error;
