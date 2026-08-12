@@ -424,6 +424,43 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
 
       {editableField("Nacionalidade", nationality, setNationality)}
       {editableField("Altura (cm)", height, setHeight, height ? `${height} cm` : "—")}
+      {editableField("Nome social", socialName, setSocialName)}
+      {editableField("Órgão emissor do RG", rgIssuer, setRgIssuer)}
+      {editableField("UF do RG", rgIssuerState, setRgIssuerState)}
+      {editableField("Naturalidade", birthPlace, setBirthPlace)}
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Estado civil</span>
+        {isEditing ? (
+          <Select value={maritalStatus} onValueChange={setMaritalStatus}>
+            <SelectTrigger className="h-8"><SelectValue placeholder="Selecionar" /></SelectTrigger>
+            <SelectContent>
+              {MARITAL_STATUS_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        ) : (
+          <span className="text-sm text-foreground">
+            {MARITAL_STATUS_OPTIONS.find((o) => o.value === maritalStatus)?.label || "—"}
+          </span>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Escolaridade</span>
+        {isEditing ? (
+          <Select value={educationLevel} onValueChange={setEducationLevel}>
+            <SelectTrigger className="h-8"><SelectValue placeholder="Selecionar" /></SelectTrigger>
+            <SelectContent>
+              {EDUCATION_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        ) : (
+          <span className="text-sm text-foreground">
+            {EDUCATION_OPTIONS.find((o) => o.value === educationLevel)?.label || "—"}
+          </span>
+        )}
+      </div>
+
 
       {/* Emergency Contact */}
       <div className="pt-2">
