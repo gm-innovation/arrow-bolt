@@ -353,6 +353,50 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
 
+  // Contato pessoal (fallback de telefone quando não há telefone corporativo)
+  const { data: personalPhone } = useQuery({
+    queryKey: ["hr-personal-phone", employee.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("hr_employee_contacts")
+        .select("value, kind")
+        .eq("employee_id", employee.id)
+        .eq("category", "pessoal")
+        .in("kind", ["celular", "telefone", "whatsapp"])
+        .limit(1);
+      return data?.[0]?.value ?? null;
+    },
+  });
+
+  // Pendências de cadastro (dados que a planilha de importação não trouxe)
+  const { data: pendencies = [] } = useQuery({
+    queryKey: ["hr-personal-pendencies", employee.id],
+    queryFn: async () => {
+      const [idDocs, deps] = await Promise.all([
+        supabase
+          .from("hr_employee_identity_documents")
+          .select("doc_type, issuer, issuer_state, category")
+          .eq("employee_id", employee.id),
+        supabase
+          .from("hr_employee_dependents")
+          .select("id")
+          .eq("employee_id", employee.id),
+      ]);
+      const list: string[] = [];
+      const rg = (idDocs.data || []).find((d: any) => d.doc_type === "rg");
+      const cnh = (idDocs.data || []).find((d: any) => d.doc_type === "cnh");
+      if (rg && !rg.issuer) list.push("Órgão emissor do RG não informado");
+      if (cnh && !cnh.category) list.push("Categoria da CNH não informada");
+      const declared = (employee as any).dependents_count || 0;
+      const registered = (deps.data || []).length;
+      if (declared > registered) {
+        list.push(`${declared} dependente(s) informado(s) na admissão, ${registered} cadastrado(s)`);
+      }
+      return list;
+    },
+  });
+
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -449,7 +493,12 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
       </div>
 
       {editableField("Nome completo", fullName, setFullName)}
-      {editableField("Telefone", phone, setPhone)}
+      {editableField(
+        "Telefone",
+        phone,
+        setPhone,
+        phone || (personalPhone ? `${personalPhone} (pessoal)` : "—")
+      )}
       {editableField("CPF", cpf, setCpf)}
       {editableField("RG", rg, setRg)}
       
@@ -520,7 +569,12 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
       <div className="pt-2">
         <p className="text-sm font-semibold text-muted-foreground mb-2">🚨 Contato de Emergência</p>
       </div>
-      {editableField("Nome do contato", emergencyName, setEmergencyName)}
+      {editableField(
+        "Nome do contato",
+        emergencyName,
+        setEmergencyName,
+        emergencyName || (emergencyPhone ? "— (pendente de preenchimento)" : "—")
+      )}
       {editableField("Telefone emergência", emergencyPhone, setEmergencyPhone)}
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
@@ -541,6 +595,17 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
           <span className="text-sm text-foreground">{f.value}</span>
         </div>
       ))}
+
+      {pendencies.length > 0 && (
+        <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3">
+          <p className="text-sm font-semibold text-foreground mb-1">Pendências de cadastro</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {pendencies.map((p) => (
+              <li key={p} className="text-sm text-muted-foreground">{p}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
