@@ -45,7 +45,7 @@ export function PeriodsTable({
     const term = search.trim().toLowerCase();
     return periods.filter((p) => {
       if (status !== "all" && p.status !== status) return false;
-      if (status === "all" && false) return false;
+      
       if (!term) return true;
       return (p.employee?.full_name ?? "").toLowerCase().includes(term);
     });
