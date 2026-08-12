@@ -595,6 +595,17 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
           <span className="text-sm text-foreground">{f.value}</span>
         </div>
       ))}
+
+      {pendencies.length > 0 && (
+        <div className="mt-4 rounded-md border border-warning/40 bg-warning/10 p-3">
+          <p className="text-sm font-semibold text-foreground mb-1">Pendências de cadastro</p>
+          <ul className="list-disc pl-5 space-y-1">
+            {pendencies.map((p) => (
+              <li key={p} className="text-sm text-muted-foreground">{p}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
