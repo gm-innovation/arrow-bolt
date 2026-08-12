@@ -4,12 +4,17 @@ Objetivo: carregar no Arrow os dados que a Thaís já mantém na planilha — da
 
 ## Primeiro passo: acesso ao arquivo
 
-O link enviado é de um OneDrive pessoal do SharePoint da Lecsor e exige login — não consigo abri-lo direto. Duas formas de resolver, na ordem de preferência:
+Testei o link do SharePoint e ele retorna **403 Forbidden** para quem está fora do tenant — mesmo o link "compartilhado" exige sessão da Lecsor. Então preciso do arquivo anexado aqui.
 
-1. **Anexar o arquivo aqui** (baixar como `.xlsx` e enviar na conversa). É o caminho mais rápido e não depende de nenhuma configuração.
-2. **Conectar o Microsoft Excel / OneDrive** ao projeto, para que eu leia a planilha direto da nuvem. Útil se a intenção for repetir a importação periodicamente; exige que a conta conectada tenha acesso ao arquivo da Thaís.
+Formato preferido, em ordem:
 
-Nada de importação acontece antes de eu conseguir ler a planilha real — a definição das colunas depende do conteúdo dela.
+1. **CSV UTF-8** (`Arquivo > Exportar > Baixar como CSV UTF-8`). É o mais confiável: preserva acentos, ignora formatação e não perde os zeros à esquerda de CPF/CEP quando lido como texto. Se a planilha tiver várias abas, exporte **uma por aba**, pois o CSV salva só a aba ativa.
+2. **XLSX** (`Baixar uma cópia`), caso haja muitas abas — leio todas de uma vez.
+
+Evitar PDF e ODS: PDF perde a estrutura de colunas e ODS dá mais trabalho na leitura.
+
+Nada de importação acontece antes de eu ler a planilha real — a definição das colunas depende do conteúdo dela.
+
 
 ## Etapas depois de ter o arquivo
 
