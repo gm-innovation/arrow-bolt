@@ -96,7 +96,7 @@ const normalizeStoragePath = (fileUrl: string) => {
 
 export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailSheetProps) {
   const isTechnician = !!employee.technician;
-  const tabCount = isTechnician ? 5 : 4;
+  
   const queryClient = useQueryClient();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
