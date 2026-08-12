@@ -132,7 +132,7 @@ const EditDocumentMetadataDialog = ({ open, onOpenChange, document }: Props) => 
                 <SelectContent>
                   <SelectItem value="none">— Sem responsável —</SelectItem>
                   {(companyUsers as any[]).map((u) => (
-                    <SelectItem key={u.id} value={u.id}>{u.full_name || u.email}</SelectItem>
+                    <SelectItem key={u.id} value={u.id}>{u.full_name || "Sem nome"}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
