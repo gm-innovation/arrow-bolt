@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -187,58 +188,110 @@ export function EmployeeDetailSheet({ employee, open, onClose }: EmployeeDetailS
           <TabsList className="w-full flex flex-wrap h-auto justify-start gap-1">
             <TabsTrigger value="personal"><User className="h-4 w-4 mr-1 hidden sm:inline" />Pessoal</TabsTrigger>
             <TabsTrigger value="professional"><Briefcase className="h-4 w-4 mr-1 hidden sm:inline" />Profissional</TabsTrigger>
-            <TabsTrigger value="contacts"><Phone className="h-4 w-4 mr-1 hidden sm:inline" />Contatos</TabsTrigger>
-            <TabsTrigger value="address"><MapPin className="h-4 w-4 mr-1 hidden sm:inline" />Endereço</TabsTrigger>
-            <TabsTrigger value="dependents"><Users className="h-4 w-4 mr-1 hidden sm:inline" />Dependentes</TabsTrigger>
-            <TabsTrigger value="identity"><IdCard className="h-4 w-4 mr-1 hidden sm:inline" />Identificação</TabsTrigger>
-            <TabsTrigger value="documents"><FileText className="h-4 w-4 mr-1 hidden sm:inline" />Docs</TabsTrigger>
-            <TabsTrigger value="assignments"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Histórico</TabsTrigger>
-            <TabsTrigger value="audit"><ShieldCheck className="h-4 w-4 mr-1 hidden sm:inline" />Auditoria</TabsTrigger>
-            <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Atividade</TabsTrigger>
+            <TabsTrigger value="documents"><FileText className="h-4 w-4 mr-1 hidden sm:inline" />Documentos</TabsTrigger>
+            <TabsTrigger value="history"><Clock className="h-4 w-4 mr-1 hidden sm:inline" />Histórico</TabsTrigger>
             <TabsTrigger value="notes"><MessageSquare className="h-4 w-4 mr-1 hidden sm:inline" />Anotações</TabsTrigger>
-            {isTechnician && (
-              <TabsTrigger value="technician"><Wrench className="h-4 w-4 mr-1 hidden sm:inline" />Técnico</TabsTrigger>
-            )}
           </TabsList>
 
           <TabsContent value="personal">
             <PersonalTab employee={employee} />
+            <Accordion type="multiple" defaultValue={["contacts"]} className="mt-2">
+              <AccordionItem value="contacts">
+                <AccordionTrigger className="text-sm">
+                  <span className="flex items-center gap-2"><Phone className="h-4 w-4" />Contatos e emergência</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <ContactsTab employeeId={employee.id} companyId={employee.company_id} />
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="address">
+                <AccordionTrigger className="text-sm">
+                  <span className="flex items-center gap-2"><MapPin className="h-4 w-4" />Endereço</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <AddressTab employeeId={employee.id} companyId={employee.company_id} />
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="dependents">
+                <AccordionTrigger className="text-sm">
+                  <span className="flex items-center gap-2"><Users className="h-4 w-4" />Dependentes</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <DependentsTab employeeId={employee.id} companyId={employee.company_id} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </TabsContent>
+
           <TabsContent value="professional">
             <ProfessionalTab employeeId={employee.id} />
+            {isTechnician && (
+              <Accordion type="multiple" className="mt-2">
+                <AccordionItem value="technician">
+                  <AccordionTrigger className="text-sm">
+                    <span className="flex items-center gap-2"><Wrench className="h-4 w-4" />Dados técnicos</span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <TechnicianTab employee={employee} />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            )}
           </TabsContent>
-          <TabsContent value="contacts">
-            <ContactsTab employeeId={employee.id} companyId={employee.company_id} />
-          </TabsContent>
-          <TabsContent value="address">
-            <AddressTab employeeId={employee.id} companyId={employee.company_id} />
-          </TabsContent>
-          <TabsContent value="dependents">
-            <DependentsTab employeeId={employee.id} companyId={employee.company_id} />
-          </TabsContent>
-          <TabsContent value="identity">
-            <IdentityDocumentsTab employeeId={employee.id} companyId={employee.company_id} />
-          </TabsContent>
+
           <TabsContent value="documents">
-            <DocumentsTab employeeId={employee.id} companyId={employee.company_id} />
+            <Accordion type="multiple" defaultValue={["files"]} className="mt-2">
+              <AccordionItem value="identity">
+                <AccordionTrigger className="text-sm">
+                  <span className="flex items-center gap-2"><IdCard className="h-4 w-4" />Documentos de identificação</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <IdentityDocumentsTab employeeId={employee.id} companyId={employee.company_id} />
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="files">
+                <AccordionTrigger className="text-sm">
+                  <span className="flex items-center gap-2"><FileText className="h-4 w-4" />Arquivos digitalizados</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <DocumentsTab employeeId={employee.id} companyId={employee.company_id} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </TabsContent>
-          <TabsContent value="assignments">
-            <AssignmentHistoryTab employeeId={employee.id} />
-          </TabsContent>
-          <TabsContent value="audit">
-            <SensitiveAuditTab employeeId={employee.id} />
-          </TabsContent>
+
           <TabsContent value="history">
-            <HistoryTab employeeId={employee.id} />
+            <Accordion type="multiple" defaultValue={["assignments"]} className="mt-2">
+              <AccordionItem value="assignments">
+                <AccordionTrigger className="text-sm">
+                  <span className="flex items-center gap-2"><Briefcase className="h-4 w-4" />Movimentações</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <AssignmentHistoryTab employeeId={employee.id} />
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="activity">
+                <AccordionTrigger className="text-sm">
+                  <span className="flex items-center gap-2"><Clock className="h-4 w-4" />Atividade</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <HistoryTab employeeId={employee.id} />
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="audit">
+                <AccordionTrigger className="text-sm">
+                  <span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" />Auditoria de dados sensíveis</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <SensitiveAuditTab employeeId={employee.id} />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </TabsContent>
+
           <TabsContent value="notes">
             <NotesTab employeeId={employee.id} companyId={employee.company_id} />
           </TabsContent>
-          {isTechnician && (
-            <TabsContent value="technician">
-              <TechnicianTab employee={employee} />
-            </TabsContent>
-          )}
         </Tabs>
 
 
