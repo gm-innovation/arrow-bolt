@@ -353,6 +353,50 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
   const [isSaving, setIsSaving] = useState(false);
   const queryClient = useQueryClient();
 
+  // Contato pessoal (fallback de telefone quando não há telefone corporativo)
+  const { data: personalPhone } = useQuery({
+    queryKey: ["hr-personal-phone", employee.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("hr_employee_contacts")
+        .select("value, kind")
+        .eq("employee_id", employee.id)
+        .eq("category", "pessoal")
+        .in("kind", ["celular", "telefone", "whatsapp"])
+        .limit(1);
+      return data?.[0]?.value ?? null;
+    },
+  });
+
+  // Pendências de cadastro (dados que a planilha de importação não trouxe)
+  const { data: pendencies = [] } = useQuery({
+    queryKey: ["hr-personal-pendencies", employee.id],
+    queryFn: async () => {
+      const [idDocs, deps] = await Promise.all([
+        supabase
+          .from("hr_employee_identity_documents")
+          .select("doc_type, issuer, issuer_state, category")
+          .eq("employee_id", employee.id),
+        supabase
+          .from("hr_employee_dependents")
+          .select("id")
+          .eq("employee_id", employee.id),
+      ]);
+      const list: string[] = [];
+      const rg = (idDocs.data || []).find((d: any) => d.doc_type === "rg");
+      const cnh = (idDocs.data || []).find((d: any) => d.doc_type === "cnh");
+      if (rg && !rg.issuer) list.push("Órgão emissor do RG não informado");
+      if (cnh && !cnh.category) list.push("Categoria da CNH não informada");
+      const declared = (employee as any).dependents_count || 0;
+      const registered = (deps.data || []).length;
+      if (declared > registered) {
+        list.push(`${declared} dependente(s) informado(s) na admissão, ${registered} cadastrado(s)`);
+      }
+      return list;
+    },
+  });
+
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
