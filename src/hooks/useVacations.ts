@@ -23,6 +23,8 @@ export interface VacationPeriod {
   sold_days: number;
   status: VacationPeriodStatus;
   notes: string | null;
+  ferias_vencidas?: boolean;
+  proporcional_meses?: number | null;
   employee?: { id: string; full_name: string | null; position: string | null } | null;
 }
 
