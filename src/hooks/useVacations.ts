@@ -47,6 +47,18 @@ export interface VacationRequest {
   hr_decision_at: string | null;
   hr_comment: string | null;
   created_at: string;
+  numero_parcela?: number;
+  mes_referencia_texto?: string | null;
+  company_id?: string | null;
+  period?: {
+    id: string;
+    period_start: string;
+    period_end: string;
+    concession_deadline: string;
+    entitled_days: number;
+    used_days: number;
+    sold_days: number;
+  } | null;
   employee?: { id: string; full_name: string | null; position: string | null } | null;
 }
 
