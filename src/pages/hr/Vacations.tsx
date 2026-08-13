@@ -20,6 +20,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import {
   Palmtree,
   Plus,
@@ -30,7 +40,9 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
+  ChevronsUpDown,
 } from "lucide-react";
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
@@ -80,26 +92,42 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const [open, setOpen] = useState(false);
   const employees = useEmployeeOptions();
   const create = useCreateVacationRequest();
+  const rules = useVacationRules(profile?.company_id);
   const [employeeId, setEmployeeId] = useState<string>(profile?.id ?? "");
+  const [employeeOpen, setEmployeeOpen] = useState(false);
   const periods = useVacationPeriods(employeeId || undefined);
-  const [periodId, setPeriodId] = useState<string>("");
   const [type, setType] = useState<VacationRequestType>("vacation");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [isSplit, setIsSplit] = useState(false);
   const [sellDays, setSellDays] = useState(0);
   const [advance13, setAdvance13] = useState(false);
   const [justification, setJustification] = useState("");
 
-  const days = startDate && endDate ? daysBetween(startDate, endDate) : 0;
+  const invalidRange = Boolean(startDate && endDate && endDate < startDate);
+  const days = startDate && endDate && !invalidRange ? daysBetween(startDate, endDate) : 0;
+  const minDays = isSplit ? 5 : 14;
+  const belowMinimum = type === "vacation" && days > 0 && days < minDays;
+  const splitAgainstPolicy = isSplit && rules.data?.permite_divisao_ferias === false;
   const selectedEmployee = employees.data?.find((e) => e.id === employeeId);
   const managerId = selectedEmployee?.direct_manager_id ?? null;
 
+  /** período aquisitivo mais antigo com saldo — vinculado automaticamente */
+  const autoPeriodId = useMemo(() => {
+    const withBalance = (periods.data ?? [])
+      .filter((p) => p.entitled_days - p.used_days - p.sold_days > 0)
+      .sort((a, b) => a.period_start.localeCompare(b.period_start));
+    return withBalance[0]?.id ?? null;
+  }, [periods.data]);
+
+  const canSubmit =
+    Boolean(employeeId && startDate && endDate) && !invalidRange && days > 0 && !belowMinimum;
 
   const submit = async () => {
-    if (!employeeId || !startDate || !endDate || days <= 0) return;
+    if (!canSubmit) return;
     await create.mutateAsync({
       employee_id: employeeId,
-      period_id: periodId || null,
+      period_id: autoPeriodId,
       request_type: type,
       start_date: startDate,
       end_date: endDate,
@@ -109,7 +137,6 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
       justification: justification || null,
       manager_id: managerId,
       created_by_hr_id: isHRUser ? (profile?.id ?? null) : null,
-
     });
     setOpen(false);
     setStartDate("");
@@ -117,6 +144,7 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
     setJustification("");
     setSellDays(0);
     setAdvance13(false);
+    setIsSplit(false);
   };
 
   return (
@@ -129,36 +157,56 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="md:col-span-2">
             <Label>Colaborador *</Label>
-            <Select value={employeeId} onValueChange={setEmployeeId}>
-              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-              <SelectContent>
-                {(employees.data ?? []).map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.full_name}{e.position ? ` — ${e.position}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="md:col-span-2">
-            <Label>Período Aquisitivo (opcional)</Label>
-            <Select value={periodId} onValueChange={setPeriodId} disabled={!employeeId}>
-              <SelectTrigger><SelectValue placeholder={!employeeId ? "Selecione um colaborador primeiro" : "Vincular a um período (opcional)"} /></SelectTrigger>
-              <SelectContent>
-                {(periods.data ?? []).length === 0 ? (
-                  <div className="px-3 py-2 text-xs text-muted-foreground">
-                    Nenhum período aquisitivo cadastrado. Verifique a data de admissão do colaborador ou crie um período manualmente.
-                  </div>
-                ) : (
-                  (periods.data ?? []).map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      {format(parseISO(p.period_start), "dd/MM/yyyy")} — {format(parseISO(p.period_end), "dd/MM/yyyy")} · saldo {p.entitled_days - p.used_days - p.sold_days}d
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+            <Popover open={employeeOpen} onOpenChange={setEmployeeOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={employeeOpen}
+                  className="w-full justify-between font-normal"
+                >
+                  <span className="truncate">
+                    {selectedEmployee
+                      ? `${selectedEmployee.full_name}${selectedEmployee.position ? ` — ${selectedEmployee.position}` : ""}`
+                      : "Selecione o colaborador"}
+                  </span>
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
+                <Command>
+                  <CommandInput placeholder="Buscar colaborador..." />
+                  <CommandList className="max-h-64 overflow-y-auto">
+                    <CommandEmpty>Nenhum colaborador encontrado.</CommandEmpty>
+                    <CommandGroup>
+                      {(employees.data ?? []).map((e) => (
+                        <CommandItem
+                          key={e.id}
+                          value={`${e.full_name ?? ""} ${e.position ?? ""}`}
+                          onSelect={() => {
+                            setEmployeeId(e.id);
+                            setEmployeeOpen(false);
+                          }}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              employeeId === e.id ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          <span className="truncate">
+                            {e.full_name}
+                            {e.position && (
+                              <span className="text-muted-foreground"> — {e.position}</span>
+                            )}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
 
           <div>
@@ -184,22 +232,61 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
           </div>
           <div>
             <Label>Fim *</Label>
-            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+            <Input
+              type="date"
+              value={endDate}
+              min={startDate || undefined}
+              onChange={(e) => setEndDate(e.target.value)}
+            />
           </div>
 
-          <div className="md:col-span-2 text-sm text-muted-foreground">
-            {days > 0 && <>Total: <strong>{days}</strong> dia(s) de gozo{sellDays > 0 && <> + {sellDays} de abono</>}.</>}
+          <div className="md:col-span-2 flex items-start gap-2">
+            <input
+              id="split"
+              type="checkbox"
+              className="mt-1"
+              checked={isSplit}
+              onChange={(e) => setIsSplit(e.target.checked)}
+            />
+            <div>
+              <Label htmlFor="split" className="cursor-pointer">Dividir férias em parcelas</Label>
+              <p className="text-xs text-muted-foreground">
+                Marque para solicitar um período menor que 14 dias (mínimo de 5 dias por parcela).
+              </p>
+            </div>
+          </div>
+
+          <div className="md:col-span-2 space-y-1 text-sm text-muted-foreground">
+            {invalidRange && (
+              <div className="text-destructive">
+                A data fim deve ser igual ou posterior à data de início.
+              </div>
+            )}
+            {belowMinimum && (
+              <div className="text-destructive">
+                Férias devem ter no mínimo {minDays} dias corridos
+                {isSplit ? " por parcela." : ", exceto quando divididas em parcelas."}
+              </div>
+            )}
+            {days > 0 && !belowMinimum && (
+              <div>Total: <strong>{days}</strong> dia(s) de gozo{sellDays > 0 && <> + {sellDays} de abono</>}.</div>
+            )}
+            {splitAgainstPolicy && (
+              <div className="text-amber-600">
+                ⚠ A política da empresa não prevê divisão de férias — a solicitação será registrada e
+                dependerá de aprovação do RH.
+              </div>
+            )}
             {employeeId && isHRUser && (
-              <div className="mt-1 text-emerald-600">
+              <div className="text-emerald-600">
                 ✓ Cadastro pelo RH — a solicitação já será registrada como aprovada.
               </div>
             )}
             {employeeId && !isHRUser && !managerId && (
-              <div className="mt-1 text-amber-600">
+              <div className="text-amber-600">
                 ⚠ Colaborador sem gestor direto — o RH decide diretamente.
               </div>
             )}
-
           </div>
 
           <div className="md:col-span-2">
@@ -215,19 +302,19 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
 
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-          <Button onClick={submit} disabled={create.isPending || !employeeId || !startDate || !endDate}>
+          <Button onClick={submit} disabled={create.isPending || !canSubmit}>
             {create.isPending
               ? "Salvando..."
               : isHRUser
                 ? "Registrar e Aprovar"
                 : "Enviar Solicitação"}
-
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
 
 function DecisionDialog({
   requestId,
