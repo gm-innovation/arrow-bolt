@@ -37,11 +37,15 @@ import {
   useCancelVacationRequest,
   useCreateVacationRequest,
   useDecideVacationRequest,
+  useDeleteVacationGrant,
+  useRebuildVacationPeriods,
   useVacationConflicts,
+  useVacationGrants,
   useVacationPeriods,
   useVacationRequests,
   useVacationRealtime,
   useVacationRules,
+  VacationGrant,
 } from "@/hooks/useVacations";
 import { useAuth } from "@/contexts/AuthContext";
 import { VacationYearGrid } from "@/components/hr/vacations/VacationYearGrid";
@@ -49,7 +53,10 @@ import { VacationMonthGrid } from "@/components/hr/vacations/VacationMonthGrid";
 import { PeriodsTable } from "@/components/hr/vacations/PeriodsTable";
 import { RequestsTable } from "@/components/hr/vacations/RequestsTable";
 import { VacationRulesForm } from "@/components/hr/vacations/VacationRulesForm";
+import { GrantDialog } from "@/components/hr/vacations/GrantDialog";
+import { GrantsTable } from "@/components/hr/vacations/GrantsTable";
 import { ACTIVE_REQUEST_STATUSES, classifyVacationRequest } from "@/lib/hr/vacationPolicy";
+
 
 function useEmployeeOptions() {
   return useQuery({
