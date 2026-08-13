@@ -567,13 +567,21 @@ export default function Vacations() {
             etapas (Gestor → RH).
           </p>
         </div>
-        <NewRequestDialog
-          trigger={
-            <Button aria-label="Programar Férias">
-              <CalendarClock className="h-4 w-4 mr-2" /> Programar Férias
+        <div className="flex flex-wrap gap-2">
+          {isHR && (
+            <Button variant="outline" onClick={() => openGrantDialog()}>
+              <History className="h-4 w-4 mr-2" /> Registrar última férias
             </Button>
-          }
-        />
+          )}
+          <NewRequestDialog
+            trigger={
+              <Button aria-label="Programar Férias">
+                <CalendarClock className="h-4 w-4 mr-2" /> Programar Férias
+              </Button>
+            }
+          />
+        </div>
+
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
