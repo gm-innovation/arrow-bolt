@@ -64,7 +64,12 @@ export interface VacationRequest {
     used_days: number;
     sold_days: number;
   } | null;
-  employee?: { id: string; full_name: string | null; position: string | null } | null;
+  employee?: {
+    id: string;
+    full_name: string | null;
+    position: string | null;
+    department_id?: string | null;
+  } | null;
 }
 
 export interface VacationBalance {
