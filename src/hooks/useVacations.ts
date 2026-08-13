@@ -172,12 +172,13 @@ export function useCreateVacationRequest() {
       const { created_by_hr_id, ...rest } = payload;
       const now = new Date().toISOString();
       const isException = rest.is_exception ?? false;
-      const status: VacationRequestStatus = rest.manager_id
-        ? "pending_manager"
-        : isException
-          ? "pending_director"
-          : created_by_hr_id
-            ? "approved"
+      // RH/Diretoria programando: nasce aprovada, mesmo fora do padrão.
+      const status: VacationRequestStatus = created_by_hr_id
+        ? "approved"
+        : rest.manager_id
+          ? "pending_manager"
+          : isException
+            ? "pending_director"
             : "pending_hr";
 
       const { data, error } = await supabase

@@ -139,7 +139,10 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const sellCapped = remainderChoice === "sell" && policy.sellCapped;
   const partialAgainstPolicy =
     remainderDays > 0 && days > 0 && rules.data?.permite_divisao_ferias === false;
-  const missingJustification = policy.requiresJustification && !justification.trim();
+  // O RH conhece as regras da empresa: programa direto, sem justificativa obrigatória
+  // nem etapa da Diretoria (a solicitação segue marcada como exceção para histórico).
+  const requiresJustification = policy.requiresJustification && !isHRUser;
+  const missingJustification = requiresJustification && !justification.trim();
 
   const canSubmit =
     Boolean(employeeId && startDate && endDate) &&
@@ -176,9 +179,11 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-          <DialogTitle>Nova Solicitação de Férias</DialogTitle>
+          <DialogTitle>{isHRUser ? "Programar Férias" : "Nova Solicitação de Férias"}</DialogTitle>
           <DialogDescription>
-            Informe o colaborador e o período desejado de gozo.
+            {isHRUser
+              ? "O RH registra a programação em nome do colaborador — já aprovada."
+              : "Informe o colaborador e o período desejado de gozo."}
           </DialogDescription>
         </DialogHeader>
 
@@ -345,8 +350,10 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
               )}
               {days > 0 && !belowMinimum && policy.isException && (
                 <div className="text-amber-600">
-                  ⚠ {policy.label} — o padrão é 30 dias de gozo ou 20 dias com venda de 10 dias.
-                  Justificativa obrigatória.
+                  ⚠ Fora do padrão (30 dias de gozo, ou 20 dias com venda de 10 dias).
+                  {isHRUser
+                    ? " Será registrada como exceção, sob responsabilidade do RH."
+                    : " Depende de autorização da Diretoria e justificativa obrigatória."}
                 </div>
               )}
               {missingJustification && (
@@ -360,12 +367,12 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
                   e dependerá de avaliação do RH.
                 </div>
               )}
-              {employeeId && isHRUser && !policy.isException && (
+              {employeeId && isHRUser && (
                 <div className="text-emerald-600">
-                  ✓ Cadastro pelo RH — a solicitação já será registrada como aprovada.
+                  ✓ Programação pelo RH — já será registrada como aprovada.
                 </div>
               )}
-              {employeeId && policy.isException && (
+              {employeeId && !isHRUser && policy.isException && (
                 <div className="text-amber-600">
                   ⚠ Seguirá para autorização da Diretoria antes da homologação do RH.
                 </div>
@@ -378,13 +385,13 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
             </div>
 
             <div className="md:col-span-2">
-              <Label>Justificativa {policy.requiresJustification && "*"}</Label>
+              <Label>Justificativa {requiresJustification && "*"}</Label>
               <Textarea
                 rows={3}
                 value={justification}
                 onChange={(e) => setJustification(e.target.value)}
                 placeholder={
-                  policy.requiresJustification
+                  requiresJustification
                     ? "Explique o motivo da divisão ou da venda de dias fora do padrão"
                     : "Opcional"
                 }
@@ -398,8 +405,8 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
           <Button onClick={submit} disabled={create.isPending || !canSubmit}>
             {create.isPending
               ? "Salvando..."
-              : isHRUser && !policy.isException
-                ? "Registrar e Aprovar"
+              : isHRUser
+                ? "Programar e Aprovar"
                 : "Enviar Solicitação"}
           </Button>
         </DialogFooter>
@@ -540,8 +547,8 @@ export default function Vacations() {
         </div>
         <NewRequestDialog
           trigger={
-            <Button aria-label="Nova Solicitação de Férias">
-              <Plus className="h-4 w-4 mr-2" /> Nova Solicitação
+            <Button aria-label="Programar Férias">
+              <CalendarClock className="h-4 w-4 mr-2" /> Programar Férias
             </Button>
           }
         />
