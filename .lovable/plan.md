@@ -17,8 +17,9 @@ Hoje, ao criar uma solicitação de férias, o sistema sempre grava o status "Ag
 
 ## Detalhes técnicos
 
-- `useCreateVacationRequest` (`src/hooks/useVacations.ts`): definir `status` como `pending_hr` quando `manager_id` for nulo, `pending_manager` caso contrário.
+- `useCreateVacationRequest` (`src/hooks/useVacations.ts`): passa a receber o status inicial calculado — `approved` (com `hr_decision_by`/`hr_decision_at` preenchidos e registro em `hr_vacation_approvals` com etapa de RH) quando o criador é RH/Diretoria/Super Admin; `pending_hr` quando não há `manager_id`; `pending_manager` nos demais casos.
 - `src/pages/hr/Vacations.tsx`:
+  - `NewRequestDialog`: calcular o status pelo papel do usuário logado (`isHR`) e ajustar o texto de aviso.
   - `renderActions`: além de `pending_hr`, permitir ao RH decidir solicitações em `pending_manager` com `manager_id === null` (botão "Homologar", `stage: "hr"`).
-  - Ajustar o texto de aviso no `NewRequestDialog`.
-- Sem mudança de schema, enum ou RLS — os status `pending_hr`/`approved` já existem e as políticas de RH já cobrem a atualização.
+- Sem mudança de schema, enum ou RLS — os status já existem, as políticas de RH cobrem a gravação e o gatilho de recálculo de saldo/conflitos já roda na inserção.
+
