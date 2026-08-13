@@ -92,18 +92,8 @@ export function VacationYearGrid({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [requests, year, conflictsByRequest]);
 
-  /** número de programações que tocam cada mês (uma vez por programação) */
-  const monthTotals = useMemo(() => {
-    const totals = new Array(12).fill(0);
-    rows.forEach((row) =>
-      row.lanes.forEach((lane) =>
-        lane.forEach((bar) => {
-          for (let m = bar.startMonth; m <= bar.endMonth; m++) totals[m] += 1;
-        })
-      )
-    );
-    return totals;
-  }, [rows]);
+  /** conflito de caixa: colaboradores que INICIAM férias em cada mês */
+  const monthTotals = useMemo(() => monthStartCounts(requests, year), [requests, year]);
 
   const limit = rules?.max_ferias_por_mes ?? 3;
 
