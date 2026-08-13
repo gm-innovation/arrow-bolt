@@ -437,6 +437,35 @@ export function useUpdateVacationRules() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Realtime                                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Mantém a tela de férias sincronizada sem recarregar a página — inclusive
+ * quando a gravação vem da assistente (Marina) ou de outro usuário.
+ */
+export function useVacationRealtime() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const invalidate = () => {
+      qc.invalidateQueries({ queryKey: ["vacation-requests"] });
+      qc.invalidateQueries({ queryKey: ["vacation-periods"] });
+      qc.invalidateQueries({ queryKey: ["vacation-conflicts"] });
+      qc.invalidateQueries({ queryKey: ["vacation-balance"] });
+    };
+    const channel = supabase
+      .channel("hr-vacations-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_requests" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_conflicts" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_periods" }, invalidate)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+}
+
+/* ------------------------------------------------------------------ */
 /* Utilidades                                                         */
 /* ------------------------------------------------------------------ */
 
