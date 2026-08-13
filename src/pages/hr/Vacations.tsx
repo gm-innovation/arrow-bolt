@@ -180,7 +180,7 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
                     id="employee-search"
                     placeholder="Buscar colaborador por nome ou cargo..."
                     value={employeeSearch}
-                    onFocus={() => setListOpen(true)}
+                    onClick={() => setListOpen(true)}
                     onChange={(e) => {
                       setEmployeeSearch(e.target.value);
                       setListOpen(true);
