@@ -40,6 +40,7 @@ import {
   useVacationConflicts,
   useVacationPeriods,
   useVacationRequests,
+  useVacationRealtime,
   useVacationRules,
 } from "@/hooks/useVacations";
 import { useAuth } from "@/contexts/AuthContext";
