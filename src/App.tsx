@@ -199,6 +199,8 @@ const QualityKnowledge = lazy(() => import("./pages/quality/Knowledge"));
 const QualityCommunication = lazy(() => import("./pages/quality/Communication"));
 const QualityHomologation = lazy(() => import("./pages/quality/Homologation"));
 const QualityCompanyDocuments = lazy(() => import("./pages/quality/CompanyDocuments"));
+const QualityEmployeeDocuments = lazy(() => import("./pages/quality/EmployeeDocuments"));
+
 
 const QualityDocumentsNorms = lazy(() => import("./pages/quality/documents/Norms"));
 const QualityDocumentsTerms = lazy(() => import("./pages/quality/documents/Terms"));
