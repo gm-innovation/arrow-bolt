@@ -96,6 +96,18 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const [advance13, setAdvance13] = useState(false);
   const [justification, setJustification] = useState("");
 
+  const normalize = (v: string) =>
+    v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  const filteredEmployees = useMemo(() => {
+    const term = normalize(employeeSearch.trim());
+    const list = employees.data ?? [];
+    if (!term) return list;
+    return list.filter((e) =>
+      normalize(`${e.full_name ?? ""} ${e.position ?? ""}`).includes(term)
+    );
+  }, [employees.data, employeeSearch]);
+
   const invalidRange = Boolean(startDate && endDate && endDate < startDate);
   const days = startDate && endDate && !invalidRange ? daysBetween(startDate, endDate) : 0;
   const minDays = isSplit ? 5 : 14;
