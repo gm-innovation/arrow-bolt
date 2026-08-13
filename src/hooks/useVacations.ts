@@ -571,13 +571,16 @@ export function useVacationRealtime() {
       qc.invalidateQueries({ queryKey: ["vacation-periods"] });
       qc.invalidateQueries({ queryKey: ["vacation-conflicts"] });
       qc.invalidateQueries({ queryKey: ["vacation-balance"] });
+      qc.invalidateQueries({ queryKey: ["vacation-grants"] });
     };
     const channel = supabase
       .channel("hr-vacations-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_requests" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_conflicts" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_periods" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_grants" }, invalidate)
       .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
     };
