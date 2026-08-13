@@ -140,6 +140,11 @@ export function RequestsTable({
               <TableCell>
                 <div className="flex flex-wrap items-center gap-1">
                   <Badge variant={statusVariant(r.status)}>{requestStatusLabel[r.status]}</Badge>
+                  {r.is_exception && (
+                    <Badge variant="outline" className="border-amber-500 text-amber-600">
+                      Exceção
+                    </Badge>
+                  )}
                   <ConflictBadge
                     conflicts={conflictsFor(r.id)}
                     canResolve={isHR}

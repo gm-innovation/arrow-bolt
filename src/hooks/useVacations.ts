@@ -6,6 +6,7 @@ export type VacationPeriodStatus = "open" | "partially_used" | "fully_used" | "e
 export type VacationRequestStatus =
   | "draft"
   | "pending_manager"
+  | "pending_director"
   | "pending_hr"
   | "approved"
   | "rejected"
@@ -46,6 +47,10 @@ export interface VacationRequest {
   hr_decision_by: string | null;
   hr_decision_at: string | null;
   hr_comment: string | null;
+  is_exception?: boolean;
+  director_decision_by?: string | null;
+  director_decision_at?: string | null;
+  director_comment?: string | null;
   created_at: string;
   numero_parcela?: number;
   mes_referencia_texto?: string | null;
@@ -74,6 +79,7 @@ export interface VacationBalance {
 export const requestStatusLabel: Record<VacationRequestStatus, string> = {
   draft: "Rascunho",
   pending_manager: "Aguardando Gestor",
+  pending_director: "Aguardando Diretoria",
   pending_hr: "Aguardando RH",
   approved: "Aprovado",
   rejected: "Rejeitado",
@@ -158,16 +164,21 @@ export function useCreateVacationRequest() {
       advance_13th?: boolean;
       justification?: string | null;
       manager_id?: string | null;
+      /** Fora do padrão (30d ou 20d + 10d de abono): exige Diretoria. */
+      is_exception?: boolean;
       /** Quem está cadastrando; se for RH/Diretoria a solicitação nasce aprovada. */
       created_by_hr_id?: string | null;
     }) => {
       const { created_by_hr_id, ...rest } = payload;
       const now = new Date().toISOString();
-      const status: VacationRequestStatus = created_by_hr_id
-        ? "approved"
-        : rest.manager_id
-          ? "pending_manager"
-          : "pending_hr";
+      const isException = rest.is_exception ?? false;
+      const status: VacationRequestStatus = rest.manager_id
+        ? "pending_manager"
+        : isException
+          ? "pending_director"
+          : created_by_hr_id
+            ? "approved"
+            : "pending_hr";
 
       const { data, error } = await supabase
         .from("hr_vacation_requests")
@@ -176,7 +187,7 @@ export function useCreateVacationRequest() {
           sell_days: rest.sell_days ?? 0,
           advance_13th: rest.advance_13th ?? false,
           status,
-          ...(created_by_hr_id
+          ...(created_by_hr_id && status === "approved"
             ? { hr_decision_by: created_by_hr_id, hr_decision_at: now }
             : {}),
         })
@@ -184,7 +195,7 @@ export function useCreateVacationRequest() {
         .single();
       if (error) throw error;
 
-      if (created_by_hr_id) {
+      if (created_by_hr_id && status === "approved") {
         await supabase.from("hr_vacation_approvals").insert({
           request_id: (data as { id: string }).id,
           approver_id: created_by_hr_id,
@@ -211,12 +222,14 @@ export function useDecideVacationRequest() {
   return useMutation({
     mutationFn: async (params: {
       id: string;
-      stage: "manager" | "hr";
+      stage: "manager" | "director" | "hr";
       decision: "approved" | "rejected";
       comment?: string | null;
       approver_id: string;
       /** RH decidindo sem esperar o gestor direto. */
       bypass_manager?: boolean;
+      /** Solicitação fora do padrão: após o gestor vai para a Diretoria. */
+      is_exception?: boolean;
     }) => {
       const now = new Date().toISOString();
       const patch:
@@ -226,6 +239,16 @@ export function useDecideVacationRequest() {
       if (params.stage === "manager") {
         patch.manager_decision_at = now;
         patch.manager_comment = params.comment ?? null;
+        patch.status =
+          params.decision !== "approved"
+            ? "rejected"
+            : params.is_exception
+              ? "pending_director"
+              : "pending_hr";
+      } else if (params.stage === "director") {
+        patch.director_decision_by = params.approver_id;
+        patch.director_decision_at = now;
+        patch.director_comment = params.comment ?? null;
         patch.status = params.decision === "approved" ? "pending_hr" : "rejected";
       } else {
         patch.hr_decision_by = params.approver_id;
