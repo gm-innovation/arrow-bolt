@@ -215,6 +215,8 @@ export function useDecideVacationRequest() {
       decision: "approved" | "rejected";
       comment?: string | null;
       approver_id: string;
+      /** RH decidindo sem esperar o gestor direto. */
+      bypass_manager?: boolean;
     }) => {
       const now = new Date().toISOString();
       const patch:
@@ -230,7 +232,12 @@ export function useDecideVacationRequest() {
         patch.hr_decision_at = now;
         patch.hr_comment = params.comment ?? null;
         patch.status = params.decision === "approved" ? "approved" : "rejected";
+        if (params.bypass_manager) {
+          patch.manager_decision_at = now;
+          patch.manager_comment = "Etapa do gestor dispensada pelo RH";
+        }
       }
+
 
       const { error } = await supabase.from("hr_vacation_requests").update(patch).eq("id", params.id);
       if (error) throw error;
