@@ -18,7 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { deadlineSeverity, VacationPeriod, VacationPeriodStatus } from "@/hooks/useVacations";
+import {
+  deadlineSeverity,
+  startDeadline,
+  VacationGrant,
+  VacationPeriod,
+  VacationPeriodStatus,
+} from "@/hooks/useVacations";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
@@ -33,13 +39,30 @@ const statusLabel: Record<VacationPeriodStatus, string> = {
 export function PeriodsTable({
   periods,
   isLoading,
+  grants = [],
+  canManage,
+  onRegisterGrant,
+  onRecalc,
 }: {
   periods: VacationPeriod[];
   isLoading?: boolean;
+  grants?: VacationGrant[];
+  canManage?: boolean;
+  onRegisterGrant?: (employeeId: string) => void;
+  onRecalc?: (employeeId: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [page, setPage] = useState(0);
+
+  const lastGrantByEmployee = useMemo(() => {
+    const map = new Map<string, VacationGrant>();
+    for (const g of grants) {
+      const cur = map.get(g.employee_id);
+      if (!cur || g.data_inicio_gozo > cur.data_inicio_gozo) map.set(g.employee_id, g);
+    }
+    return map;
+  }, [grants]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -54,6 +77,7 @@ export function PeriodsTable({
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pages - 1);
   const rows = filtered.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
+
 
   return (
     <div className="space-y-3">
