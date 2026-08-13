@@ -1,28 +1,31 @@
-# Regra CLT dos 14 dias no pedido de férias
+# Regra dos 14 dias e justificativa obrigatória no pedido de férias
 
-Hoje o modal exige apenas 5 dias corridos por solicitação. Falta a regra da CLT: quando as férias são divididas, **uma das parcelas precisa ter no mínimo 14 dias corridos** e as demais no mínimo 5 dias.
+Hoje o modal exige apenas 5 dias corridos por solicitação e a justificativa é opcional. As regras corretas:
 
 ## Como vai funcionar
 
-Ao informar o período, o sistema olha o saldo do período aquisitivo e as solicitações já existentes do colaborador naquele mesmo período aquisitivo (pendentes ou aprovadas):
+**Primeira parcela do período aquisitivo** (nenhuma outra solicitação ativa vinculada àquele período):
+- Menos de 14 dias: bloqueado, com a mensagem de que a primeira parcela precisa ter no mínimo 14 dias corridos.
+- 14 dias ou mais: liberado.
 
-- Pedido com **14 dias ou mais**: válido, nenhum aviso.
-- Pedido **entre 5 e 13 dias**, quando já existe outra parcela de 14+ dias no mesmo período aquisitivo: válido — a regra já está cumprida.
-- Pedido **entre 5 e 13 dias** sem parcela de 14+ dias e com saldo restante suficiente (14 ou mais): permitido, com aviso informando que a próxima parcela precisará ter no mínimo 14 dias corridos.
-- Pedido **entre 5 e 13 dias** sem parcela de 14+ dias e sem saldo restante para formar 14 dias: bloqueado, explicando que ao menos uma parcela precisa ter 14 dias corridos.
-- Pedido com **menos de 5 dias**: bloqueado (regra atual mantida).
+**Parcelas seguintes** (já existe solicitação ativa no mesmo período aquisitivo):
+- Mínimo de 5 dias corridos.
 
-Quando o colaborador escolher **vender os dias restantes** e isso deixar o saldo abaixo de 14 dias sem nenhuma parcela longa, o aviso vira bloqueio — o abono não pode inviabilizar a parcela mínima legal.
+**Justificativa obrigatória quando o pedido for menor que 30 dias.** O campo passa a ser exigido e o rótulo explica o motivo: justificar a divisão das férias ou a venda dos dias. Sem texto, o botão fica desabilitado.
 
-O texto de resumo no modal passa a mostrar a situação da regra em uma linha, por exemplo: "7 dias de gozo · restam 23 dias · a próxima parcela precisa ter no mínimo 14 dias".
+**Política interna** (mantida como aviso, não como bloqueio, pois o colaborador tem direito de solicitar):
+- Empresa não divide férias: aviso de que a solicitação parcial depende de avaliação do RH.
+- Venda de dias limitada a 10: a opção "Vender os dias" sempre grava no máximo 10 dias de abono e mostra o limite; os dias que sobrarem além disso ficam de saldo para programar depois.
+
+O resumo do modal mostra em uma linha: dias de gozo, dias restantes, destino do restante e qual regra de mínimo se aplica (14 dias por ser a primeira parcela, ou 5 dias por ser parcela seguinte).
 
 ## Paridade com a Marina
 
-A mesma validação entra em `request_vacation`: antes de gravar, a ferramenta calcula parcelas existentes e saldo, devolve erro explicativo nos casos bloqueados e um campo de aviso nos casos permitidos, para a Marina avisar o usuário na resposta. As instruções da Marina no prompt ganham a regra dos 14 dias.
+`request_vacation` aplica exatamente as mesmas regras antes de gravar: identifica se é a primeira parcela do período aquisitivo, valida 14/5 dias, exige justificativa quando o pedido for menor que 30 dias (pedindo o motivo ao usuário quando faltar) e limita o abono a 10 dias. O bloco FÉRIAS do prompt da Marina é atualizado com essas regras.
 
 ## Detalhes técnicos
 
-- `src/pages/hr/Vacations.tsx` (`NewRequestDialog`): novo cálculo derivado a partir de `useVacationRequests(employeeId)` filtrado por `period_id === autoPeriod.id` e status em `draft`/`pending_manager`/`pending_hr`/`approved`/`em_gozo`; substitui `belowMinimum` por um objeto `minimumCheck` com `{ blocked, warning, message }` usado em `canSubmit` e na mensagem exibida.
-- `supabase/functions/ai-assistant/tools.ts` (`buildVacationTools` → `request_vacation`): consulta as solicitações existentes do período aquisitivo e aplica as mesmas faixas antes do insert.
-- `supabase/functions/ai-assistant/index.ts`: acrescenta a regra dos 14 dias no bloco FÉRIAS do prompt.
-- Sem mudança de schema: `hr_vacation_rules` não recebe coluna nova (o mínimo legal de 14/5 dias não é configurável por empresa).
+- `src/pages/hr/Vacations.tsx` (`NewRequestDialog`): usar `useVacationRequests(employeeId)` filtrado por `period_id === autoPeriod.id` e status ativo (`draft`, `pending_manager`, `pending_hr`, `approved`, `em_gozo`) para saber se é a primeira parcela; substituir `belowMinimum` por `minDays` (14 ou 5) e adicionar `justificationRequired = days > 0 && days < 30`; ambos entram em `canSubmit` e nas mensagens exibidas.
+- `supabase/functions/ai-assistant/tools.ts` (`buildVacationTools` → `request_vacation`): mesma checagem de primeira parcela, mínimos 14/5, justificativa obrigatória abaixo de 30 dias e `sell_days` limitado a `max_dias_abono`.
+- `supabase/functions/ai-assistant/index.ts`: regras dos 14/5 dias e da justificativa no bloco FÉRIAS.
+- Sem mudança de schema.
