@@ -247,7 +247,7 @@ const LogTab = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Quando</TableHead>
-                <TableHead>Coordenador</TableHead>
+                <TableHead>Responsável</TableHead>
                 <TableHead>Documento</TableHead>
                 <TableHead>Ação</TableHead>
               </TableRow>
