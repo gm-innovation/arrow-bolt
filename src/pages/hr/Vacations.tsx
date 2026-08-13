@@ -14,21 +14,13 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import {
   Palmtree,
@@ -40,8 +32,8 @@ import {
   AlertTriangle,
   ChevronLeft,
   ChevronRight,
-  ChevronsUpDown,
 } from "lucide-react";
+
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,7 +86,7 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const create = useCreateVacationRequest();
   const rules = useVacationRules(profile?.company_id);
   const [employeeId, setEmployeeId] = useState<string>(profile?.id ?? "");
-  const [employeeOpen, setEmployeeOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const periods = useVacationPeriods(employeeId || undefined);
   const [type, setType] = useState<VacationRequestType>("vacation");
   const [startDate, setStartDate] = useState("");
@@ -103,6 +95,18 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const [sellDays, setSellDays] = useState(0);
   const [advance13, setAdvance13] = useState(false);
   const [justification, setJustification] = useState("");
+
+  const normalize = (v: string) =>
+    v.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+  const filteredEmployees = useMemo(() => {
+    const term = normalize(employeeSearch.trim());
+    const list = employees.data ?? [];
+    if (!term) return list;
+    return list.filter((e) =>
+      normalize(`${e.full_name ?? ""} ${e.position ?? ""}`).includes(term)
+    );
+  }, [employees.data, employeeSearch]);
 
   const invalidRange = Boolean(startDate && endDate && endDate < startDate);
   const days = startDate && endDate && !invalidRange ? daysBetween(startDate, endDate) : 0;
@@ -153,61 +157,64 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Nova Solicitação de Férias</DialogTitle>
+          <DialogDescription>
+            Informe o colaborador e o período desejado de gozo.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2">
-            <Label>Colaborador *</Label>
-            <Popover open={employeeOpen} onOpenChange={setEmployeeOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={employeeOpen}
-                  className="w-full justify-between font-normal"
-                >
-                  <span className="truncate">
-                    {selectedEmployee
-                      ? `${selectedEmployee.full_name}${selectedEmployee.position ? ` — ${selectedEmployee.position}` : ""}`
-                      : "Selecione o colaborador"}
-                  </span>
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0">
-                <Command>
-                  <CommandInput placeholder="Buscar colaborador..." />
-                  <CommandList className="max-h-64 overflow-y-auto">
-                    <CommandEmpty>Nenhum colaborador encontrado.</CommandEmpty>
-                    <CommandGroup>
-                      {(employees.data ?? []).map((e) => (
-                        <CommandItem
-                          key={e.id}
-                          value={`${e.full_name ?? ""} ${e.position ?? ""}`}
-                          onSelect={() => {
-                            setEmployeeId(e.id);
-                            setEmployeeOpen(false);
-                          }}
-                        >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              employeeId === e.id ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          <span className="truncate">
-                            {e.full_name}
-                            {e.position && (
-                              <span className="text-muted-foreground"> — {e.position}</span>
-                            )}
-                          </span>
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+          <div className="md:col-span-2 space-y-2">
+            <Label htmlFor="employee-search">Colaborador *</Label>
+            {selectedEmployee && (
+              <p className="text-sm">
+                Selecionado:{" "}
+                <strong>{selectedEmployee.full_name}</strong>
+                {selectedEmployee.position && (
+                  <span className="text-muted-foreground"> — {selectedEmployee.position}</span>
+                )}
+              </p>
+            )}
+            <Input
+              id="employee-search"
+              placeholder="Buscar colaborador por nome ou cargo..."
+              value={employeeSearch}
+              onChange={(e) => setEmployeeSearch(e.target.value)}
+            />
+            <div className="max-h-60 overflow-y-auto rounded-md border">
+              {filteredEmployees.length === 0 ? (
+                <p className="p-3 text-sm text-muted-foreground">
+                  Nenhum colaborador encontrado.
+                </p>
+              ) : (
+                filteredEmployees.map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => setEmployeeId(e.id)}
+                    className={cn(
+                      "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent",
+                      employeeId === e.id && "bg-accent font-medium"
+                    )}
+                  >
+                    <Check
+                      className={cn(
+                        "h-4 w-4 shrink-0",
+                        employeeId === e.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <span className="truncate">
+                      {e.full_name}
+                      {e.position && (
+                        <span className="text-muted-foreground"> — {e.position}</span>
+                      )}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
           </div>
+
+
+
 
           <div>
             <Label>Tipo *</Label>
