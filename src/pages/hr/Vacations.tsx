@@ -232,10 +232,12 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
 function DecisionDialog({
   requestId,
   stage,
+  bypassManager,
   trigger,
 }: {
   requestId: string;
   stage: "manager" | "hr";
+  bypassManager?: boolean;
   trigger: React.ReactNode;
 }) {
   const { profile } = useAuth();
@@ -250,10 +252,12 @@ function DecisionDialog({
       decision,
       comment: comment || null,
       approver_id: profile.id,
+      bypass_manager: bypassManager,
     });
     setOpen(false);
     setComment("");
   };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
