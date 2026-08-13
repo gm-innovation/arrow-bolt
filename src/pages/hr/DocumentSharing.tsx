@@ -20,9 +20,9 @@ const HRDocumentSharing = () => {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-xl font-semibold flex items-center gap-2"><Shield className="h-5 w-5"/> Compartilhamento com Coordenadores</h2>
+        <h2 className="text-xl font-semibold flex items-center gap-2"><Shield className="h-5 w-5"/> Compartilhamento com Coordenadores e Qualidade</h2>
         <p className="text-sm text-muted-foreground">
-          Controle quais tipos de documento e quais colaboradores ficam visíveis aos coordenadores para autorizações de embarque, viagem e acesso a estaleiros.
+          Controle quais tipos de documento e quais colaboradores ficam visíveis aos coordenadores e à Qualidade para autorizações de embarque, viagem e acesso a estaleiros.
         </p>
       </div>
       <Tabs defaultValue="types">
@@ -60,7 +60,7 @@ const TypesTab = () => {
               <TableRow>
                 <TableHead>Tipo</TableHead>
                 <TableHead>Categoria</TableHead>
-                <TableHead className="w-40">Compartilhável com coordenadores</TableHead>
+                <TableHead className="w-40">Compartilhável com coord./qualidade</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -179,7 +179,7 @@ const GrantEditor = ({ employeeId, employeeName, shareableCatalog, active, onClo
       <SheetHeader>
         <SheetTitle>Autorizações — {employeeName}</SheetTitle>
         <SheetDescription>
-          Marque os tipos que os coordenadores poderão visualizar deste colaborador.
+          Marque os tipos que os coordenadores e a Qualidade poderão visualizar deste colaborador.
         </SheetDescription>
       </SheetHeader>
       <div className="mt-4 space-y-2">
