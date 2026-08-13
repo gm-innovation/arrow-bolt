@@ -123,20 +123,23 @@ export function PeriodsTable({
             <TableHead className="text-center">Abono</TableHead>
             <TableHead className="text-center">Saldo</TableHead>
             <TableHead>Limite de Gozo (23m)</TableHead>
+            <TableHead>Início até</TableHead>
+            <TableHead>Última férias</TableHead>
             <TableHead>Situação</TableHead>
+            {canManage && <TableHead className="text-right">Ações</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={canManage ? 12 : 11} className="py-8 text-center text-muted-foreground">
                 Carregando...
               </TableCell>
             </TableRow>
           )}
           {!isLoading && rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={canManage ? 12 : 11} className="py-8 text-center text-muted-foreground">
                 Nenhum período encontrado.
               </TableCell>
             </TableRow>
@@ -144,6 +147,8 @@ export function PeriodsTable({
           {rows.map((p) => {
             const balance = p.entitled_days - p.used_days - p.sold_days;
             const sev = deadlineSeverity(p.concession_deadline);
+            const startLimit = startDeadline(p.concession_deadline, Math.max(1, balance));
+            const lastGrant = lastGrantByEmployee.get(p.employee_id);
             return (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">
@@ -174,6 +179,14 @@ export function PeriodsTable({
                     {format(parseISO(p.concession_deadline), "dd/MM/yyyy")}
                   </span>
                 </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {balance > 0 ? format(startLimit, "dd/MM/yyyy") : "—"}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {lastGrant
+                    ? `${format(parseISO(lastGrant.data_inicio_gozo), "dd/MM/yy")} · ${lastGrant.quantidade_dias}d`
+                    : "—"}
+                </TableCell>
                 <TableCell className="space-x-1 whitespace-nowrap">
                   <Badge
                     variant={
@@ -188,11 +201,26 @@ export function PeriodsTable({
                   </Badge>
                   {p.ferias_vencidas && <Badge variant="destructive">Vencidas</Badge>}
                 </TableCell>
+                {canManage && (
+                  <TableCell className="space-x-1 text-right whitespace-nowrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onRegisterGrant?.(p.employee_id)}
+                    >
+                      Última férias
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => onRecalc?.(p.employee_id)}>
+                      Recalcular
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
+
 
       {pages > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
