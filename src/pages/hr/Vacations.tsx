@@ -48,6 +48,7 @@ import { VacationMonthGrid } from "@/components/hr/vacations/VacationMonthGrid";
 import { PeriodsTable } from "@/components/hr/vacations/PeriodsTable";
 import { RequestsTable } from "@/components/hr/vacations/RequestsTable";
 import { VacationRulesForm } from "@/components/hr/vacations/VacationRulesForm";
+import { ACTIVE_REQUEST_STATUSES, classifyVacationRequest } from "@/lib/hr/vacationPolicy";
 
 function useEmployeeOptions() {
   return useQuery({
@@ -80,6 +81,7 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const [employeeSearch, setEmployeeSearch] = useState("");
   const [listOpen, setListOpen] = useState(false);
   const periods = useVacationPeriods(employeeId || undefined);
+  const employeeRequests = useVacationRequests(employeeId || undefined);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [remainderChoice, setRemainderChoice] = useState<"later" | "sell">("later");
@@ -99,7 +101,6 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
 
   const invalidRange = Boolean(startDate && endDate && endDate < startDate);
   const days = startDate && endDate && !invalidRange ? daysBetween(startDate, endDate) : 0;
-  const belowMinimum = days > 0 && days < 5;
   const selectedEmployee = employees.data?.find((e) => e.id === employeeId);
   const managerId = selectedEmployee?.direct_manager_id ?? null;
 
@@ -116,13 +117,36 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
     : 30;
   const remainderDays = Math.max(0, entitledDays - days);
   const maxSell = rules.data?.max_dias_abono ?? 10;
-  const sellDays = remainderChoice === "sell" ? Math.min(remainderDays, maxSell) : 0;
-  const sellCapped = remainderChoice === "sell" && remainderDays > maxSell;
+  const requestedSell = remainderChoice === "sell" ? remainderDays : 0;
+
+  /** primeira parcela = nenhuma outra solicitação ativa no mesmo período aquisitivo */
+  const isFirstInstallment = useMemo(() => {
+    if (!autoPeriod) return true;
+    const actives = (employeeRequests.data ?? []).filter(
+      (r) => r.period_id === autoPeriod.id && ACTIVE_REQUEST_STATUSES.includes(r.status)
+    );
+    return actives.length === 0;
+  }, [employeeRequests.data, autoPeriod]);
+
+  const policy = classifyVacationRequest({
+    days,
+    sellDays: requestedSell,
+    isFirstInstallment,
+    maxSell,
+  });
+  const sellDays = policy.effectiveSellDays;
+  const belowMinimum = policy.belowMinimum;
+  const sellCapped = remainderChoice === "sell" && policy.sellCapped;
   const partialAgainstPolicy =
     remainderDays > 0 && days > 0 && rules.data?.permite_divisao_ferias === false;
+  const missingJustification = policy.requiresJustification && !justification.trim();
 
   const canSubmit =
-    Boolean(employeeId && startDate && endDate) && !invalidRange && days > 0 && !belowMinimum;
+    Boolean(employeeId && startDate && endDate) &&
+    !invalidRange &&
+    days > 0 &&
+    !belowMinimum &&
+    !missingJustification;
 
   const submit = async () => {
     if (!canSubmit) return;
@@ -137,6 +161,7 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
       advance_13th: false,
       justification: justification || null,
       manager_id: managerId,
+      is_exception: policy.isException,
       created_by_hr_id: isHRUser ? (profile?.id ?? null) : null,
     });
     setOpen(false);
@@ -289,7 +314,9 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
               )}
               {belowMinimum && (
                 <div className="text-destructive">
-                  Cada solicitação de férias deve ter no mínimo 5 dias corridos.
+                  {isFirstInstallment
+                    ? "A primeira parcela de férias deve ter no mínimo 14 dias corridos."
+                    : "As parcelas seguintes devem ter no mínimo 5 dias corridos."}
                 </div>
               )}
               {days > 0 && !belowMinimum && (
@@ -313,15 +340,34 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
                   excedentes ficam de saldo para programar depois.
                 </div>
               )}
+              {days > 0 && !belowMinimum && policy.isStandard && (
+                <div className="text-emerald-600">✓ {policy.label}</div>
+              )}
+              {days > 0 && !belowMinimum && policy.isException && (
+                <div className="text-amber-600">
+                  ⚠ {policy.label} — o padrão é 30 dias de gozo ou 20 dias com venda de 10 dias.
+                  Justificativa obrigatória.
+                </div>
+              )}
+              {missingJustification && (
+                <div className="text-destructive">
+                  Informe a justificativa da exceção para enviar a solicitação.
+                </div>
+              )}
               {partialAgainstPolicy && (
                 <div className="text-amber-600">
                   ⚠ A política da empresa não prevê divisão de férias — a solicitação será registrada
                   e dependerá de avaliação do RH.
                 </div>
               )}
-              {employeeId && isHRUser && (
+              {employeeId && isHRUser && !policy.isException && (
                 <div className="text-emerald-600">
                   ✓ Cadastro pelo RH — a solicitação já será registrada como aprovada.
+                </div>
+              )}
+              {employeeId && policy.isException && (
+                <div className="text-amber-600">
+                  ⚠ Seguirá para autorização da Diretoria antes da homologação do RH.
                 </div>
               )}
               {employeeId && !isHRUser && !managerId && (
@@ -332,8 +378,17 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
             </div>
 
             <div className="md:col-span-2">
-              <Label>Justificativa</Label>
-              <Textarea rows={3} value={justification} onChange={(e) => setJustification(e.target.value)} />
+              <Label>Justificativa {policy.requiresJustification && "*"}</Label>
+              <Textarea
+                rows={3}
+                value={justification}
+                onChange={(e) => setJustification(e.target.value)}
+                placeholder={
+                  policy.requiresJustification
+                    ? "Explique o motivo da divisão ou da venda de dias fora do padrão"
+                    : "Opcional"
+                }
+              />
             </div>
           </div>
         </div>
@@ -343,7 +398,7 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
           <Button onClick={submit} disabled={create.isPending || !canSubmit}>
             {create.isPending
               ? "Salvando..."
-              : isHRUser
+              : isHRUser && !policy.isException
                 ? "Registrar e Aprovar"
                 : "Enviar Solicitação"}
           </Button>
@@ -358,11 +413,13 @@ function DecisionDialog({
   requestId,
   stage,
   bypassManager,
+  isException,
   trigger,
 }: {
   requestId: string;
-  stage: "manager" | "hr";
+  stage: "manager" | "director" | "hr";
   bypassManager?: boolean;
+  isException?: boolean;
   trigger: React.ReactNode;
 }) {
   const { profile } = useAuth();
@@ -378,6 +435,7 @@ function DecisionDialog({
       comment: comment || null,
       approver_id: profile.id,
       bypass_manager: bypassManager,
+      is_exception: isException,
     });
     setOpen(false);
     setComment("");
@@ -388,7 +446,10 @@ function DecisionDialog({
       <DialogTrigger asChild>{trigger}</DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Decidir Solicitação ({stage === "manager" ? "Gestor" : "RH"})</DialogTitle>
+          <DialogTitle>
+            Decidir Solicitação (
+            {stage === "manager" ? "Gestor" : stage === "director" ? "Diretoria" : "RH"})
+          </DialogTitle>
         </DialogHeader>
         <div>
           <Label>Comentário</Label>
