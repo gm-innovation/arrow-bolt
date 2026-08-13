@@ -316,6 +316,124 @@ export function daysBetween(start: string, end: string) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Histórico de gozo ("última férias")                                */
+/* ------------------------------------------------------------------ */
+
+export interface VacationGrant {
+  id: string;
+  company_id: string;
+  employee_id: string;
+  period_id: string | null;
+  data_inicio_gozo: string;
+  data_fim_gozo: string;
+  quantidade_dias: number;
+  dias_abono: number;
+  data_pagamento: string | null;
+  observacoes: string | null;
+  origem_importacao?: boolean;
+  created_at: string;
+  employee?: { id: string; full_name: string | null; position: string | null } | null;
+}
+
+export function useVacationGrants(employeeId?: string) {
+  return useQuery({
+    queryKey: ["vacation-grants", employeeId ?? "all"],
+    queryFn: async () => {
+      let q = supabase
+        .from("hr_vacation_grants")
+        .select("*, employee:profiles!hr_vacation_grants_employee_id_fkey(id, full_name, position)")
+        .order("data_inicio_gozo", { ascending: false });
+      if (employeeId) q = q.eq("employee_id", employeeId);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as unknown as VacationGrant[];
+    },
+  });
+}
+
+export interface VacationGrantInput {
+  id?: string;
+  employee_id: string;
+  company_id: string;
+  data_inicio_gozo: string;
+  data_fim_gozo: string;
+  quantidade_dias: number;
+  dias_abono: number;
+  data_pagamento?: string | null;
+  observacoes?: string | null;
+  registrado_por?: string | null;
+}
+
+export function useSaveVacationGrant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: VacationGrantInput) => {
+      const { id, ...payload } = input;
+      if (id) {
+        const { error } = await supabase.from("hr_vacation_grants").update(payload).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("hr_vacation_grants").insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vacation-grants"] });
+      qc.invalidateQueries({ queryKey: ["vacation-periods"] });
+      qc.invalidateQueries({ queryKey: ["vacation-balance"] });
+      toast.success("Férias gozadas registradas — períodos recalculados");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+export function useDeleteVacationGrant() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("hr_vacation_grants").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vacation-grants"] });
+      qc.invalidateQueries({ queryKey: ["vacation-periods"] });
+      qc.invalidateQueries({ queryKey: ["vacation-balance"] });
+      toast.success("Registro removido — períodos recalculados");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+/** Regera os períodos aquisitivos do colaborador a partir da data de admissão. */
+export function useRebuildVacationPeriods() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (employeeId: string) => {
+      const rpc = supabase.rpc as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ error: { message: string } | null }>;
+      const { error } = await rpc("hr_vacation_rebuild_periods", { _employee_id: employeeId });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["vacation-periods"] });
+      qc.invalidateQueries({ queryKey: ["vacation-balance"] });
+      toast.success("Períodos recalculados");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+}
+
+/** Último dia em que o gozo pode começar, respeitando o limite concessivo. */
+export function startDeadline(concessionDeadline: string, days: number) {
+  const d = new Date(concessionDeadline + "T00:00:00");
+  d.setDate(d.getDate() - Math.max(0, days - 1));
+  return d;
+}
+
+
+/* ------------------------------------------------------------------ */
 /* Conflitos                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -453,13 +571,16 @@ export function useVacationRealtime() {
       qc.invalidateQueries({ queryKey: ["vacation-periods"] });
       qc.invalidateQueries({ queryKey: ["vacation-conflicts"] });
       qc.invalidateQueries({ queryKey: ["vacation-balance"] });
+      qc.invalidateQueries({ queryKey: ["vacation-grants"] });
     };
     const channel = supabase
       .channel("hr-vacations-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_requests" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_conflicts" }, invalidate)
       .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_periods" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_grants" }, invalidate)
       .subscribe();
+
     return () => {
       supabase.removeChannel(channel);
     };

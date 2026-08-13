@@ -18,7 +18,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { deadlineSeverity, VacationPeriod, VacationPeriodStatus } from "@/hooks/useVacations";
+import {
+  deadlineSeverity,
+  startDeadline,
+  VacationGrant,
+  VacationPeriod,
+  VacationPeriodStatus,
+} from "@/hooks/useVacations";
 import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 25;
@@ -33,13 +39,30 @@ const statusLabel: Record<VacationPeriodStatus, string> = {
 export function PeriodsTable({
   periods,
   isLoading,
+  grants = [],
+  canManage,
+  onRegisterGrant,
+  onRecalc,
 }: {
   periods: VacationPeriod[];
   isLoading?: boolean;
+  grants?: VacationGrant[];
+  canManage?: boolean;
+  onRegisterGrant?: (employeeId: string) => void;
+  onRecalc?: (employeeId: string) => void;
 }) {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<string>("all");
   const [page, setPage] = useState(0);
+
+  const lastGrantByEmployee = useMemo(() => {
+    const map = new Map<string, VacationGrant>();
+    for (const g of grants) {
+      const cur = map.get(g.employee_id);
+      if (!cur || g.data_inicio_gozo > cur.data_inicio_gozo) map.set(g.employee_id, g);
+    }
+    return map;
+  }, [grants]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -54,6 +77,7 @@ export function PeriodsTable({
   const pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const current = Math.min(page, pages - 1);
   const rows = filtered.slice(current * PAGE_SIZE, current * PAGE_SIZE + PAGE_SIZE);
+
 
   return (
     <div className="space-y-3">
@@ -99,20 +123,23 @@ export function PeriodsTable({
             <TableHead className="text-center">Abono</TableHead>
             <TableHead className="text-center">Saldo</TableHead>
             <TableHead>Limite de Gozo (23m)</TableHead>
+            <TableHead>Início até</TableHead>
+            <TableHead>Última férias</TableHead>
             <TableHead>Situação</TableHead>
+            {canManage && <TableHead className="text-right">Ações</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {isLoading && (
             <TableRow>
-              <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={canManage ? 12 : 11} className="py-8 text-center text-muted-foreground">
                 Carregando...
               </TableCell>
             </TableRow>
           )}
           {!isLoading && rows.length === 0 && (
             <TableRow>
-              <TableCell colSpan={9} className="py-8 text-center text-muted-foreground">
+              <TableCell colSpan={canManage ? 12 : 11} className="py-8 text-center text-muted-foreground">
                 Nenhum período encontrado.
               </TableCell>
             </TableRow>
@@ -120,6 +147,8 @@ export function PeriodsTable({
           {rows.map((p) => {
             const balance = p.entitled_days - p.used_days - p.sold_days;
             const sev = deadlineSeverity(p.concession_deadline);
+            const startLimit = startDeadline(p.concession_deadline, Math.max(1, balance));
+            const lastGrant = lastGrantByEmployee.get(p.employee_id);
             return (
               <TableRow key={p.id}>
                 <TableCell className="font-medium">
@@ -150,6 +179,14 @@ export function PeriodsTable({
                     {format(parseISO(p.concession_deadline), "dd/MM/yyyy")}
                   </span>
                 </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {balance > 0 ? format(startLimit, "dd/MM/yyyy") : "—"}
+                </TableCell>
+                <TableCell className="text-sm text-muted-foreground">
+                  {lastGrant
+                    ? `${format(parseISO(lastGrant.data_inicio_gozo), "dd/MM/yy")} · ${lastGrant.quantidade_dias}d`
+                    : "—"}
+                </TableCell>
                 <TableCell className="space-x-1 whitespace-nowrap">
                   <Badge
                     variant={
@@ -164,11 +201,26 @@ export function PeriodsTable({
                   </Badge>
                   {p.ferias_vencidas && <Badge variant="destructive">Vencidas</Badge>}
                 </TableCell>
+                {canManage && (
+                  <TableCell className="space-x-1 text-right whitespace-nowrap">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onRegisterGrant?.(p.employee_id)}
+                    >
+                      Última férias
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => onRecalc?.(p.employee_id)}>
+                      Recalcular
+                    </Button>
+                  </TableCell>
+                )}
               </TableRow>
             );
           })}
         </TableBody>
       </Table>
+
 
       {pages > 1 && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
