@@ -120,7 +120,7 @@ export function useVacationRequests(employeeId?: string) {
       let q = supabase
         .from("hr_vacation_requests")
         .select(
-          "*, employee:profiles!hr_vacation_requests_employee_id_fkey(id, full_name, position), period:hr_vacation_periods!hr_vacation_requests_period_id_fkey(id, period_start, period_end, concession_deadline, entitled_days, used_days, sold_days)"
+          "*, employee:profiles!hr_vacation_requests_employee_id_fkey(id, full_name, position, department_id), period:hr_vacation_periods!hr_vacation_requests_period_id_fkey(id, period_start, period_end, concession_deadline, entitled_days, used_days, sold_days)"
         )
         .order("created_at", { ascending: false });
       if (employeeId) q = q.eq("employee_id", employeeId);
