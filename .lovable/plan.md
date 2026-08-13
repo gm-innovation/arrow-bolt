@@ -4,13 +4,16 @@ Hoje, ao criar uma solicitação de férias, o sistema sempre grava o status "Ag
 
 ## O que muda
 
-1. **Roteamento na criação**: se o colaborador não tem gestor direto, a solicitação nasce já em "Aguardando RH" — o RH homologa direto, em etapa única. Com gestor direto, o fluxo em duas etapas (Gestor → RH) continua igual.
+1. **RH cadastrando = já aprovada**: quando quem cria a solicitação é o próprio RH (ou Diretoria/Super Admin), ela nasce com status "Aprovada", com a homologação registrada em nome de quem cadastrou. Nada de esperar aprovação de si mesmo.
 
-2. **Aviso no diálogo**: o texto passa a refletir o comportamento real ("Sem gestor direto — o RH decide diretamente").
+2. **Sem gestor direto = RH decide**: quando um colaborador (não-RH) cria a solicitação e não tem gestor direto cadastrado, ela nasce em "Aguardando RH" — etapa única. Com gestor direto, o fluxo em duas etapas (Gestor → RH) continua igual.
 
-3. **Destravar solicitações antigas**: a solicitação do Hugo (e qualquer outra em "Aguardando Gestor" sem gestor direto) passa a aparecer para o RH com o botão de decisão, sem precisar de intervenção manual — o RH pode decidir por ela como etapa única.
+3. **Aviso no diálogo**: o texto passa a refletir o comportamento real ("Cadastro pelo RH — a solicitação já será aprovada" / "Sem gestor direto — o RH decide diretamente").
 
-4. **Registro da decisão**: quando o RH decide sem etapa de gestor, o histórico de aprovações fica com uma única entrada de RH, sem etapa de gestor fictícia.
+4. **Destravar solicitações antigas**: a solicitação do Hugo (e qualquer outra em "Aguardando Gestor" sem gestor direto) passa a aparecer para o RH com o botão de decisão, sem precisar de intervenção manual.
+
+5. **Registro da decisão**: o histórico de aprovações recebe uma única entrada de RH, sem etapa de gestor fictícia. O saldo do período aquisitivo é recalculado normalmente ao aprovar, como já ocorre hoje.
+
 
 ## Detalhes técnicos
 
