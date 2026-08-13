@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { conflictTypeLabel, VacationConflict, VacationRequest, VacationRules } from "@/hooks/useVacations";
-import { computeVacationOverlaps } from "@/lib/hr/vacationOverlaps";
+import { computeVacationOverlaps, monthStartCounts } from "@/lib/hr/vacationOverlaps";
 import { OverlapList } from "./OverlapList";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
