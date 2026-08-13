@@ -75,7 +75,8 @@ function useEmployeeOptions() {
 }
 
 function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
-  const { profile } = useAuth();
+  const { profile, userRole } = useAuth();
+  const isHRUser = ["hr", "director", "admin", "super_admin"].includes(userRole ?? "");
   const [open, setOpen] = useState(false);
   const employees = useEmployeeOptions();
   const create = useCreateVacationRequest();
@@ -93,6 +94,7 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const selectedEmployee = employees.data?.find((e) => e.id === employeeId);
   const managerId = selectedEmployee?.direct_manager_id ?? null;
 
+
   const submit = async () => {
     if (!employeeId || !startDate || !endDate || days <= 0) return;
     await create.mutateAsync({
@@ -106,6 +108,8 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
       advance_13th: advance13,
       justification: justification || null,
       manager_id: managerId,
+      created_by_hr_id: isHRUser ? (profile?.id ?? null) : null,
+
     });
     setOpen(false);
     setStartDate("");
@@ -185,7 +189,17 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
 
           <div className="md:col-span-2 text-sm text-muted-foreground">
             {days > 0 && <>Total: <strong>{days}</strong> dia(s) de gozo{sellDays > 0 && <> + {sellDays} de abono</>}.</>}
-            {!managerId && employeeId && <div className="text-amber-600 mt-1">⚠ Colaborador sem gestor direto — a solicitação irá direto para o RH.</div>}
+            {employeeId && isHRUser && (
+              <div className="mt-1 text-emerald-600">
+                ✓ Cadastro pelo RH — a solicitação já será registrada como aprovada.
+              </div>
+            )}
+            {employeeId && !isHRUser && !managerId && (
+              <div className="mt-1 text-amber-600">
+                ⚠ Colaborador sem gestor direto — o RH decide diretamente.
+              </div>
+            )}
+
           </div>
 
           <div className="md:col-span-2">
@@ -202,7 +216,12 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={submit} disabled={create.isPending || !employeeId || !startDate || !endDate}>
-            {create.isPending ? "Enviando..." : "Enviar Solicitação"}
+            {create.isPending
+              ? "Salvando..."
+              : isHRUser
+                ? "Registrar e Aprovar"
+                : "Enviar Solicitação"}
+
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -213,10 +232,12 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
 function DecisionDialog({
   requestId,
   stage,
+  bypassManager,
   trigger,
 }: {
   requestId: string;
   stage: "manager" | "hr";
+  bypassManager?: boolean;
   trigger: React.ReactNode;
 }) {
   const { profile } = useAuth();
@@ -231,10 +252,12 @@ function DecisionDialog({
       decision,
       comment: comment || null,
       approver_id: profile.id,
+      bypass_manager: bypassManager,
     });
     setOpen(false);
     setComment("");
   };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
@@ -477,18 +500,24 @@ export default function Vacations() {
                       <DecisionDialog
                         requestId={r.id}
                         stage="manager"
-                        trigger={<Button size="sm">Decidir</Button>}
+                        trigger={<Button size="sm" variant="outline">Decidir</Button>}
                       />
                     )}
-                    {r.status === "pending_hr" && isHR && (
+                    {isHR && (r.status === "pending_manager" || r.status === "pending_hr") && (
                       <DecisionDialog
                         requestId={r.id}
                         stage="hr"
-                        trigger={<Button size="sm">Homologar</Button>}
+                        bypassManager={r.status === "pending_manager"}
+                        trigger={
+                          <Button size="sm">
+                            {r.status === "pending_manager" ? "Aprovar direto" : "Homologar"}
+                          </Button>
+                        }
                       />
                     )}
                   </>
                 )}
+
               />
             </CardContent>
           </Card>

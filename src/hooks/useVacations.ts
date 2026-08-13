@@ -158,28 +158,53 @@ export function useCreateVacationRequest() {
       advance_13th?: boolean;
       justification?: string | null;
       manager_id?: string | null;
+      /** Quem está cadastrando; se for RH/Diretoria a solicitação nasce aprovada. */
+      created_by_hr_id?: string | null;
     }) => {
+      const { created_by_hr_id, ...rest } = payload;
+      const now = new Date().toISOString();
+      const status: VacationRequestStatus = created_by_hr_id
+        ? "approved"
+        : rest.manager_id
+          ? "pending_manager"
+          : "pending_hr";
+
       const { data, error } = await supabase
         .from("hr_vacation_requests")
         .insert({
-          ...payload,
-          sell_days: payload.sell_days ?? 0,
-          advance_13th: payload.advance_13th ?? false,
-          status: "pending_manager",
+          ...rest,
+          sell_days: rest.sell_days ?? 0,
+          advance_13th: rest.advance_13th ?? false,
+          status,
+          ...(created_by_hr_id
+            ? { hr_decision_by: created_by_hr_id, hr_decision_at: now }
+            : {}),
         })
         .select()
         .single();
       if (error) throw error;
+
+      if (created_by_hr_id) {
+        await supabase.from("hr_vacation_approvals").insert({
+          request_id: (data as { id: string }).id,
+          approver_id: created_by_hr_id,
+          stage: "hr",
+          decision: "approved",
+          comment: "Cadastrada e aprovada diretamente pelo RH",
+        });
+      }
       return data;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["vacation-requests"] });
       qc.invalidateQueries({ queryKey: ["vacation-balance"] });
-      toast.success("Solicitação enviada");
+      qc.invalidateQueries({ queryKey: ["vacation-periods"] });
+      toast.success("Solicitação registrada");
     },
     onError: (e: Error) => toast.error(e.message),
   });
 }
+
 
 export function useDecideVacationRequest() {
   const qc = useQueryClient();
@@ -190,6 +215,8 @@ export function useDecideVacationRequest() {
       decision: "approved" | "rejected";
       comment?: string | null;
       approver_id: string;
+      /** RH decidindo sem esperar o gestor direto. */
+      bypass_manager?: boolean;
     }) => {
       const now = new Date().toISOString();
       const patch:
@@ -205,7 +232,12 @@ export function useDecideVacationRequest() {
         patch.hr_decision_at = now;
         patch.hr_comment = params.comment ?? null;
         patch.status = params.decision === "approved" ? "approved" : "rejected";
+        if (params.bypass_manager) {
+          patch.manager_decision_at = now;
+          patch.manager_comment = "Etapa do gestor dispensada pelo RH";
+        }
       }
+
 
       const { error } = await supabase.from("hr_vacation_requests").update(patch).eq("id", params.id);
       if (error) throw error;
