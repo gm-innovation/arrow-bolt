@@ -496,8 +496,21 @@ export default function Vacations() {
   const conflicts = useVacationConflicts();
   const rules = useVacationRules(profile?.company_id);
   const cancel = useCancelVacationRequest();
+  const grants = useVacationGrants();
+  const deleteGrant = useDeleteVacationGrant();
+  const rebuild = useRebuildVacationPeriods();
+  const [grantOpen, setGrantOpen] = useState(false);
+  const [grantEditing, setGrantEditing] = useState<VacationGrant | null>(null);
+  const [grantEmployeeId, setGrantEmployeeId] = useState<string | undefined>(undefined);
   const isHR = ["hr", "director", "admin", "super_admin"].includes(userRole ?? "");
   const isDirector = ["director", "super_admin"].includes(userRole ?? "");
+
+  const openGrantDialog = (employeeId?: string, grant?: VacationGrant | null) => {
+    setGrantEditing(grant ?? null);
+    setGrantEmployeeId(grant ? undefined : employeeId);
+    setGrantOpen(true);
+  };
+
 
   const filteredRequests = useMemo(() => {
     const list = requests.data ?? [];
