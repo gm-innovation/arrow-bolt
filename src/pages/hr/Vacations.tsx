@@ -5,13 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -41,7 +34,6 @@ import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
   daysBetween,
-  requestTypeLabel,
   useCancelVacationRequest,
   useCreateVacationRequest,
   useDecideVacationRequest,
@@ -49,7 +41,6 @@ import {
   useVacationPeriods,
   useVacationRequests,
   useVacationRules,
-  VacationRequestType,
 } from "@/hooks/useVacations";
 import { useAuth } from "@/contexts/AuthContext";
 import { VacationYearGrid } from "@/components/hr/vacations/VacationYearGrid";
@@ -87,13 +78,11 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const rules = useVacationRules(profile?.company_id);
   const [employeeId, setEmployeeId] = useState<string>(profile?.id ?? "");
   const [employeeSearch, setEmployeeSearch] = useState("");
+  const [listOpen, setListOpen] = useState(false);
   const periods = useVacationPeriods(employeeId || undefined);
-  const [type, setType] = useState<VacationRequestType>("vacation");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-  const [isSplit, setIsSplit] = useState(false);
-  const [sellDays, setSellDays] = useState(0);
-  const [advance13, setAdvance13] = useState(false);
+  const [remainderChoice, setRemainderChoice] = useState<"later" | "sell">("later");
   const [justification, setJustification] = useState("");
 
   const normalize = (v: string) =>
@@ -110,19 +99,27 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
 
   const invalidRange = Boolean(startDate && endDate && endDate < startDate);
   const days = startDate && endDate && !invalidRange ? daysBetween(startDate, endDate) : 0;
-  const minDays = isSplit ? 5 : 14;
-  const belowMinimum = type === "vacation" && days > 0 && days < minDays;
-  const splitAgainstPolicy = isSplit && rules.data?.permite_divisao_ferias === false;
+  const belowMinimum = days > 0 && days < 5;
   const selectedEmployee = employees.data?.find((e) => e.id === employeeId);
   const managerId = selectedEmployee?.direct_manager_id ?? null;
 
   /** período aquisitivo mais antigo com saldo — vinculado automaticamente */
-  const autoPeriodId = useMemo(() => {
+  const autoPeriod = useMemo(() => {
     const withBalance = (periods.data ?? [])
       .filter((p) => p.entitled_days - p.used_days - p.sold_days > 0)
       .sort((a, b) => a.period_start.localeCompare(b.period_start));
-    return withBalance[0]?.id ?? null;
+    return withBalance[0] ?? null;
   }, [periods.data]);
+
+  const entitledDays = autoPeriod
+    ? autoPeriod.entitled_days - autoPeriod.used_days - autoPeriod.sold_days
+    : 30;
+  const remainderDays = Math.max(0, entitledDays - days);
+  const maxSell = rules.data?.max_dias_abono ?? 10;
+  const sellDays = remainderChoice === "sell" ? Math.min(remainderDays, maxSell) : 0;
+  const sellCapped = remainderChoice === "sell" && remainderDays > maxSell;
+  const partialAgainstPolicy =
+    remainderDays > 0 && days > 0 && rules.data?.permite_divisao_ferias === false;
 
   const canSubmit =
     Boolean(employeeId && startDate && endDate) && !invalidRange && days > 0 && !belowMinimum;
@@ -131,13 +128,13 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
     if (!canSubmit) return;
     await create.mutateAsync({
       employee_id: employeeId,
-      period_id: autoPeriodId,
-      request_type: type,
+      period_id: autoPeriod?.id ?? null,
+      request_type: "vacation",
       start_date: startDate,
       end_date: endDate,
       requested_days: days,
       sell_days: sellDays,
-      advance_13th: advance13,
+      advance_13th: false,
       justification: justification || null,
       manager_id: managerId,
       created_by_hr_id: isHRUser ? (profile?.id ?? null) : null,
@@ -146,168 +143,202 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
     setStartDate("");
     setEndDate("");
     setJustification("");
-    setSellDays(0);
-    setAdvance13(false);
-    setIsSplit(false);
+    setRemainderChoice("later");
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{trigger}</DialogTrigger>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
+      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden p-0 gap-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle>Nova Solicitação de Férias</DialogTitle>
           <DialogDescription>
             Informe o colaborador e o período desejado de gozo.
           </DialogDescription>
         </DialogHeader>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="md:col-span-2 space-y-2">
-            <Label htmlFor="employee-search">Colaborador *</Label>
-            {selectedEmployee && (
-              <p className="text-sm">
-                Selecionado:{" "}
-                <strong>{selectedEmployee.full_name}</strong>
-                {selectedEmployee.position && (
-                  <span className="text-muted-foreground"> — {selectedEmployee.position}</span>
-                )}
-              </p>
-            )}
-            <Input
-              id="employee-search"
-              placeholder="Buscar colaborador por nome ou cargo..."
-              value={employeeSearch}
-              onChange={(e) => setEmployeeSearch(e.target.value)}
-            />
-            <div className="max-h-60 overflow-y-auto rounded-md border">
-              {filteredEmployees.length === 0 ? (
-                <p className="p-3 text-sm text-muted-foreground">
-                  Nenhum colaborador encontrado.
-                </p>
-              ) : (
-                filteredEmployees.map((e) => (
-                  <button
-                    key={e.id}
-                    type="button"
-                    onClick={() => setEmployeeId(e.id)}
-                    className={cn(
-                      "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent",
-                      employeeId === e.id && "bg-accent font-medium"
+
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="md:col-span-2 space-y-2">
+              <Label htmlFor="employee-search">Colaborador *</Label>
+              {selectedEmployee && !listOpen && (
+                <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
+                  <span className="truncate">
+                    <strong>{selectedEmployee.full_name}</strong>
+                    {selectedEmployee.position && (
+                      <span className="text-muted-foreground"> — {selectedEmployee.position}</span>
                     )}
-                  >
-                    <Check
-                      className={cn(
-                        "h-4 w-4 shrink-0",
-                        employeeId === e.id ? "opacity-100" : "opacity-0"
+                  </span>
+                  <Button variant="ghost" size="sm" onClick={() => setListOpen(true)}>
+                    Trocar
+                  </Button>
+                </div>
+              )}
+              {(!selectedEmployee || listOpen) && (
+                <>
+                  <Input
+                    id="employee-search"
+                    placeholder="Buscar colaborador por nome ou cargo..."
+                    value={employeeSearch}
+                    onFocus={() => setListOpen(true)}
+                    onChange={(e) => {
+                      setEmployeeSearch(e.target.value);
+                      setListOpen(true);
+                    }}
+                  />
+                  {listOpen && (
+                    <div className="max-h-44 overflow-y-auto rounded-md border">
+                      {filteredEmployees.length === 0 ? (
+                        <p className="p-3 text-sm text-muted-foreground">
+                          Nenhum colaborador encontrado.
+                        </p>
+                      ) : (
+                        filteredEmployees.map((e) => (
+                          <button
+                            key={e.id}
+                            type="button"
+                            onClick={() => {
+                              setEmployeeId(e.id);
+                              setEmployeeSearch("");
+                              setListOpen(false);
+                            }}
+                            className={cn(
+                              "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-accent",
+                              employeeId === e.id && "bg-accent font-medium"
+                            )}
+                          >
+                            <Check
+                              className={cn(
+                                "h-4 w-4 shrink-0",
+                                employeeId === e.id ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <span className="truncate">
+                              {e.full_name}
+                              {e.position && (
+                                <span className="text-muted-foreground"> — {e.position}</span>
+                              )}
+                            </span>
+                          </button>
+                        ))
                       )}
-                    />
-                    <span className="truncate">
-                      {e.full_name}
-                      {e.position && (
-                        <span className="text-muted-foreground"> — {e.position}</span>
-                      )}
-                    </span>
-                  </button>
-                ))
+                    </div>
+                  )}
+                </>
               )}
             </div>
-          </div>
 
-
-
-
-          <div>
-            <Label>Tipo *</Label>
-            <Select value={type} onValueChange={(v) => setType(v as VacationRequestType)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {(Object.keys(requestTypeLabel) as VacationRequestType[]).map((t) => (
-                  <SelectItem key={t} value={t}>{requestTypeLabel[t]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label>Venda de Dias (Abono)</Label>
-            <Input type="number" min={0} max={10} value={sellDays} onChange={(e) => setSellDays(Number(e.target.value) || 0)} />
-          </div>
-
-          <div>
-            <Label>Início *</Label>
-            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          </div>
-          <div>
-            <Label>Fim *</Label>
-            <Input
-              type="date"
-              value={endDate}
-              min={startDate || undefined}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-
-          <div className="md:col-span-2 flex items-start gap-2">
-            <input
-              id="split"
-              type="checkbox"
-              className="mt-1"
-              checked={isSplit}
-              onChange={(e) => setIsSplit(e.target.checked)}
-            />
             <div>
-              <Label htmlFor="split" className="cursor-pointer">Dividir férias em parcelas</Label>
-              <p className="text-xs text-muted-foreground">
-                Marque para solicitar um período menor que 14 dias (mínimo de 5 dias por parcela).
-              </p>
+              <Label>Início *</Label>
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </div>
-          </div>
+            <div>
+              <Label>Fim *</Label>
+              <Input
+                type="date"
+                value={endDate}
+                min={startDate || undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
 
-          <div className="md:col-span-2 space-y-1 text-sm text-muted-foreground">
-            {invalidRange && (
-              <div className="text-destructive">
-                A data fim deve ser igual ou posterior à data de início.
+            {days > 0 && !belowMinimum && remainderDays > 0 && (
+              <div className="md:col-span-2 space-y-2 rounded-md border p-3">
+                <p className="text-sm">
+                  O colaborador tem direito a <strong>{entitledDays}</strong> dias e está solicitando{" "}
+                  <strong>{days}</strong>. O que fazer com os {remainderDays} dia(s) restantes?
+                </p>
+                <div className="space-y-2">
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      className="mt-1"
+                      checked={remainderChoice === "later"}
+                      onChange={() => setRemainderChoice("later")}
+                    />
+                    <span>
+                      Programar depois
+                      <span className="block text-xs text-muted-foreground">
+                        Os dias ficam de saldo para uma nova solicitação.
+                      </span>
+                    </span>
+                  </label>
+                  <label className="flex items-start gap-2 text-sm cursor-pointer">
+                    <input
+                      type="radio"
+                      className="mt-1"
+                      checked={remainderChoice === "sell"}
+                      onChange={() => setRemainderChoice("sell")}
+                    />
+                    <span>
+                      Vender os dias (abono)
+                      <span className="block text-xs text-muted-foreground">
+                        Limite da empresa: {maxSell} dia(s).
+                      </span>
+                    </span>
+                  </label>
+                </div>
               </div>
             )}
-            {belowMinimum && (
-              <div className="text-destructive">
-                Férias devem ter no mínimo {minDays} dias corridos
-                {isSplit ? " por parcela." : ", exceto quando divididas em parcelas."}
-              </div>
-            )}
-            {days > 0 && !belowMinimum && (
-              <div>Total: <strong>{days}</strong> dia(s) de gozo{sellDays > 0 && <> + {sellDays} de abono</>}.</div>
-            )}
-            {splitAgainstPolicy && (
-              <div className="text-amber-600">
-                ⚠ A política da empresa não prevê divisão de férias — a solicitação será registrada e
-                dependerá de aprovação do RH.
-              </div>
-            )}
-            {employeeId && isHRUser && (
-              <div className="text-emerald-600">
-                ✓ Cadastro pelo RH — a solicitação já será registrada como aprovada.
-              </div>
-            )}
-            {employeeId && !isHRUser && !managerId && (
-              <div className="text-amber-600">
-                ⚠ Colaborador sem gestor direto — o RH decide diretamente.
-              </div>
-            )}
-          </div>
 
-          <div className="md:col-span-2">
-            <Label>Justificativa</Label>
-            <Textarea rows={3} value={justification} onChange={(e) => setJustification(e.target.value)} />
-          </div>
+            <div className="md:col-span-2 space-y-1 text-sm text-muted-foreground">
+              {invalidRange && (
+                <div className="text-destructive">
+                  A data fim deve ser igual ou posterior à data de início.
+                </div>
+              )}
+              {belowMinimum && (
+                <div className="text-destructive">
+                  Cada solicitação de férias deve ter no mínimo 5 dias corridos.
+                </div>
+              )}
+              {days > 0 && !belowMinimum && (
+                <div>
+                  <strong>{days}</strong> dia(s) de gozo
+                  {remainderDays > 0 && (
+                    <>
+                      {" · "}
+                      {remainderDays} dia(s) restantes:{" "}
+                      {remainderChoice === "sell"
+                        ? `vender (abono de ${sellDays})`
+                        : "programar depois"}
+                    </>
+                  )}
+                  .
+                </div>
+              )}
+              {sellCapped && (
+                <div className="text-amber-600">
+                  ⚠ O abono máximo é de {maxSell} dia(s) — os {remainderDays - maxSell} dia(s)
+                  excedentes ficam de saldo para programar depois.
+                </div>
+              )}
+              {partialAgainstPolicy && (
+                <div className="text-amber-600">
+                  ⚠ A política da empresa não prevê divisão de férias — a solicitação será registrada
+                  e dependerá de avaliação do RH.
+                </div>
+              )}
+              {employeeId && isHRUser && (
+                <div className="text-emerald-600">
+                  ✓ Cadastro pelo RH — a solicitação já será registrada como aprovada.
+                </div>
+              )}
+              {employeeId && !isHRUser && !managerId && (
+                <div className="text-amber-600">
+                  ⚠ Colaborador sem gestor direto — o RH decide diretamente.
+                </div>
+              )}
+            </div>
 
-          <div className="md:col-span-2 flex items-center gap-2">
-            <input id="a13" type="checkbox" checked={advance13} onChange={(e) => setAdvance13(e.target.checked)} />
-            <Label htmlFor="a13" className="cursor-pointer">Solicitar adiantamento da 1ª parcela do 13º</Label>
+            <div className="md:col-span-2">
+              <Label>Justificativa</Label>
+              <Textarea rows={3} value={justification} onChange={(e) => setJustification(e.target.value)} />
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 py-4 border-t shrink-0">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={submit} disabled={create.isPending || !canSubmit}>
             {create.isPending
