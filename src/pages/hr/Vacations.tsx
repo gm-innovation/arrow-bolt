@@ -75,7 +75,8 @@ function useEmployeeOptions() {
 }
 
 function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
-  const { profile } = useAuth();
+  const { profile, userRole } = useAuth();
+  const isHRUser = ["hr", "director", "admin", "super_admin"].includes(userRole ?? "");
   const [open, setOpen] = useState(false);
   const employees = useEmployeeOptions();
   const create = useCreateVacationRequest();
@@ -92,6 +93,7 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const days = startDate && endDate ? daysBetween(startDate, endDate) : 0;
   const selectedEmployee = employees.data?.find((e) => e.id === employeeId);
   const managerId = selectedEmployee?.direct_manager_id ?? null;
+
 
   const submit = async () => {
     if (!employeeId || !startDate || !endDate || days <= 0) return;
