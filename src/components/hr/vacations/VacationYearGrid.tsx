@@ -136,8 +136,12 @@ export function VacationYearGrid({
                 const bar = lane.find((b) => b.startMonth === m);
                 if (bar) {
                   const span = bar.endMonth - bar.startMonth + 1;
-                  const conflicted = bar.conflicts.length > 0;
                   const overlaps = overlapsByRequest.get(bar.request.id) ?? [];
+                  const startsInMonth = monthTotals[parseISO(bar.request.start_date).getMonth()];
+                  const cashConflict =
+                    parseISO(bar.request.start_date).getFullYear() === year && startsInMonth >= limit;
+                  const sectorConflict = overlaps.some((o) => o.sameDepartment);
+                  const conflicted = bar.conflicts.length > 0 || cashConflict || sectorConflict;
                   cells.push(
                     <td key={`b-${m}`} colSpan={span} className="px-1 py-2">
                       <Popover>
