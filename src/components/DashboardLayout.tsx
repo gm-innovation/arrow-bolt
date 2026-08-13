@@ -499,8 +499,10 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
         { title: "Conhecimento", icon: BookOpen, path: "/quality/knowledge" },
       ],
     },
+    { title: "Documentos de Colaboradores", icon: FileText, path: "/quality/employee-documents" },
     { title: "Comunicação", icon: Megaphone, path: "/quality/communication" },
     { title: "Configurações", icon: Settings, path: "/quality/settings" },
+
     { title: "Feed", icon: MessageSquare, path: "/corp/feed" },
     { title: "Solicitações Corp", icon: Inbox, path: "/corp/dashboard" },
     { title: "Treinamentos", icon: GraduationCap, path: "/corp/university" },

@@ -199,6 +199,8 @@ const QualityKnowledge = lazy(() => import("./pages/quality/Knowledge"));
 const QualityCommunication = lazy(() => import("./pages/quality/Communication"));
 const QualityHomologation = lazy(() => import("./pages/quality/Homologation"));
 const QualityCompanyDocuments = lazy(() => import("./pages/quality/CompanyDocuments"));
+const QualityEmployeeDocuments = lazy(() => import("./pages/quality/EmployeeDocuments"));
+
 
 const QualityDocumentsNorms = lazy(() => import("./pages/quality/documents/Norms"));
 const QualityDocumentsTerms = lazy(() => import("./pages/quality/documents/Terms"));
@@ -479,6 +481,8 @@ const App = () => {
                     <Route path="/quality/documents/master-list" element={<QualityDocumentsMasterList />} />
                     <Route path="/quality/documents/copies" element={<QualityControlledCopies />} />
                     <Route path="/quality/documents/company" element={<QualityCompanyDocuments />} />
+                    <Route path="/quality/employee-documents" element={<QualityEmployeeDocuments />} />
+
                     <Route path="/quality/documents/:id" element={<QualityDocumentDetail />} />
                     <Route path="/quality/controlled-copies" element={<Navigate to="/quality/documents/copies" replace />} />
                     <Route path="/quality/master-list" element={<Navigate to="/quality/documents/master-list" replace />} />
