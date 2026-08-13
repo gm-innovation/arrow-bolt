@@ -773,7 +773,42 @@ export default function Vacations() {
               <CardTitle className="text-base">Períodos aquisitivos e limite de gozo</CardTitle>
             </CardHeader>
             <CardContent>
-              <PeriodsTable periods={periods.data ?? []} isLoading={periods.isLoading} />
+              <PeriodsTable
+                periods={periods.data ?? []}
+                isLoading={periods.isLoading}
+                grants={grants.data ?? []}
+                canManage={isHR}
+                onRegisterGrant={(employeeId) => openGrantDialog(employeeId)}
+                onRecalc={(employeeId) => rebuild.mutate(employeeId)}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-4">
+          <Card>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+              <div>
+                <CardTitle className="text-base">Férias já gozadas</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  O cadastro da última férias alimenta o cálculo de períodos aquisitivos,
+                  proporcional, direito e limite de gozo.
+                </p>
+              </div>
+              {isHR && (
+                <Button variant="outline" onClick={() => openGrantDialog()}>
+                  <History className="h-4 w-4 mr-2" /> Registrar última férias
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              <GrantsTable
+                grants={grants.data ?? []}
+                isLoading={grants.isLoading}
+                canManage={isHR}
+                onEdit={(g) => openGrantDialog(undefined, g)}
+                onDelete={(id) => deleteGrant.mutate(id)}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -782,6 +817,20 @@ export default function Vacations() {
           <VacationRulesForm canEdit={isHR} />
         </TabsContent>
       </Tabs>
+
+      <GrantDialog
+        open={grantOpen}
+        onOpenChange={(v) => {
+          setGrantOpen(v);
+          if (!v) {
+            setGrantEditing(null);
+            setGrantEmployeeId(undefined);
+          }
+        }}
+        grant={grantEditing}
+        employeeId={grantEmployeeId}
+      />
     </div>
   );
+
 }
