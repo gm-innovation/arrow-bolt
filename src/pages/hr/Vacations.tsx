@@ -108,6 +108,8 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
       advance_13th: advance13,
       justification: justification || null,
       manager_id: managerId,
+      created_by_hr_id: isHRUser ? (profile?.id ?? null) : null,
+
     });
     setOpen(false);
     setStartDate("");
