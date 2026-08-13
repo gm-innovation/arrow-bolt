@@ -115,12 +115,13 @@ export function VacationYearGrid({
               <th key={m} className="px-1 py-2 text-center font-medium">
                 <div>{m}</div>
                 <div
+                  title={`${monthTotals[i]} colaborador(es) iniciando férias em ${m} (limite de caixa: ${limit})`}
                   className={cn(
                     "text-xs font-normal",
-                    monthTotals[i] > limit ? "text-destructive" : "text-muted-foreground"
+                    monthTotals[i] >= limit ? "text-destructive" : "text-muted-foreground"
                   )}
                 >
-                  {monthTotals[i]}
+                  {monthTotals[i]} início{monthTotals[i] === 1 ? "" : "s"}
                 </div>
               </th>
             ))}
