@@ -86,7 +86,7 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
   const create = useCreateVacationRequest();
   const rules = useVacationRules(profile?.company_id);
   const [employeeId, setEmployeeId] = useState<string>(profile?.id ?? "");
-  const [employeeOpen, setEmployeeOpen] = useState(false);
+  const [employeeSearch, setEmployeeSearch] = useState("");
   const periods = useVacationPeriods(employeeId || undefined);
   const [type, setType] = useState<VacationRequestType>("vacation");
   const [startDate, setStartDate] = useState("");
