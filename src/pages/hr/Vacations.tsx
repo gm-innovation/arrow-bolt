@@ -34,6 +34,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
   daysBetween,
   requestTypeLabel,
@@ -48,6 +49,7 @@ import {
 } from "@/hooks/useVacations";
 import { useAuth } from "@/contexts/AuthContext";
 import { VacationYearGrid } from "@/components/hr/vacations/VacationYearGrid";
+import { VacationMonthGrid } from "@/components/hr/vacations/VacationMonthGrid";
 import { PeriodsTable } from "@/components/hr/vacations/PeriodsTable";
 import { RequestsTable } from "@/components/hr/vacations/RequestsTable";
 import { VacationRulesForm } from "@/components/hr/vacations/VacationRulesForm";
@@ -262,6 +264,8 @@ export default function Vacations() {
   const [mainTab, setMainTab] = useState("schedule");
   const [listFilter, setListFilter] = useState("all");
   const [year, setYear] = useState(new Date().getFullYear());
+  const [month, setMonth] = useState(new Date().getMonth());
+  const [viewMode, setViewMode] = useState<"year" | "month">("year");
   const requests = useVacationRequests();
   const periods = useVacationPeriods();
   const conflicts = useVacationConflicts();
@@ -368,42 +372,80 @@ export default function Vacations() {
 
         <TabsContent value="schedule" className="mt-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-3">
-              <CardTitle className="text-base">Programação anual {year}</CardTitle>
-              <div className="flex items-center gap-1">
-                <Button
-                  size="icon"
-                  variant="outline"
-                  aria-label="Ano anterior"
-                  onClick={() => setYear(year - 1)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="w-16 text-center font-medium">{year}</span>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  aria-label="Próximo ano"
-                  onClick={() => setYear(year + 1)}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+            <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3">
+              <CardTitle className="text-base">
+                {viewMode === "year"
+                  ? `Programação anual ${year}`
+                  : `Programação de ${format(new Date(year, month, 1), "MMMM 'de' yyyy", { locale: ptBR })}`}
+              </CardTitle>
+              <div className="flex items-center gap-3">
+                <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "year" | "month")}>
+                  <TabsList>
+                    <TabsTrigger value="year">Ano</TabsTrigger>
+                    <TabsTrigger value="month">Mês</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    aria-label={viewMode === "year" ? "Ano anterior" : "Mês anterior"}
+                    onClick={() => {
+                      if (viewMode === "year") setYear(year - 1);
+                      else if (month === 0) {
+                        setMonth(11);
+                        setYear(year - 1);
+                      } else setMonth(month - 1);
+                    }}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
+                  <span className="min-w-[7rem] text-center font-medium">
+                    {viewMode === "year"
+                      ? year
+                      : format(new Date(year, month, 1), "MMM yyyy", { locale: ptBR })}
+                  </span>
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    aria-label={viewMode === "year" ? "Próximo ano" : "Próximo mês"}
+                    onClick={() => {
+                      if (viewMode === "year") setYear(year + 1);
+                      else if (month === 11) {
+                        setMonth(0);
+                        setYear(year + 1);
+                      } else setMonth(month + 1);
+                    }}
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
               {requests.isLoading ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">Carregando...</p>
-              ) : (
+              ) : viewMode === "year" ? (
                 <VacationYearGrid
                   year={year}
                   requests={requests.data ?? []}
                   conflicts={conflicts.data ?? []}
                   rules={rules.data ?? null}
                 />
+              ) : (
+                <VacationMonthGrid
+                  year={year}
+                  month={month}
+                  requests={requests.data ?? []}
+                  conflicts={conflicts.data ?? []}
+                  rules={rules.data ?? null}
+                  companyId={profile?.company_id}
+                />
               )}
             </CardContent>
           </Card>
         </TabsContent>
+
 
         <TabsContent value="requests" className="mt-4">
           <Card>
@@ -422,6 +464,8 @@ export default function Vacations() {
             <CardContent>
               <RequestsTable
                 requests={filteredRequests}
+                allRequests={requests.data ?? []}
+
                 conflicts={conflicts.data ?? []}
                 isLoading={requests.isLoading}
                 isHR={isHR}

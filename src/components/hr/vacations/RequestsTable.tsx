@@ -1,4 +1,7 @@
+import { useMemo } from "react";
+import { computeVacationOverlaps } from "@/lib/hr/vacationOverlaps";
 import { format, parseISO } from "date-fns";
+
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +32,7 @@ function statusVariant(s: VacationRequestStatus) {
 
 export function RequestsTable({
   requests,
+  allRequests,
   conflicts,
   isLoading,
   isHR,
@@ -37,6 +41,7 @@ export function RequestsTable({
   renderActions,
 }: {
   requests: VacationRequest[];
+  allRequests?: VacationRequest[];
   conflicts: VacationConflict[];
   isLoading?: boolean;
   isHR: boolean;
@@ -45,6 +50,11 @@ export function RequestsTable({
   renderActions: (r: VacationRequest) => React.ReactNode;
 }) {
   const conflictsFor = (id: string) => conflicts.filter((c) => c.programacao_id === id);
+  const overlapMap = useMemo(
+    () => computeVacationOverlaps(allRequests ?? requests),
+    [allRequests, requests]
+  );
+
 
   return (
     <Table>
@@ -130,7 +140,12 @@ export function RequestsTable({
               <TableCell>
                 <div className="flex flex-wrap items-center gap-1">
                   <Badge variant={statusVariant(r.status)}>{requestStatusLabel[r.status]}</Badge>
-                  <ConflictBadge conflicts={conflictsFor(r.id)} canResolve={isHR} />
+                  <ConflictBadge
+                    conflicts={conflictsFor(r.id)}
+                    canResolve={isHR}
+                    overlaps={overlapMap.get(r.id) ?? []}
+                  />
+
                 </div>
               </TableCell>
               <TableCell className="text-right">

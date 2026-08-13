@@ -4,13 +4,17 @@ import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { conflictTypeLabel, VacationConflict } from "@/hooks/useVacations";
 import { ConflictExceptionDialog } from "./ConflictExceptionDialog";
 import { Button } from "@/components/ui/button";
+import type { VacationOverlap } from "@/lib/hr/vacationOverlaps";
+import { OverlapList } from "./OverlapList";
 
 export function ConflictBadge({
   conflicts,
   canResolve,
+  overlaps = [],
 }: {
   conflicts: VacationConflict[];
   canResolve?: boolean;
+  overlaps?: VacationOverlap[];
 }) {
   if (conflicts.length === 0) return null;
   const pending = conflicts.filter((c) => !c.resolvido);
@@ -26,7 +30,7 @@ export function ConflictBadge({
           </Badge>
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 space-y-3">
+      <PopoverContent align="end" className="w-96 space-y-3">
         {conflicts.map((c) => (
           <div key={c.id} className="space-y-1 border-b pb-2 last:border-0 last:pb-0">
             <div className="flex items-center justify-between gap-2">
@@ -49,6 +53,7 @@ export function ConflictBadge({
             )}
           </div>
         ))}
+        <OverlapList overlaps={overlaps} />
       </PopoverContent>
     </Popover>
   );
