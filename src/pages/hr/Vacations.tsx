@@ -40,6 +40,7 @@ import {
   useVacationConflicts,
   useVacationPeriods,
   useVacationRequests,
+  useVacationRealtime,
   useVacationRules,
 } from "@/hooks/useVacations";
 import { useAuth } from "@/contexts/AuthContext";
@@ -477,6 +478,7 @@ function DecisionDialog({
 
 export default function Vacations() {
   const { profile, userRole } = useAuth();
+  useVacationRealtime();
   const [mainTab, setMainTab] = useState("schedule");
   const [listFilter, setListFilter] = useState("all");
   const [year, setYear] = useState(new Date().getFullYear());

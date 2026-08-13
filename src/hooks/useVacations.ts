@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -64,7 +65,12 @@ export interface VacationRequest {
     used_days: number;
     sold_days: number;
   } | null;
-  employee?: { id: string; full_name: string | null; position: string | null } | null;
+  employee?: {
+    id: string;
+    full_name: string | null;
+    position: string | null;
+    department_id?: string | null;
+  } | null;
 }
 
 export interface VacationBalance {
@@ -115,7 +121,7 @@ export function useVacationRequests(employeeId?: string) {
       let q = supabase
         .from("hr_vacation_requests")
         .select(
-          "*, employee:profiles!hr_vacation_requests_employee_id_fkey(id, full_name, position), period:hr_vacation_periods!hr_vacation_requests_period_id_fkey(id, period_start, period_end, concession_deadline, entitled_days, used_days, sold_days)"
+          "*, employee:profiles!hr_vacation_requests_employee_id_fkey(id, full_name, position, department_id), period:hr_vacation_periods!hr_vacation_requests_period_id_fkey(id, period_start, period_end, concession_deadline, entitled_days, used_days, sold_days)"
         )
         .order("created_at", { ascending: false });
       if (employeeId) q = q.eq("employee_id", employeeId);
@@ -429,6 +435,35 @@ export function useUpdateVacationRules() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Realtime                                                           */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Mantém a tela de férias sincronizada sem recarregar a página — inclusive
+ * quando a gravação vem da assistente (Marina) ou de outro usuário.
+ */
+export function useVacationRealtime() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const invalidate = () => {
+      qc.invalidateQueries({ queryKey: ["vacation-requests"] });
+      qc.invalidateQueries({ queryKey: ["vacation-periods"] });
+      qc.invalidateQueries({ queryKey: ["vacation-conflicts"] });
+      qc.invalidateQueries({ queryKey: ["vacation-balance"] });
+    };
+    const channel = supabase
+      .channel("hr-vacations-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_requests" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_conflicts" }, invalidate)
+      .on("postgres_changes", { event: "*", schema: "public", table: "hr_vacation_periods" }, invalidate)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
 }
 
 /* ------------------------------------------------------------------ */

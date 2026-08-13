@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { conflictTypeLabel, VacationConflict, VacationRequest, VacationRules } from "@/hooks/useVacations";
-import { computeVacationOverlaps } from "@/lib/hr/vacationOverlaps";
+import { computeVacationOverlaps, monthStartCounts } from "@/lib/hr/vacationOverlaps";
 import { OverlapList } from "./OverlapList";
 
 const MONTHS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
@@ -92,18 +92,8 @@ export function VacationYearGrid({
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [requests, year, conflictsByRequest]);
 
-  /** número de programações que tocam cada mês (uma vez por programação) */
-  const monthTotals = useMemo(() => {
-    const totals = new Array(12).fill(0);
-    rows.forEach((row) =>
-      row.lanes.forEach((lane) =>
-        lane.forEach((bar) => {
-          for (let m = bar.startMonth; m <= bar.endMonth; m++) totals[m] += 1;
-        })
-      )
-    );
-    return totals;
-  }, [rows]);
+  /** conflito de caixa: colaboradores que INICIAM férias em cada mês */
+  const monthTotals = useMemo(() => monthStartCounts(requests, year), [requests, year]);
 
   const limit = rules?.max_ferias_por_mes ?? 3;
 
@@ -125,12 +115,13 @@ export function VacationYearGrid({
               <th key={m} className="px-1 py-2 text-center font-medium">
                 <div>{m}</div>
                 <div
+                  title={`${monthTotals[i]} colaborador(es) iniciando férias em ${m} (limite de caixa: ${limit})`}
                   className={cn(
                     "text-xs font-normal",
-                    monthTotals[i] > limit ? "text-destructive" : "text-muted-foreground"
+                    monthTotals[i] >= limit ? "text-destructive" : "text-muted-foreground"
                   )}
                 >
-                  {monthTotals[i]}
+                  {monthTotals[i]} início{monthTotals[i] === 1 ? "" : "s"}
                 </div>
               </th>
             ))}
@@ -145,8 +136,12 @@ export function VacationYearGrid({
                 const bar = lane.find((b) => b.startMonth === m);
                 if (bar) {
                   const span = bar.endMonth - bar.startMonth + 1;
-                  const conflicted = bar.conflicts.length > 0;
                   const overlaps = overlapsByRequest.get(bar.request.id) ?? [];
+                  const startsInMonth = monthTotals[parseISO(bar.request.start_date).getMonth()];
+                  const cashConflict =
+                    parseISO(bar.request.start_date).getFullYear() === year && startsInMonth >= limit;
+                  const sectorConflict = overlaps.some((o) => o.sameDepartment);
+                  const conflicted = bar.conflicts.length > 0 || cashConflict || sectorConflict;
                   cells.push(
                     <td key={`b-${m}`} colSpan={span} className="px-1 py-2">
                       <Popover>
@@ -192,6 +187,18 @@ export function VacationYearGrid({
                               ))}
                             </div>
                           )}
+                          {cashConflict && (
+                            <div>
+                              <p className="text-xs font-medium text-destructive">
+                                Conflito de caixa
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {startsInMonth} colaboradores iniciam férias em{" "}
+                                {MONTHS[parseISO(bar.request.start_date).getMonth()]}/{year} — o
+                                pagamento das férias sai todo no mesmo mês (limite: {limit}).
+                              </p>
+                            </div>
+                          )}
                           <OverlapList overlaps={overlaps} />
                         </PopoverContent>
                       </Popover>
@@ -199,7 +206,7 @@ export function VacationYearGrid({
                   );
                   m += span;
                 } else {
-                  const saturated = monthTotals[m] > limit;
+                  const saturated = monthTotals[m] >= limit;
                   cells.push(
                     <td key={`e-${m}`} className="px-1 py-2">
                       <div className={cn("h-6 rounded", saturated ? "bg-destructive/5" : "bg-muted/40")} />
