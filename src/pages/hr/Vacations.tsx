@@ -201,13 +201,8 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
             </div>
           </div>
 
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+
+
 
           <div>
             <Label>Tipo *</Label>
