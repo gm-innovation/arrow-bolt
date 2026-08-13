@@ -496,18 +496,24 @@ export default function Vacations() {
                       <DecisionDialog
                         requestId={r.id}
                         stage="manager"
-                        trigger={<Button size="sm">Decidir</Button>}
+                        trigger={<Button size="sm" variant="outline">Decidir</Button>}
                       />
                     )}
-                    {r.status === "pending_hr" && isHR && (
+                    {isHR && (r.status === "pending_manager" || r.status === "pending_hr") && (
                       <DecisionDialog
                         requestId={r.id}
                         stage="hr"
-                        trigger={<Button size="sm">Homologar</Button>}
+                        bypassManager={r.status === "pending_manager"}
+                        trigger={
+                          <Button size="sm">
+                            {r.status === "pending_manager" ? "Aprovar direto" : "Homologar"}
+                          </Button>
+                        }
                       />
                     )}
                   </>
                 )}
+
               />
             </CardContent>
           </Card>
