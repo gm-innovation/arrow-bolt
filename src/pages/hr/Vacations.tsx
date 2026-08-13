@@ -189,7 +189,17 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
 
           <div className="md:col-span-2 text-sm text-muted-foreground">
             {days > 0 && <>Total: <strong>{days}</strong> dia(s) de gozo{sellDays > 0 && <> + {sellDays} de abono</>}.</>}
-            {!managerId && employeeId && <div className="text-amber-600 mt-1">⚠ Colaborador sem gestor direto — a solicitação irá direto para o RH.</div>}
+            {employeeId && isHRUser && (
+              <div className="mt-1 text-emerald-600">
+                ✓ Cadastro pelo RH — a solicitação já será registrada como aprovada.
+              </div>
+            )}
+            {employeeId && !isHRUser && !managerId && (
+              <div className="mt-1 text-amber-600">
+                ⚠ Colaborador sem gestor direto — o RH decide diretamente.
+              </div>
+            )}
+
           </div>
 
           <div className="md:col-span-2">
