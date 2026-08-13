@@ -481,11 +481,17 @@ export default function Vacations() {
   const rules = useVacationRules(profile?.company_id);
   const cancel = useCancelVacationRequest();
   const isHR = ["hr", "director", "admin", "super_admin"].includes(userRole ?? "");
+  const isDirector = ["director", "super_admin"].includes(userRole ?? "");
 
   const filteredRequests = useMemo(() => {
     const list = requests.data ?? [];
     if (listFilter === "pending")
-      return list.filter((r) => r.status === "pending_manager" || r.status === "pending_hr");
+      return list.filter(
+        (r) =>
+          r.status === "pending_manager" ||
+          r.status === "pending_director" ||
+          r.status === "pending_hr"
+      );
     if (listFilter === "approved") return list.filter((r) => r.status === "approved");
     if (listFilter === "conflicts") {
       const ids = new Set(
@@ -501,7 +507,12 @@ export default function Vacations() {
   const counters = useMemo(() => {
     const list = requests.data ?? [];
     return {
-      pending: list.filter((r) => r.status === "pending_manager" || r.status === "pending_hr").length,
+      pending: list.filter(
+        (r) =>
+          r.status === "pending_manager" ||
+          r.status === "pending_director" ||
+          r.status === "pending_hr"
+      ).length,
       approved: list.filter((r) => r.status === "approved").length,
       total: list.length,
       conflicts: (conflicts.data ?? []).filter((c) => !c.resolvido).length,
@@ -686,7 +697,15 @@ export default function Vacations() {
                       <DecisionDialog
                         requestId={r.id}
                         stage="manager"
+                        isException={r.is_exception}
                         trigger={<Button size="sm" variant="outline">Decidir</Button>}
+                      />
+                    )}
+                    {isDirector && r.status === "pending_director" && (
+                      <DecisionDialog
+                        requestId={r.id}
+                        stage="director"
+                        trigger={<Button size="sm">Autorizar exceção</Button>}
                       />
                     )}
                     {isHR && (r.status === "pending_manager" || r.status === "pending_hr") && (
