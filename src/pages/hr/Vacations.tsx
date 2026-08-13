@@ -626,7 +626,9 @@ export default function Vacations() {
           <TabsTrigger value="schedule">Programação</TabsTrigger>
           <TabsTrigger value="requests">Solicitações</TabsTrigger>
           <TabsTrigger value="periods">Períodos Aquisitivos</TabsTrigger>
+          <TabsTrigger value="history">Histórico de Gozo</TabsTrigger>
           <TabsTrigger value="rules">Regras</TabsTrigger>
+
         </TabsList>
 
         <TabsContent value="schedule" className="mt-4">
