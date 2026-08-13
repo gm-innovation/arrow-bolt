@@ -216,7 +216,12 @@ function NewRequestDialog({ trigger }: { trigger: React.ReactNode }) {
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={submit} disabled={create.isPending || !employeeId || !startDate || !endDate}>
-            {create.isPending ? "Enviando..." : "Enviar Solicitação"}
+            {create.isPending
+              ? "Salvando..."
+              : isHRUser
+                ? "Registrar e Aprovar"
+                : "Enviar Solicitação"}
+
           </Button>
         </DialogFooter>
       </DialogContent>
