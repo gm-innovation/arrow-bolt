@@ -187,6 +187,18 @@ export function VacationYearGrid({
                               ))}
                             </div>
                           )}
+                          {cashConflict && (
+                            <div>
+                              <p className="text-xs font-medium text-destructive">
+                                Conflito de caixa
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {startsInMonth} colaboradores iniciam férias em{" "}
+                                {MONTHS[parseISO(bar.request.start_date).getMonth()]}/{year} — o
+                                pagamento das férias sai todo no mesmo mês (limite: {limit}).
+                              </p>
+                            </div>
+                          )}
                           <OverlapList overlaps={overlaps} />
                         </PopoverContent>
                       </Popover>
@@ -194,7 +206,7 @@ export function VacationYearGrid({
                   );
                   m += span;
                 } else {
-                  const saturated = monthTotals[m] > limit;
+                  const saturated = monthTotals[m] >= limit;
                   cells.push(
                     <td key={`e-${m}`} className="px-1 py-2">
                       <div className={cn("h-6 rounded", saturated ? "bg-destructive/5" : "bg-muted/40")} />
