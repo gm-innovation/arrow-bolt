@@ -755,6 +755,17 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            <Button
+              size="icon"
+              variant="ghost"
+              title="Visualizar"
+              onClick={() => setPreview({
+                id: doc.id, file_name: doc.file_name, file_path: doc.file_path,
+                storage_bucket: doc.storage_bucket ?? null, employee_id: employeeId,
+              })}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
             <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)} title="Baixar">
               <Download className="h-4 w-4" />
             </Button>
