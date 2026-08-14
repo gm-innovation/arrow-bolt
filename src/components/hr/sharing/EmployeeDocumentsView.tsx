@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useCoordinatorEmployeeDocs, useMyPackages, useCreatePackage, getSignedDocUrl, PURPOSE_LABELS } from "@/hooks/useHRDocumentSharing";
-import { Search, Download, FileText, PackagePlus, ShieldAlert, Calendar as CalendarIcon } from "lucide-react";
+import { useCoordinatorEmployeeDocs, useMyPackages, useCreatePackage, logHrDocAccess, PURPOSE_LABELS } from "@/hooks/useHRDocumentSharing";
+import { downloadHrDoc, hrDocErrorMessage } from "@/hooks/useHRDocumentCompliance";
+import { DocumentPreviewDialog, type PreviewDoc } from "@/components/hr/sharing/DocumentPreviewDialog";
+import { Search, Download, Eye, FileText, PackagePlus, ShieldAlert, Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
