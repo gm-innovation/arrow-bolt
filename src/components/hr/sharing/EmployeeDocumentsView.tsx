@@ -43,7 +43,29 @@ const Directory = () => {
   const { data = [], isLoading } = useCoordinatorEmployeeDocs();
   const [q, setQ] = useState("");
   const [pkgOpen, setPkgOpen] = useState(false);
+  const [preview, setPreview] = useState<PreviewDoc | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Array<{ employee_id: string; document_id: string; catalog_id: string; requires_grant: boolean; label: string }>>([]);
+
+  const handleDownload = async (doc: any, employeeId: string) => {
+    setDownloadingId(doc.id);
+    try {
+      const blob = await downloadHrDoc({ file_path: doc.file_path, storage_bucket: doc.storage_bucket ?? null });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = doc.file_name || "documento";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      void logHrDocAccess({ document_id: doc.id, employee_id: employeeId, action: "download" });
+    } catch (e: any) {
+      toast.error("Erro ao baixar", { description: hrDocErrorMessage(e) });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const filtered = useMemo(() => data.filter((e: any) =>
     !q ||
