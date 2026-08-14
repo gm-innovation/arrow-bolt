@@ -159,6 +159,7 @@ const Directory = () => {
                             try {
                               const url = await getSignedDocUrl({
                                 document_id: doc.id, file_path: doc.file_path,
+                                storage_bucket: doc.storage_bucket ?? null,
                                 action: "download", employee_id: emp.id,
                               });
                               window.open(url, "_blank");
