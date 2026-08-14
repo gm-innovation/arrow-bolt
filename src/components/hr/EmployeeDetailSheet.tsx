@@ -622,6 +622,7 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [showLegacy, setShowLegacy] = useState(false);
+  const [preview, setPreview] = useState<PreviewDoc | null>(null);
   const queryClient = useQueryClient();
 
   const { data: catalog = [] } = useShareableCatalog();
