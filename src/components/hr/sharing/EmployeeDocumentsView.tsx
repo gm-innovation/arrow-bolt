@@ -120,12 +120,6 @@ const Directory = () => {
             <Input placeholder="Buscar colaborador ou cargo…" value={q} onChange={e=>setQ(e.target.value)} className="pl-9"/>
           </div>
           <div className="flex gap-2">
-            {filtered.length > 0 && (
-              <Button variant="outline" size="sm"
-                onClick={() => setExpanded(expanded.length === filtered.length ? [] : filtered.map((e: any) => e.id))}>
-                {expanded.length === filtered.length ? "Recolher todos" : "Expandir todos"}
-              </Button>
-            )}
             <Button disabled={selected.length===0} onClick={()=>setPkgOpen(true)}>
               <PackagePlus className="h-4 w-4 mr-2"/> Criar pacote ({selected.length})
             </Button>
