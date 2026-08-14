@@ -280,6 +280,31 @@ export const useCoordinatorEmployeeDocs = () => {
   });
 };
 
+// ============ Access log (best-effort) ============
+export const logHrDocAccess = async (opts: {
+  document_id: string;
+  employee_id?: string;
+  package_id?: string;
+  action?: "view" | "download";
+}) => {
+  try {
+    const { data: u } = await supabase.auth.getUser();
+    const uid = u?.user?.id;
+    if (!uid) return;
+    const { data: prof } = await (supabase as any)
+      .from("profiles").select("company_id").eq("id", uid).maybeSingle();
+    if (!prof?.company_id) return;
+    await (supabase as any).from("hr_document_share_access_log").insert({
+      company_id: prof.company_id,
+      document_id: opts.document_id,
+      package_id: opts.package_id ?? null,
+      employee_id: opts.employee_id ?? null,
+      accessed_by: uid,
+      action: opts.action ?? "view",
+    });
+  } catch { /* non-blocking */ }
+};
+
 // ============ Signed URL + log ============
 export const getSignedDocUrl = async (opts: {
   document_id: string; file_path: string; storage_bucket?: string | null;
