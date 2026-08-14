@@ -230,6 +230,12 @@ const Directory = () => {
         )}
       </CardContent>
       <PackageDialog open={pkgOpen} onOpenChange={setPkgOpen} items={selected} clear={()=>setSelected([])}/>
+      <DocumentPreviewDialog
+        open={!!preview}
+        onOpenChange={(v)=>{ if (!v) setPreview(null); }}
+        doc={preview}
+        logAccess
+      />
     </Card>
   );
 };
