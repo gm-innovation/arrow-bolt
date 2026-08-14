@@ -34,7 +34,7 @@ type EmployeeDocumentRow = {
 };
 
 import { Switch } from "@/components/ui/switch";
-import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3, Briefcase, Phone, MapPin, Users, IdCard, ShieldCheck } from "lucide-react";
+import { Download, Eye, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3, Briefcase, Phone, MapPin, Users, IdCard, ShieldCheck } from "lucide-react";
 import { ProfessionalTab } from "@/components/hr/employee/ProfessionalTab";
 import { ContactsTab } from "@/components/hr/employee/ContactsTab";
 import { AddressTab } from "@/components/hr/employee/AddressTab";
