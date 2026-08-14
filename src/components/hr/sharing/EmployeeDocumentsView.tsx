@@ -10,8 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { useCoordinatorEmployeeDocs, useMyPackages, useCreatePackage, getSignedDocUrl, PURPOSE_LABELS } from "@/hooks/useHRDocumentSharing";
-import { Search, Download, FileText, PackagePlus, ShieldAlert, Calendar as CalendarIcon } from "lucide-react";
+import { useCoordinatorEmployeeDocs, useMyPackages, useCreatePackage, logHrDocAccess, PURPOSE_LABELS } from "@/hooks/useHRDocumentSharing";
+import { downloadHrDoc, hrDocErrorMessage } from "@/hooks/useHRDocumentCompliance";
+import { DocumentPreviewDialog, type PreviewDoc } from "@/components/hr/sharing/DocumentPreviewDialog";
+import { Search, Download, Eye, FileText, PackagePlus, ShieldAlert, Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -41,7 +43,29 @@ const Directory = () => {
   const { data = [], isLoading } = useCoordinatorEmployeeDocs();
   const [q, setQ] = useState("");
   const [pkgOpen, setPkgOpen] = useState(false);
+  const [preview, setPreview] = useState<PreviewDoc | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Array<{ employee_id: string; document_id: string; catalog_id: string; requires_grant: boolean; label: string }>>([]);
+
+  const handleDownload = async (doc: any, employeeId: string) => {
+    setDownloadingId(doc.id);
+    try {
+      const blob = await downloadHrDoc({ file_path: doc.file_path, storage_bucket: doc.storage_bucket ?? null });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = doc.file_name || "documento";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      void logHrDocAccess({ document_id: doc.id, employee_id: employeeId, action: "download" });
+    } catch (e: any) {
+      toast.error("Erro ao baixar", { description: hrDocErrorMessage(e) });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const filtered = useMemo(() => data.filter((e: any) =>
     !q ||
@@ -154,17 +178,6 @@ const Directory = () => {
                           const doc = it.document;
                           const cat = it.catalog;
                           const checked = doc ? selected.some(x => x.document_id === doc.id) : false;
-                          const download = async () => {
-                            if (!doc) return;
-                            try {
-                              const url = await getSignedDocUrl({
-                                document_id: doc.id, file_path: doc.file_path,
-                                storage_bucket: doc.storage_bucket ?? null,
-                                action: "download", employee_id: emp.id,
-                              });
-                              window.open(url, "_blank");
-                            } catch (e:any) { toast.error("Erro ao baixar", { description: e.message }); }
-                          };
                           return (
                             <TableRow key={cat.id}>
                               <TableCell>
@@ -187,9 +200,22 @@ const Directory = () => {
                                     : <Badge>Disponível</Badge>}
                               </TableCell>
                               <TableCell>
-                                <Button size="sm" variant="ghost" disabled={!doc} onClick={download}>
-                                  <Download className="h-4 w-4 mr-1"/> Baixar
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button size="sm" variant="ghost" disabled={!doc}
+                                    onClick={() => doc && setPreview({
+                                      id: doc.id, file_name: doc.file_name, file_path: doc.file_path,
+                                      storage_bucket: doc.storage_bucket ?? null, employee_id: emp.id,
+                                    })}>
+                                    <Eye className="h-4 w-4 mr-1"/> Ver
+                                  </Button>
+                                  <Button size="sm" variant="ghost" disabled={!doc || downloadingId === doc?.id}
+                                    onClick={() => doc && handleDownload(doc, emp.id)}>
+                                    {downloadingId === doc?.id
+                                      ? <Loader2 className="h-4 w-4 mr-1 animate-spin"/>
+                                      : <Download className="h-4 w-4 mr-1"/>}
+                                    Baixar
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -204,6 +230,12 @@ const Directory = () => {
         )}
       </CardContent>
       <PackageDialog open={pkgOpen} onOpenChange={setPkgOpen} items={selected} clear={()=>setSelected([])}/>
+      <DocumentPreviewDialog
+        open={!!preview}
+        onOpenChange={(v)=>{ if (!v) setPreview(null); }}
+        doc={preview}
+        logAccess
+      />
     </Card>
   );
 };

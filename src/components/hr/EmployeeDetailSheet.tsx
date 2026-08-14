@@ -19,11 +19,11 @@ import { useShareableCatalog, useEmployeeBlocks, useSetBlock, useBulkSetEmployee
 import {
   useEmployeeDocuments,
   useUploadEmployeeDocument,
-  createHrDocSignedUrl,
   removeHrDocFile,
   hrDocErrorMessage,
   downloadHrDoc,
 } from "@/hooks/useHRDocumentCompliance";
+import { DocumentPreviewDialog, type PreviewDoc } from "@/components/hr/sharing/DocumentPreviewDialog";
 
 /** Registro de documento de colaborador com o bucket onde o arquivo está. */
 type EmployeeDocumentRow = {
@@ -34,7 +34,7 @@ type EmployeeDocumentRow = {
 };
 
 import { Switch } from "@/components/ui/switch";
-import { Download, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3, Briefcase, Phone, MapPin, Users, IdCard, ShieldCheck } from "lucide-react";
+import { Download, Eye, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3, Briefcase, Phone, MapPin, Users, IdCard, ShieldCheck } from "lucide-react";
 import { ProfessionalTab } from "@/components/hr/employee/ProfessionalTab";
 import { ContactsTab } from "@/components/hr/employee/ContactsTab";
 import { AddressTab } from "@/components/hr/employee/AddressTab";
@@ -622,6 +622,7 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [showLegacy, setShowLegacy] = useState(false);
+  const [preview, setPreview] = useState<PreviewDoc | null>(null);
   const queryClient = useQueryClient();
 
   const { data: catalog = [] } = useShareableCatalog();
@@ -677,13 +678,20 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
     }
   };
 
-  const handleDownload = async (doc: EmployeeDocumentRow) => {
+  const handleDownload = async (doc: EmployeeDocumentRow & { file_name?: string | null }) => {
     try {
-      const signedUrl = await createHrDocSignedUrl(doc, 300);
-      window.open(signedUrl, "_blank");
+      const blob = await downloadHrDoc(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = doc.file_name || "documento";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       toast({
-        title: "Erro ao abrir documento",
+        title: "Erro ao baixar documento",
         description: hrDocErrorMessage(err),
         variant: "destructive",
       });
@@ -747,6 +755,17 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
             </div>
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            <Button
+              size="icon"
+              variant="ghost"
+              title="Visualizar"
+              onClick={() => setPreview({
+                id: doc.id, file_name: doc.file_name, file_path: doc.file_path,
+                storage_bucket: doc.storage_bucket ?? null, employee_id: employeeId,
+              })}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
             <Button size="icon" variant="ghost" onClick={() => handleDownload(doc)} title="Baixar">
               <Download className="h-4 w-4" />
             </Button>
@@ -914,6 +933,12 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentPreviewDialog
+        open={!!preview}
+        onOpenChange={(v) => { if (!v) setPreview(null); }}
+        doc={preview}
+      />
     </div>
   );
 }
