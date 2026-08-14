@@ -265,6 +265,7 @@ export const useCoordinatorEmployeeDocs = () => {
                 id: r.document_id,
                 file_name: r.file_name,
                 file_path: r.file_path,
+                storage_bucket: (r.storage_bucket ?? null) as string | null,
                 issue_date: r.issue_date,
                 expiry_date: r.expiry_date,
                 review_status: r.review_status,
