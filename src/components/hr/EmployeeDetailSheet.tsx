@@ -19,13 +19,11 @@ import { useShareableCatalog, useEmployeeBlocks, useSetBlock, useBulkSetEmployee
 import {
   useEmployeeDocuments,
   useUploadEmployeeDocument,
-  createHrDocSignedUrl,
-  // eslint-disable-next-line
-
   removeHrDocFile,
   hrDocErrorMessage,
   downloadHrDoc,
 } from "@/hooks/useHRDocumentCompliance";
+import { DocumentPreviewDialog, type PreviewDoc } from "@/components/hr/sharing/DocumentPreviewDialog";
 
 /** Registro de documento de colaborador com o bucket onde o arquivo está. */
 type EmployeeDocumentRow = {
