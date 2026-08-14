@@ -156,17 +156,6 @@ const Directory = () => {
                           const doc = it.document;
                           const cat = it.catalog;
                           const checked = doc ? selected.some(x => x.document_id === doc.id) : false;
-                          const download = async () => {
-                            if (!doc) return;
-                            try {
-                              const url = await getSignedDocUrl({
-                                document_id: doc.id, file_path: doc.file_path,
-                                storage_bucket: doc.storage_bucket ?? null,
-                                action: "download", employee_id: emp.id,
-                              });
-                              window.open(url, "_blank");
-                            } catch (e:any) { toast.error("Erro ao baixar", { description: e.message }); }
-                          };
                           return (
                             <TableRow key={cat.id}>
                               <TableCell>
@@ -189,9 +178,22 @@ const Directory = () => {
                                     : <Badge>Disponível</Badge>}
                               </TableCell>
                               <TableCell>
-                                <Button size="sm" variant="ghost" disabled={!doc} onClick={download}>
-                                  <Download className="h-4 w-4 mr-1"/> Baixar
-                                </Button>
+                                <div className="flex items-center gap-1">
+                                  <Button size="sm" variant="ghost" disabled={!doc}
+                                    onClick={() => doc && setPreview({
+                                      id: doc.id, file_name: doc.file_name, file_path: doc.file_path,
+                                      storage_bucket: doc.storage_bucket ?? null, employee_id: emp.id,
+                                    })}>
+                                    <Eye className="h-4 w-4 mr-1"/> Ver
+                                  </Button>
+                                  <Button size="sm" variant="ghost" disabled={!doc || downloadingId === doc?.id}
+                                    onClick={() => doc && handleDownload(doc, emp.id)}>
+                                    {downloadingId === doc?.id
+                                      ? <Loader2 className="h-4 w-4 mr-1 animate-spin"/>
+                                      : <Download className="h-4 w-4 mr-1"/>}
+                                    Baixar
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
