@@ -678,13 +678,20 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
     }
   };
 
-  const handleDownload = async (doc: EmployeeDocumentRow) => {
+  const handleDownload = async (doc: EmployeeDocumentRow & { file_name?: string | null }) => {
     try {
-      const signedUrl = await createHrDocSignedUrl(doc, 300);
-      window.open(signedUrl, "_blank");
+      const blob = await downloadHrDoc(doc);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = doc.file_name || "documento";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       toast({
-        title: "Erro ao abrir documento",
+        title: "Erro ao baixar documento",
         description: hrDocErrorMessage(err),
         variant: "destructive",
       });
