@@ -933,6 +933,12 @@ function DocumentsTab({ employeeId, companyId }: { employeeId: string; companyId
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <DocumentPreviewDialog
+        open={!!preview}
+        onOpenChange={(v) => { if (!v) setPreview(null); }}
+        doc={preview}
+      />
     </div>
   );
 }
