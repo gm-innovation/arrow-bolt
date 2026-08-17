@@ -165,7 +165,10 @@ export const useAuvoServiceGroups = () => {
 
   /** Situação da fila de análise: o que falta processar e o que falhou de vez. */
   const queue = {
-    pending: groups.filter((g) => g.analysis_status === "pending").length,
+    // "analyzing" também está na fila: é serviço reservado por uma execução em andamento.
+    pending: groups.filter(
+      (g) => g.analysis_status === "pending" || g.analysis_status === "analyzing",
+    ).length,
     error: groups.filter((g) => g.analysis_status === "error").length,
     done: groups.filter((g) => g.analysis_status === "done").length,
   };
