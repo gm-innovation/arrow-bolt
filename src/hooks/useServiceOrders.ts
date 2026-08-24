@@ -83,7 +83,7 @@ export const fetchServiceOrders = async (
   const search = (filters.search || '').trim();
 
   if (status !== 'all') {
-    query = query.eq('status', status);
+    query = query.eq('status', status as 'pending' | 'in_progress' | 'completed' | 'cancelled');
   }
   if (vesselId !== 'all') {
     query = query.eq('vessel_id', vesselId);
