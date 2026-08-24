@@ -12,14 +12,21 @@ WhatsApp ↔ Evolution API ──webhook──> whatsapp-in ──> ai-assistant
 ```
 
 - **whatsapp-in**: valida o segredo do webhook, deduplica por ID da mensagem,
-  resolve a identidade do remetente em `channel_identities` e chama a Marina
-  com o perfil do colaborador. Respostas entram na fila `whatsapp_outbox`.
+  resolve a identidade do remetente em `channel_identities` (com auto-vínculo
+  pelo cadastro do RH) e chama a Marina com o perfil do colaborador. Respostas
+  entram na fila `whatsapp_outbox`.
 - **whatsapp-out**: drena a fila e envia via Evolution API (`POST /message/sendText/{instance}`).
-- **Vínculo de número**: o colaborador gera um código de 6 dígitos em
-  Configurações > Assistente > WhatsApp da Marina e envia o código pelo
-  WhatsApp. Sem QR code e sem senha — a conexão da instância usa o
-  **código de pareamento** da Evolution (pairing code), configurado no
-  servidor da Evolution, fora do Arrow.
+- **Identificação do colaborador**: automática, sem código. Na primeira
+  mensagem, `whatsapp-in` chama `resolve_employee_by_phone`, que compara o
+  número (normalizado: com/sem DDI 55 e com/sem 9º dígito) com
+  `profiles.phone` e `hr_employee_contacts` (telefone/celular/whatsapp).
+  Achou exatamente um colaborador ativo → cria o vínculo em
+  `channel_identities` e a Marina já responde com as permissões dele.
+  Número desconhecido, duplicado ou de desligado recebe recusa educada e a
+  mensagem não chega à IA.
+- **Pareamento da instância** (o número da Marina, não dos colaboradores):
+  usa o **código de pareamento** da Evolution (pairing code), gerado no
+  painel do Super Admin — sem QR code.
 
 ## Credenciais necessárias
 
@@ -54,13 +61,14 @@ Sem credenciais, `whatsapp-in` responde `{"configured": false}` e
    salvar o token (ela aparece uma única vez; depois fica mascarada):
    - Formato: `https://<backend>/functions/v1/whatsapp-in?token=<token gerado>`
    - Evento: `messages.upsert`
-4. Envie uma mensagem de teste de um número vinculado e verifique a fila
-   `whatsapp_outbox` (visível para coordenação/diretoria).
+4. Envie uma mensagem de teste de um número cadastrado no RH (o vínculo é
+   automático na primeira mensagem) e verifique a fila `whatsapp_outbox`
+   (visível para coordenação/diretoria).
 
 ## Regras do canal
 
-- Somente colaboradores: números não vinculados recebem apenas o convite de
-  vinculação; grupos e broadcasts são ignorados.
+- Somente colaboradores: números fora do cadastro do RH recebem recusa
+  educada e a conversa não avança; grupos e broadcasts são ignorados.
 - A Marina roda com o papel do colaborador (mesmas ferramentas do chat web) e
   as escritas seguem o fluxo de confirmação ("CONFIRMO") pelo WhatsApp mesmo.
 - Respostas em texto puro, quebradas em partes de até ~1500 caracteres.

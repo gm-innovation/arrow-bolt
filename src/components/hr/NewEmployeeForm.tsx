@@ -30,6 +30,7 @@ const employeeFormSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200),
   email: z.string().trim().email("Email inválido").max(255),
   phone: z.string().trim().min(10, "Telefone inválido").max(20).optional().or(z.literal("")),
+  phone_is_whatsapp: z.boolean().default(true),
   selected_role: z.string().min(1, "Cargo é obrigatório"),
   
   // Personal data
@@ -101,7 +102,7 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
-      name: "", email: "", phone: "", selected_role: "",
+      name: "", email: "", phone: "", phone_is_whatsapp: true, selected_role: "",
       cpf: "", rg: "", birth_date: "", gender: undefined,
       nationality: "", height: "", specialty: "",
       blood_type: undefined, blood_rh_factor: undefined,
@@ -488,7 +489,7 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
           )} />
           <FormField control={form.control} name="phone" render={({ field }) => (
             <FormItem>
-              <FormLabel>Telefone</FormLabel>
+              <FormLabel>Telefone / WhatsApp</FormLabel>
               <FormControl>
                 <Input {...field} type="tel" inputMode="tel" placeholder="(00) 00000-0000" autoComplete="tel-national" spellCheck={false} />
               </FormControl>
@@ -496,6 +497,20 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
             </FormItem>
           )} />
         </div>
+
+        <FormField control={form.control} name="phone_is_whatsapp" render={({ field }) => (
+          <FormItem className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <FormLabel className="text-sm font-medium">Este número tem WhatsApp</FormLabel>
+              <p className="text-xs text-muted-foreground">
+                A Marina reconhece o colaborador por este número quando ele chamar no WhatsApp.
+              </p>
+            </div>
+            <FormControl>
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
+            </FormControl>
+          </FormItem>
+        )} />
 
         {/* Emergency Contact */}
         <div className="space-y-4">
