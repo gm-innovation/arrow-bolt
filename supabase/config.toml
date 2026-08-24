@@ -162,3 +162,7 @@ verify_jwt = false
 # Dreno da fila de saída do WhatsApp — valida service role ou EVOLUTION_WEBHOOK_TOKEN em código.
 [functions.whatsapp-out]
 verify_jwt = false
+
+# Health check e teste da integração WhatsApp (Evolution API) — valida super_admin/director em código.
+[functions.whatsapp-config]
+verify_jwt = true
