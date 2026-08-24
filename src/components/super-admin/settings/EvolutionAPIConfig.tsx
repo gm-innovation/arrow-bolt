@@ -51,6 +51,7 @@ export function EvolutionAPIConfig() {
   const [pairPhone, setPairPhone] = useState("");
   const [pairing, setPairing] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [webhookOk, setWebhookOk] = useState<boolean | null>(null);
 
   const [cfgApiUrl, setCfgApiUrl] = useState("");
   const [cfgInstance, setCfgInstance] = useState("");
@@ -146,9 +147,11 @@ export function EvolutionAPIConfig() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       setPairingCode(data.pairingCode);
+      setWebhookOk(data.webhookConfigured ?? null);
       toast.success("Código gerado — digite-o no WhatsApp do número corporativo.");
     } catch (e) {
       setPairingCode(null);
+      setWebhookOk(null);
       toast.error(e instanceof Error ? e.message : "Falha ao gerar o código de pareamento");
     } finally {
       setPairing(false);
@@ -398,6 +401,16 @@ export function EvolutionAPIConfig() {
                       {pairing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                       Gerar novamente
                     </Button>
+                    {webhookOk === true && (
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        Webhook da instância configurado automaticamente para a Marina receber as mensagens.
+                      </p>
+                    )}
+                    {webhookOk === false && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        Não foi possível configurar o webhook automaticamente — cadastre-o manualmente (passo 3 do guia abaixo).
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-xs text-muted-foreground">
