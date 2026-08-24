@@ -12,6 +12,7 @@ import {
   Copy,
   Loader2,
   Send,
+  KeyRound,
   ShieldAlert,
   RefreshCw,
   CheckCircle2,
@@ -42,6 +43,9 @@ export function EvolutionAPIConfig() {
   const queryClient = useQueryClient();
   const [testPhone, setTestPhone] = useState("");
   const [testing, setTesting] = useState(false);
+  const [pairPhone, setPairPhone] = useState("");
+  const [pairing, setPairing] = useState(false);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
 
   const { data: status, isLoading, isFetching } = useQuery<EvolutionStatus>({
     queryKey: ["evolution-status"],
@@ -72,6 +76,24 @@ export function EvolutionAPIConfig() {
       toast.error(e instanceof Error ? e.message : "Falha ao enviar teste");
     } finally {
       setTesting(false);
+    }
+  };
+
+  const generatePairing = async () => {
+    setPairing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-config", {
+        body: { action: "pairing_code", phone: pairPhone },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPairingCode(data.pairingCode);
+      toast.success("Código gerado — digite-o no WhatsApp do número corporativo.");
+    } catch (e) {
+      setPairingCode(null);
+      toast.error(e instanceof Error ? e.message : "Falha ao gerar o código de pareamento");
+    } finally {
+      setPairing(false);
     }
   };
 
@@ -188,6 +210,46 @@ export function EvolutionAPIConfig() {
             </p>
           </div>
 
+          {status?.configured && !connected && (
+            <div className="space-y-2 rounded-lg border p-4">
+              <Label>Conectar instância ao WhatsApp</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={pairPhone}
+                  onChange={(e) => setPairPhone(e.target.value)}
+                  placeholder="55 21 99999-0000 (número corporativo)"
+                  inputMode="tel"
+                />
+                <Button
+                  onClick={generatePairing}
+                  disabled={pairing || pairPhone.replace(/\D/g, "").length < 10}
+                >
+                  {pairing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <KeyRound className="h-4 w-4 mr-2" />}
+                  Gerar código de pareamento
+                </Button>
+              </div>
+              {pairingCode ? (
+                <div className="rounded-lg border border-dashed p-4 text-center space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Digite este código no WhatsApp do número corporativo (expira em ~60 segundos):
+                  </p>
+                  <p className="text-3xl font-mono font-bold tracking-[0.3em]">{pairingCode}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Aparelhos conectados → Conectar aparelho → Conectar com número de telefone
+                  </p>
+                  <Button variant="outline" size="sm" onClick={generatePairing} disabled={pairing}>
+                    {pairing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    Gerar novamente
+                  </Button>
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">
+                  Gera o código de 8 caracteres que vincula a instância ao WhatsApp corporativo (sem QR code).
+                </p>
+              )}
+            </div>
+          )}
+
           <div className="space-y-2 rounded-lg border p-4">
             <Label>Testar envio</Label>
             <div className="flex items-center gap-2">
@@ -228,8 +290,8 @@ export function EvolutionAPIConfig() {
             <AccordionItem value="pairing">
               <AccordionTrigger>2. Conectar a instância ao WhatsApp (código de pareamento)</AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-1">
-                <p>No WhatsApp do número corporativo: Aparelhos conectados → Conectar aparelho → "Conectar com número de telefone".</p>
-                <p>Gere o código na Evolution (<code>POST /instance/connect/{"{instância}"}</code> com o número) e digite-o no WhatsApp. Não usamos QR code.</p>
+                <p>Com os segredos cadastrados, informe o número corporativo no campo "Conectar instância ao WhatsApp" acima e clique em "Gerar código de pareamento".</p>
+                <p>No WhatsApp do número corporativo: Aparelhos conectados → Conectar aparelho → "Conectar com número de telefone" → digite o código exibido. Não usamos QR code.</p>
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="webhook">
