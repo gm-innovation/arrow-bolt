@@ -68,6 +68,7 @@ Pontos-chave do desenho:
 
 - **Agora**: envelope + abstração de canal no `ai-assistant`; tabela `channel_identities` com RLS; tela de vínculo em Configurações da Conta; Edge Functions `whatsapp-in` e `whatsapp-out` prontas (retornam "não configurado" sem os segredos); documentação de setup em `docs/`.
 - **Quando a Evolution estiver hospedada**: cadastrar os segredos (`EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE`, `EVOLUTION_WEBHOOK_TOKEN`), apontar o webhook da instância para a URL do `whatsapp-in` e testar ponta a ponta. Nenhum código novo será necessário.
+- **Conexão da instância via código, não QR**: a vinculação do número ao WhatsApp será por **código de pareamento** (a Evolution gera o código para o número informado e ele é digitado no WhatsApp em "Conectar com número de telefone"). O passo a passo operacional fica documentado no guia de setup; sem telas de QR no Arrow.
 
 ## O que NÃO vamos aproveitar
 
