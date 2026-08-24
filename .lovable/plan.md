@@ -37,16 +37,19 @@ Novo componente em `src/components/super-admin/settings/EvolutionAPIConfig.tsx`:
 - **Métricas rápidas**: mensagens na fila, colaboradores vinculados
 - **Aviso de segurança**: lembra que a API key e o webhook token são segredos e nunca aparecem em texto plano no app
 
-### 3. Integração na tela de Settings do Super Admin
+### 3. Onde fica: aba nova em API & Integrações (`/super-admin/api-docs`)
 
-Em `src/pages/super-admin/Settings.tsx`, adicionar uma nova seção abaixo do card de WhatsApp existente (ou substituir o card antigo de "Integração WhatsApp" que ainda referencia Twilio):
+Decisão: o painel entra como **quinta aba "WhatsApp (Evolution)"** na página `src/pages/super-admin/ApiDocs.tsx`, e não em Configurações. Razões:
 
-- Nova seção "Evolution API (Marina WhatsApp)" renderizando `EvolutionAPIConfig`
-- O card antigo de WhatsApp (que fala em Twilio e `whatsapp_api_key`) será substituído pelo novo painel, já que a Evolution API é o provedor real
+1. API & Integrações já é o hub de serviços externos do Super Admin (chaves B2B, captação pelo site, relógios de ponto Control iD) — a Evolution API é exatamente dessa categoria.
+2. A estrutura de abas acomoda um painel completo (status, webhook, teste, instruções, métricas) sem espremer tudo no grid de cards da tela de Configurações.
+3. Configurações fica para preferências do sistema (notificações, tema, auditoria) — não para credenciais de infraestrutura.
 
-### 4. Limpeza do painel antigo de Twilio
+### 4. Remoção do card antigo de WhatsApp nas Configurações do Super Admin
 
-O `WhatsAppSettingsTab` em `src/components/admin/settings/WhatsAppSettingsTab.tsx` ainda referencia Twilio (`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`). Este painel controla notificações push-style e pode permanecer para notificações operacionais, mas o texto de "Requisitos" será atualizado para não confundir com a Evolution API.
+O card "Integração WhatsApp" em `src/pages/super-admin/Settings.tsx` (API key + horário de envio, modelo Twilio) está obsoleto e será **removido** para não haver dois pontos de configuração de WhatsApp. Em seu lugar, um card compacto com o status resumido e um link "Configurar em API & Integrações".
+
+O `WhatsAppSettingsTab` em `src/components/admin/settings/WhatsAppSettingsTab.tsx` (área do coordenador, toggles de notificação) permanece — só o texto de "Requisitos" será atualizado para não confundir com a Evolution API.
 
 ## Fluxo operacional resultante
 
