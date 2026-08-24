@@ -11,6 +11,7 @@ import { UserCog, Lock, Palette, Bell, ShieldAlert, Loader2, PenLine, Megaphone,
 import SignatureSection from "@/components/account/SignatureSection";
 import MyAwarenessPanel from "@/components/account/MyAwarenessPanel";
 import { AIPreferencesCard } from "@/components/account/AIPreferencesCard";
+import { WhatsAppLinkCard } from "@/components/account/WhatsAppLinkCard";
 import NotificationPreferencesCard from "@/components/account/NotificationPreferencesCard";
 
 const AccountSettings = () => {
@@ -82,8 +83,9 @@ const AccountSettings = () => {
           <TabsTrigger value="assistant"><Sparkles className="h-4 w-4 mr-2" /> Assistente</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="assistant" className="mt-4">
+        <TabsContent value="assistant" className="mt-4 space-y-4">
           <AIPreferencesCard />
+          <WhatsAppLinkCard />
         </TabsContent>
 
         <TabsContent value="awareness" className="mt-4">

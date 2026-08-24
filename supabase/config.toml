@@ -154,3 +154,11 @@ verify_jwt = false
 # Consulta de produtos do estoque EVA (comercial) — valida a sessão em código.
 [functions.eva-products]
 verify_jwt = true
+
+# Webhook de entrada do WhatsApp (Evolution API) — valida EVOLUTION_WEBHOOK_TOKEN em código.
+[functions.whatsapp-in]
+verify_jwt = false
+
+# Dreno da fila de saída do WhatsApp — valida service role ou EVOLUTION_WEBHOOK_TOKEN em código.
+[functions.whatsapp-out]
+verify_jwt = false
