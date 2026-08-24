@@ -248,8 +248,8 @@ export const WhatsAppSettingsTab = () => {
         <Card className="p-6 bg-muted/50">
           <h3 className="font-semibold text-lg mb-2">Requisitos</h3>
           <ul className="text-sm text-muted-foreground space-y-1">
-            <li>• Conta Twilio configurada com WhatsApp Sandbox</li>
-            <li>• Secrets configurados: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER</li>
+            <li>• Notificações operacionais usam o provedor legado (Twilio): TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_NUMBER</li>
+            <li>• O canal de conversa da Marina usa a Evolution API — configurado em Super Admin → API & Integrações → WhatsApp (Evolution)</li>
             <li>• Técnicos devem ter telefone cadastrado no perfil</li>
           </ul>
         </Card>

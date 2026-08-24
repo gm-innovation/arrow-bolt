@@ -1,8 +1,8 @@
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -10,11 +10,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Bell, Smartphone, Palette, Shield, Loader2 } from "lucide-react";
+import { Bell, Smartphone, Palette, Shield, Loader2, ArrowRight } from "lucide-react";
 import { useSystemSettings } from "@/hooks/useSystemSettings";
 import { OmieSettingsTab } from "@/components/admin/settings/OmieSettingsTab";
 
 const Settings = () => {
+  const navigate = useNavigate();
   const { settings, isLoading, updateSetting, exportAuditLogs } = useSystemSettings();
 
   if (isLoading) {
@@ -71,40 +72,22 @@ const Settings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Smartphone className="h-5 w-5" />
-              Integração WhatsApp
+              WhatsApp da Marina (Evolution API)
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label>API Key WhatsApp</Label>
-              <Input 
-                data-tour="settings-whatsapp-api-key"
-                type="password" 
-                placeholder="Digite a API key"
-                value={settings.whatsapp_api_key?.key || ''}
-                onChange={(e) => 
-                  updateSetting({ key: 'whatsapp_api_key', value: { key: e.target.value } })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Horário de Envio</Label>
-              <Select 
-                value={settings.whatsapp_schedule?.schedule || 'anytime'}
-                onValueChange={(value) => 
-                  updateSetting({ key: 'whatsapp_schedule', value: { schedule: value } })
-                }
-              >
-                <SelectTrigger data-tour="settings-whatsapp-schedule">
-                  <SelectValue placeholder="Selecione o horário" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="morning">Manhã (8h-12h)</SelectItem>
-                  <SelectItem value="afternoon">Tarde (13h-18h)</SelectItem>
-                  <SelectItem value="anytime">Qualquer horário</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+          <CardContent className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              Canal de conversa da assistente Marina com os colaboradores via Evolution API.
+              Status da conexão, webhook e teste de envio ficam em API &amp; Integrações.
+            </p>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate("/super-admin/api-docs?tab=whatsapp")}
+            >
+              Abrir configuração
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
           </CardContent>
         </Card>
 

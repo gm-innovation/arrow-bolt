@@ -19,6 +19,8 @@ import { Copy, Trash2, Plus, AlertTriangle, Globe } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import TimeclockDevicesTab from "@/components/super-admin/TimeclockDevicesTab";
+import { EvolutionAPIConfig } from "@/components/super-admin/settings/EvolutionAPIConfig";
+import { useSearchParams } from "react-router-dom";
 
 
 const ALL_SCOPES = [
@@ -499,7 +501,8 @@ function PublicIntakeTab() {
 
 export default function ApiDocs() {
   const { profile } = useAuth();
-  const [tab, setTab] = useState("docs");
+  const [searchParams] = useSearchParams();
+  const [tab, setTab] = useState(searchParams.get("tab") ?? "docs");
   const [companies, setCompanies] = useState<Company[]>([]);
 
   useEffect(() => {
@@ -523,6 +526,7 @@ export default function ApiDocs() {
           <TabsTrigger value="integrations" data-tour="api-tab-integrations">Integrações (B2B)</TabsTrigger>
           <TabsTrigger value="public-intake" data-tour="api-tab-public-intake">Captação pelo site</TabsTrigger>
           <TabsTrigger value="timeclock" data-tour="api-tab-timeclock">Relógios de ponto</TabsTrigger>
+          <TabsTrigger value="whatsapp" data-tour="api-tab-whatsapp">WhatsApp (Evolution)</TabsTrigger>
         </TabsList>
         <TabsContent value="docs" className="mt-4">
           <Card data-tour="api-openapi-card">
@@ -545,6 +549,9 @@ export default function ApiDocs() {
         </TabsContent>
         <TabsContent value="timeclock" className="mt-4">
           <TimeclockDevicesTab companies={companies} />
+        </TabsContent>
+        <TabsContent value="whatsapp" className="mt-4">
+          <EvolutionAPIConfig />
         </TabsContent>
       </Tabs>
 
