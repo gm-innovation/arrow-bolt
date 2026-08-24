@@ -152,9 +152,11 @@ export const ServiceCalendar = ({
       }
 
       const formattedOrders: CalendarServiceOrder[] = (orders || []).map((order: any) => {
+        // OSs sem horário definido (ex.: espelhadas do Omie/Auvo) usam meio-dia apenas
+        // para posicionamento da data; o horário exibido fica vazio (sem "08:00" fictício)
         const scheduledDateTime = order.service_date_time
           ? new Date(order.service_date_time)
-          : new Date(order.scheduled_date + "T08:00:00");
+          : new Date(order.scheduled_date + "T12:00:00");
 
         const visitData = visitsByOrder.get(order.id);
         const leadTech = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
@@ -176,7 +178,7 @@ export const ServiceCalendar = ({
           client_name: order.clients?.name,
           supervisor_name: order.supervisor?.full_name,
           status: order.status,
-          scheduled_time: format(scheduledDateTime, "HH:mm"),
+          scheduled_time: order.service_date_time ? format(new Date(order.service_date_time), "HH:mm") : "",
           scheduled_date: scheduledDateTime,
           task_type: taskTypes[0],
           description: order.description,
