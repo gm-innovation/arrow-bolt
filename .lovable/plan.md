@@ -34,11 +34,46 @@ Eles validam o texto da IA antes de enviar, sem LLM. Dois guardrails úteis para
 ### 4. Escalonamento após falhas repetidas
 Quando o disjuntor disparar ou a Marina não conseguir concluir um pedido após 2 tentativas: em vez de insistir, ela informa o usuário e oferece criar um ticket de suporte com o contexto da conversa — inspirado no handoff orquestrado deles, adaptado ao nosso fluxo de tickets já existente.
 
+## Preparação para WhatsApp via Evolution API (já mapeado)
+
+Decisões registradas: **público = só colaboradores**; **Evolution API será hospedada em breve** (instância ainda não existe). O desenho abaixo fica pronto nesta leva; quando a instância subir, a conexão é só configurar segredos e apontar o webhook.
+
+### Arquitetura alvo (canal-agnóstica, inspirada no ChannelAdapter deles)
+
+```text
+Evolution API ──webhook──> whatsapp-in (Edge Function)
+                              │ valida segredo do webhook, ignora fromMe/grupos,
+                              │ normaliza para o envelope de mensagem
+                              ▼
+                     channel_router: telefone → user_id (tabela channel_identities)
+                              │ número não vinculado → fluxo de vínculo por código
+                              ▼
+                     ai-assistant (núcleo canal-agnóstico)
+                              │ roda com as permissões do perfil do colaborador
+                              ▼
+                     whatsapp-out: fila de saída + retry + anti-loop
+                              ▼
+                     Evolution API (sendText)
+```
+
+Pontos-chave do desenho:
+
+- **Envelope normalizado**: toda mensagem (web, voz ou WhatsApp) vira `{ channel, userId, text, externalId?, receivedAt }` antes de chegar na Marina. O núcleo da assistente nunca fala com a Evolution API diretamente — trocar de provedor depois não toca o cérebro.
+- **Identidade e segurança**: WhatsApp é canal sem login, então o vínculo é explícito — nova tabela `channel_identities` (canal, telefone, user_id, verificado). Fluxo de vínculo: o colaborador gera um código de 6 dígitos em Configurações da Conta e o envia no primeiro contato pelo WhatsApp; sem vínculo verificado, a Marina responde apenas o convite de vínculo, sem expor nenhum dado.
+- **Permissões**: uma vez vinculado, tudo roda com o token/perfil do colaborador (RLS intacto). Escritas destrutivas seguem a confirmação em duas etapas que já existe, adaptada para resposta textual ("CONFIRMO").
+- **Anti-loop e higiene**: ignorar mensagens `fromMe`, grupos e broadcasts; deduplicar por ID da mensagem (a Evolution reenvia webhooks); fila de saída com retry limitado.
+- **Convivência com o Twilio**: as notificações one-way atuais continuam no Twilio; a Evolution entra como canal **conversacional**. Unificação fica para decisão futura, sem pressa.
+
+### O que se constrói agora vs. quando a instância existir
+
+- **Agora**: envelope + abstração de canal no `ai-assistant`; tabela `channel_identities` com RLS; tela de vínculo em Configurações da Conta; Edge Functions `whatsapp-in` e `whatsapp-out` prontas (retornam "não configurado" sem os segredos); documentação de setup em `docs/`.
+- **Quando a Evolution estiver hospedada**: cadastrar os segredos (`EVOLUTION_API_URL`, `EVOLUTION_API_KEY`, `EVOLUTION_INSTANCE`, `EVOLUTION_WEBHOOK_TOKEN`), apontar o webhook da instância para a URL do `whatsapp-in` e testar ponta a ponta. Nenhum código novo será necessário.
+
 ## O que NÃO vamos aproveitar
 
 - Nenhum código copiado literalmente (licença MIT permite, mas o acoplamento inviabiliza).
 - A camada MCP deles para despacho de ferramentas (over-engineering para ferramentas que já são nativas).
-- WhatsApp/WAHA, automações QUANDO/SE/ENTÃO e RAG com pgvector — fora do escopo desta demanda (podemos revisitá-los se um dia a Marina atender clientes externos).
+- WAHA, automações QUANDO/SE/ENTÃO e RAG com pgvector — fora do escopo (podemos revisitá-los se um dia a Marina atender clientes externos).
 
 ## Detalhes técnicos
 
