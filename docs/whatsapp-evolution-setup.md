@@ -50,8 +50,9 @@ Sem credenciais, `whatsapp-in` responde `{"configured": false}` e
    corporativo e clique em "Gerar código de pareamento"; digite o código
    exibido no WhatsApp (Aparelhos conectados → Conectar aparelho → Conectar
    com número de telefone) — sem QR code.
-3. Configure o webhook da instância:
-   - URL: `https://<backend>/functions/v1/whatsapp-in?token=<EVOLUTION_WEBHOOK_TOKEN>`
+3. Configure o webhook da instância com a URL completa exibida no painel ao
+   salvar o token (ela aparece uma única vez; depois fica mascarada):
+   - Formato: `https://<backend>/functions/v1/whatsapp-in?token=<token gerado>`
    - Evento: `messages.upsert`
 4. Envie uma mensagem de teste de um número vinculado e verifique a fila
    `whatsapp_outbox` (visível para coordenação/diretoria).
