@@ -489,7 +489,7 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
           )} />
           <FormField control={form.control} name="phone" render={({ field }) => (
             <FormItem>
-              <FormLabel>Telefone</FormLabel>
+              <FormLabel>Telefone / WhatsApp</FormLabel>
               <FormControl>
                 <Input {...field} type="tel" inputMode="tel" placeholder="(00) 00000-0000" autoComplete="tel-national" spellCheck={false} />
               </FormControl>
@@ -497,6 +497,20 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
             </FormItem>
           )} />
         </div>
+
+        <FormField control={form.control} name="phone_is_whatsapp" render={({ field }) => (
+          <FormItem className="flex items-center justify-between rounded-lg border p-3">
+            <div className="space-y-0.5">
+              <FormLabel className="text-sm font-medium">Este número tem WhatsApp</FormLabel>
+              <p className="text-xs text-muted-foreground">
+                A Marina reconhece o colaborador por este número quando ele chamar no WhatsApp.
+              </p>
+            </div>
+            <FormControl>
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
+            </FormControl>
+          </FormItem>
+        )} />
 
         {/* Emergency Contact */}
         <div className="space-y-4">
