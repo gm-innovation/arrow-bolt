@@ -34,7 +34,7 @@ type EmployeeDocumentRow = {
 };
 
 import { Switch } from "@/components/ui/switch";
-import { Download, Eye, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3, Briefcase, Phone, MapPin, Users, IdCard, ShieldCheck } from "lucide-react";
+import { Download, Eye, FileText, Plus, Trash2, User, Clock, MessageSquare, AlertTriangle, Award, Stethoscope, Settings2, Wrench, Pencil, MoreVertical, Archive, UserX, UserCheck, Share2, CheckCircle2, XCircle, Clock3, Briefcase, Phone, MapPin, Users, IdCard, ShieldCheck, KeyRound } from "lucide-react";
 import { ProfessionalTab } from "@/components/hr/employee/ProfessionalTab";
 import { ContactsTab } from "@/components/hr/employee/ContactsTab";
 import { AddressTab } from "@/components/hr/employee/AddressTab";
@@ -335,6 +335,7 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(employee.full_name || "");
   const [phone, setPhone] = useState(employee.phone || "");
+  const [email, setEmail] = useState(employee.email || "");
   const [cpf, setCpf] = useState(employee.cpf || employee.technician?.cpf || "");
   const [rg, setRg] = useState(employee.rg || employee.technician?.rg || "");
   const [birthDate, setBirthDate] = useState(employee.birth_date || employee.technician?.birth_date || "");
@@ -402,8 +403,28 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
 
 
   const handleSave = async () => {
+    const newEmail = email.trim().toLowerCase();
+    const currentEmail = (employee.email || "").trim().toLowerCase();
+    if (!newEmail) {
+      toast({ title: "Email obrigatório", description: "O email de acesso (login) não pode ficar vazio.", variant: "destructive" });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+      toast({ title: "Email inválido", description: "Informe um email válido para o acesso ao sistema.", variant: "destructive" });
+      return;
+    }
     setIsSaving(true);
     try {
+      // Troca de email: sincroniza login (auth.users) + cadastro (profiles) via Edge Function.
+      // Se falhar (ex.: email já em uso), aborta antes de salvar os demais campos.
+      if (newEmail !== currentEmail) {
+        const { data: emailResult, error: emailError } = await supabase.functions.invoke("update-user", {
+          body: { user_id: employee.id, email: newEmail },
+        });
+        if (emailError) throw emailError;
+        if (!emailResult?.success) throw new Error(emailResult?.error || "Erro ao atualizar o email de acesso");
+      }
+
       const profileUpdate: any = {
         full_name: fullName.trim(),
         phone: phone.trim() || null,
@@ -454,6 +475,7 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
     setIsEditing(false);
     setFullName(employee.full_name || "");
     setPhone(employee.phone || "");
+    setEmail(employee.email || "");
     setCpf(employee.cpf || employee.technician?.cpf || "");
     setRg(employee.rg || employee.technician?.rg || "");
     setBirthDate(employee.birth_date || employee.technician?.birth_date || "");
@@ -466,7 +488,6 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
   };
 
   const readOnlyFields = [
-    { label: "Email", value: employee.email },
     { label: "Cargos", value: employee.roles.map((r) => ROLE_LABELS[r] || r).join(", ") },
   ];
 
@@ -497,6 +518,24 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
       </div>
 
       {editableField("Nome completo", fullName, setFullName)}
+
+      {/* Acesso ao sistema */}
+      <div className="pt-2">
+        <p className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-1.5">
+          <KeyRound className="h-4 w-4" /> Acesso ao sistema
+        </p>
+      </div>
+      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 border-b pb-2">
+        <span className="text-sm font-medium text-muted-foreground w-40 flex-shrink-0">Email de acesso (login)</span>
+        {isEditing ? (
+          <div className="flex-1 space-y-1">
+            <Input value={email} onChange={(e) => setEmail(e.target.value)} className="h-8" type="email" />
+            <p className="text-xs text-muted-foreground">Alterar o email muda o login do colaborador no sistema.</p>
+          </div>
+        ) : (
+          <span className="text-sm text-foreground">{employee.email || "—"}</span>
+        )}
+      </div>
       {editableField(
         "Telefone",
         phone,
