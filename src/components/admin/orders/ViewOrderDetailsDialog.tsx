@@ -127,6 +127,7 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
       pending: { label: "Pendente", variant: "secondary" },
       in_progress: { label: "Em Andamento", variant: "default" },
       completed: { label: "Concluído", variant: "outline" },
+      cancelled: { label: "Cancelada", variant: "destructive" },
     };
     const config = statusConfig[status] || { label: status, variant: "secondary" };
     return <Badge variant={config.variant}>{config.label}</Badge>;
@@ -233,6 +234,20 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                   </dd>
                 </div>
               )}
+              {orderDetails.omie_created_date && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-muted-foreground">Abertura (Omie):</dt>
+                  <dd className="text-sm">{formatLocalDate(orderDetails.omie_created_date)}</dd>
+                </div>
+              )}
+              {orderDetails.omie_value != null && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-muted-foreground">Valor (Omie):</dt>
+                  <dd className="text-sm font-medium">
+                    {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(orderDetails.omie_value))}
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
 
@@ -265,6 +280,11 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                     ).join(", ")}
                   </dd>
                 </div>
+              )}
+              {!orderDetails.supervisor && !leadTechnician && auxiliaryTechnicians.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma equipe vinculada localmente. A equipe em campo está na aba "Auvo".
+                </p>
               )}
             </dl>
           </div>

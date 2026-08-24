@@ -133,7 +133,7 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                                 onClick={() => onEventClick?.(order.id)}
                               >
                                 <div className="font-semibold text-foreground leading-tight truncate">
-                                  {order.scheduled_time} - {order.vessel_name}
+                                  {order.scheduled_time ? `${order.scheduled_time} - ` : ""}{order.vessel_name}
                                 </div>
                                 {allTechs && (
                                   <div className="font-medium text-foreground/70 leading-tight truncate">

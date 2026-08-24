@@ -33,7 +33,8 @@ export const DayView = ({ date, orders, absences = [], onCalls = [], onEventClic
 
   const dayOnCalls = onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), date));
 
-  const ordersByHour = dayOrders.reduce((acc, order) => {
+  const untimedOrders = dayOrders.filter((order) => !order.scheduled_time);
+  const ordersByHour = dayOrders.filter((order) => order.scheduled_time).reduce((acc, order) => {
     const hour = order.scheduled_time.split(":")[0];
     if (!acc[hour]) acc[hour] = [];
     acc[hour].push(order);
@@ -62,9 +63,19 @@ export const DayView = ({ date, orders, absences = [], onCalls = [], onEventClic
         </div>
       </div>
 
-      {/* Absences and On-Call Summary */}
-      {(dayAbsences.length > 0 || dayOnCalls.length > 0) && (
+      {/* Absences, On-Call and Unscheduled Orders Summary */}
+      {(dayAbsences.length > 0 || dayOnCalls.length > 0 || untimedOrders.length > 0) && (
         <div className="sticky top-[70px] bg-muted/50 z-10 px-4 py-2 border-b flex flex-wrap gap-2">
+          {untimedOrders.map((order) => (
+            <div
+              key={order.id}
+              onClick={() => onEventClick?.(order.id)}
+              className="px-3 py-1.5 rounded-md border text-sm flex items-center gap-2 cursor-pointer hover:shadow bg-blue-50 border-blue-200 text-blue-800"
+            >
+              <span className="font-medium">{order.order_number}</span>
+              <span className="text-xs opacity-80">({order.vessel_name})</span>
+            </div>
+          ))}
           {dayAbsences.map((absence) => {
             const config = absenceConfig[absence.absence_type] || absenceConfig.day_off;
             const Icon = config.icon;
