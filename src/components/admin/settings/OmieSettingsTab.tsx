@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -7,9 +8,33 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useOmieIntegration } from "@/hooks/useOmieIntegration";
-import { Loader2, CheckCircle2, XCircle, RefreshCw, Save, Plug, Users } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, CheckCircle2, XCircle, RefreshCw, Save, Plug, Users, FileText } from "lucide-react";
 
 export const OmieSettingsTab = () => {
+  const { toast } = useToast();
+  const syncOrders = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("omie-sync", { body: {} });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message || data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      const total = data?.synced ?? 0;
+      const skipped = (data?.results ?? []).reduce((acc: number, r: { skipped_no_client?: number }) => acc + (r.skipped_no_client ?? 0), 0);
+      toast({
+        title: "Espelho de OSs atualizado",
+        description: skipped > 0
+          ? `${total} OSs criadas/atualizadas. ${skipped} ignoradas (cliente ainda não importado do Omie).`
+          : `${total} OSs criadas/atualizadas no sistema.`,
+      });
+    },
+    onError: (err: Error) => {
+      toast({ variant: "destructive", title: "Falha na sincronização de OSs", description: err.message });
+    },
+  });
   const {
     companyOmie,
     isLoadingConfig,
@@ -174,6 +199,35 @@ export const OmieSettingsTab = () => {
               Configure as credenciais acima antes de sincronizar
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Espelho de Ordens de Serviço
+          </CardTitle>
+          <CardDescription>
+            Toda OS criada ou atualizada no Omie é replicada automaticamente para o sistema a cada 15 minutos
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button
+            onClick={() => syncOrders.mutate()}
+            disabled={!hasCredentials || syncOrders.isPending}
+          >
+            {syncOrders.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4 mr-2" />
+            )}
+            Sincronizar OSs Agora
+          </Button>
+          <p className="text-sm text-muted-foreground mt-2">
+            A primeira execução pode levar alguns minutos (histórico completo). OSs de clientes ainda não
+            importados do Omie são ignoradas — sincronize os clientes primeiro.
+          </p>
         </CardContent>
       </Card>
     </div>
