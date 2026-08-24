@@ -17,7 +17,9 @@ const SELECT_FIELDS = `
   status,
   scheduled_date,
   omie_created_date,
+  auvo_created_date,
   omie_value,
+  coordinator_name,
   created_at,
   created_by,
   vessels:vessel_id (
@@ -40,7 +42,9 @@ export interface ServiceOrderListItem {
   status: string;
   scheduledDate: string | null;
   omieCreatedDate: string | null;
+  auvoCreatedDate: string | null;
   omieValue: number | null;
+  coordinatorName: string | null;
   createdAt: string;
   createdBy: string | null;
   createdByName: string;
@@ -55,7 +59,9 @@ const mapOrder = (order: any): ServiceOrderListItem => ({
   status: order.status,
   scheduledDate: order.scheduled_date,
   omieCreatedDate: order.omie_created_date,
+  auvoCreatedDate: order.auvo_created_date,
   omieValue: order.omie_value,
+  coordinatorName: order.coordinator_name,
   createdAt: order.created_at,
   createdBy: order.created_by,
   createdByName: order.created_by_profile?.full_name || 'N/A',

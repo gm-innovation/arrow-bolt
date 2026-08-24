@@ -168,10 +168,11 @@ const ServiceOrders = () => {
         numeroOS: order.orderNumber,
         cliente: order.client,
         embarcacao: order.vessel,
+        coordenador: order.coordinatorName || order.createdByName,
         status: statusLabel(order.status),
         dataAgendada: order.scheduledDate ? formatDateForExport(order.scheduledDate) : "-",
-        dataAbertura: order.omieCreatedDate
-          ? formatDateForExport(order.omieCreatedDate)
+        dataAbertura: order.omieCreatedDate || order.auvoCreatedDate
+          ? formatDateForExport((order.omieCreatedDate || order.auvoCreatedDate) as string)
           : formatDateForExport(order.createdAt),
       }));
 
@@ -179,6 +180,7 @@ const ServiceOrders = () => {
         numeroOS: "Número da OS",
         cliente: "Cliente",
         embarcacao: "Embarcação",
+        coordenador: "Coordenador",
         status: "Status",
         dataAgendada: "Data Agendada",
         dataAbertura: "Data de Abertura",
@@ -343,7 +345,7 @@ const ServiceOrders = () => {
                           <TableCell>{order.vessel}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
-                              {order.createdByName}
+                              {order.coordinatorName || order.createdByName}
                               {order.createdBy === user?.id && (
                                 <Badge variant="default" className="text-xs">Você</Badge>
                               )}
@@ -354,8 +356,8 @@ const ServiceOrders = () => {
                             {order.scheduledDate ? formatLocalDate(order.scheduledDate) : "-"}
                           </TableCell>
                           <TableCell>
-                            {order.omieCreatedDate
-                              ? formatLocalDate(order.omieCreatedDate)
+                            {order.omieCreatedDate || order.auvoCreatedDate
+                              ? formatLocalDate((order.omieCreatedDate || order.auvoCreatedDate) as string)
                               : format(new Date(order.createdAt), "dd/MM/yyyy")}
                           </TableCell>
                           <TableCell>

@@ -216,6 +216,12 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                 <dt className="text-sm font-medium text-muted-foreground">Status:</dt>
                 <dd className="text-sm">{getStatusBadge(orderDetails.status)}</dd>
               </div>
+              {orderDetails.coordinator_name && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-muted-foreground">Coordenador (Auvo):</dt>
+                  <dd className="text-sm font-medium">{orderDetails.coordinator_name}</dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt className="text-sm font-medium text-muted-foreground">Data do Serviço:</dt>
                 <dd className="text-sm font-semibold">
@@ -238,6 +244,12 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                 <div className="flex justify-between">
                   <dt className="text-sm font-medium text-muted-foreground">Abertura (Omie):</dt>
                   <dd className="text-sm">{formatLocalDate(orderDetails.omie_created_date)}</dd>
+                </div>
+              )}
+              {!orderDetails.omie_created_date && orderDetails.auvo_created_date && (
+                <div className="flex justify-between">
+                  <dt className="text-sm font-medium text-muted-foreground">Abertura (Auvo):</dt>
+                  <dd className="text-sm">{formatLocalDate(orderDetails.auvo_created_date)}</dd>
                 </div>
               )}
               {orderDetails.omie_value != null && (
