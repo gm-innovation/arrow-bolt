@@ -30,6 +30,7 @@ const employeeFormSchema = z.object({
   name: z.string().trim().min(3, "Nome deve ter pelo menos 3 caracteres").max(200),
   email: z.string().trim().email("Email inválido").max(255),
   phone: z.string().trim().min(10, "Telefone inválido").max(20).optional().or(z.literal("")),
+  phone_is_whatsapp: z.boolean().default(true),
   selected_role: z.string().min(1, "Cargo é obrigatório"),
   
   // Personal data
@@ -101,7 +102,7 @@ export const NewEmployeeForm = ({ onSubmit, onCancel }: NewEmployeeFormProps) =>
   const form = useForm<EmployeeFormValues>({
     resolver: zodResolver(employeeFormSchema),
     defaultValues: {
-      name: "", email: "", phone: "", selected_role: "",
+      name: "", email: "", phone: "", phone_is_whatsapp: true, selected_role: "",
       cpf: "", rg: "", birth_date: "", gender: undefined,
       nationality: "", height: "", specialty: "",
       blood_type: undefined, blood_rh_factor: undefined,
