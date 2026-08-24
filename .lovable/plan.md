@@ -54,7 +54,7 @@ O `WhatsAppSettingsTab` em `src/components/admin/settings/WhatsAppSettingsTab.ts
 ## Fluxo operacional resultante
 
 ```text
-Super Admin abre /super-admin/settings
+Super Admin abre /super-admin/api-docs → aba "WhatsApp (Evolution)"
   → vê status da Evolution API (conectada / não configurada)
   → copia a webhook URL
   → cadastra os 4 segredos no cofre do projeto (Project Settings → Secrets)
@@ -74,7 +74,8 @@ Colaborador abre /account/settings → aba WhatsApp
 | `supabase/functions/whatsapp-config/index.ts` | Criar — health check + teste |
 | `supabase/config.toml` | Editar — registrar `whatsapp-config` |
 | `src/components/super-admin/settings/EvolutionAPIConfig.tsx` | Criar — painel de config |
-| `src/pages/super-admin/Settings.tsx` | Editar — adicionar seção Evolution API |
+| `src/pages/super-admin/ApiDocs.tsx` | Editar — adicionar aba "WhatsApp (Evolution)" |
+| `src/pages/super-admin/Settings.tsx` | Editar — substituir card antigo de WhatsApp por resumo + link |
 | `src/components/admin/settings/WhatsAppSettingsTab.tsx` | Editar — atualizar texto de requisitos |
 
 ## Observações técnicas
