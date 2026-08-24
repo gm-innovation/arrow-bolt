@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -18,11 +18,16 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  Save,
+  Shuffle,
+  Database,
+  Server,
 } from "lucide-react";
 import { toast } from "sonner";
 
 interface EvolutionStatus {
   configured: boolean;
+  source: "database" | "env" | "none";
   secrets: Record<string, boolean>;
   instance: string | null;
   apiUrl: string | null;
@@ -47,6 +52,15 @@ export function EvolutionAPIConfig() {
   const [pairing, setPairing] = useState(false);
   const [pairingCode, setPairingCode] = useState<string | null>(null);
 
+  const [cfgApiUrl, setCfgApiUrl] = useState("");
+  const [cfgInstance, setCfgInstance] = useState("");
+  const [cfgApiKey, setCfgApiKey] = useState("");
+  const [cfgToken, setCfgToken] = useState("");
+  const [tokenVisible, setTokenVisible] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [revealedWebhookUrl, setRevealedWebhookUrl] = useState<string | null>(null);
+  const hydrated = useRef(false);
+
   const { data: status, isLoading, isFetching } = useQuery<EvolutionStatus>({
     queryKey: ["evolution-status"],
     queryFn: async () => {
@@ -58,9 +72,53 @@ export function EvolutionAPIConfig() {
     refetchInterval: 30_000,
   });
 
+  // Preenche URL/instância uma única vez, quando o status chega.
+  useEffect(() => {
+    if (!hydrated.current && status) {
+      setCfgApiUrl(status.apiUrl ?? "");
+      setCfgInstance(status.instance ?? "");
+      hydrated.current = true;
+    }
+  }, [status]);
+
   const copy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copiado!`);
+  };
+
+  const generateToken = () => {
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const hex = Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
+    setCfgToken(hex);
+    setTokenVisible(true);
+    toast.success("Token gerado — ele será salvo ao clicar em Salvar credenciais.");
+  };
+
+  const saveConfig = async () => {
+    setSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("whatsapp-config", {
+        body: {
+          action: "save_config",
+          apiUrl: cfgApiUrl,
+          instance: cfgInstance,
+          apiKey: cfgApiKey,
+          webhookToken: cfgToken,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      if (data?.webhookUrl) setRevealedWebhookUrl(data.webhookUrl as string);
+      setCfgApiKey("");
+      setCfgToken("");
+      setTokenVisible(false);
+      queryClient.invalidateQueries({ queryKey: ["evolution-status"] });
+      toast.success("Credenciais salvas com criptografia.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar as credenciais");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const sendTest = async () => {
@@ -171,9 +229,97 @@ export function EvolutionAPIConfig() {
             </div>
           </div>
 
+          {/* ----- Credenciais editáveis ----- */}
+          <div className="space-y-3 rounded-lg border p-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <Label className="text-sm font-medium">Credenciais da Evolution</Label>
+              {status && status.source !== "none" && (
+                <Badge variant="outline" className="text-xs">
+                  {status.source === "database" ? (
+                    <><Database className="h-3 w-3 mr-1" /> Fonte: esta tela (banco criptografado)</>
+                  ) : (
+                    <><Server className="h-3 w-3 mr-1" /> Fonte: variáveis de ambiente</>
+                  )}
+                </Badge>
+              )}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-xs">URL da Evolution API</Label>
+                <Input
+                  value={cfgApiUrl}
+                  onChange={(e) => setCfgApiUrl(e.target.value)}
+                  placeholder="https://evo.seudominio.com"
+                  inputMode="url"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Nome da instância</Label>
+                <Input
+                  value={cfgInstance}
+                  onChange={(e) => setCfgInstance(e.target.value)}
+                  placeholder="marina-lecsor"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">API key</Label>
+                <Input
+                  type="password"
+                  value={cfgApiKey}
+                  onChange={(e) => setCfgApiKey(e.target.value)}
+                  placeholder={status?.secrets?.EVOLUTION_API_KEY ? "•••••••• cadastrada — deixe em branco para manter" : "API key global ou da instância"}
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Token do webhook</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type={tokenVisible ? "text" : "password"}
+                    value={cfgToken}
+                    onChange={(e) => setCfgToken(e.target.value)}
+                    placeholder={status?.secrets?.EVOLUTION_WEBHOOK_TOKEN ? "•••••••• cadastrado — deixe em branco para manter" : "Valor aleatório forte"}
+                    autoComplete="new-password"
+                    className="font-mono text-xs"
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={generateToken}>
+                    <Shuffle className="h-4 w-4 mr-1" /> Gerar
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-xs text-muted-foreground">
+                API key e token em branco mantêm o valor atual. Os valores são criptografados antes de gravar e nunca voltam em texto puro.
+              </p>
+              <Button
+                onClick={saveConfig}
+                disabled={saving || !cfgApiUrl.trim() || !cfgInstance.trim()}
+              >
+                {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Salvar credenciais
+              </Button>
+            </div>
+          </div>
+
+          {revealedWebhookUrl && (
+            <div className="rounded-lg border border-green-300 bg-green-50 p-3 space-y-2 dark:border-green-900 dark:bg-green-950">
+              <p className="text-sm font-medium text-green-900 dark:text-green-200">
+                Token salvo. Cadastre esta URL completa na Evolution agora — ela não será exibida novamente:
+              </p>
+              <div className="flex items-center gap-2">
+                <Input readOnly value={revealedWebhookUrl} className="font-mono text-xs bg-background" />
+                <Button variant="outline" size="icon" onClick={() => copy(revealedWebhookUrl, "URL do webhook")}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">Evento a habilitar: <code>messages.upsert</code>.</p>
+            </div>
+          )}
+
           {status && (
             <div className="rounded-lg border p-3 space-y-2">
-              <p className="text-sm font-medium">Segredos da integração</p>
+              <p className="text-sm font-medium">Checklist da integração</p>
               <div className="grid gap-1 sm:grid-cols-2">
                 {Object.entries(SECRET_LABELS).map(([key, label]) => (
                   <div key={key} className="flex items-center gap-2 text-sm">
@@ -188,7 +334,8 @@ export function EvolutionAPIConfig() {
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">
-                Os valores são cadastrados no cofre seguro do projeto (Project Settings → Secrets) e nunca aparecem no app.
+                As credenciais são gerenciadas no card acima e ficam criptografadas no banco. Variáveis de ambiente
+                (Cloud → Secrets) seguem como fallback legado.
               </p>
             </div>
           )}
@@ -206,49 +353,60 @@ export function EvolutionAPIConfig() {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground">
-              Substitua <code>••••••</code> pelo valor do segredo <code>EVOLUTION_WEBHOOK_TOKEN</code> ao colar na Evolution.
+              O token fica mascarado por segurança — a URL completa aparece uma única vez, ao salvar um novo token.
             </p>
           </div>
 
-          {status?.configured && !connected && (
-            <div className="space-y-2 rounded-lg border p-4">
-              <Label>Conectar instância ao WhatsApp</Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  value={pairPhone}
-                  onChange={(e) => setPairPhone(e.target.value)}
-                  placeholder="55 21 99999-0000 (número corporativo)"
-                  inputMode="tel"
-                />
-                <Button
-                  onClick={generatePairing}
-                  disabled={pairing || pairPhone.replace(/\D/g, "").length < 10}
-                >
-                  {pairing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <KeyRound className="h-4 w-4 mr-2" />}
-                  Gerar código de pareamento
-                </Button>
-              </div>
-              {pairingCode ? (
-                <div className="rounded-lg border border-dashed p-4 text-center space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    Digite este código no WhatsApp do número corporativo (expira em ~60 segundos):
-                  </p>
-                  <p className="text-3xl font-mono font-bold tracking-[0.3em]">{pairingCode}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Aparelhos conectados → Conectar aparelho → Conectar com número de telefone
-                  </p>
-                  <Button variant="outline" size="sm" onClick={generatePairing} disabled={pairing}>
-                    {pairing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-                    Gerar novamente
+          <div className="space-y-2 rounded-lg border p-4">
+            <Label>Conectar instância ao WhatsApp</Label>
+            {!status?.configured ? (
+              <p className="text-xs text-muted-foreground">
+                Cadastre e salve as credenciais acima para liberar o pareamento da instância.
+              </p>
+            ) : connected ? (
+              <p className="text-xs text-muted-foreground flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                Instância já conectada ao WhatsApp — não é preciso novo código.
+              </p>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={pairPhone}
+                    onChange={(e) => setPairPhone(e.target.value)}
+                    placeholder="55 21 99999-0000 (número corporativo)"
+                    inputMode="tel"
+                  />
+                  <Button
+                    onClick={generatePairing}
+                    disabled={pairing || pairPhone.replace(/\D/g, "").length < 10}
+                  >
+                    {pairing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <KeyRound className="h-4 w-4 mr-2" />}
+                    Gerar código de pareamento
                   </Button>
                 </div>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Gera o código de 8 caracteres que vincula a instância ao WhatsApp corporativo (sem QR code).
-                </p>
-              )}
-            </div>
-          )}
+                {pairingCode ? (
+                  <div className="rounded-lg border border-dashed p-4 text-center space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                      Digite este código no WhatsApp do número corporativo (expira em ~60 segundos):
+                    </p>
+                    <p className="text-3xl font-mono font-bold tracking-[0.3em]">{pairingCode}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Aparelhos conectados → Conectar aparelho → Conectar com número de telefone
+                    </p>
+                    <Button variant="outline" size="sm" onClick={generatePairing} disabled={pairing}>
+                      {pairing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                      Gerar novamente
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    Gera o código de 8 caracteres que vincula a instância ao WhatsApp corporativo (sem QR code).
+                  </p>
+                )}
+              </>
+            )}
+          </div>
 
           <div className="space-y-2 rounded-lg border p-4">
             <Label>Testar envio</Label>
@@ -287,32 +445,33 @@ export function EvolutionAPIConfig() {
                 <p>Anote a URL base, o nome da instância e a API key.</p>
               </AccordionContent>
             </AccordionItem>
-            <AccordionItem value="pairing">
-              <AccordionTrigger>2. Conectar a instância ao WhatsApp (código de pareamento)</AccordionTrigger>
+            <AccordionItem value="credentials">
+              <AccordionTrigger>2. Cadastrar as credenciais nesta tela</AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-1">
-                <p>Com os segredos cadastrados, informe o número corporativo no campo "Conectar instância ao WhatsApp" acima e clique em "Gerar código de pareamento".</p>
-                <p>No WhatsApp do número corporativo: Aparelhos conectados → Conectar aparelho → "Conectar com número de telefone" → digite o código exibido. Não usamos QR code.</p>
+                <p>Preencha o card "Credenciais da Evolution" acima: URL, instância e API key vindos do servidor; para o token do webhook, clique em "Gerar".</p>
+                <p>Ao salvar com um token novo, a URL completa do webhook é exibida uma única vez — copie-a para o passo 3.</p>
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="webhook">
-              <AccordionTrigger>3. Cadastrar o webhook</AccordionTrigger>
+              <AccordionTrigger>3. Cadastrar o webhook na Evolution</AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-1">
-                <p>Na Evolution, configure o webhook da instância com a URL acima (substituindo o token) e habilite o evento <code>messages.upsert</code>.</p>
+                <p>Na Evolution, configure o webhook da instância com a URL completa exibida ao salvar o token e habilite o evento <code>messages.upsert</code>.</p>
               </AccordionContent>
             </AccordionItem>
-            <AccordionItem value="secrets">
-              <AccordionTrigger>4. Cadastrar os 4 segredos no projeto</AccordionTrigger>
+            <AccordionItem value="pairing">
+              <AccordionTrigger>4. Conectar a instância ao WhatsApp (código de pareamento)</AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground space-y-1">
-                <p>Em Project Settings → Secrets, cadastre: <code>EVOLUTION_API_URL</code>, <code>EVOLUTION_INSTANCE</code>, <code>EVOLUTION_API_KEY</code> e <code>EVOLUTION_WEBHOOK_TOKEN</code> (gere um valor aleatório forte para o token).</p>
-                <p>Depois de salvar, clique em atualizar nesta tela — o checklist de segredos deve ficar todo verde.</p>
+                <p>Com as credenciais salvas, informe o número corporativo no campo "Conectar instância ao WhatsApp" e clique em "Gerar código de pareamento".</p>
+                <p>No WhatsApp do número corporativo: Aparelhos conectados → Conectar aparelho → "Conectar com número de telefone" → digite o código exibido. Não usamos QR code.</p>
               </AccordionContent>
             </AccordionItem>
           </Accordion>
           <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200">
             <ShieldAlert className="h-4 w-4 mt-0.5 shrink-0" />
             <p>
-              A API key e o token do webhook são segredos de infraestrutura: nunca os exponha em telas, logs ou mensagens.
-              Colaboradores vinculam o próprio número em Configurações → WhatsApp, com código de 6 dígitos.
+              A API key e o token do webhook são segredos de infraestrutura: ficam criptografados no banco, nunca
+              aparecem em texto puro após o salvamento e toda alteração é auditada.
+              Colaboradores vinculam o próprio número em Configurações → Assistente → WhatsApp, com código de 6 dígitos.
             </p>
           </div>
         </CardContent>
