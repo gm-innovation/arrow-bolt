@@ -421,7 +421,15 @@ function PersonalTab({ employee }: { employee: EmployeeRow }) {
         const { data: emailResult, error: emailError } = await supabase.functions.invoke("update-user", {
           body: { user_id: employee.id, email: newEmail },
         });
-        if (emailError) throw emailError;
+        if (emailError) {
+          // A função responde 400 com { error: "motivo real" } — extrai a mensagem do corpo
+          let msg = emailError.message;
+          try {
+            const body = await (emailError as any).context?.json();
+            if (body?.error) msg = body.error;
+          } catch { /* mantém mensagem genérica */ }
+          throw new Error(msg);
+        }
         if (!emailResult?.success) throw new Error(emailResult?.error || "Erro ao atualizar o email de acesso");
       }
 
