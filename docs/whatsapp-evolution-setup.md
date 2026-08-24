@@ -36,8 +36,11 @@ Sem esses segredos, `whatsapp-in` responde `{"configured": false}` e
 ## Configuração da Evolution
 
 1. Suba a Evolution API v2 no servidor e crie a instância.
-2. Conecte a instância ao WhatsApp usando **código de pareamento**
-   (`POST /instance/connect/{instance}` com o número) — sem QR code.
+2. Conecte a instância ao WhatsApp usando **código de pareamento**: em
+   `/super-admin/api-docs` → aba "WhatsApp (Evolution)", informe o número
+   corporativo e clique em "Gerar código de pareamento"; digite o código
+   exibido no WhatsApp (Aparelhos conectados → Conectar aparelho → Conectar
+   com número de telefone) — sem QR code.
 3. Configure o webhook da instância:
    - URL: `https://<backend>/functions/v1/whatsapp-in?token=<EVOLUTION_WEBHOOK_TOKEN>`
    - Evento: `messages.upsert`
