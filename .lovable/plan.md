@@ -86,7 +86,7 @@ Pontos-chave do desenho:
 - Novas Edge Functions `whatsapp-in` (webhook: valida `EVOLUTION_WEBHOOK_TOKEN`, deduplica por message id, resolve identidade, chama a Marina, enfileira resposta) e `whatsapp-out` (consome a fila e posta na Evolution; sem segredos configurados responde "não configurado" sem falhar). Ambas registradas em `supabase/config.toml` com `verify_jwt = false` + validação de segredo em código (webhook não carrega JWT de usuário).
 - Migração: `channel_identities` (channel, external_id, user_id, verified, verification_code, verified_at) com GRANTs, RLS (dono vê o próprio vínculo; RH/diretor gerenciam) e unicidade de (channel, external_id); `whatsapp_outbox` (message_id único, status, attempts) para a fila de saída idempotente.
 - `src/pages/account/AccountSettings.tsx`: seção "Conectar WhatsApp" — gera código de 6 dígitos (expira em 15 min) e mostra instrução de envio; lista vínculos ativos com opção de desvincular.
-- `docs/whatsapp-evolution-setup.md`: passo a passo de hospedagem da Evolution (Docker), criação da instância, cadastro dos 4 segredos e apontamento do webhook.
+- `docs/whatsapp-evolution-setup.md`: passo a passo de hospedagem da Evolution (Docker), criação da instância, **conexão do número via código de pareamento (sem QR code)**, cadastro dos 4 segredos e apontamento do webhook.
 - Deploy das funções `ai-assistant`, `whatsapp-in` e `whatsapp-out`.
 
 ## Validação
