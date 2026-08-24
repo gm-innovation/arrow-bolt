@@ -21,16 +21,25 @@ WhatsApp ↔ Evolution API ──webhook──> whatsapp-in ──> ai-assistant
   **código de pareamento** da Evolution (pairing code), configurado no
   servidor da Evolution, fora do Arrow.
 
-## Segredos necessários
+## Credenciais necessárias
 
-| Segredo | Uso |
+| Valor | Uso |
 | --- | --- |
-| `EVOLUTION_API_URL` | URL base da Evolution (ex.: `https://evo.seudominio.com`) |
-| `EVOLUTION_INSTANCE` | Nome da instância |
-| `EVOLUTION_API_KEY` | API key global ou da instância |
-| `EVOLUTION_WEBHOOK_TOKEN` | Segredo que valida o webhook (gere um aleatório forte) |
+| URL da API | URL base da Evolution (ex.: `https://evo.seudominio.com`) |
+| Instância | Nome da instância |
+| API key | API key global ou da instância |
+| Token do webhook | Segredo que valida o webhook (gerado pelo botão "Gerar" no painel) |
 
-Sem esses segredos, `whatsapp-in` responde `{"configured": false}` e
+O cadastro é feito **pela tela**: `/super-admin/api-docs` → aba "WhatsApp
+(Evolution)" → card "Credenciais da Evolution". Os valores são criptografados
+(AES-GCM) e gravados na tabela server-only `integration_settings`; a chave de
+criptografia vive no segredo `APP_CONFIG_ENCRYPTION_KEY`.
+
+Fallback legado: as variáveis de ambiente `EVOLUTION_API_URL`,
+`EVOLUTION_INSTANCE`, `EVOLUTION_API_KEY` e `EVOLUTION_WEBHOOK_TOKEN`
+(Cloud → Secrets) continuam valendo quando não há configuração no banco.
+
+Sem credenciais, `whatsapp-in` responde `{"configured": false}` e
 `whatsapp-out` mantém as mensagens na fila — nada falha silenciosamente.
 
 ## Configuração da Evolution
