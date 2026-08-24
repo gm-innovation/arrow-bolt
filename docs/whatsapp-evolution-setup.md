@@ -61,8 +61,9 @@ Sem credenciais, `whatsapp-in` responde `{"configured": false}` e
    salvar o token (ela aparece uma única vez; depois fica mascarada):
    - Formato: `https://<backend>/functions/v1/whatsapp-in?token=<token gerado>`
    - Evento: `messages.upsert`
-4. Envie uma mensagem de teste de um número vinculado e verifique a fila
-   `whatsapp_outbox` (visível para coordenação/diretoria).
+4. Envie uma mensagem de teste de um número cadastrado no RH (o vínculo é
+   automático na primeira mensagem) e verifique a fila `whatsapp_outbox`
+   (visível para coordenação/diretoria).
 
 ## Regras do canal
 
