@@ -165,6 +165,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchUserRole]);
 
+  // Recarrega papel/perfil quando a aba volta a ficar visível, para que
+  // mudanças feitas por um admin (função, cadastro) valham sem relogar.
+  useEffect(() => {
+    const onVisibility = () => {
+      const uid = currentUserIdRef.current;
+      if (document.visibilityState === 'visible' && uid) {
+        fetchUserRole(uid);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [fetchUserRole]);
+
   // signIn: authenticate AND directly hydrate state as a fallback if the listener is delayed
   const signIn = useCallback(async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({
