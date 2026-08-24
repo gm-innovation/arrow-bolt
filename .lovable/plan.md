@@ -1,51 +1,49 @@
-# Plano: Enriquecer espelho Omie e corrigir lentidão nas telas de OS
+# Plano: OSs completas via Auvo (operacional) + Omie (etapa/valores) + performance
 
 ## Diagnóstico (confirmado no banco e no código)
 
-- O espelho `omie-sync` grava apenas número, cliente, status e data prevista. **4.581 de 4.582 OSs espelhadas** estão sem embarcação, coordenador, descrição e local.
-- A lista `/admin/orders` baixa **todas as ~4.600 OSs** de uma vez, sem paginação — principal causa da lentidão.
-- O calendário assume "08:00" para OSs sem horário → mar de "08:00 - Sem embarcação".
-- A data de criação exibida é a data da importação (24/08/2026) para todas as OSs espelhadas, não a data real de abertura no Omie.
-- As 1.328 tarefas do Auvo têm nome de embarcação; 638 já estão vinculadas a OSs → backfill imediato possível.
+- **O Auvo tem tudo que falta**: as 1.328 tarefas sincronizadas trazem embarcação, técnico, data, endereço, orientações e check-in/check-out — mas **690 estão desvinculadas** porque o Auvo grava o número como `OS5539` e o Arrow/Omie como `5539`; a reconciliação compara texto exato.
+- **O Omie só serve para etapa e valores**: o espelho atual grava número, cliente, status e data prevista — não grava valor nem data real de abertura.
+- **Lentidão**: a lista `/admin/orders` baixa todas as ~4.600 OSs de uma vez, sem paginação.
+- **Calendário poluído**: OSs sem horário aparecem como "08:00 - Sem embarcação".
+- Detalhe da OS vazio (Equipe/Local/Descrição) é consequência dos pontos acima.
 
-## Etapa 1 — Enriquecer o espelho Omie (omie-sync v2)
+## Etapa 1 — Corrigir o vínculo Auvo ↔ Arrow (causa raiz)
 
-- Capturar na listagem (`ListarOS`) campos hoje ignorados:
-  - `InformacoesAdicionais.dDtIncReg` → nova coluna `omie_created_date` (data real de abertura).
-  - `Observacoes.cObsOS` → `description`.
-  - `InformacoesAdicionais.cCidade`/endereço → `location`.
-  - `cCodIntOS` → `client_reference` quando preenchido (hoje descartado).
-- Novo modo de enriquecimento profundo (`ConsultarOS`), incremental e em lotes com backoff:
-  - Prioriza OSs abertas/em andamento; depois backlog histórico em lotes (ex.: 100/execução).
-  - Traz serviços prestados (resumo → `description`), data real de conclusão (→ `completed_date` correto em vez de copiar a data prevista) e valor total (→ nova coluna `omie_value`).
-- Mantém idempotência por `(company_id, omie_os_id)` e o rate-limit já existente.
+- Normalizar o número da OS no matching: remover prefixo "OS", espaços e diferenças de caixa (ex.: `OS5539` = `5539`).
+- Backfill único: religar as ~690 tarefas órfãs às OSs já espelhadas.
+- Ajustar também o `auvo-sync`/reconciliação contínua para usar sempre o número normalizado.
 
-## Etapa 2 — Backfill de embarcação via Auvo
+## Etapa 2 — Reconciliação enriquecida: Auvo preenche a OS
 
-- Migração SQL: função que preenche `vessel_id` nas OSs a partir de `auvo_tasks.vessel_name`, com match normalizado (maiúsculas/acentos) contra a tabela `vessels` da empresa. Cobre ~638 OSs de imediato.
-- Estender a reconciliação contínua (`reconcile_service_orders_from_auvo`) para repetir esse preenchimento a cada execução.
+Estender a função `reconcile_service_orders_from_auvo` para popular nas OSs, quando vazio:
+- `vessel_id` — match normalizado de `auvo_tasks.vessel_name` com a tabela `vessels` da empresa.
+- `scheduled_date` — primeira `task_date`; `completed_date` — último `checkout_at` (quando concluída).
+- `location` — `address`; `description` — `orientation` das tarefas.
+- Equipe/técnico visível no detalhe a partir do `technician_name` do Auvo (match por nome normalizado com perfis; quando não bater, exibir o nome do Auvo como texto).
 
-## Etapa 3 — Migração de schema
+## Etapa 3 — Omie enxuto: só etapa e valores
 
-- Novas colunas em `service_orders`: `omie_created_date date`, `omie_value numeric`.
-- Índices (se ausentes): `(company_id, status)` e `(company_id, scheduled_date)` para acelerar lista, dashboard e calendário.
-- Corrigir `completed_date` das OSs concluídas usando a data real do Omie quando o enriquecimento rodar.
+- Manter o espelho de status por etapa (já funciona).
+- Capturar na listagem o que estiver disponível: `dDtIncReg` → nova coluna `omie_created_date` (data real de abertura, hoje a lista mostra a data da importação), `cCodIntOS` → `client_reference`, valor total → nova coluna `omie_value`.
+- Enriquecimento pontual via `ConsultarOS` apenas para OSs abertas/em andamento sem valor (lotes com backoff, sem varrer o histórico inteiro).
+- Não extrair embarcação/descrição do Omie — isso é papel do Auvo.
 
 ## Etapa 4 — Performance e exibição em /admin/orders
 
-- Paginação server-side (50/página) no `useServiceOrders`; busca e filtros de status/embarcação passam a ser aplicados no banco, não no cliente.
-- Coluna "Data de Criação" exibe `omie_created_date` quando existir (senão, `created_at`).
-- Exportação CSV passa a respeitar os filtros server-side.
+- Paginação server-side (50/página) no `useServiceOrders`; busca e filtros (status/embarcação) aplicados no banco.
+- "Data de Criação" exibe `omie_created_date` quando existir.
+- Exportação CSV respeitando os filtros server-side.
+- Índices de suporte: `(company_id, status)` e `(company_id, scheduled_date)` se ausentes.
 
-## Etapa 5 — Calendário e detalhes da OS
+## Etapa 5 — Calendário e detalhe da OS
 
-- Calendário: OS sem horário exibe só o número (sem "08:00"); mantém filtros por data já existentes.
-- Dialog de detalhes: exibir descrição/observações do Omie, código de integração, valor e data real de abertura.
-- Dashboard: sem mudança de lógica (já usa contagens); os cards zerados da primeira captura eram o estado de carregamento.
+- Calendário: OS sem horário definido mostra apenas número + embarcação (sem "08:00" fictício).
+- Dialog de detalhes: passa a exibir embarcação, local, datas reais e equipe vindos do Auvo, além de valor e etapa do Omie.
 
 ## Detalhes técnicos
 
-- Arquivos: `supabase/functions/omie-sync/index.ts`, `src/hooks/useServiceOrders.ts`, `src/pages/admin/ServiceOrders.tsx`, `src/components/admin/calendar/ServiceCalendar.tsx`, `src/components/admin/orders/ViewOrderDetailsDialog.tsx`, função SQL `reconcile_service_orders_from_auvo`.
-- 1 migração: colunas novas + índices + função de backfill de embarcação (com GRANTs/RLS não aplicáveis — sem tabela nova).
-- O `ConsultarOS` é 1 chamada por OS no Omie; por isso o enriquecimento profundo é incremental para não estourar o rate limit — carga histórica completa leva algumas execuções do cron.
-- Campos que o Omie não possui (coordenador responsável, equipe técnica) seguem preenchidos apenas para OSs criadas no Arrow ou reconciliadas com o Auvo.
+- Arquivos: migração SQL (normalização + backfill + colunas `omie_created_date`/`omie_value` + índices), função `reconcile_service_orders_from_auvo`, `supabase/functions/omie-sync/index.ts`, `supabase/functions/auvo-sync/index.ts`, `src/hooks/useServiceOrders.ts`, `src/pages/admin/ServiceOrders.tsx`, `src/components/admin/calendar/ServiceCalendar.tsx`, `src/components/admin/orders/ViewOrderDetailsDialog.tsx`.
+- A normalização usa `regexp_replace(upper(order_number), '[^0-9]', '', 'g')` (apenas dígitos) — cobre `OS5539`, `os 5539` e `5539`.
+- Match de embarcação: `upper(unaccent(...))` trimado contra `vessels.name`; nomes sem correspondente ficam como texto no detalhe e entram em log para cadastro.
+- Sem tabelas novas — GRANTs/RLS não se aplicam.
