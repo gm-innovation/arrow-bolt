@@ -239,6 +239,18 @@ export default function Employees() {
         emergency_contact_phone: data.emergency_contact_phone || null,
       }).eq('id', createUserResult.user_id);
 
+      // WhatsApp da Marina: registra o número como contato para auto-reconhecimento
+      if (data.phone && data.phone_is_whatsapp) {
+        await supabase.from('hr_employee_contacts').insert({
+          employee_id: createUserResult.user_id,
+          company_id: companyId,
+          kind: 'whatsapp',
+          category: 'pessoal',
+          value: data.phone,
+          is_primary: true,
+        });
+      }
+
       if (photoFile) {
         try {
           const photoExt = photoFile.name.split('.').pop();
