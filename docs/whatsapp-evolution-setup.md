@@ -51,16 +51,25 @@ Sem credenciais, `whatsapp-in` responde `{"configured": false}` e
 
 ## Configuração da Evolution
 
-1. Suba a Evolution API v2 no servidor e crie a instância.
-2. Conecte a instância ao WhatsApp usando **código de pareamento**: em
-   `/super-admin/api-docs` → aba "WhatsApp (Evolution)", informe o número
-   corporativo e clique em "Gerar código de pareamento"; digite o código
-   exibido no WhatsApp (Aparelhos conectados → Conectar aparelho → Conectar
-   com número de telefone) — sem QR code.
-3. Configure o webhook da instância com a URL completa exibida no painel ao
-   salvar o token (ela aparece uma única vez; depois fica mascarada):
-   - Formato: `https://<backend>/functions/v1/whatsapp-in?token=<token gerado>`
-   - Evento: `messages.upsert`
+1. Suba a Evolution API v2 no servidor e salve as credenciais no painel
+   (`/super-admin/api-docs` → aba "WhatsApp (Evolution)").
+   - A URL deve ser a **raiz da API** (ex.: `http://<servidor>:<porta>`), não a
+     URL do Manager — o painel remove sufixos `/manager/...` automaticamente.
+2. Conecte a instância ao WhatsApp usando **código de pareamento**: no mesmo
+   painel, informe o número corporativo e clique em "Gerar código de
+   pareamento"; digite o código exibido no WhatsApp (Aparelhos conectados →
+   Conectar aparelho → Conectar com número de telefone) — sem QR code.
+   - Se a instância não existir, ela é criada automaticamente
+     (`WHATSAPP-BAILEYS`, sem QR) — exige a **chave global** da Evolution
+     (`AUTHENTICATION_API_KEY`). Se a criação automática falhar com 403, crie
+     a instância manualmente no Manager com o mesmo nome e gere o código
+     novamente.
+   - Ao gerar o código, o **webhook da instância é configurado
+     automaticamente** para `https://<backend>/functions/v1/whatsapp-in?token=...`
+     com o evento `MESSAGES_UPSERT` (`webhookBase64` ligado para suportar
+     áudios/imagens). Se precisar reconfigurar, gere o código novamente ou
+     cadastre a URL manualmente (ela aparece uma única vez ao salvar o token;
+     depois fica mascarada).
 4. Envie uma mensagem de teste de um número cadastrado no RH (o vínculo é
    automático na primeira mensagem) e verifique a fila `whatsapp_outbox`
    (visível para coordenação/diretoria).
