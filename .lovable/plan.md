@@ -27,9 +27,10 @@ Hoje `list_os_attachments` devolve todos os anexos e a resposta vira uma pergunt
 
 Presença:
 - `_shared/channels.ts`: `ChannelAdapter` ganha `setPresence({ to, state })` (`composing`/`recording`/`paused`/`available`) e `markRead(message)`; no `EvolutionAdapter` via `chat/sendPresence` e `chat/markMessageAsRead`. Falha de presença só loga, nunca derruba o fluxo.
-- `_shared/presence.ts` (novo): `startPresenceHeartbeat(adapter, to, state, intervalMs = 4000)` com `stop()` idempotente e duração máxima para não vazar timers.
-- `whatsapp-in/index.ts`: inicia o heartbeat `composing` após resolver `replyTo`; troca para `recording` no trecho de síntese antes de `adapter.sendAudio`; `stop()` em `finally`.
-- `whatsapp-out/index.ts`: `composing` breve antes de cada `sendText` da fila.
+- `_shared/presence.ts` (novo): `startTypingPulse(adapter, to, { startDelayMs = 4000, onMs = 5000, offMs = 2500 })` — só começa depois do atraso inicial, alterna `composing`/`paused` em pulsos, `stop()` idempotente e duração máxima para não vazar timers.
+- `whatsapp-in/index.ts`: `markRead` ao receber; iniciar o pulso após resolver `replyTo` (ele mesmo respeita o atraso, então respostas rápidas não mostram nada); trocar para `recording` no trecho de síntese antes de `adapter.sendAudio`; `stop()` em `finally`.
+- `whatsapp-out/index.ts`: sem indicador para mensagens da fila (são notificações, não conversa).
+
 
 Arquivos:
 - `omie-proxy/index.ts`: expandir `classifyAttachment` com os padrões adicionais.
