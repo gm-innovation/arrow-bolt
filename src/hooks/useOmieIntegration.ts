@@ -74,6 +74,17 @@ export const useOmieIntegration = () => {
     onError: (err: any) => toast.error("Erro ao consultar OS: " + err.message),
   });
 
+  const listAttachments = useMutation({
+    mutationFn: (params: { nCodOS: number }) => invokeOmie("list_attachments", params),
+    onError: (err: any) => toast.error("Erro ao listar anexos da OS: " + err.message),
+  });
+
+  const getAttachment = useMutation({
+    mutationFn: (params: { nCodOS: number; nIdAnexo: number; as_base64?: boolean }) =>
+      invokeOmie("get_attachment", params),
+    onError: (err: any) => toast.error("Erro ao obter o arquivo no Omie: " + err.message),
+  });
+
   const attachFile = useMutation({
     mutationFn: (params: {
       nCodOS: number;
@@ -96,5 +107,7 @@ export const useOmieIntegration = () => {
     syncClients,
     consultOrder,
     attachFile,
+    listAttachments,
+    getAttachment,
   };
 };

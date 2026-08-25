@@ -10,6 +10,7 @@ import { VisitHistoryList } from "./VisitHistoryList";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuditTrailViewer } from "./AuditTrailViewer";
 import { AuvoReportPanel } from "./AuvoReportPanel";
+import { OmieAttachmentsPanel } from "./OmieAttachmentsPanel";
 import { formatLocalDate } from "@/lib/utils";
 
 interface ViewOrderDetailsDialogProps {
@@ -208,10 +209,11 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         </DialogHeader>
       
       <Tabs defaultValue="details" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="details">Detalhes</TabsTrigger>
           <TabsTrigger value="visits">Visitas</TabsTrigger>
           <TabsTrigger value="auvo">Auvo</TabsTrigger>
+          <TabsTrigger value="files">Arquivos</TabsTrigger>
           <TabsTrigger value="audit">Histórico</TabsTrigger>
         </TabsList>
 
@@ -402,6 +404,15 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         </TabsContent>
 
 
+
+        <TabsContent value="files">
+          <ScrollArea className="h-[50vh] pr-4">
+            <OmieAttachmentsPanel
+              omieOsId={orderDetails.omie_os_id}
+              orderNumber={orderDetails.order_number}
+            />
+          </ScrollArea>
+        </TabsContent>
 
         <TabsContent value="audit">
           <ScrollArea className="h-[50vh] pr-4">

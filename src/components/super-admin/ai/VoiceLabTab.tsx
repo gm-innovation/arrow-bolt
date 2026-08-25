@@ -32,6 +32,15 @@ const ENGINE_NOTES: Record<AIVoiceEngine, string> = {
 
 const ENGINES: AIVoiceEngine[] = ["gemini", "openai", "elevenlabs"];
 
+/** Rótulo do ritmo, alinhado às faixas usadas na síntese de voz. */
+function paceLabel(speed: number): string {
+  if (speed <= 0.9) return "pausada";
+  if (speed <= 1.05) return "natural";
+  if (speed <= 1.2) return "ágil";
+  return "rápida";
+}
+
+
 interface Props {
   agent: AIAgent;
 }
@@ -106,7 +115,7 @@ export function VoiceLabTab({ agent }: Props) {
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <Label>Velocidade ({speed.toFixed(2)}x)</Label>
+            <Label>Velocidade ({speed.toFixed(2)}x — {paceLabel(speed)})</Label>
             <Input
               type="number"
               step="0.01"
@@ -115,12 +124,17 @@ export function VoiceLabTab({ agent }: Props) {
               value={speed}
               onChange={(e) => setSpeed(Number(e.target.value) || 1)}
             />
+            <p className="text-xs text-muted-foreground mt-1">
+              No Gemini o ritmo é interpretado pela voz (instrução de fala), não é aceleração exata;
+              no OpenAI e no ElevenLabs o valor é aplicado direto.
+            </p>
           </div>
           <div className="md:col-span-2">
             <Label>Instruções de entonação</Label>
             <Textarea rows={2} value={instructions} onChange={(e) => setInstructions(e.target.value)} />
           </div>
         </div>
+
       </Card>
 
       {ENGINES.map((engine) => {
