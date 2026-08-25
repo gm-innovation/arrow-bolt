@@ -14,6 +14,7 @@ import { TrainingTab } from "@/components/super-admin/ai/TrainingTab";
 import { IntegrationsTab } from "@/components/super-admin/ai/IntegrationsTab";
 import { WriteActionsTab } from "@/components/super-admin/ai/WriteActionsTab";
 import { ScopeRoutingTab } from "@/components/super-admin/ai/ScopeRoutingTab";
+import { VoiceLabTab } from "@/components/super-admin/ai/VoiceLabTab";
 import { Save, RotateCcw } from "lucide-react";
 
 export default function AIManagement() {
@@ -107,9 +108,10 @@ export default function AIManagement() {
           {selected ? (
             <Card className="p-4" data-tour="ai-config-panel">
               <Tabs defaultValue="identity">
-                <TabsList className="grid grid-cols-9 w-full" data-tour="ai-tabs">
+                <TabsList className="grid grid-cols-10 w-full" data-tour="ai-tabs">
                   <TabsTrigger value="identity" data-tour="ai-tab-identity">Identidade</TabsTrigger>
                   <TabsTrigger value="behavior" data-tour="ai-tab-behavior">Comportamento</TabsTrigger>
+                  <TabsTrigger value="voice" data-tour="ai-tab-voice">Voz</TabsTrigger>
                   <TabsTrigger value="guardrails" data-tour="ai-tab-guardrails">Guardrails</TabsTrigger>
                   <TabsTrigger value="scope" data-tour="ai-tab-scope">Escopo</TabsTrigger>
                   <TabsTrigger value="write-actions" data-tour="ai-tab-write-actions">Ações de Escrita</TabsTrigger>
@@ -124,6 +126,9 @@ export default function AIManagement() {
                   </TabsContent>
                   <TabsContent value="behavior">
                     <BehaviorTab agent={selected} draft={draft} setDraft={setDraft} />
+                  </TabsContent>
+                  <TabsContent value="voice">
+                    <VoiceLabTab agent={selected} />
                   </TabsContent>
                   <TabsContent value="guardrails">
                     <GuardrailsTab agent={selected} draft={draft} setDraft={setDraft} />
