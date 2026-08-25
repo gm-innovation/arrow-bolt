@@ -113,6 +113,7 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                         const localTechs = [
                           order.lead_technician,
                           ...(order.auxiliary_technicians || []),
+                          ...(order.lead_technician ? [] : order.technician_names || []),
                         ].filter(Boolean).map(formatShortName).join(", ");
                         const auvoTechs = order.auvo_team_name || order.auvo_technician_names?.map(formatShortName).join(", ");
                         const allTechs = localTechs || auvoTechs;

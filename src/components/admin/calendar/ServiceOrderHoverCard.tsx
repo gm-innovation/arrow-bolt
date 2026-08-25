@@ -126,6 +126,16 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
                     ))}
                   </div>
                 )}
+                {!order.lead_technician && (!order.auxiliary_technicians || order.auxiliary_technicians.length === 0) && order.technician_names && order.technician_names.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Técnicos:</p>
+                    {order.technician_names.map((name, idx) => (
+                      <p key={idx} className="text-sm">
+                        {formatShortName(name)}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 {!order.lead_technician && (!order.auxiliary_technicians || order.auxiliary_technicians.length === 0) && order.auvo_team_name && (
                   <div>
                     <p className="text-xs text-muted-foreground">Auvo:</p>
