@@ -20,6 +20,7 @@ const getStatusLabel = (status: string) => {
     completed: "Concluído",
     cancelled: "Cancelado",
     waiting: "Aguardando",
+    auvo: "Agenda Auvo",
   };
   return labels[status] || status;
 };
@@ -51,7 +52,7 @@ export const DayEventsDialog = ({ date, orders, onOrderClick }: DayEventsDialogP
           Atividades do dia
         </DialogTitle>
         <DialogDescription>
-          {format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })} • {dayOrders.length} OSs
+          {format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })} • {dayOrders.length} atividade(s)
         </DialogDescription>
       </DialogHeader>
 
@@ -68,7 +69,9 @@ export const DayEventsDialog = ({ date, orders, onOrderClick }: DayEventsDialogP
               <div className="grid w-full gap-2 sm:grid-cols-[1fr_auto]">
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold">OS {order.order_number}</span>
+                    <span className="font-semibold">
+                      {order.event_source === "auvo" ? "Auvo" : `OS ${order.order_number}`}
+                    </span>
                     <Badge variant="secondary">{getStatusLabel(order.status)}</Badge>
                   </div>
                   <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">

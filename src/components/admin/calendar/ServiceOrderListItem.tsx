@@ -26,6 +26,7 @@ interface ServiceOrderListItemProps {
     auxiliary_technicians?: string[];
     auvo_team_name?: string;
     auvo_technician_names?: string[];
+      event_source?: "arrow" | "auvo";
   };
   compact?: boolean;
   onClick?: () => void;
@@ -39,6 +40,7 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
       completed: "bg-green-500",
       cancelled: "bg-red-500",
       waiting: "bg-gray-500",
+      auvo: "bg-cyan-500",
     };
     return colors[status] || "bg-gray-500";
   };
@@ -75,6 +77,11 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
           <div className="flex-1 min-w-0 text-sm">
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">{order.scheduled_time}</span>
+              {order.event_source === "auvo" && (
+                <span className="rounded-sm bg-accent px-1 text-[10px] font-semibold text-accent-foreground">
+                  Auvo
+                </span>
+              )}
               <span className="font-medium truncate">{order.vessel_name}</span>
             </div>
             {!compact && technicianDisplay.length > 0 && (
@@ -113,6 +120,7 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
             auxiliary_technicians: order.auxiliary_technicians,
             auvo_team_name: order.auvo_team_name,
             auvo_technician_names: order.auvo_technician_names,
+            event_source: order.event_source,
           }}
         />
       </HoverCardContent>

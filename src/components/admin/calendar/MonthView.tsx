@@ -139,11 +139,12 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                                     "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
                                   order.status === "cancelled" && "border-l-red-500 bg-red-100/90 dark:bg-red-900/40",
                                   order.status === "waiting" && "border-l-gray-500 bg-gray-100/90 dark:bg-gray-900/40",
+                                  order.event_source === "auvo" && "border-l-cyan-500 bg-cyan-100/90 dark:bg-cyan-900/40",
                                 )}
                                 onClick={() => onEventClick?.(order.id)}
                               >
                                 <div className="font-semibold text-foreground leading-tight truncate">
-                                  {order.scheduled_time ? `${order.scheduled_time} - ` : ""}{order.vessel_name}
+                                  {order.scheduled_time ? `${order.scheduled_time} - ` : ""}{order.event_source === "auvo" ? "Auvo · " : ""}{order.vessel_name}
                                 </div>
                                 {allTechs && (
                                   <div className="font-medium text-foreground/70 leading-tight truncate">
