@@ -21,6 +21,22 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
   const [orderDetails, setOrderDetails] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
+  const getAuvoTeamLabel = (auvoTasks: any[] = []) => {
+    const teamName = auvoTasks.find((task) => task.team_name)?.team_name;
+    if (teamName) return teamName;
+
+    const technicians = auvoTasks
+      .map((task) => task.technician_name)
+      .filter((name): name is string => Boolean(name));
+
+    return [...new Set(technicians)].join(", ");
+  };
+
+  const getAuvoVesselName = (auvoTasks: any[] = []) => {
+    return auvoTasks.find((task) => task.vessel_name_parsed || task.vessel_name)?.vessel_name_parsed
+      || auvoTasks.find((task) => task.vessel_name)?.vessel_name;
+  };
+
   useEffect(() => {
     fetchOrderDetails();
   }, [orderId]);
@@ -68,6 +84,15 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
 
       if (tasksError) throw tasksError;
 
+      const { data: auvoTasksData, error: auvoTasksError } = await (supabase.from("auvo_tasks") as any)
+        .select("team_name, technician_name, vessel_name_parsed, vessel_name, task_date")
+        .eq("service_order_id", orderId)
+        .order("task_date", { ascending: false });
+
+      if (auvoTasksError) {
+        console.error("Error fetching Auvo tasks:", auvoTasksError);
+      }
+
       // Fetch initial visit first
       const { data: visitData, error: visitError } = await supabase
         .from("service_visits")
@@ -108,6 +133,7 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
         ...orderData,
         supervisor: supervisorData,
         tasks: tasksData || [],
+        auvoTasks: auvoTasksData || [],
         visitTechnicians: visitTechnicians || [],
       });
     } catch (error: any) {
@@ -161,6 +187,8 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
 
   const leadTechnician = orderDetails.visitTechnicians?.find((vt: any) => vt.is_lead);
   const auxiliaryTechnicians = orderDetails.visitTechnicians?.filter((vt: any) => !vt.is_lead) || [];
+  const auvoTeamLabel = getAuvoTeamLabel(orderDetails.auvoTasks);
+  const auvoVesselName = getAuvoVesselName(orderDetails.auvoTasks);
 
   // Get unique task types to avoid showing duplicates
   const uniqueTaskTypes = orderDetails.tasks?.reduce((acc: any[], task: any) => {
@@ -208,7 +236,7 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
               <div className="flex justify-between">
                 <dt className="text-sm font-medium text-muted-foreground">Embarcação:</dt>
                 <dd className="text-sm">
-                  {orderDetails.vessels?.name || "N/A"}
+                  {orderDetails.vessels?.name || auvoVesselName || "N/A"}
                   {orderDetails.vessels?.vessel_type && ` (${orderDetails.vessels.vessel_type})`}
                 </dd>
               </div>
@@ -293,9 +321,15 @@ export const ViewOrderDetailsDialog = ({ orderId }: ViewOrderDetailsDialogProps)
                   </dd>
                 </div>
               )}
-              {!orderDetails.supervisor && !leadTechnician && auxiliaryTechnicians.length === 0 && (
+              {auvoTeamLabel && !leadTechnician && auxiliaryTechnicians.length === 0 && (
+                <div className="flex justify-between gap-4">
+                  <dt className="text-sm font-medium text-muted-foreground">Equipe (Auvo):</dt>
+                  <dd className="text-sm text-right font-medium">{auvoTeamLabel}</dd>
+                </div>
+              )}
+              {!orderDetails.supervisor && !leadTechnician && auxiliaryTechnicians.length === 0 && !auvoTeamLabel && (
                 <p className="text-sm text-muted-foreground">
-                  Nenhuma equipe vinculada localmente. A equipe em campo está na aba "Auvo".
+                  Nenhuma equipe vinculada localmente.
                 </p>
               )}
             </dl>
