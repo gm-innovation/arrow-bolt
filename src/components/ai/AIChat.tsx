@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Send, Loader2, Sparkles, History, X, LifeBuoy, Upload } from 'lucide-react';
+import { Send, Loader2, Sparkles, History, X, LifeBuoy, Upload, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -163,10 +163,13 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
     isRecording,
     isTranscribing,
     duration: recordDuration,
+    canRetry: canRetryTranscription,
     start: startRecording,
     stop: stopRecording,
     cancel: cancelRecording,
+    retry: retryTranscription,
   } = useVoiceRecorder({
+
     onResult: (text) => {
       lastInputWasVoiceRef.current = true;
       setInput((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text));
@@ -566,6 +569,23 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
             disabled={isRecording || isTranscribing}
           />
           <AttachmentChips attachments={attachments} onChange={setAttachments} />
+          {canRetryTranscription && !isRecording && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Não deu para transcrever o áudio anterior.</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 gap-1"
+                disabled={isTranscribing}
+                onClick={() => { void retryTranscription(); }}
+              >
+                <RotateCcw className="h-3 w-3" />
+                Tentar novamente
+              </Button>
+            </div>
+          )}
+
           <div className="flex gap-2 items-stretch">
             <AttachmentButton attachments={attachments} onChange={setAttachments} />
             <VoiceRecordButton
