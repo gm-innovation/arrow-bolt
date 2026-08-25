@@ -11,7 +11,7 @@ Dois ajustes: (1) ela aparecer como "digitando..." / "gravando áudio..." enquan
 5. Ao enviar a resposta, a presença volta para parada/disponível. Em grupos vale o mesmo, usando o JID do grupo.
 
 
-As mensagens de "estou sincronizando, já retorno" continuam para operações realmente longas — o indicador cobre o sinal de vida imediato.
+As mensagens de "estou sincronizando, já retorno" continuam para operações realmente longas.
 
 ## Parte 2 — Arquivos da OS: filtrar e entregar, não perguntar
 
