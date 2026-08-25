@@ -1,10 +1,10 @@
-import { AIAgent, AI_VOICE_OPTIONS, DEFAULT_VOICE_INSTRUCTIONS } from "@/hooks/useAIAgents";
+import { AIAgent } from "@/hooks/useAIAgents";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { VoiceTestButton } from "@/components/ai/VoiceTestButton";
+import { VoiceLabTab } from "@/components/super-admin/ai/VoiceLabTab";
 
 interface Props {
   agent: AIAgent;
@@ -145,67 +145,8 @@ export function IdentityTab({ agent, draft, setDraft }: Props) {
       </div>
 
 
-      <div className="rounded-lg border p-4 space-y-4">
-        <div>
-          <h4 className="text-sm font-medium">Voz da assistente</h4>
-          <p className="text-xs text-muted-foreground">
-            Usada na leitura em voz alta das respostas. Padrão: Coral (feminina, expressiva).
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          <div>
-            <Label>Voz</Label>
-            <Select
-              value={identity.voice ?? "coral"}
-              onValueChange={(v) => update({ voice: v as any })}
-            >
-              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {AI_VOICE_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div>
-            <Label>Velocidade da fala ({(identity.voice_speed ?? 1.03).toFixed(2)}x)</Label>
-            <Input
-              type="number"
-              step="0.01"
-              min="0.5"
-              max="2"
-              className="mt-1"
-              value={identity.voice_speed ?? 1.03}
-              onChange={(e) => update({ voice_speed: Number(e.target.value) || 1.03 })}
-            />
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <VoiceTestButton
-            voice={identity.voice ?? "coral"}
-            speed={identity.voice_speed ?? 1.03}
-            instructions={identity.voice_instructions ?? ""}
-            sampleText={`Oi, eu sou a ${identity.name || "Marina"}. A OS 1036 foi concluída ontem e o relatório já está assinado. Quer que eu envie o resumo pra você?`}
-          />
-          <p className="text-xs text-muted-foreground">
-            Ouve uma frase de exemplo com os valores atuais desta tela, mesmo antes de salvar.
-          </p>
-        </div>
+      <VoiceLabTab agent={agent} />
 
-        <div>
-          <Label>Instruções de entonação</Label>
-          <Textarea
-            className="mt-1"
-            rows={4}
-            value={identity.voice_instructions ?? ""}
-            onChange={(e) => update({ voice_instructions: e.target.value })}
-            placeholder={DEFAULT_VOICE_INSTRUCTIONS}
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Deixe em branco para usar as instruções padrão (voz feminina, ritmo de conversa em pt-BR).
-          </p>
-        </div>
-      </div>
 
     </div>
   );
