@@ -1,26 +1,38 @@
-# Marina com presença humana no WhatsApp ("digitando..." / "gravando áudio...")
+# Marina: presença humana no WhatsApp + entrega proativa de arquivos da OS
 
-Sim, dá. A Evolution API expõe o estado de presença do WhatsApp, então a Marina pode aparecer como "digitando..." enquanto pensa e "gravando áudio..." antes de mandar uma resposta em voz — exatamente como uma pessoa.
+Dois ajustes: (1) ela aparecer como "digitando..." / "gravando áudio..." enquanto trabalha; (2) quando você pede "relatório e medição da OS X", ela entregar os arquivos que casam com esses termos em vez de listar tudo e perguntar.
 
-## Como vai funcionar
+## Parte 1 — Presença humana no WhatsApp
 
-1. Assim que uma mensagem chega (texto ou áudio), a Marina marca leitura da mensagem e entra em **"digitando..."** no mesmo instante.
-2. Enquanto ela pensa/consulta Omie, Auvo, EVA (pode levar dezenas de segundos), a presença é **renovada periodicamente**, porque o WhatsApp expira o indicador em poucos segundos. Sem isso, o "digitando" desaparece no meio da espera.
-3. Se a resposta for em voz, ela troca para **"gravando áudio..."** durante a síntese, e só então envia o áudio.
-4. Ao enviar a resposta (texto ou áudio), a presença volta para **"disponível"/parada**.
-5. Em grupos vale a mesma coisa: a presença é enviada para o JID do grupo.
-6. Um pequeno atraso natural antes de textos muito curtos evita a sensação de resposta instantânea de robô (configurável, padrão curto).
+1. Ao receber a mensagem (texto ou áudio), Marina marca leitura e entra em **"digitando..."** imediatamente.
+2. Enquanto pensa/consulta Omie, Auvo, EVA, a presença é **renovada periodicamente** (o WhatsApp expira o indicador em poucos segundos), então o "digitando" não desaparece no meio da espera.
+3. Se a resposta for em voz, ela troca para **"gravando áudio..."** durante a síntese e só então envia o áudio.
+4. Ao enviar a resposta, a presença volta para parada/disponível. Em grupos vale o mesmo, usando o JID do grupo.
+5. Mensagens da fila (alertas, avisos de progresso) também ganham um "digitando" curto antes do envio.
 
-Isso substitui parte da necessidade das mensagens de "estou sincronizando, já retorno": elas continuam para operações realmente longas, mas o indicador de digitação já dá o sinal de vida imediato.
+As mensagens de "estou sincronizando, já retorno" continuam para operações realmente longas — o indicador cobre o sinal de vida imediato.
+
+## Parte 2 — Arquivos da OS: filtrar e entregar, não perguntar
+
+Hoje `list_os_attachments` devolve todos os anexos e a resposta vira uma pergunta de volta. Mudanças:
+
+1. **Filtro por intenção**: a listagem passa a aceitar os tipos/termos pedidos (ex.: relatório, medição/fechamento, pedido de compra) e casa tanto pelo tipo classificado quanto pelas palavras no nome do arquivo. Se você pediu "relatório e medição", ela olha só esses.
+2. **Entrega automática**: havendo correspondência, ela **envia os arquivos** (documento no WhatsApp, link no chat) na mesma resposta, sem perguntar. Um arquivo por tipo pedido é enviado direto; vários do mesmo tipo, ela envia o mais recente e avisa que existem versões anteriores, oferecendo enviá-las.
+3. **Só pergunta quando é realmente ambíguo**: nenhum arquivo casa com o pedido, ou o pedido é genérico ("quais arquivos tem?"). Aí sim ela lista.
+4. **Classificação mais robusta**: ampliar os padrões de nome (abreviações e variações como "med.", "medicao final", "rel tec", "RDT", "boletim", "BM", datas no nome) para reduzir arquivos caindo em "outro".
+5. **Postura proativa no prompt**: regra explícita de que, quando o pedido permite identificar o item com segurança, ela age e entrega — perguntar de volta é o último recurso, e quando pergunta deve vir junto com o que ela já conseguiu fazer.
 
 ## Detalhes técnicos
 
-- `supabase/functions/_shared/channels.ts`: adicionar ao `ChannelAdapter` os métodos opcionais `setPresence({ to, state })` (`composing` | `recording` | `paused` | `available`) e `markRead(message)`. No `EvolutionAdapter`, implementar via `chat/sendPresence` (body `{ number, delay, presence }`) e `chat/markMessageAsRead`. Falha de presença nunca derruba o fluxo: apenas log.
-- `supabase/functions/_shared/presence.ts` (novo): helper `startPresenceHeartbeat(adapter, to, state, intervalMs = 4000)` que envia a presença imediatamente e reenvia em intervalo até `stop()`, com `stop()` idempotente e limite de duração para não vazar timers.
-- `supabase/functions/whatsapp-in/index.ts`: iniciar o heartbeat `composing` logo após resolver `replyTo` e a identidade; trocar para `recording` no trecho que gera o áudio (perto do `adapter.sendAudio`); chamar `stop()` em `finally`, antes de enfileirar/enviar a resposta.
-- `supabase/functions/whatsapp-out/index.ts`: ao drenar a fila, enviar `composing` breve antes de cada `sendText` da mensagem, para que mensagens enfileiradas (alertas, avisos de progresso) também tenham o indicador.
-- Sem mudança de schema. Nenhuma nova credencial: usa a mesma instância/apikey da Evolution já configurada.
+Presença:
+- `_shared/channels.ts`: `ChannelAdapter` ganha `setPresence({ to, state })` (`composing`/`recording`/`paused`/`available`) e `markRead(message)`; no `EvolutionAdapter` via `chat/sendPresence` e `chat/markMessageAsRead`. Falha de presença só loga, nunca derruba o fluxo.
+- `_shared/presence.ts` (novo): `startPresenceHeartbeat(adapter, to, state, intervalMs = 4000)` com `stop()` idempotente e duração máxima para não vazar timers.
+- `whatsapp-in/index.ts`: inicia o heartbeat `composing` após resolver `replyTo`; troca para `recording` no trecho de síntese antes de `adapter.sendAudio`; `stop()` em `finally`.
+- `whatsapp-out/index.ts`: `composing` breve antes de cada `sendText` da fila.
 
-## Fora de escopo
+Arquivos:
+- `omie-proxy/index.ts`: expandir `classifyAttachment` com os padrões adicionais.
+- `ai-assistant/insights.ts`: `list_os_attachments` recebe `kinds?: string[]` e `name_contains?: string`, devolve `arquivos_correspondentes` + `demais_arquivos` e uma `instrucao` que manda entregar direto. `get_os_attachment` aceita `attachment_ids?: number[]` (ou é chamada em sequência) para entregar vários numa volta; melhorar o casamento por nome com normalização sem acento.
+- `ai-assistant/index.ts` (prompt do sistema): regra de proatividade — identificar pelo termo pedido, entregar, e só perguntar em ambiguidade real, sempre já tendo executado o que era possível.
 
-O chat web já mostra o estado de "pensando" da Marina; nada muda lá.
+Sem mudança de schema e sem novas credenciais.
