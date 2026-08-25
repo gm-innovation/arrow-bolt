@@ -4,11 +4,12 @@ Dois ajustes: (1) ela aparecer como "digitando..." / "gravando áudio..." enquan
 
 ## Parte 1 — Presença humana no WhatsApp
 
-1. Ao receber a mensagem (texto ou áudio), Marina marca leitura e entra em **"digitando..."** imediatamente.
-2. Enquanto pensa/consulta Omie, Auvo, EVA, a presença é **renovada periodicamente** (o WhatsApp expira o indicador em poucos segundos), então o "digitando" não desaparece no meio da espera.
-3. Se a resposta for em voz, ela troca para **"gravando áudio..."** durante a síntese e só então envia o áudio.
-4. Ao enviar a resposta, a presença volta para parada/disponível. Em grupos vale o mesmo, usando o JID do grupo.
-5. Mensagens da fila (alertas, avisos de progresso) também ganham um "digitando" curto antes do envio.
+1. Ao receber a mensagem (texto ou áudio), Marina apenas **marca leitura**. Nada de "digitando" na hora: se a resposta sai rápido, não aparece indicador nenhum, como uma pessoa que só responde.
+2. O "digitando..." só entra depois de alguns segundos de espera (padrão ~4s), quando a resposta realmente vai demorar.
+3. A partir daí a presença é mantida em **pulsos** — alterna digitando e pausa, como alguém que escreve, pensa e volta a escrever — em vez de um "digitando" contínuo por minutos, que parece carta.
+4. Se a resposta for em voz, ela troca para **"gravando áudio..."** durante a síntese e só então envia o áudio.
+5. Ao enviar a resposta, a presença volta para parada/disponível. Em grupos vale o mesmo, usando o JID do grupo.
+
 
 As mensagens de "estou sincronizando, já retorno" continuam para operações realmente longas — o indicador cobre o sinal de vida imediato.
 
