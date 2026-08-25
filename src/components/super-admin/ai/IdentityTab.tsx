@@ -1,4 +1,4 @@
-import { AIAgent, DEFAULT_VOICE_INSTRUCTIONS } from "@/hooks/useAIAgents";
+import { AIAgent } from "@/hooks/useAIAgents";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
