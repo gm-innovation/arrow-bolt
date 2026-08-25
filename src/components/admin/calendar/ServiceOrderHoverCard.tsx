@@ -20,6 +20,8 @@ interface ServiceOrderHoverCardProps {
     technician_names?: string[];
     lead_technician?: string;
     auxiliary_technicians?: string[];
+    auvo_team_name?: string;
+    auvo_technician_names?: string[];
   };
 }
 
@@ -102,7 +104,7 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
           </div>
         )}
 
-        {order.technician_names && order.technician_names.length > 0 && (
+        {((order.technician_names && order.technician_names.length > 0) || order.lead_technician || order.auvo_team_name || (order.auvo_technician_names && order.auvo_technician_names.length > 0)) && (
           <div className="flex items-start gap-2">
             <User className="h-4 w-4 text-muted-foreground mt-0.5" />
             <div className="flex-1">
@@ -118,6 +120,32 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
                   <div>
                     <p className="text-xs text-muted-foreground">Auxiliares:</p>
                     {order.auxiliary_technicians.map((name, idx) => (
+                      <p key={idx} className="text-sm">
+                        {formatShortName(name)}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {!order.lead_technician && (!order.auxiliary_technicians || order.auxiliary_technicians.length === 0) && order.technician_names && order.technician_names.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Técnicos:</p>
+                    {order.technician_names.map((name, idx) => (
+                      <p key={idx} className="text-sm">
+                        {formatShortName(name)}
+                      </p>
+                    ))}
+                  </div>
+                )}
+                {!order.lead_technician && (!order.auxiliary_technicians || order.auxiliary_technicians.length === 0) && order.auvo_team_name && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Auvo:</p>
+                    <p className="text-sm font-medium">{order.auvo_team_name}</p>
+                  </div>
+                )}
+                {!order.lead_technician && !order.auvo_team_name && order.auvo_technician_names && order.auvo_technician_names.length > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Auvo:</p>
+                    {order.auvo_technician_names.map((name, idx) => (
                       <p key={idx} className="text-sm">
                         {formatShortName(name)}
                       </p>

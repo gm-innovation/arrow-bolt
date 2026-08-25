@@ -5,6 +5,7 @@ import type { CalendarServiceOrder } from "./ServiceCalendar";
 import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
 import { Palmtree, CalendarOff, Stethoscope, GraduationCap, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface WeekViewProps {
   date: Date;
@@ -12,6 +13,7 @@ interface WeekViewProps {
   absences?: CalendarAbsence[];
   onCalls?: CalendarOnCall[];
   onEventClick?: (orderId: string) => void;
+  onDayOverflowClick?: (day: Date) => void;
 }
 
 const absenceConfig: Record<string, { label: string; bg: string; icon: typeof Palmtree }> = {
@@ -22,7 +24,7 @@ const absenceConfig: Record<string, { label: string; bg: string; icon: typeof Pa
   training: { label: "Treinamento", bg: "bg-purple-50 border-l-purple-500 text-purple-800", icon: GraduationCap },
 };
 
-export const WeekView = ({ date, orders, absences = [], onCalls = [], onEventClick }: WeekViewProps) => {
+export const WeekView = ({ date, orders, absences = [], onCalls = [], onEventClick, onDayOverflowClick }: WeekViewProps) => {
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -48,7 +50,7 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], onEventCli
     return `${parts[0]} ${parts[parts.length - 1]}`;
   };
 
-  const MAX_VISIBLE = 5;
+  const MAX_VISIBLE = 18;
 
   return (
     <div className="flex flex-col h-[calc(100vh-250px)] overflow-hidden">
@@ -84,9 +86,15 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], onEventCli
                 />
               ))}
               {remainingCount > 0 && (
-                <div className="text-xs text-muted-foreground text-center py-1">
-                  mais +{remainingCount}
-                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 w-full text-xs text-muted-foreground"
+                  onClick={() => onDayOverflowClick?.(day)}
+                >
+                  +{remainingCount} atividades
+                </Button>
               )}
 
               {/* Absences */}

@@ -24,6 +24,8 @@ interface ServiceOrderListItemProps {
     technician_names?: string[];
     lead_technician?: string;
     auxiliary_technicians?: string[];
+    auvo_team_name?: string;
+    auvo_technician_names?: string[];
   };
   compact?: boolean;
   onClick?: () => void;
@@ -51,6 +53,10 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
     }
   } else if (order.technician_names && order.technician_names.length > 0) {
     technicianDisplay.push(...order.technician_names.map(formatShortName));
+  } else if (order.auvo_team_name) {
+    technicianDisplay.push(order.auvo_team_name);
+  } else if (order.auvo_technician_names && order.auvo_technician_names.length > 0) {
+    technicianDisplay.push(...order.auvo_technician_names.map(formatShortName));
   } else if (order.supervisor_name) {
     technicianDisplay.push(formatShortName(order.supervisor_name));
   }
@@ -105,6 +111,8 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
             technician_names: order.technician_names,
             lead_technician: order.lead_technician,
             auxiliary_technicians: order.auxiliary_technicians,
+            auvo_team_name: order.auvo_team_name,
+            auvo_technician_names: order.auvo_technician_names,
           }}
         />
       </HoverCardContent>
