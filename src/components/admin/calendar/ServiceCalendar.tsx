@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { CalendarHeader } from "./CalendarHeader";
 import { DayView } from "./DayView";
 import { WeekView } from "./WeekView";
 import { MonthView } from "./MonthView";
+import { DayEventsDialog } from "./DayEventsDialog";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCalendarAbsences, CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
 import { CalendarLegend } from "./CalendarLegend";
+import { ViewOrderDetailsDialog } from "@/components/admin/orders/ViewOrderDetailsDialog";
 
 export type CalendarServiceOrder = {
   id: string;
@@ -30,6 +31,38 @@ export type CalendarServiceOrder = {
   technician_names?: string[];
   lead_technician?: string;
   auxiliary_technicians?: string[];
+  auvo_team_name?: string;
+  auvo_technician_names?: string[];
+  auvo_vessel_name?: string;
+};
+
+type AuvoOrderEnrichment = {
+  teamName?: string;
+  technicianNames: string[];
+  vesselName?: string;
+};
+
+const splitAuvoTeam = (teamName?: string | null): string[] => {
+  if (!teamName) return [];
+  return teamName
+    .split(/\s+(?:e|E)\s+|[,/;+&]+/)
+    .map((name) => name.trim())
+    .filter(Boolean);
+};
+
+const addUnique = (items: string[], value?: string | null) => {
+  const normalized = value?.trim();
+  if (!normalized) return;
+  if (!items.some((item) => item.toLocaleLowerCase("pt-BR") === normalized.toLocaleLowerCase("pt-BR"))) {
+    items.push(normalized);
+  }
+};
+
+const parseCalendarDate = (dateString?: string | null): Date => {
+  if (!dateString) return new Date();
+  const [year, month, day] = dateString.split("-").map(Number);
+  if (!year || !month || !day) return new Date();
+  return new Date(year, month - 1, day, 12, 0, 0);
 };
 
 export interface ServiceCalendarProps {
@@ -45,13 +78,14 @@ export const ServiceCalendar = ({
   isFullscreen = false,
   onToggleFullscreen
 }: ServiceCalendarProps) => {
-  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [view, setView] = useState<"day" | "week" | "month">("week");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [overflowDay, setOverflowDay] = useState<Date | null>(null);
   const [serviceOrders, setServiceOrders] = useState<CalendarServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | undefined>();
@@ -151,16 +185,19 @@ export const ServiceCalendar = ({
         });
       }
 
+      const auvoByOrder = await fetchAuvoOrderEnrichment(orderIds);
+
       const formattedOrders: CalendarServiceOrder[] = (orders || []).map((order: any) => {
         // OSs sem horário definido (ex.: espelhadas do Omie/Auvo) usam meio-dia apenas
         // para posicionamento da data; o horário exibido fica vazio (sem "08:00" fictício)
         const scheduledDateTime = order.service_date_time
           ? new Date(order.service_date_time)
-          : new Date(order.scheduled_date + "T12:00:00");
+          : parseCalendarDate(order.scheduled_date);
 
         const visitData = visitsByOrder.get(order.id);
         const leadTech = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
         const auxiliaryTechs = visitData?.visit_technicians?.filter((vt: any) => !vt.is_lead) || [];
+        const auvoEnrichment = auvoByOrder.get(order.id);
 
         const technicianNames: string[] = order.tasks
           ?.map((task: any) => task.assigned_to?.user?.full_name)
@@ -174,7 +211,7 @@ export const ServiceCalendar = ({
         return {
           id: order.id,
           order_number: order.order_number,
-          vessel_name: order.vessels?.name || "Sem embarcação",
+          vessel_name: order.vessels?.name || auvoEnrichment?.vesselName || "Sem embarcação",
           client_name: order.clients?.name,
           supervisor_name: order.supervisor?.full_name,
           status: order.status,
@@ -186,6 +223,9 @@ export const ServiceCalendar = ({
           technician_names: uniqueTechNames,
           lead_technician: leadTech?.technicians?.profiles?.full_name,
           auxiliary_technicians: auxiliaryNames,
+          auvo_team_name: auvoEnrichment?.teamName,
+          auvo_technician_names: auvoEnrichment?.technicianNames,
+          auvo_vessel_name: auvoEnrichment?.vesselName,
         };
       });
 
@@ -199,7 +239,57 @@ export const ServiceCalendar = ({
 
 
   const handleEventClick = (orderId: string) => {
-    navigate(`/admin/orders?id=${orderId}`);
+    setSelectedOrderId(orderId);
+  };
+
+  const fetchAuvoOrderEnrichment = async (orderIds: string[]): Promise<Map<string, AuvoOrderEnrichment>> => {
+    const enrichmentByOrder = new Map<string, AuvoOrderEnrichment>();
+    if (orderIds.length === 0) return enrichmentByOrder;
+
+    const chunks: string[][] = [];
+    for (let index = 0; index < orderIds.length; index += 80) {
+      chunks.push(orderIds.slice(index, index + 80));
+    }
+
+    const responses = await Promise.all(
+      chunks.map((chunk) =>
+        (supabase.from("auvo_tasks") as any)
+          .select("service_order_id, team_name, technician_name, vessel_name_parsed, vessel_name, task_date")
+          .in("service_order_id", chunk)
+          .order("task_date", { ascending: false })
+          .limit(5000),
+      ),
+    );
+
+    responses.forEach(({ data, error }: any) => {
+      if (error) {
+        console.error("Error fetching Auvo calendar enrichment:", error);
+        return;
+      }
+
+      (data || []).forEach((row: any) => {
+        const serviceOrderId = row.service_order_id;
+        if (!serviceOrderId) return;
+
+        const existing = enrichmentByOrder.get(serviceOrderId) || { technicianNames: [] };
+        const teamName = row.team_name?.trim();
+        const vesselName = row.vessel_name_parsed?.trim() || row.vessel_name?.trim();
+
+        if (teamName && !existing.teamName) {
+          existing.teamName = teamName;
+        }
+        splitAuvoTeam(teamName).forEach((name) => addUnique(existing.technicianNames, name));
+        addUnique(existing.technicianNames, row.technician_name);
+
+        if (vesselName && !existing.vesselName) {
+          existing.vesselName = vesselName;
+        }
+
+        enrichmentByOrder.set(serviceOrderId, existing);
+      });
+    });
+
+    return enrichmentByOrder;
   };
 
   const handleSearch = () => {
@@ -290,6 +380,7 @@ export const ServiceCalendar = ({
           absences={absences}
           onCalls={onCalls}
           onEventClick={handleEventClick} 
+          onDayOverflowClick={setOverflowDay}
         />
       )}
       {view === "month" && (
@@ -337,6 +428,23 @@ export const ServiceCalendar = ({
           </DialogHeader>
           <p>Menu em desenvolvimento</p>
         </DialogContent>
+      </Dialog>
+
+      <Dialog open={Boolean(overflowDay)} onOpenChange={(open) => !open && setOverflowDay(null)}>
+        {overflowDay && (
+          <DayEventsDialog
+            date={overflowDay}
+            orders={serviceOrders}
+            onOrderClick={(orderId) => {
+              setOverflowDay(null);
+              setSelectedOrderId(orderId);
+            }}
+          />
+        )}
+      </Dialog>
+
+      <Dialog open={Boolean(selectedOrderId)} onOpenChange={(open) => !open && setSelectedOrderId(null)}>
+        {selectedOrderId && <ViewOrderDetailsDialog orderId={selectedOrderId} />}
       </Dialog>
     </div>
   );

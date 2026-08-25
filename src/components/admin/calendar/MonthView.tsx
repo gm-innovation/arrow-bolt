@@ -110,10 +110,12 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                   {dayOrders.length > 0 && (
                     <div className="space-y-0.5 mb-1">
                       {dayOrders.map((order) => {
-                        const allTechs = [
+                        const localTechs = [
                           order.lead_technician,
                           ...(order.auxiliary_technicians || []),
                         ].filter(Boolean).map(formatShortName).join(", ");
+                        const auvoTechs = order.auvo_team_name || order.auvo_technician_names?.map(formatShortName).join(", ");
+                        const allTechs = localTechs || auvoTechs;
 
                         return (
                           <HoverCard key={order.id} openDelay={150} closeDelay={100}>
