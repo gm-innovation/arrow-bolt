@@ -56,7 +56,7 @@ export function useSpeechPlayback() {
   const speak = useCallback(async (
     text: string,
     id?: string,
-    opts?: { voice?: string; speed?: number; instructions?: string },
+    opts?: { engine?: string; voice?: string; speed?: number; instructions?: string },
   ) => {
     const clean = (text ?? '').trim();
     if (!clean) return;
@@ -120,6 +120,7 @@ export function useSpeechPlayback() {
             },
             body: JSON.stringify({
               text: chunk,
+              ...(opts?.engine ? { engine: opts.engine } : {}),
               ...(opts?.voice ? { voice: opts.voice } : {}),
               ...(typeof opts?.speed === 'number' ? { speed: opts.speed } : {}),
               ...(opts?.instructions ? { instructions: opts.instructions } : {}),

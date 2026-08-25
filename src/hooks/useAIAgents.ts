@@ -2,16 +2,53 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type AIAgentVoice = "coral" | "shimmer" | "sage" | "nova" | "alloy" | "echo";
+export type AIAgentVoice = string;
 
-export const AI_VOICE_OPTIONS: { value: AIAgentVoice; label: string }[] = [
-  { value: "coral", label: "Coral (feminina, expressiva)" },
-  { value: "shimmer", label: "Shimmer (feminina, suave)" },
-  { value: "sage", label: "Sage (feminina, calma)" },
-  { value: "nova", label: "Nova (feminina, jovem)" },
-  { value: "alloy", label: "Alloy (neutra)" },
-  { value: "echo", label: "Echo (masculina)" },
-];
+/** Motores de síntese de voz suportados pela função ai-text-to-speech. */
+export type AIVoiceEngine = "gemini" | "openai" | "elevenlabs";
+
+export const AI_VOICE_ENGINE_LABELS: Record<AIVoiceEngine, string> = {
+  gemini: "Gemini TTS (Lovable AI)",
+  openai: "OpenAI TTS (motor atual)",
+  elevenlabs: "ElevenLabs",
+};
+
+export const AI_VOICE_OPTIONS_BY_ENGINE: Record<AIVoiceEngine, { value: string; label: string }[]> = {
+  gemini: [
+    { value: "Kore", label: "Kore (feminina, firme)" },
+    { value: "Leda", label: "Leda (feminina, jovem)" },
+    { value: "Aoede", label: "Aoede (feminina, leve)" },
+    { value: "Zephyr", label: "Zephyr (feminina, clara)" },
+    { value: "Puck", label: "Puck (masculina, animada)" },
+    { value: "Charon", label: "Charon (masculina, grave)" },
+  ],
+  openai: [
+    { value: "coral", label: "Coral (feminina, expressiva)" },
+    { value: "shimmer", label: "Shimmer (feminina, suave)" },
+    { value: "sage", label: "Sage (feminina, calma)" },
+    { value: "nova", label: "Nova (feminina, jovem)" },
+    { value: "alloy", label: "Alloy (neutra)" },
+    { value: "echo", label: "Echo (masculina)" },
+  ],
+  elevenlabs: [
+    { value: "EXAVITQu4vr4xnSDxMaL", label: "Sarah (feminina, natural)" },
+    { value: "FGY2WhTYpPnrIDTdsKH5", label: "Laura (feminina, jovem)" },
+    { value: "XrExE9yKIg1WjnnlVkGX", label: "Matilda (feminina, calorosa)" },
+    { value: "cgSgspJ2msm6clMCkdW9", label: "Jessica (feminina, expressiva)" },
+    { value: "pFZP5JQG7iQjIQuC4Bku", label: "Lily (feminina, suave)" },
+    { value: "onwK4e9ZLuTAKqWW03F9", label: "Daniel (masculina)" },
+  ],
+};
+
+/** Vozes padrão por motor, usadas quando o agente não define uma. */
+export const AI_VOICE_ENGINE_DEFAULTS: Record<AIVoiceEngine, string> = {
+  gemini: "Kore",
+  openai: "coral",
+  elevenlabs: "EXAVITQu4vr4xnSDxMaL",
+};
+
+/** Compatibilidade: lista antiga usada pela aba Identidade. */
+export const AI_VOICE_OPTIONS = AI_VOICE_OPTIONS_BY_ENGINE.openai;
 
 export const DEFAULT_VOICE_INSTRUCTIONS =
   "Fale em português do Brasil como uma colega de trabalho experiente conversando, não como locutora. " +
@@ -26,10 +63,12 @@ export type AIAgentIdentity = {
   language?: string;
   persona?: string;
   avatar_url?: string;
+  voice_engine?: AIVoiceEngine;
   voice?: AIAgentVoice;
   voice_speed?: number;
   voice_instructions?: string;
 };
+
 
 export type AIAgentOutOfScopeArea = {
   area_key: string;

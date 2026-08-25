@@ -5,6 +5,7 @@ import { textForSpeech } from '@/lib/voice/audio';
 const SAMPLE_RATE = 24000; // PCM devolvido pelo modelo de voz
 
 export interface SpeechQueueOptions {
+  engine?: string;
   voice?: string;
   speed?: number;
   instructions?: string;
@@ -96,6 +97,7 @@ export function useSpeechQueue() {
         },
         body: JSON.stringify({
           text,
+          ...(optsRef.current.engine ? { engine: optsRef.current.engine } : {}),
           ...(optsRef.current.voice ? { voice: optsRef.current.voice } : {}),
           ...(typeof optsRef.current.speed === 'number' ? { speed: optsRef.current.speed } : {}),
           ...(optsRef.current.instructions ? { instructions: optsRef.current.instructions } : {}),

@@ -6,6 +6,7 @@ const DEFAULT_SAMPLE =
   'Oi, eu sou a Marina. A OS 1036 foi concluída ontem e o relatório já está assinado. Quer que eu envie o resumo pra você?';
 
 interface VoiceTestButtonProps {
+  engine?: string;
   voice?: string;
   speed?: number;
   instructions?: string;
@@ -16,6 +17,7 @@ interface VoiceTestButtonProps {
 
 /** Botão para ouvir uma frase de exemplo com a voz/velocidade/entonação em edição. */
 export function VoiceTestButton({
+  engine,
   voice,
   speed,
   instructions,
@@ -24,14 +26,16 @@ export function VoiceTestButton({
   className,
 }: VoiceTestButtonProps) {
   const { isSpeaking, speakingId, speak, stop } = useSpeechPlayback();
-  const active = isSpeaking && speakingId === 'voice-test';
+  const testId = `voice-test:${engine ?? 'default'}:${voice ?? 'default'}`;
+  const active = isSpeaking && speakingId === testId;
 
   const handleClick = () => {
     if (active) {
       stop();
       return;
     }
-    speak(sampleText?.trim() || DEFAULT_SAMPLE, 'voice-test', {
+    speak(sampleText?.trim() || DEFAULT_SAMPLE, testId, {
+      ...(engine ? { engine } : {}),
       ...(voice ? { voice } : {}),
       ...(typeof speed === 'number' && Number.isFinite(speed) ? { speed } : {}),
       ...(instructions?.trim() ? { instructions: instructions.trim() } : {}),
