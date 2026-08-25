@@ -236,7 +236,10 @@ export const ServiceCalendar = ({
         };
       });
 
-      const auvoEvents = await fetchStandaloneAuvoEvents(profile.company_id, startStr, endStr, orderIds);
+      const orderDateById = new Map<string, string>(
+        (orders || []).map((order: any) => [order.id, order.scheduled_date || ""]),
+      );
+      const auvoEvents = await fetchStandaloneAuvoEvents(profile.company_id, startStr, endStr, orderDateById);
       setServiceOrders([...formattedOrders, ...auvoEvents]);
     } catch (error) {
       console.error("Error:", error);
@@ -259,7 +262,7 @@ export const ServiceCalendar = ({
     targetCompanyId: string,
     startStr: string,
     endStr: string,
-    visibleOrderIds: string[],
+    orderDateById: Map<string, string>,
   ): Promise<CalendarServiceOrder[]> => {
     const { data, error } = await (supabase.from("auvo_tasks") as any)
       .select(`
@@ -293,11 +296,10 @@ export const ServiceCalendar = ({
       return [];
     }
 
-    const visibleOrderSet = new Set(visibleOrderIds);
     const grouped = new Map<string, CalendarServiceOrder>();
 
     (data || [])
-      .filter((task: any) => !task.service_order_id || !visibleOrderSet.has(task.service_order_id))
+      .filter((task: any) => !task.service_order_id || orderDateById.get(task.service_order_id) !== task.task_date)
       .forEach((task: any) => {
         const scheduledDate = task.checkin_at
           ? new Date(task.checkin_at)
