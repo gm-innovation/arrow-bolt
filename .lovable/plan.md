@@ -48,3 +48,6 @@ Ações:
 - `notify-dispatch`: substituir a chamada a `send-whatsapp` (Twilio) por insert em `whatsapp_outbox` + dreno; manter `notification_delivery_log`.
 - Trigger `notify_support_ticket_created`: manter os inserts em `notifications` e passar a usar o despachante (via `pg_net` para `notify-dispatch`) para que o WhatsApp saia junto; idem `notify_support_ticket_user_reply`.
 - Novo cron `whatsapp-out-drain` (`* * * * *`) chamando `whatsapp-out`.
+- `whatsapp-in`: tratar `imageMessage`/`stickerMessage`/`documentMessage` de imagem reusando `getMediaBase64`, montando `attachments: [{ kind: "image", dataUrl }]` na chamada ao `ai-assistant`.
+- `ai-assistant`: garantir modelo com visão quando `hasImageAttachment` — hoje `tm.model`/`llmOverride` sobrescrevem a escolha feita na linha 595.
+
