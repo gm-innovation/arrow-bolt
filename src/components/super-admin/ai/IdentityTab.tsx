@@ -1,10 +1,10 @@
-import { AIAgent, AI_VOICE_OPTIONS, DEFAULT_VOICE_INSTRUCTIONS } from "@/hooks/useAIAgents";
+import { AIAgent, DEFAULT_VOICE_INSTRUCTIONS } from "@/hooks/useAIAgents";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { VoiceTestButton } from "@/components/ai/VoiceTestButton";
+import { VoiceLabTab } from "@/components/super-admin/ai/VoiceLabTab";
 
 interface Props {
   agent: AIAgent;
