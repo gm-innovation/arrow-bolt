@@ -22,6 +22,8 @@ Hoje `list_os_attachments` devolve todos os anexos e a resposta vira uma pergunt
 3. **Só pergunta quando é realmente ambíguo**: nenhum arquivo casa com o pedido, ou o pedido é genérico ("quais arquivos tem?"). Aí sim ela lista.
 4. **Classificação mais robusta**: ampliar os padrões de nome (abreviações e variações como "med.", "medicao final", "rel tec", "RDT", "boletim", "BM", datas no nome) para reduzir arquivos caindo em "outro".
 5. **Postura proativa no prompt**: regra explícita de que, quando o pedido permite identificar o item com segurança, ela age e entrega — perguntar de volta é o último recurso, e quando pergunta deve vir junto com o que ela já conseguiu fazer.
+6. **Entender o contexto da conversa**: interpretar o pedido junto com o histórico recente — a OS já citada continua valendo em mensagens seguintes ("manda o relatório dela também"), termos coloquiais são mapeados para os tipos de arquivo (fechamento = medição, RDT/laudo = relatório, PC/PO = pedido de compra) e uma resposta sua a uma pergunta anterior dela é lida como continuação, não como pedido novo.
+
 
 ## Detalhes técnicos
 
