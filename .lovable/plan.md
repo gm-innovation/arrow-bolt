@@ -1,41 +1,49 @@
-# Agenda com dados futuros do Auvo + aviso de chamado concluído
+# Correção da agenda 27/08 e aviso de chamado concluído
 
 ## Diagnóstico confirmado
 
-1. **A sincronização do Auvo nunca busca datas futuras.** A função agendada `invoke_auvo_sync` monta a janela como `hoje - 7 dias` até **hoje**. Confirmado no banco: a maior `task_date` em `auvo_tasks` é **25/08/2026**, e não existe nenhuma tarefa para 26/08 ou 27/08. Ou seja, agendamentos futuros do Auvo (como as férias do Vega Chaser e o FPSO Cidade de Maricá em 27/08) simplesmente não chegam ao Arrow.
-2. **A agenda só desenha OSs locais.** `ServiceCalendar` consulta `service_orders` (mais visitas/tarefas) e usa `auvo_tasks` apenas como enriquecimento (equipe/embarcação) das OSs já existentes. Em 27/08 não há nenhuma OS com `scheduled_date` nessa data (0 registros), então a coluna fica vazia.
-3. **Tarefas Auvo sem OS ficam invisíveis.** De 2.155 tarefas Auvo, 80 não têm `service_order_id`. Atividades do tipo férias/bloqueio de agenda normalmente não têm número de OS e, mesmo depois de importadas, não apareceriam na agenda pelo desenho atual.
-4. **Chamados de suporte** já avisam na abertura (trigger `notify_support_ticket_created`), mas não existe nada disparado na conclusão: o status é alterado direto pela tela `/super-admin/support-inbox` e nenhum trigger observa a mudança para `resolved`/`closed`.
+1. **O dia 27/08 está vazio no Arrow, mas há dados futuros em outros dias.** Conferência no banco: `service_orders` tem 3 itens em 25/08, 34 em 26/08, **0 em 27/08** e 4 em 28/08. A imagem enviada confirma o mesmo comportamento visual: 26 e 28 aparecem, 27 fica em branco.
+2. **O problema não é que o Arrow não mostra datas futuras em geral.** Ele já exibe 26/08 e 28/08; o bug específico é que os agendamentos do Auvo de 27/08 não foram sincronizados/reconciliados para a agenda do Arrow.
+3. **As tarefas Auvo locais ainda não cobrem o futuro.** `auvo_tasks` só tem registros até 25/08; para 26/08, 27/08 e 28/08 há 0 tarefas Auvo armazenadas. Portanto, se o Auvo tem Vega Chaser e FPSO Cidade de Maricá em 27/08, esses dados ainda não chegaram ao banco local.
+4. **A agenda atual é baseada principalmente em OS.** `ServiceCalendar` consulta `service_orders.scheduled_date` e usa `auvo_tasks` apenas para enriquecer OSs já carregadas. Se uma atividade do Auvo não tiver OS vinculada, ou se a OS não tiver sido criada/reconciliada, ela não aparece no calendário.
+5. **Chamados de suporte** já têm aviso na abertura, mas a tela `/super-admin/support-inbox` apenas atualiza `support_tickets.status`; não há trigger de conclusão para avisar a pessoa que abriu o chamado.
 
 ## O que será feito
 
-### 1. Sincronizar também o futuro do Auvo
-- A janela do sync agendado passa a cobrir retroativo **e** futuro (ex.: de 7 dias atrás até 60 dias à frente), para que agendamentos ainda não realizados apareçam na agenda.
-- Manter o mesmo modo de blocos quinzenais já usado, para não estourar o tempo da função.
-- Rodar uma sincronização imediata da janela futura, de forma que 26/08 e 27/08 sejam preenchidos assim que a mudança subir.
+### 1. Trazer agendamentos futuros do Auvo
+- Ajustar a rotina agendada do Auvo para buscar uma janela que inclua dias futuros, não só `hoje - 7` até hoje.
+- Janela proposta: últimos 7 dias até próximos 60 dias, suficiente para a agenda operacional sem tornar a função pesada.
+- Preservar os blocos quinzenais para evitar timeout.
+- Depois da alteração, disparar uma sincronização imediata para cobrir 27/08 e validar se Vega Chaser e FPSO Cidade de Maricá entram no banco local.
 
-### 2. Mostrar na agenda as atividades que só existem no Auvo
-- A agenda passa a carregar, para o período visível, as tarefas do Auvo pela data agendada — inclusive as que não têm OS vinculada.
-- Tarefas com OS vinculada continuam sendo o evento da OS (sem duplicar), apenas com equipe/embarcação vindas do Auvo, como já é hoje.
-- Tarefas sem OS aparecem como um evento próprio, visualmente distinto (etiqueta "Auvo"), com título, cliente/embarcação quando existir, equipe e horário.
-- Clique nesses eventos abre um detalhamento dentro da própria agenda, com os dados do Auvo (sem redirecionar para a página de OS, que não existiria para esses casos).
-- Legenda do calendário ganha a marcação do novo tipo de evento; os contadores e o `+N` clicável passam a considerar esses eventos.
+### 2. Reconciliar o Auvo com a agenda do Arrow
+- Quando uma tarefa Auvo tiver número de OS, vincular/enriquecer a `service_orders` correspondente e atualizar `scheduled_date`, embarcação, equipe, cliente e escopo quando esses campos vierem mais completos no Auvo.
+- Quando uma tarefa Auvo não tiver OS vinculada, mantê-la visível como evento próprio do Auvo na agenda, sem criar uma OS falsa.
+- Evitar duplicidade: se a tarefa Auvo já estiver ligada a uma OS, o calendário mostra apenas o evento da OS enriquecido.
 
-### 3. Marina avisa no WhatsApp quando o chamado é concluído
-- Ao mudar um chamado para concluído/resolvido, quem abriu recebe um aviso da Marina no WhatsApp com número, título, resumo da solução (notas administrativas quando houver) e link para o chamado.
-- O aviso segue o mesmo caminho já usado na abertura do chamado (fila de saída + envio imediato), respeitando as preferências de canal do usuário; se a pessoa não tiver WhatsApp, cai no aviso no app.
-- Envio idempotente: reabrir e concluir de novo não reenvia o mesmo aviso duplicado para a mesma transição.
+### 3. Exibir eventos Auvo sem OS na agenda
+- `ServiceCalendar` passa a carregar também `auvo_tasks` do período visível.
+- Eventos sem `service_order_id` aparecem com identificação visual própria, título/embarcação, cliente/local, equipe e horário quando disponível.
+- Clique em evento Auvo abre um modal local de detalhes do Auvo dentro da agenda, sem navegar para `/admin/orders`.
+- `MonthView`, `WeekView`, `DayView` e `DayEventsDialog` passam a contabilizar OSs e eventos Auvo no mesmo `+N` clicável.
+
+### 4. Avisar por WhatsApp quando o chamado for concluído
+- Criar disparo automático quando `support_tickets.status` mudar para `resolved`/concluído.
+- A Marina envia WhatsApp para o usuário que abriu o chamado com número, título, status concluído, resumo da solução/notas quando houver e link do chamado.
+- Usar o mesmo canal de notificações existente (`notify-dispatch` + fila `whatsapp_outbox`) e manter fallback para notificação no app.
+- Garantir idempotência para não reenviar a mesma conclusão em duplicidade.
 
 ## Detalhes técnicos
 
-- **Banco:** atualizar `invoke_auvo_sync` para aceitar dias à frente e passar `period_end` futuro; novo trigger `AFTER UPDATE` em `support_tickets` disparando quando `status` entra em `resolved`/`closed`, com função `SECURITY DEFINER` que insere a notificação e chama o despacho. Novo valor `support_ticket_resolved` no enum `notification_type`.
-- **Edge Functions:** `notify-dispatch` passa a rotear `support_ticket_resolved` por WhatsApp (mesma lógica de `support_ticket_created`), com texto em pt-BR e link do Arrow.
-- **Frontend:** `src/components/admin/calendar/ServiceCalendar.tsx` (nova consulta de `auvo_tasks` por `task_date` no período + união dos eventos), `MonthView.tsx`, `WeekView.tsx`, `DayView.tsx`, `DayEventsDialog.tsx`, `CalendarLegend.tsx` e um item/dialog para o evento Auvo sem OS. Sem mudança de regra de negócio nos módulos de OS.
-- **Segurança/tipos:** leitura de `auvo_tasks` continua sob as políticas atuais por empresa; tipos dos novos eventos declarados explicitamente no componente da agenda.
+- **Banco:** alterar a função de agendamento do sync Auvo para aceitar `p_future_days`; criar/ajustar trigger de conclusão em `support_tickets`; adicionar tipo de notificação `support_ticket_resolved` se ainda não existir.
+- **Backend:** revisar `auvo-sync` para persistir tarefas futuras e chamar a reconciliação após o lote; ajustar `notify-dispatch` para formatar/enviarem WhatsApp de chamados concluídos.
+- **Frontend:** alterar `ServiceCalendar.tsx` para unir eventos de `service_orders` e `auvo_tasks` sem OS; ajustar `MonthView`, `WeekView`, `DayView`, `DayEventsDialog`, `CalendarLegend` e o modal de detalhes Auvo.
+- **Segurança:** manter RLS por `company_id`; não expor dados sensíveis de perfil. A leitura de telefone para WhatsApp deve continuar pelo backend/função de notificação, não pelo cliente.
 
 ## Validação
 
-1. Após o sync, `auvo_tasks` passa a ter registros com `task_date` de 26/08 e 27/08.
-2. Na agenda de 27/08 aparecem as atividades do Auvo (férias Vega Chaser, FPSO Cidade de Maricá), com equipe visível.
-3. Nenhum evento duplicado para OSs que já existiam no Arrow.
-4. Concluir um chamado de teste dispara o aviso no WhatsApp de quem abriu, com número e link.
+1. Rodar sync futuro do Auvo e confirmar registros de 27/08 em `auvo_tasks`.
+2. Confirmar que a agenda de 27/08 exibe Vega Chaser e FPSO Cidade de Maricá.
+3. Confirmar que 26/08 e 28/08 continuam aparecendo como hoje, sem duplicação.
+4. Clicar em um evento Auvo sem OS abre detalhe local da agenda.
+5. Concluir um chamado de teste e validar que a pessoa que abriu recebe a mensagem da Marina no WhatsApp.
