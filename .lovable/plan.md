@@ -33,7 +33,14 @@ Ações:
 - Todo chamado novo (bug, melhoria ou qualquer categoria), aberto pela tela ou pela própria Marina, gera aviso no seu WhatsApp com número do chamado, categoria, quem abriu, título e resumo, mais o link direto para a caixa de suporte.
 - Mesmo tratamento para respostas de usuários em chamados existentes (hoje também só aparecem no app).
 
+## 4. Marina lendo imagens (chat interno e WhatsApp)
+
+- **Chat interno**: o envio de imagem já existe e a imagem já é anexada ao pedido do modelo. O problema é que o modelo configurado do agente sobrescreve a troca automática para um modelo com visão — se a configuração aponta para um modelo sem leitura de imagem, a foto é descartada. Ajuste: quando a mensagem tem imagem, sempre usar um modelo com visão, independente do que estiver configurado, e avisar no chat se a leitura falhar.
+- **WhatsApp**: hoje só texto e áudio são tratados. Foto (com ou sem legenda), figurinha e imagem enviada como documento **não são lidas** — a mensagem é descartada em silêncio. Ajuste: baixar a mídia da imagem (do próprio payload ou pela API de mídia, como já é feito com áudio), enviar à Marina junto com a legenda ("o que é isso?", "esse é o equipamento da OS 5551") e responder normalmente. Se a legenda vier vazia, a Marina descreve/analisa a imagem e pergunta o que fazer com ela.
+- Limites: aceitar até ~5 MB por imagem e no máximo 3 imagens por mensagem; acima disso a Marina explica o limite em vez de falhar.
+
 ## Detalhes técnicos
+
 
 - `auvo_sync_runs`: encerrar a run `c8e43f6a…` (marcar como erro/expirada via `auvo_expire_stuck_sync_runs`), reduzir o bloco em `auvo-sync` e reenfileirar via `invoke_auvo_sync`; adicionar `requested_by_user_id` + `notify_channel` para o aviso de conclusão.
 - Nova tabela `whatsapp_webhook_events` (server-only, RLS + GRANT explícitos) com `payload_summary`, `sender`, `is_group`, `message_kind`, `outcome`; gravada em todos os caminhos de `whatsapp-in`, inclusive nos `ignored`.
@@ -41,3 +48,6 @@ Ações:
 - `notify-dispatch`: substituir a chamada a `send-whatsapp` (Twilio) por insert em `whatsapp_outbox` + dreno; manter `notification_delivery_log`.
 - Trigger `notify_support_ticket_created`: manter os inserts em `notifications` e passar a usar o despachante (via `pg_net` para `notify-dispatch`) para que o WhatsApp saia junto; idem `notify_support_ticket_user_reply`.
 - Novo cron `whatsapp-out-drain` (`* * * * *`) chamando `whatsapp-out`.
+- `whatsapp-in`: tratar `imageMessage`/`stickerMessage`/`documentMessage` de imagem reusando `getMediaBase64`, montando `attachments: [{ kind: "image", dataUrl }]` na chamada ao `ai-assistant`.
+- `ai-assistant`: garantir modelo com visão quando `hasImageAttachment` — hoje `tm.model`/`llmOverride` sobrescrevem a escolha feita na linha 595.
+
