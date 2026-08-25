@@ -14,7 +14,7 @@ import { TrainingTab } from "@/components/super-admin/ai/TrainingTab";
 import { IntegrationsTab } from "@/components/super-admin/ai/IntegrationsTab";
 import { WriteActionsTab } from "@/components/super-admin/ai/WriteActionsTab";
 import { ScopeRoutingTab } from "@/components/super-admin/ai/ScopeRoutingTab";
-import { VoiceLabTab } from "@/components/super-admin/ai/VoiceLabTab";
+
 import { Save, RotateCcw } from "lucide-react";
 
 export default function AIManagement() {

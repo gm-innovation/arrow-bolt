@@ -90,7 +90,7 @@ export function VoiceLabTab({ agent }: Props) {
   };
 
   return (
-    <div className="space-y-4 max-w-3xl">
+    <div className="space-y-4">
       <Card className="p-4 space-y-3">
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-muted-foreground" />
