@@ -31,10 +31,43 @@
 - Toda resposta com número consolidado passa a poder informar a hora da última sincronização da origem correspondente.
 - Divergências relevantes ficam registradas para acompanhamento (quantas OSs faltavam, quais).
 
+### 5. Ela avisa o que está fazendo (nada de parecer travada)
+- Quando uma ação for demorar (consulta ao Omie ao vivo, sincronização, varredura de páginas), a Marina manda **antes** uma mensagem curta de andamento: "detectei dados novos no Omie, estou sincronizando com o Arrow e já volto com o número".
+- Se a operação passar de um limite (ex.: 20s), ela manda um segundo aviso de progresso ("ainda sincronizando, página 6 de 11").
+- Ao terminar, ela **obrigatoriamente entrega o resultado** na mesma conversa, referenciando o aviso ("como avisei, sincronizei: são 74 faturadas neste mês").
+- No WhatsApp o aviso vai como mensagem separada; no chat web, como um bloco de andamento acima da resposta, que é substituído pelo resultado.
+
+### 6. Continuar conversando enquanto ela trabalha
+- Hoje o chat web **bloqueia** a caixa de mensagem enquanto ela pensa (botão e campo desabilitados) — ou seja, não é possível mandar outra coisa no meio.
+- Vou liberar: a caixa continua ativa, novas mensagens entram numa fila da conversa e são respondidas em ordem, sem cancelar o trabalho em andamento.
+- Tarefas longas (sincronizações, consultas ao vivo) passam a rodar como **tarefa em andamento** com identificador próprio: a resposta chega quando ficar pronta, mesmo que o usuário já tenha mandado outras perguntas no meio.
+- Se o usuário pedir para parar, ela cancela a tarefa em andamento.
+- No WhatsApp o comportamento é naturalmente assíncrono: mensagens novas são atendidas e a resposta da tarefa longa chega quando concluir.
+
+### 7. Marina no grupo de WhatsApp da empresa
+- Hoje toda mensagem de grupo é **descartada** pelo webhook (grupos e transmissões são ignorados). Vou habilitar grupos.
+- Regra de convívio no grupo: ela só responde quando for **mencionada** (@Marina) ou quando responderem a uma mensagem dela — para não poluir a conversa.
+- Permissões: cada resposta usa o perfil do **autor da mensagem** (identificado pelo telefone no cadastro). Se o autor não for colaborador reconhecido, ela não responde no grupo.
+- Cuidado com dados sensíveis: em grupo ela **não** expõe dado pessoal de colaborador (documento, salário, ficha, endereço) nem conteúdo restrito ao papel; nesses casos responde no grupo dizendo que vai tratar no privado e manda o conteúdo na conversa individual de quem pediu.
+- Grupos autorizados ficam sob controle: apenas grupos habilitados pela empresa são atendidos.
+
+### 8. Áudio no WhatsApp (ouvir e responder falando)
+- Mensagens de voz recebidas passam a ser baixadas, transcritas e tratadas como texto normal (mesmo entendimento, mesmas ferramentas).
+- Se a transcrição falhar ou o áudio estiver inaudível, ela pede para repetir em texto.
+- Resposta em áudio: quando o usuário mandar áudio, ela responde em áudio (voz da Marina já configurada) com um resumo em texto acompanhando, para ficar consultável.
+- Preferência por usuário: responder sempre em texto, sempre em áudio, ou espelhar o formato recebido (padrão).
+- Áudio muito longo ou resposta muito longa: ela envia texto e um áudio resumido, para não gerar mensagens de voz intermináveis.
+
+
 ## Detalhes técnicos
 
 - `supabase/functions/omie-sync/index.ts`: substituir o descarte por `skipped_no_client` por resolução/criação de cliente (upsert em `clients` por `omie_client_id`/documento, com `company_id`), contabilizando `clients_created` e `pending_client` nas estatísticas gravadas em `crm_integration_logs`. Backfill executado por uma passada completa após o ajuste.
 - `supabase/functions/ai-assistant/`: nova ferramenta `run_integration_sync` (origens `omie` | `auvo`), invocando as funções de sincronização com o segredo de agendamento e devolvendo o resumo; registrar nos módulos de `director`, `super_admin` e `coordinator`. Throttle por `crm_integration_logs` (última execução por origem).
 - `insights.ts`: `get_os_billing_summary` passa a fazer, por padrão, comparação espelho × Omie ao vivo (`compare`), devolvendo `divergencia` e `ultima_sincronizacao`; em divergência, o loop de ferramentas encadeia `run_integration_sync` antes da resposta final.
 - `ai-assistant/index.ts`: ajustar as instruções N3/N4 para "origem manda" nos dados de Omie/Auvo/EVA, obrigação de sincronizar ao detectar atraso e proibição de pedir autorização.
-- Sem tabela nova, portanto sem mudança de RLS. Deploy de `omie-sync` e `ai-assistant`, com validação das perguntas de faturamento do mês e de OS ausente no espelho.
+- Avisos de andamento: `ai-assistant` passa a emitir eventos de progresso antes de ferramentas marcadas como longas (`query_omie_live`, `run_integration_sync`, `get_os_billing_summary` com `source=omie_live`); no web via stream (bloco de andamento no `AIChat`), no WhatsApp via `whatsapp_outbox` (mensagem separada) e entrega final obrigatória vinculada ao `conversation_id`.
+- Concorrência no chat web: remover o bloqueio por `isLoading` em `AIChat.tsx`/`useAIChat.ts` (campo e botão), fila de mensagens por conversa e execução de tarefas longas com identificador próprio, permitindo respostas fora de ordem e cancelamento.
+- Grupos de WhatsApp: `whatsapp-in/index.ts` deixa de descartar `@g.us`; novo suporte a grupo com gatilho por menção/reply, autor resolvido por `participant` (telefone) via `resolve_employee_by_phone`, lista de grupos autorizados em `integration_settings` e filtro de conteúdo sensível com redirecionamento para o privado. Dedup e envio continuam por `whatsapp_inbound_events`/`whatsapp_outbox` (destino = JID do grupo).
+- Áudio: `whatsapp-in` passa a tratar `audioMessage`/PTT, baixando a mídia pela Evolution (`chat/getBase64FromMediaMessage`) e transcrevendo com `ai-speech-to-text`; resposta em voz gerada por `ai-text-to-speech` e enviada com nova capacidade de mídia no adaptador de canal (`_shared/channels.ts` → `sendAudio` via `message/sendWhatsAppAudio`), com preferência de formato em `ai_user_preferences`.
+- Sem tabela nova, portanto sem mudança de RLS (grupos e preferências usam `integration_settings` e `ai_user_preferences`). Deploy de `omie-sync`, `ai-assistant`, `whatsapp-in` e `whatsapp-out`, com validação: faturamento do mês, OS ausente no espelho, aviso de andamento, mensagem no grupo com menção e áudio recebido/respondido.
+
