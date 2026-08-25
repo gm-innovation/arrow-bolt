@@ -22,6 +22,7 @@ interface ServiceOrderHoverCardProps {
     auxiliary_technicians?: string[];
     auvo_team_name?: string;
     auvo_technician_names?: string[];
+    event_source?: "arrow" | "auvo";
   };
 }
 
@@ -33,6 +34,7 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
       completed: "bg-green-500 text-white hover:bg-green-600",
       cancelled: "bg-red-500 text-white hover:bg-red-600",
       waiting: "bg-gray-500 text-white hover:bg-gray-600",
+      auvo: "bg-cyan-500 text-white hover:bg-cyan-600",
     };
     return variants[status] || "bg-gray-500 text-white";
   };
@@ -44,6 +46,7 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
       completed: "Concluído",
       cancelled: "Cancelado",
       waiting: "Aguardando",
+      auvo: "Agenda Auvo",
     };
     return labels[status] || status;
   };
@@ -51,7 +54,7 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
   return (
     <div className="space-y-3 min-w-[280px]">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-muted-foreground">Status</span>
+        <span className="text-sm font-medium text-muted-foreground">{order.event_source === "auvo" ? "Origem" : "Status"}</span>
         <Badge className={getStatusBadgeVariant(order.status)}>{getStatusLabel(order.status)}</Badge>
       </div>
 
