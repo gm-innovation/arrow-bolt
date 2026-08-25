@@ -592,7 +592,8 @@ export function AIChat({ userRole, agentName = 'Arrow AI', avatarUrl, context }:
               }
               className="min-h-[56px] max-h-[160px] resize-none flex-1"
               rows={1}
-              disabled={isLoading}
+              disabled={false}
+
             />
             <Button
               size="icon"
