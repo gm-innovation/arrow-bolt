@@ -31,6 +31,34 @@
 - Toda resposta com número consolidado passa a poder informar a hora da última sincronização da origem correspondente.
 - Divergências relevantes ficam registradas para acompanhamento (quantas OSs faltavam, quais).
 
+### 5. Ela avisa o que está fazendo (nada de parecer travada)
+- Quando uma ação for demorar (consulta ao Omie ao vivo, sincronização, varredura de páginas), a Marina manda **antes** uma mensagem curta de andamento: "detectei dados novos no Omie, estou sincronizando com o Arrow e já volto com o número".
+- Se a operação passar de um limite (ex.: 20s), ela manda um segundo aviso de progresso ("ainda sincronizando, página 6 de 11").
+- Ao terminar, ela **obrigatoriamente entrega o resultado** na mesma conversa, referenciando o aviso ("como avisei, sincronizei: são 74 faturadas neste mês").
+- No WhatsApp o aviso vai como mensagem separada; no chat web, como um bloco de andamento acima da resposta, que é substituído pelo resultado.
+
+### 6. Continuar conversando enquanto ela trabalha
+- Hoje o chat web **bloqueia** a caixa de mensagem enquanto ela pensa (botão e campo desabilitados) — ou seja, não é possível mandar outra coisa no meio.
+- Vou liberar: a caixa continua ativa, novas mensagens entram numa fila da conversa e são respondidas em ordem, sem cancelar o trabalho em andamento.
+- Tarefas longas (sincronizações, consultas ao vivo) passam a rodar como **tarefa em andamento** com identificador próprio: a resposta chega quando ficar pronta, mesmo que o usuário já tenha mandado outras perguntas no meio.
+- Se o usuário pedir para parar, ela cancela a tarefa em andamento.
+- No WhatsApp o comportamento é naturalmente assíncrono: mensagens novas são atendidas e a resposta da tarefa longa chega quando concluir.
+
+### 7. Marina no grupo de WhatsApp da empresa
+- Hoje toda mensagem de grupo é **descartada** pelo webhook (grupos e transmissões são ignorados). Vou habilitar grupos.
+- Regra de convívio no grupo: ela só responde quando for **mencionada** (@Marina) ou quando responderem a uma mensagem dela — para não poluir a conversa.
+- Permissões: cada resposta usa o perfil do **autor da mensagem** (identificado pelo telefone no cadastro). Se o autor não for colaborador reconhecido, ela não responde no grupo.
+- Cuidado com dados sensíveis: em grupo ela **não** expõe dado pessoal de colaborador (documento, salário, ficha, endereço) nem conteúdo restrito ao papel; nesses casos responde no grupo dizendo que vai tratar no privado e manda o conteúdo na conversa individual de quem pediu.
+- Grupos autorizados ficam sob controle: apenas grupos habilitados pela empresa são atendidos.
+
+### 8. Áudio no WhatsApp (ouvir e responder falando)
+- Mensagens de voz recebidas passam a ser baixadas, transcritas e tratadas como texto normal (mesmo entendimento, mesmas ferramentas).
+- Se a transcrição falhar ou o áudio estiver inaudível, ela pede para repetir em texto.
+- Resposta em áudio: quando o usuário mandar áudio, ela responde em áudio (voz da Marina já configurada) com um resumo em texto acompanhando, para ficar consultável.
+- Preferência por usuário: responder sempre em texto, sempre em áudio, ou espelhar o formato recebido (padrão).
+- Áudio muito longo ou resposta muito longa: ela envia texto e um áudio resumido, para não gerar mensagens de voz intermináveis.
+
+
 ## Detalhes técnicos
 
 - `supabase/functions/omie-sync/index.ts`: substituir o descarte por `skipped_no_client` por resolução/criação de cliente (upsert em `clients` por `omie_client_id`/documento, com `company_id`), contabilizando `clients_created` e `pending_client` nas estatísticas gravadas em `crm_integration_logs`. Backfill executado por uma passada completa após o ajuste.
