@@ -25,6 +25,23 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+interface WebhookInfo {
+  url: string | null;
+  enabled: boolean | null;
+  events: string[];
+  error?: string;
+}
+
+interface InboundEvent {
+  created_at: string;
+  external_id: string | null;
+  push_name: string | null;
+  is_group: boolean;
+  message_kind: string | null;
+  outcome: string;
+  body_preview: string | null;
+}
+
 interface EvolutionStatus {
   configured: boolean;
   source: "database" | "env" | "none";
@@ -33,9 +50,28 @@ interface EvolutionStatus {
   apiUrl: string | null;
   webhookUrl: string;
   instanceStatus: string | null;
+  webhook: WebhookInfo | null;
+  recentEvents: InboundEvent[];
   pendingMessages: number;
   linkedNumbers: number;
 }
+
+const OUTCOME_LABELS: Record<string, string> = {
+  accepted: "Atendida pela Marina",
+  deduplicated: "Repetida (ignorada)",
+  ignored_empty: "Sem conteúdo legível",
+  ignored_event: "Evento não tratado",
+  ignored_broadcast: "Status/broadcast",
+  ignored_group_without_mention: "Grupo, sem mencionar a Marina",
+  refused_unknown_number: "Número não cadastrado",
+  refused_inactive_employee: "Colaborador inativo",
+  audio_transcription_failed: "Áudio não compreendido",
+  audio_download_failed: "Áudio não baixado",
+  image_download_failed: "Imagem não baixada",
+  image_too_large: "Imagem acima de 5 MB",
+  unsupported_media: "Tipo de arquivo não suportado",
+};
+
 
 const SECRET_LABELS: Record<string, string> = {
   EVOLUTION_API_URL: "URL da Evolution API",
@@ -359,6 +395,90 @@ export function EvolutionAPIConfig() {
               O token fica mascarado por segurança — a URL completa aparece uma única vez, ao salvar um novo token.
             </p>
           </div>
+
+          {/* ----- Diagnóstico: webhook na instância + últimas chegadas ----- */}
+          <div className="space-y-3 rounded-lg border p-4">
+            <div className="flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-muted-foreground" />
+              <Label className="text-sm font-medium">Diagnóstico do recebimento</Label>
+            </div>
+
+            {status?.webhook ? (
+              <div className="grid gap-2 text-xs sm:grid-cols-2">
+                <div className="rounded border p-2">
+                  <p className="text-muted-foreground">Webhook configurado na instância</p>
+                  <p className="font-mono break-all">{status.webhook.url ?? "não configurado"}</p>
+                </div>
+                <div className="rounded border p-2 space-y-1">
+                  <p className="text-muted-foreground">Estado do webhook</p>
+                  <div className="flex items-center gap-2">
+                    {status.webhook.enabled ? (
+                      <Badge className="bg-green-600 text-[10px]">ativo</Badge>
+                    ) : (
+                      <Badge variant="destructive" className="text-[10px]">inativo</Badge>
+                    )}
+                    <span className="font-mono">
+                      {status.webhook.events.length > 0 ? status.webhook.events.join(", ") : "sem eventos"}
+                    </span>
+                  </div>
+                  {status.webhook.error && (
+                    <p className="text-amber-600 dark:text-amber-400">Falha ao consultar: {status.webhook.error}</p>
+                  )}
+                  {!status.webhook.error &&
+                    !status.webhook.events.some((e) => e.toUpperCase() === "MESSAGES_UPSERT") && (
+                      <p className="text-amber-600 dark:text-amber-400">
+                        O evento MESSAGES_UPSERT não está habilitado — mensagens não chegam. Gere o código de
+                        pareamento novamente para reconfigurar.
+                      </p>
+                    )}
+                </div>
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Cadastre as credenciais para consultar o webhook configurado na instância.
+              </p>
+            )}
+
+            <div className="space-y-1">
+              <p className="text-xs font-medium">Últimas mensagens recebidas (inclusive descartadas)</p>
+              {(status?.recentEvents ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Nenhuma chegada registrada ainda. Se um colaborador disser que a mensagem não chegou e nada
+                  aparecer aqui, o problema está antes do Arrow (webhook/Evolution).
+                </p>
+              ) : (
+                <div className="max-h-64 overflow-auto rounded border divide-y">
+                  {(status?.recentEvents ?? []).map((ev, i) => (
+                    <div key={`${ev.created_at}-${i}`} className="p-2 text-xs space-y-0.5">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <span className="font-mono">
+                          {ev.external_id ?? "—"}
+                          {ev.push_name ? ` · ${ev.push_name}` : ""}
+                          {ev.is_group ? " · grupo" : ""}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-[10px]">{ev.message_kind ?? "?"}</Badge>
+                          <Badge
+                            variant={ev.outcome === "accepted" ? "default" : "secondary"}
+                            className="text-[10px]"
+                          >
+                            {OUTCOME_LABELS[ev.outcome] ?? ev.outcome}
+                          </Badge>
+                          <span className="text-muted-foreground">
+                            {new Date(ev.created_at).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}
+                          </span>
+                        </div>
+                      </div>
+                      {ev.body_preview && (
+                        <p className="text-muted-foreground line-clamp-2">{ev.body_preview}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
 
           <div className="space-y-2 rounded-lg border p-4">
             <Label>Conectar instância ao WhatsApp</Label>

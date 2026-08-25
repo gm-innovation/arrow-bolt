@@ -77,7 +77,36 @@ Sem credenciais, `whatsapp-in` responde `{"configured": false}` e
 ## Regras do canal
 
 - Somente colaboradores: números fora do cadastro do RH recebem recusa
-  educada e a conversa não avança; grupos e broadcasts são ignorados.
+  educada e a conversa não avança; grupos só avançam com menção à Marina.
 - A Marina roda com o papel do colaborador (mesmas ferramentas do chat web) e
   as escritas seguem o fluxo de confirmação ("CONFIRMO") pelo WhatsApp mesmo.
 - Respostas em texto puro, quebradas em partes de até ~1500 caracteres.
+- **Imagens**: foto, figurinha e imagem enviada como documento são lidas pela
+  Marina (visão). A legenda vira o pedido; sem legenda ela analisa e descreve.
+  Limite de 5 MB por imagem — acima disso ela explica o limite.
+- **Nunca em silêncio**: áudio incompreensível, mídia não suportada ou download
+  falho geram resposta pedindo texto/reenvio.
+
+## Diagnóstico ("a mensagem não chegou")
+
+Toda chegada de webhook é registrada em `whatsapp_webhook_events`, inclusive as
+descartadas, com remetente, tipo da mensagem, se era grupo e o motivo
+(`ignored_group_without_mention`, `refused_unknown_number`, `unsupported_media`,
+`deduplicated`, `accepted`…). O painel `/super-admin/api-docs` → aba "WhatsApp
+(Evolution)" mostra:
+
+- estado da instância e o webhook configurado na Evolution (URL mascarada,
+  se está ativo e quais eventos — alerta quando falta `MESSAGES_UPSERT`);
+- as 20 últimas chegadas com o resultado de cada uma.
+
+Se o colaborador diz que mandou mensagem e nada aparece na lista, o problema
+está antes do Arrow (webhook/Evolution), não na Marina.
+
+## Fila de saída
+
+`whatsapp_outbox` é drenada pelo `whatsapp-out`: imediatamente após cada
+resposta e pelo cron `whatsapp-out-drain` (a cada minuto), que autentica com o
+segredo compartilhado dos crons (`x-cron-secret`). É por essa fila que saem
+também as notificações do sistema (novos chamados de suporte, avisos de
+sincronização concluída) — o provedor antigo (Twilio) não é mais usado.
+
