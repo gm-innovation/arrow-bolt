@@ -82,7 +82,10 @@ export const fetchServiceOrders = async (
     .from('service_orders')
     .select(sel(SELECT_FIELDS), { count: 'exact' })
     .eq('company_id', companyId)
+    // Sempre a OS mais nova (maior número) no topo; fallback por importação
+    .order('order_number_num', { ascending: false, nullsFirst: false })
     .order('created_at', { ascending: false });
+
 
   const status = filters.status || 'all';
   const vesselId = filters.vesselId || 'all';

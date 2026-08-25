@@ -14,7 +14,9 @@ interface MonthViewProps {
   onCalls?: CalendarOnCall[];
   isExpanded?: boolean;
   onEventClick?: (orderId: string) => void;
+  onDayOverflowClick?: (day: Date) => void;
 }
+
 
 const absenceConfig: Record<string, { label: string; bg: string; icon: typeof Palmtree }> = {
   vacation: { label: "Férias", bg: "bg-blue-50 border-l-blue-500", icon: Palmtree },
@@ -24,7 +26,9 @@ const absenceConfig: Record<string, { label: string; bg: string; icon: typeof Pa
   training: { label: "Treinamento", bg: "bg-purple-50 border-l-purple-500", icon: GraduationCap },
 };
 
-export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpanded = false, onEventClick }: MonthViewProps) => {
+export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpanded = false, onEventClick, onDayOverflowClick }: MonthViewProps) => {
+  const MAX_VISIBLE_ORDERS = isExpanded ? 10 : 3;
+
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -91,12 +95,14 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
           const dayOrders = day ? getOrdersForDay(day) : [];
           const dayAbsences = day ? getAbsencesForDay(day) : [];
           const dayOnCalls = day ? getOnCallsForDay(day) : [];
+          const visibleOrders = dayOrders.slice(0, MAX_VISIBLE_ORDERS);
+          const remainingCount = dayOrders.length - visibleOrders.length;
 
           return (
             <div
               key={`${weekIndex}-${dayIndex}`}
               className={cn(
-                "border-b border-r last:border-r-0 p-2 min-h-[80px] relative",
+                "border-b border-r last:border-r-0 p-2 min-h-[80px] relative overflow-hidden",
                 day && isSameMonth(day, date) ? "bg-background" : "bg-muted/50",
               )}
             >
@@ -109,7 +115,8 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                   {/* Service Orders */}
                   {dayOrders.length > 0 && (
                     <div className="space-y-0.5 mb-1">
-                      {dayOrders.map((order) => {
+                      {visibleOrders.map((order) => {
+
                         const localTechs = [
                           order.lead_technician,
                           ...(order.auxiliary_technicians || []),
@@ -158,8 +165,18 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                           </HoverCard>
                         );
                       })}
+                      {remainingCount > 0 && (
+                        <button
+                          type="button"
+                          className="w-full text-[10px] font-semibold text-primary hover:underline text-left px-1.5"
+                          onClick={() => onDayOverflowClick?.(day)}
+                        >
+                          +{remainingCount}
+                        </button>
+                      )}
                     </div>
                   )}
+
 
                   {/* Absences */}
                   {dayAbsences.length > 0 && (

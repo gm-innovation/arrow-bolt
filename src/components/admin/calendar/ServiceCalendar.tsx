@@ -391,6 +391,8 @@ export const ServiceCalendar = ({
           onCalls={onCalls}
           isExpanded={isExpanded} 
           onEventClick={handleEventClick} 
+          onDayOverflowClick={setOverflowDay}
+
         />
       )}
 

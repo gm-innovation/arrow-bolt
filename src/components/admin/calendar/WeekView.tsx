@@ -1,4 +1,6 @@
+import { useEffect, useRef, useState } from "react";
 import { format, startOfWeek, addDays, isSameDay, isWithinInterval, parseISO } from "date-fns";
+
 import { ptBR } from "date-fns/locale";
 import { ServiceOrderListItem } from "./ServiceOrderListItem";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
@@ -50,7 +52,23 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], onEventCli
     return `${parts[0]} ${parts[parts.length - 1]}`;
   };
 
-  const MAX_VISIBLE = 18;
+  // Quantidade visível calculada pela altura real da coluna (nunca passa do fim da tela)
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [maxVisible, setMaxVisible] = useState(10);
+
+  useEffect(() => {
+    const el = gridRef.current;
+    if (!el) return;
+    const ITEM_HEIGHT = 30; // item + gap
+    const recalc = () => {
+      const available = el.clientHeight - 16 /* padding */ - 28 /* linha do "+N" */;
+      setMaxVisible(Math.max(1, Math.floor(available / ITEM_HEIGHT)));
+    };
+    recalc();
+    const observer = new ResizeObserver(recalc);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <div className="flex flex-col h-[calc(100vh-250px)] overflow-hidden">
@@ -67,16 +85,19 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], onEventCli
         ))}
       </div>
       
-      <div className="grid grid-cols-7 flex-1 overflow-y-auto relative">
+      <div ref={gridRef} className="grid grid-cols-7 flex-1 overflow-hidden relative">
         {days.map((day) => {
           const dayOrders = getOrdersForDay(day);
           const dayAbsences = getAbsencesForDay(day);
           const dayOnCalls = getOnCallsForDay(day);
-          const visibleOrders = dayOrders.slice(0, MAX_VISIBLE);
-          const remainingCount = dayOrders.length - MAX_VISIBLE;
+          // Ausências e sobreavisos ficam sempre visíveis; o "+N" cobre as OSs excedentes
+          const ordersBudget = Math.max(1, maxVisible - dayAbsences.length - dayOnCalls.length);
+          const visibleOrders = dayOrders.slice(0, ordersBudget);
+          const remainingCount = dayOrders.length - visibleOrders.length;
 
           return (
-            <div key={day.toISOString()} className="border-r last:border-r-0 p-2 space-y-1">
+            <div key={day.toISOString()} className="border-r last:border-r-0 p-2 space-y-1 overflow-hidden">
+
               {/* Service Orders */}
               {visibleOrders.map((order) => (
                 <ServiceOrderListItem
