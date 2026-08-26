@@ -36,7 +36,7 @@ type DayEntry =
 
 const FALLBACK_ITEM_HEIGHT = 48; // cartão de duas linhas + gap
 
-export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCategories, onEventClick, onDayOverflowClick }: WeekViewProps) => {
+export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCategories, onEventClick, onScheduleEntryClick, onDayOverflowClick }: WeekViewProps) => {
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
