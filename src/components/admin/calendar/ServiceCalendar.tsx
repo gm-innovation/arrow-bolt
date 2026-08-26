@@ -440,9 +440,11 @@ export const ServiceCalendar = ({
 
       (data || []).forEach((row: any) => {
         const serviceOrderId = row.service_order_id;
-        if (!serviceOrderId) return;
+        if (!serviceOrderId || !row.task_date) return;
 
-        const existing = enrichmentByOrder.get(serviceOrderId) || { technicianNames: [] };
+        // Indexado por OS + data: o cartão da agenda só usa a tarefa daquele dia.
+        const key = auvoOrderDateKey(serviceOrderId, row.task_date);
+        const existing = enrichmentByOrder.get(key) || { technicianNames: [] };
         const teamName = row.team_name?.trim();
         const vesselName = row.vessel_name_parsed?.trim() || row.vessel_name?.trim();
 
