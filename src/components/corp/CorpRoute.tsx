@@ -35,6 +35,7 @@ const roleToUserType: Record<string, "super-admin" | "admin" | "manager" | "tech
 // Map /corp/* paths to a page title so the header still updates without
 // remounting the whole layout for each route.
 const TITLES: Array<{ test: RegExp; title: string }> = [
+  { test: /^\/marina/, title: "Marina" },
   { test: /^\/corp\/dashboard/, title: "Solicitações Corp" },
   { test: /^\/corp\/requests/, title: "Solicitações Corp" },
   { test: /^\/corp\/documents/, title: "Documentos Corp" },

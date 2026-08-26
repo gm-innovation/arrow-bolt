@@ -14,6 +14,7 @@ import { TrainingTab } from "@/components/super-admin/ai/TrainingTab";
 import { IntegrationsTab } from "@/components/super-admin/ai/IntegrationsTab";
 import { WriteActionsTab } from "@/components/super-admin/ai/WriteActionsTab";
 import { ScopeRoutingTab } from "@/components/super-admin/ai/ScopeRoutingTab";
+import { AdvancedUsersTab } from "@/components/super-admin/ai/AdvancedUsersTab";
 
 import { Save, RotateCcw } from "lucide-react";
 
@@ -108,7 +109,7 @@ export default function AIManagement() {
           {selected ? (
             <Card className="p-4" data-tour="ai-config-panel">
               <Tabs defaultValue="identity">
-                <TabsList className="grid grid-cols-9 w-full" data-tour="ai-tabs">
+                <TabsList className="grid grid-cols-10 w-full" data-tour="ai-tabs">
                   <TabsTrigger value="identity" data-tour="ai-tab-identity">Identidade</TabsTrigger>
                   <TabsTrigger value="behavior" data-tour="ai-tab-behavior">Comportamento</TabsTrigger>
                   <TabsTrigger value="guardrails" data-tour="ai-tab-guardrails">Guardrails</TabsTrigger>
@@ -118,7 +119,9 @@ export default function AIManagement() {
                   <TabsTrigger value="appearance" data-tour="ai-tab-appearance">Aparência</TabsTrigger>
                   <TabsTrigger value="training" data-tour="ai-tab-training">Treinamento</TabsTrigger>
                   <TabsTrigger value="integrations" data-tour="ai-tab-integrations">Integrações</TabsTrigger>
+                  <TabsTrigger value="advanced" data-tour="ai-tab-advanced">Copiloto</TabsTrigger>
                 </TabsList>
+
                 <div className="mt-4">
                   <TabsContent value="identity">
                     <IdentityTab agent={selected} draft={draft} setDraft={setDraft} />
@@ -147,6 +150,10 @@ export default function AIManagement() {
                   <TabsContent value="integrations">
                     <IntegrationsTab agent={selected} />
                   </TabsContent>
+                  <TabsContent value="advanced">
+                    <AdvancedUsersTab />
+                  </TabsContent>
+
                 </div>
               </Tabs>
             </Card>
