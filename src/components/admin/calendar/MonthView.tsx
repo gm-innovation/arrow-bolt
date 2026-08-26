@@ -56,20 +56,35 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
   }
 
   const getOrdersForDay = (day: Date) => {
-    return orders.filter((order) => isSameDay(order.scheduled_date, day));
+    return orders
+      .filter((order) => isSameDay(order.scheduled_date, day))
+      .filter((order) => isCategoryActive(classifyEvent(order), activeCategories))
+      .sort((a, b) => {
+        const aTime = a.scheduled_time || "";
+        const bTime = b.scheduled_time || "";
+        if (aTime && bTime) return aTime.localeCompare(bTime);
+        if (aTime) return -1;
+        if (bTime) return 1;
+        return 0;
+      });
   };
 
   const getAbsencesForDay = (day: Date) => {
     return absences.filter((absence) => {
       const start = parseISO(absence.start_date);
       const end = parseISO(absence.end_date);
-      return isWithinInterval(day, { start, end });
+      return (
+        isWithinInterval(day, { start, end }) &&
+        isCategoryActive(absenceCategory(absence.absence_type), activeCategories)
+      );
     });
   };
 
   const getOnCallsForDay = (day: Date) => {
+    if (!isCategoryActive("on_call", activeCategories)) return [];
     return onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), day));
   };
+
 
   const formatShortName = (fullName: string) => {
     const parts = fullName.trim().split(" ");
