@@ -266,11 +266,19 @@ export const ServiceCalendar = ({
       const isQaOrder = (order: CalendarServiceOrder) =>
         /\[QA\]/i.test(order.vessel_name || "") || /\[QA\]/i.test(order.description || "");
 
+      // O Auvo é a fonte da verdade da agenda: OS espelhada do Omie sem tarefa
+      // Auvo vinculada não aparece aqui (continua na lista de OSs).
+      const hasAuvo = (order: CalendarServiceOrder) => auvoByOrder.has(order.id);
+
       const orderDateById = new Map<string, string>(
         (orders || []).map((order: any) => [order.id, order.scheduled_date || ""]),
       );
       const auvoEvents = await fetchStandaloneAuvoEvents(profile.company_id, startStr, endStr, orderDateById);
-      setServiceOrders([...formattedOrders.filter((order) => !isQaOrder(order)), ...auvoEvents]);
+      setServiceOrders([
+        ...formattedOrders.filter((order) => hasAuvo(order) && !isQaOrder(order)),
+        ...auvoEvents,
+      ]);
+
     } catch (error) {
       console.error("Error:", error);
     } finally {
