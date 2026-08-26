@@ -97,7 +97,15 @@ export const ServiceCalendar = ({
   const [serviceOrders, setServiceOrders] = useState<CalendarServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | undefined>();
+  const [activeCategories, setActiveCategories] = useState<CalendarCategory[]>(CALENDAR_CATEGORIES);
   const { toast } = useToast();
+
+  const toggleCategory = (category: CalendarCategory) => {
+    setActiveCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category],
+    );
+  };
+
 
   // Fetch absences and on-calls for the calendar
   const { absences, onCalls, isLoading: scheduleLoading } = useCalendarAbsences(currentDate, companyId);
