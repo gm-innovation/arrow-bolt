@@ -239,6 +239,17 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                     </div>
                   )}
 
+                  {remainingCount > 0 && (
+                    <button
+                      type="button"
+                      className="w-full text-[10px] font-semibold text-primary hover:underline text-left px-1.5"
+                      onClick={() => onDayOverflowClick?.(day)}
+                    >
+                      +{remainingCount} atividades
+                    </button>
+                  )}
+
+
                 </>
               )}
             </div>
