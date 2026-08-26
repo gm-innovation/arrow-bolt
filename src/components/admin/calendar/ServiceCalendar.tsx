@@ -49,6 +49,8 @@ export type CalendarServiceOrder = {
   auvo_coordinator_name?: string;
   /** Data escrita no texto do Auvo, quando diferente da data agendada */
   auvo_declared_date?: string;
+};
+
 
 
 type AuvoOrderEnrichment = {
