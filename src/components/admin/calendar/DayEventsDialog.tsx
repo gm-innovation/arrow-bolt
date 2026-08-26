@@ -15,6 +15,8 @@ import {
   type CalendarCategory,
 } from "./eventStyles";
 
+import type { ScheduleEntry } from "./ScheduleEntryDetailsDialog";
+
 interface DayEventsDialogProps {
   date: Date;
   orders: CalendarServiceOrder[];
@@ -22,7 +24,9 @@ interface DayEventsDialogProps {
   onCalls?: CalendarOnCall[];
   activeCategories?: CalendarCategory[];
   onOrderClick: (orderId: string) => void;
+  onScheduleEntryClick?: (entry: ScheduleEntry) => void;
 }
+
 
 
 const getTeamLabel = (order: CalendarServiceOrder) => {
