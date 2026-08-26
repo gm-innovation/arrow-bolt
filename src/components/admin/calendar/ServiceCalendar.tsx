@@ -106,6 +106,18 @@ const isInternalWorkType = (taskType?: string | null): boolean => {
 const auvoOrderDateKey = (serviceOrderId: string, taskDate?: string | null) =>
   `${serviceOrderId}|${(taskDate ?? "").slice(0, 10)}`;
 
+/** Data escrita no texto do Auvo ("Data; 19/08/2026"), quando difere da data agendada. */
+const extractDeclaredDate = (orientation?: string | null, taskDate?: string | null): string | undefined => {
+  if (!orientation) return undefined;
+  const match = orientation.match(/^\s*Data\s*[;:]\s*(\d{2})\/(\d{2})\/(\d{4})/im);
+  if (!match) return undefined;
+  const [, day, month, year] = match;
+  const iso = `${year}-${month}-${day}`;
+  if (taskDate && taskDate.slice(0, 10) === iso) return undefined;
+  return `${day}/${month}/${year}`;
+};
+
+
 
 export interface ServiceCalendarProps {
   isExpanded?: boolean;
