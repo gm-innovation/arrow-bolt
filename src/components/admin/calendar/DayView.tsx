@@ -3,35 +3,43 @@ import { ptBR } from "date-fns/locale";
 import { ServiceOrderListItem } from "./ServiceOrderListItem";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
 import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
-import { Palmtree, CalendarOff, Stethoscope, GraduationCap, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  absenceCategory,
+  categoryStyles,
+  classifyEvent,
+  isCategoryActive,
+  type CalendarCategory,
+} from "./eventStyles";
 
 interface DayViewProps {
   date: Date;
   orders: CalendarServiceOrder[];
   absences?: CalendarAbsence[];
   onCalls?: CalendarOnCall[];
+  activeCategories?: CalendarCategory[];
   onEventClick?: (orderId: string) => void;
 }
 
-const absenceConfig: Record<string, { label: string; bg: string; icon: typeof Palmtree }> = {
-  vacation: { label: "Férias", bg: "bg-blue-100 border-blue-300 text-blue-800", icon: Palmtree },
-  day_off: { label: "Folga", bg: "bg-green-100 border-green-300 text-green-800", icon: CalendarOff },
-  medical_exam: { label: "Exame Médico", bg: "bg-red-100 border-red-300 text-red-800", icon: Stethoscope },
-  sick_leave: { label: "Atestado", bg: "bg-red-100 border-red-300 text-red-800", icon: Stethoscope },
-  training: { label: "Treinamento", bg: "bg-purple-100 border-purple-300 text-purple-800", icon: GraduationCap },
-};
+export const DayView = ({ date, orders, absences = [], onCalls = [], activeCategories, onEventClick }: DayViewProps) => {
+  const dayOrders = orders
+    .filter((order) => isSameDay(order.scheduled_date, date))
+    .filter((order) => isCategoryActive(classifyEvent(order), activeCategories));
 
-export const DayView = ({ date, orders, absences = [], onCalls = [], onEventClick }: DayViewProps) => {
-  const dayOrders = orders.filter(order => isSameDay(order.scheduled_date, date));
-  
   const dayAbsences = absences.filter((absence) => {
     const start = parseISO(absence.start_date);
     const end = parseISO(absence.end_date);
-    return isWithinInterval(date, { start, end });
+    return (
+      isWithinInterval(date, { start, end }) &&
+      isCategoryActive(absenceCategory(absence.absence_type), activeCategories)
+    );
   });
 
-  const dayOnCalls = onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), date));
+  const dayOnCalls = isCategoryActive("on_call", activeCategories)
+    ? onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), date))
+    : [];
+
 
   const untimedOrders = dayOrders.filter((order) => !order.scheduled_time);
   const ordersByHour = dayOrders.filter((order) => order.scheduled_time).reduce((acc, order) => {
