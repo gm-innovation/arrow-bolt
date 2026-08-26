@@ -469,7 +469,7 @@ export const ServiceCalendar = ({
         if (taskType && !existing.taskType) existing.taskType = taskType;
         if (row.checkin_at && !existing.checkinAt) existing.checkinAt = row.checkin_at;
 
-        enrichmentByOrder.set(serviceOrderId, existing);
+        enrichmentByOrder.set(key, existing);
       });
     });
 
