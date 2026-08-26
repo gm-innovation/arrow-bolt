@@ -138,6 +138,9 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                         ].filter(Boolean).map(formatShortName).join(", ");
                         const auvoTechs = order.auvo_team_name || order.auvo_technician_names?.map(formatShortName).join(", ");
                         const allTechs = localTechs || auvoTechs;
+                        const category = classifyEvent(order);
+                        const style = categoryStyles[category];
+                        const CategoryIcon = style.icon;
 
                         return (
                           <HoverCard key={order.id} openDelay={150} closeDelay={100}>
@@ -145,28 +148,25 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                               <div
                                 className={cn(
                                   "px-1.5 py-0.5 rounded border-l-2 hover:shadow cursor-pointer transition-all text-[10px]",
-                                  order.status === "pending" &&
-                                    "border-l-yellow-500 bg-yellow-100/90 dark:bg-yellow-900/40",
-                                  order.status === "in_progress" &&
-                                    "border-l-blue-500 bg-blue-100/90 dark:bg-blue-900/40",
-                                  order.status === "completed" &&
-                                    "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
-                                  order.status === "cancelled" && "border-l-red-500 bg-red-100/90 dark:bg-red-900/40",
-                                  order.status === "waiting" && "border-l-gray-500 bg-gray-100/90 dark:bg-gray-900/40",
-                                  order.event_source === "auvo" && "border-l-cyan-500 bg-cyan-100/90 dark:bg-cyan-900/40",
+                                  style.item,
                                 )}
                                 onClick={() => onEventClick?.(order.id)}
                               >
-                                <div className="font-semibold text-foreground leading-tight truncate">
-                                  {order.scheduled_time ? `${order.scheduled_time} - ` : ""}{order.event_source === "auvo" ? "Auvo · " : ""}{order.vessel_name}
+                                <div className="font-semibold leading-tight truncate flex items-center gap-1">
+                                  <CategoryIcon className="h-2.5 w-2.5 flex-shrink-0" />
+                                  <span className="truncate">
+                                    {order.scheduled_time ? `${order.scheduled_time} · ` : ""}
+                                    {category === "os" ? order.vessel_name : style.label}
+                                  </span>
                                 </div>
                                 {allTechs && (
-                                  <div className="font-medium text-foreground/70 leading-tight truncate">
+                                  <div className="font-medium opacity-75 leading-tight truncate">
                                     {allTechs}
                                   </div>
                                 )}
                               </div>
                             </HoverCardTrigger>
+
                             <HoverCardContent
                               side="right"
                               align="start"
