@@ -79,6 +79,26 @@ const parseCalendarDate = (dateString?: string | null): Date => {
   return new Date(year, month - 1, day, 12, 0, 0);
 };
 
+const normalizeText = (value?: string | null) =>
+  (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+
+/** Trabalho interno (bancada/laboratório/oficina) não ocupa a agenda dos técnicos. */
+const INTERNAL_WORK_MARKERS = ["BANCADA", "LABORATORIO", "OFICINA", "INTERNO", "INTERNA"];
+
+const isInternalWorkType = (taskType?: string | null): boolean => {
+  const normalized = normalizeText(taskType);
+  if (!normalized) return false;
+  return INTERNAL_WORK_MARKERS.some((marker) => normalized.includes(marker));
+};
+
+const auvoOrderDateKey = (serviceOrderId: string, taskDate?: string | null) =>
+  `${serviceOrderId}|${(taskDate ?? "").slice(0, 10)}`;
+
+
 export interface ServiceCalendarProps {
   isExpanded?: boolean;
   onToggleExpanded?: () => void;
