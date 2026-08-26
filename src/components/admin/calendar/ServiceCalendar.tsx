@@ -44,7 +44,12 @@ export type CalendarServiceOrder = {
   linked_service_order_id?: string;
   /** Origem do escopo/descrição exibida (Auvo é a fonte operacional; Omie é fiscal/financeiro) */
   scope_source?: "auvo" | "omie";
-};
+  auvo_requester_name?: string;
+  auvo_supervisor_name?: string;
+  auvo_coordinator_name?: string;
+  /** Data escrita no texto do Auvo, quando diferente da data agendada */
+  auvo_declared_date?: string;
+
 
 type AuvoOrderEnrichment = {
   teamName?: string;
