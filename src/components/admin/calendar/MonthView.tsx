@@ -109,10 +109,18 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
       {weeks.map((week, weekIndex) =>
         week.map((day, dayIndex) => {
           const dayOrders = day ? getOrdersForDay(day) : [];
-          const dayAbsences = day ? getAbsencesForDay(day) : [];
-          const dayOnCalls = day ? getOnCallsForDay(day) : [];
+          const dayAbsencesAll = day ? getAbsencesForDay(day) : [];
+          const dayOnCallsAll = day ? getOnCallsForDay(day) : [];
+          // Um único orçamento para OS + Auvo + ausências + sobreaviso: o "+N" cobre tudo
+          const totalEvents = dayOrders.length + dayAbsencesAll.length + dayOnCallsAll.length;
           const visibleOrders = dayOrders.slice(0, MAX_VISIBLE_ORDERS);
-          const remainingCount = dayOrders.length - visibleOrders.length;
+          const absencesBudget = Math.max(0, MAX_VISIBLE_ORDERS - visibleOrders.length);
+          const dayAbsences = dayAbsencesAll.slice(0, absencesBudget);
+          const onCallsBudget = Math.max(0, absencesBudget - dayAbsences.length);
+          const dayOnCalls = dayOnCallsAll.slice(0, onCallsBudget);
+          const remainingCount =
+            totalEvents - visibleOrders.length - dayAbsences.length - dayOnCalls.length;
+
 
           return (
             <div
@@ -182,17 +190,9 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                           </HoverCard>
                         );
                       })}
-                      {remainingCount > 0 && (
-                        <button
-                          type="button"
-                          className="w-full text-[10px] font-semibold text-primary hover:underline text-left px-1.5"
-                          onClick={() => onDayOverflowClick?.(day)}
-                        >
-                          +{remainingCount}
-                        </button>
-                      )}
                     </div>
                   )}
+
 
 
                   {/* Absences */}
@@ -238,6 +238,17 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                       ))}
                     </div>
                   )}
+
+                  {remainingCount > 0 && (
+                    <button
+                      type="button"
+                      className="w-full text-[10px] font-semibold text-primary hover:underline text-left px-1.5"
+                      onClick={() => onDayOverflowClick?.(day)}
+                    >
+                      +{remainingCount} atividades
+                    </button>
+                  )}
+
 
                 </>
               )}

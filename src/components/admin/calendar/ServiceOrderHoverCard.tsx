@@ -23,6 +23,7 @@ interface ServiceOrderHoverCardProps {
     auvo_team_name?: string;
     auvo_technician_names?: string[];
     event_source?: "arrow" | "auvo";
+    scope_source?: "auvo" | "omie";
   };
 }
 
@@ -164,7 +165,9 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
           <div className="flex items-start gap-2">
             <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
             <div className="flex-1">
-              <p className="text-xs text-muted-foreground">Local</p>
+              <p className="text-xs text-muted-foreground">
+              Local{order.scope_source === "auvo" ? " (Auvo)" : ""}
+            </p>
               <p className="text-sm font-medium">{order.location}</p>
             </div>
           </div>
@@ -172,7 +175,9 @@ export const ServiceOrderHoverCard = ({ order }: ServiceOrderHoverCardProps) => 
 
         {order.description && (
           <div className="pt-2 border-t">
-            <p className="text-xs text-muted-foreground mb-1">Descrição</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Escopo{order.scope_source === "auvo" ? " · Auvo" : order.scope_source === "omie" ? " · Omie" : ""}
+            </p>
             <p className="text-sm">{order.description}</p>
           </div>
         )}
