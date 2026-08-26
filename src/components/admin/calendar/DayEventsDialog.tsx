@@ -1,29 +1,20 @@
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, Clock, Ship, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
+import { categoryStyles, classifyEvent, isCategoryActive, type CalendarCategory } from "./eventStyles";
 
 interface DayEventsDialogProps {
   date: Date;
   orders: CalendarServiceOrder[];
+  activeCategories?: CalendarCategory[];
   onOrderClick: (orderId: string) => void;
 }
 
-const getStatusLabel = (status: string) => {
-  const labels: Record<string, string> = {
-    pending: "Pendente",
-    in_progress: "Em andamento",
-    completed: "Concluído",
-    cancelled: "Cancelado",
-    waiting: "Aguardando",
-    auvo: "Agenda Auvo",
-  };
-  return labels[status] || status;
-};
 
 const getTeamLabel = (order: CalendarServiceOrder) => {
   const localTeam = [
@@ -41,8 +32,10 @@ const getTeamLabel = (order: CalendarServiceOrder) => {
   return "Equipe não informada";
 };
 
-export const DayEventsDialog = ({ date, orders, onOrderClick }: DayEventsDialogProps) => {
-  const dayOrders = orders.filter((order) => isSameDay(order.scheduled_date, date));
+export const DayEventsDialog = ({ date, orders, activeCategories, onOrderClick }: DayEventsDialogProps) => {
+  const dayOrders = orders
+    .filter((order) => isSameDay(order.scheduled_date, date))
+    .filter((order) => isCategoryActive(classifyEvent(order), activeCategories));
 
   return (
     <DialogContent className="max-w-3xl">
@@ -58,7 +51,11 @@ export const DayEventsDialog = ({ date, orders, onOrderClick }: DayEventsDialogP
 
       <ScrollArea className="max-h-[65vh] pr-4">
         <div className="space-y-2">
-          {dayOrders.map((order) => (
+          {dayOrders.map((order) => {
+            const category = classifyEvent(order);
+            const style = categoryStyles[category];
+            const CategoryIcon = style.icon;
+            return (
             <Button
               key={order.id}
               type="button"
@@ -72,8 +69,17 @@ export const DayEventsDialog = ({ date, orders, onOrderClick }: DayEventsDialogP
                     <span className="font-semibold">
                       {order.event_source === "auvo" ? "Auvo" : `OS ${order.order_number}`}
                     </span>
-                    <Badge variant="secondary">{getStatusLabel(order.status)}</Badge>
+                    <span
+                      className={cn(
+                        "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium",
+                        style.badge
+                      )}
+                    >
+                      <CategoryIcon className="h-3 w-3" />
+                      {style.label}
+                    </span>
                   </div>
+
                   <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
                     <Ship className="h-4 w-4 shrink-0" />
                     <span className="truncate font-medium text-foreground">{order.vessel_name}</span>
@@ -90,7 +96,9 @@ export const DayEventsDialog = ({ date, orders, onOrderClick }: DayEventsDialogP
                 </div>
               </div>
             </Button>
-          ))}
+            );
+          })}
+
         </div>
       </ScrollArea>
     </DialogContent>

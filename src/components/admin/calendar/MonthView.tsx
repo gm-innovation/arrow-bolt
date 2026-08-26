@@ -5,7 +5,15 @@ import { ServiceOrderHoverCard } from "./ServiceOrderHoverCard";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
 import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
 import { cn } from "@/lib/utils";
-import { Palmtree, CalendarOff, Stethoscope, GraduationCap, Phone } from "lucide-react";
+import { Phone } from "lucide-react";
+
+import {
+  absenceCategory,
+  categoryStyles,
+  classifyEvent,
+  isCategoryActive,
+  type CalendarCategory,
+} from "./eventStyles";
 
 interface MonthViewProps {
   date: Date;
@@ -13,20 +21,13 @@ interface MonthViewProps {
   absences?: CalendarAbsence[];
   onCalls?: CalendarOnCall[];
   isExpanded?: boolean;
+  activeCategories?: CalendarCategory[];
   onEventClick?: (orderId: string) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
 
+export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpanded = false, activeCategories, onEventClick, onDayOverflowClick }: MonthViewProps) => {
 
-const absenceConfig: Record<string, { label: string; bg: string; icon: typeof Palmtree }> = {
-  vacation: { label: "Férias", bg: "bg-blue-50 border-l-blue-500", icon: Palmtree },
-  day_off: { label: "Folga", bg: "bg-green-50 border-l-green-500", icon: CalendarOff },
-  medical_exam: { label: "Exame Médico", bg: "bg-red-50 border-l-red-500", icon: Stethoscope },
-  sick_leave: { label: "Atestado", bg: "bg-red-50 border-l-red-500", icon: Stethoscope },
-  training: { label: "Treinamento", bg: "bg-purple-50 border-l-purple-500", icon: GraduationCap },
-};
-
-export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpanded = false, onEventClick, onDayOverflowClick }: MonthViewProps) => {
   const MAX_VISIBLE_ORDERS = isExpanded ? 10 : 3;
 
   const monthStart = startOfMonth(date);
@@ -57,20 +58,35 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
   }
 
   const getOrdersForDay = (day: Date) => {
-    return orders.filter((order) => isSameDay(order.scheduled_date, day));
+    return orders
+      .filter((order) => isSameDay(order.scheduled_date, day))
+      .filter((order) => isCategoryActive(classifyEvent(order), activeCategories))
+      .sort((a, b) => {
+        const aTime = a.scheduled_time || "";
+        const bTime = b.scheduled_time || "";
+        if (aTime && bTime) return aTime.localeCompare(bTime);
+        if (aTime) return -1;
+        if (bTime) return 1;
+        return 0;
+      });
   };
 
   const getAbsencesForDay = (day: Date) => {
     return absences.filter((absence) => {
       const start = parseISO(absence.start_date);
       const end = parseISO(absence.end_date);
-      return isWithinInterval(day, { start, end });
+      return (
+        isWithinInterval(day, { start, end }) &&
+        isCategoryActive(absenceCategory(absence.absence_type), activeCategories)
+      );
     });
   };
 
   const getOnCallsForDay = (day: Date) => {
+    if (!isCategoryActive("on_call", activeCategories)) return [];
     return onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), day));
   };
+
 
   const formatShortName = (fullName: string) => {
     const parts = fullName.trim().split(" ");
@@ -124,6 +140,9 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                         ].filter(Boolean).map(formatShortName).join(", ");
                         const auvoTechs = order.auvo_team_name || order.auvo_technician_names?.map(formatShortName).join(", ");
                         const allTechs = localTechs || auvoTechs;
+                        const category = classifyEvent(order);
+                        const style = categoryStyles[category];
+                        const CategoryIcon = style.icon;
 
                         return (
                           <HoverCard key={order.id} openDelay={150} closeDelay={100}>
@@ -131,28 +150,25 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                               <div
                                 className={cn(
                                   "px-1.5 py-0.5 rounded border-l-2 hover:shadow cursor-pointer transition-all text-[10px]",
-                                  order.status === "pending" &&
-                                    "border-l-yellow-500 bg-yellow-100/90 dark:bg-yellow-900/40",
-                                  order.status === "in_progress" &&
-                                    "border-l-blue-500 bg-blue-100/90 dark:bg-blue-900/40",
-                                  order.status === "completed" &&
-                                    "border-l-green-500 bg-green-100/90 dark:bg-green-900/40",
-                                  order.status === "cancelled" && "border-l-red-500 bg-red-100/90 dark:bg-red-900/40",
-                                  order.status === "waiting" && "border-l-gray-500 bg-gray-100/90 dark:bg-gray-900/40",
-                                  order.event_source === "auvo" && "border-l-cyan-500 bg-cyan-100/90 dark:bg-cyan-900/40",
+                                  style.item,
                                 )}
                                 onClick={() => onEventClick?.(order.id)}
                               >
-                                <div className="font-semibold text-foreground leading-tight truncate">
-                                  {order.scheduled_time ? `${order.scheduled_time} - ` : ""}{order.event_source === "auvo" ? "Auvo · " : ""}{order.vessel_name}
+                                <div className="font-semibold leading-tight truncate flex items-center gap-1">
+                                  <CategoryIcon className="h-2.5 w-2.5 flex-shrink-0" />
+                                  <span className="truncate">
+                                    {order.scheduled_time ? `${order.scheduled_time} · ` : ""}
+                                    {category === "os" ? order.vessel_name : style.label}
+                                  </span>
                                 </div>
                                 {allTechs && (
-                                  <div className="font-medium text-foreground/70 leading-tight truncate">
+                                  <div className="font-medium opacity-75 leading-tight truncate">
                                     {allTechs}
                                   </div>
                                 )}
                               </div>
                             </HoverCardTrigger>
+
                             <HoverCardContent
                               side="right"
                               align="start"
@@ -183,14 +199,14 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                   {dayAbsences.length > 0 && (
                     <div className="space-y-0.5 mb-1">
                       {dayAbsences.map((absence) => {
-                        const config = absenceConfig[absence.absence_type] || absenceConfig.day_off;
-                        const Icon = config.icon;
+                        const style = categoryStyles[absenceCategory(absence.absence_type)];
+                        const Icon = style.icon;
                         return (
                           <div
                             key={`${absence.id}-${day.toISOString()}`}
                             className={cn(
                               "px-1.5 py-0.5 rounded border-l-2 text-[10px] flex items-center gap-1",
-                              config.bg
+                              style.item
                             )}
                           >
                             <Icon className="h-3 w-3 flex-shrink-0" />
@@ -209,16 +225,20 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                       {dayOnCalls.map((oc) => (
                         <div
                           key={oc.id}
-                          className="px-1.5 py-0.5 rounded border-l-2 border-l-amber-500 bg-amber-50 text-[10px] flex items-center gap-1"
+                          className={cn(
+                            "px-1.5 py-0.5 rounded border-l-2 text-[10px] flex items-center gap-1",
+                            categoryStyles.on_call.item
+                          )}
                         >
-                          <Phone className="h-3 w-3 flex-shrink-0 text-amber-600" />
-                          <span className="font-medium truncate text-amber-800">
+                          <Phone className="h-3 w-3 flex-shrink-0" />
+                          <span className="font-medium truncate">
                             {formatShortName(oc.technician_name)}
                           </span>
                         </div>
                       ))}
                     </div>
                   )}
+
                 </>
               )}
             </div>

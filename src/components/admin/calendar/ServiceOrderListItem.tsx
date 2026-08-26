@@ -1,6 +1,8 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { ServiceOrderHoverCard } from "./ServiceOrderHoverCard";
 import { cn } from "@/lib/utils";
+import { categoryStyles, classifyEvent } from "./eventStyles";
+
 
 const formatShortName = (fullName: string) => {
   const parts = fullName.trim().split(' ');
@@ -33,17 +35,8 @@ interface ServiceOrderListItemProps {
 }
 
 export const ServiceOrderListItem = ({ order, compact = false, onClick }: ServiceOrderListItemProps) => {
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: "bg-yellow-500",
-      in_progress: "bg-blue-500",
-      completed: "bg-green-500",
-      cancelled: "bg-red-500",
-      waiting: "bg-gray-500",
-      auvo: "bg-cyan-500",
-    };
-    return colors[status] || "bg-gray-500";
-  };
+
+
 
   // Build technician display array with short names
   const technicianDisplay: string[] = [];
@@ -63,29 +56,50 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
     technicianDisplay.push(formatShortName(order.supervisor_name));
   }
 
+  const category = classifyEvent(order);
+  const style = categoryStyles[category];
+  const CategoryIcon = style.icon;
+  const normalizedTitle = (order.vessel_name || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+  const normalizedLabel = style.label
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase();
+  const showTitle = normalizedTitle.length > 0 && normalizedTitle !== normalizedLabel;
+
   return (
     <HoverCard openDelay={150} closeDelay={100}>
       <HoverCardTrigger asChild>
         <div
           className={cn(
-            "flex items-center gap-2 px-2 py-1.5 rounded hover:bg-accent/50 cursor-pointer transition-colors",
+            "flex items-center gap-2 px-2 py-1.5 rounded border-l-2 hover:shadow cursor-pointer transition-all",
+            style.item,
             compact && "py-1"
           )}
           onClick={onClick}
         >
-          <div className={cn("w-2 h-2 rounded-full flex-shrink-0", getStatusColor(order.status))} />
           <div className="flex-1 min-w-0 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{order.scheduled_time}</span>
-              {order.event_source === "auvo" && (
-                <span className="rounded-sm bg-accent px-1 text-[10px] font-semibold text-accent-foreground">
-                  Auvo
-                </span>
+            <div className="flex items-center gap-1.5">
+              {order.scheduled_time && (
+                <span className="text-xs opacity-70">{order.scheduled_time}</span>
               )}
-              <span className="font-medium truncate">{order.vessel_name}</span>
+              <span
+                className={cn(
+                  "flex items-center gap-1 rounded-sm border px-1 text-[10px] font-semibold",
+                  style.badge
+                )}
+              >
+                <CategoryIcon className="h-2.5 w-2.5" />
+                {category === "os" ? order.order_number : style.label}
+              </span>
+              {showTitle && <span className="font-medium truncate">{order.vessel_name}</span>}
             </div>
+
             {!compact && technicianDisplay.length > 0 && (
-              <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
+              <div className="text-xs opacity-75 space-y-0.5 mt-1">
                 {technicianDisplay.map((name, idx) => (
                   <div key={idx} className="truncate">
                     {name}

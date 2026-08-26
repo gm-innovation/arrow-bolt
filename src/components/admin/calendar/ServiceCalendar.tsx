@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCalendarAbsences, CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
 import { CalendarLegend } from "./CalendarLegend";
+import { CALENDAR_CATEGORIES, type CalendarCategory } from "./eventStyles";
+
 import { ViewOrderDetailsDialog } from "@/components/admin/orders/ViewOrderDetailsDialog";
 import { AuvoTaskDetailsDialog } from "./AuvoTaskDetailsDialog";
 
@@ -95,7 +97,15 @@ export const ServiceCalendar = ({
   const [serviceOrders, setServiceOrders] = useState<CalendarServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | undefined>();
+  const [activeCategories, setActiveCategories] = useState<CalendarCategory[]>(CALENDAR_CATEGORIES);
   const { toast } = useToast();
+
+  const toggleCategory = (category: CalendarCategory) => {
+    setActiveCategories((prev) =>
+      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category],
+    );
+  };
+
 
   // Fetch absences and on-calls for the calendar
   const { absences, onCalls, isLoading: scheduleLoading } = useCalendarAbsences(currentDate, companyId);
@@ -468,14 +478,15 @@ export const ServiceCalendar = ({
         )}
       </div>
 
-      <CalendarLegend />
-      
+      <CalendarLegend activeCategories={activeCategories} onToggleCategory={toggleCategory} />
+
       {view === "day" && (
         <DayView 
           date={currentDate} 
           orders={serviceOrders} 
           absences={absences}
           onCalls={onCalls}
+          activeCategories={activeCategories}
           onEventClick={handleEventClick} 
         />
       )}
@@ -485,6 +496,7 @@ export const ServiceCalendar = ({
           orders={serviceOrders} 
           absences={absences}
           onCalls={onCalls}
+          activeCategories={activeCategories}
           onEventClick={handleEventClick} 
           onDayOverflowClick={setOverflowDay}
         />
@@ -496,11 +508,12 @@ export const ServiceCalendar = ({
           absences={absences}
           onCalls={onCalls}
           isExpanded={isExpanded} 
+          activeCategories={activeCategories}
           onEventClick={handleEventClick} 
           onDayOverflowClick={setOverflowDay}
-
         />
       )}
+
 
       <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <DialogContent>
@@ -543,6 +556,8 @@ export const ServiceCalendar = ({
           <DayEventsDialog
             date={overflowDay}
             orders={serviceOrders}
+            activeCategories={activeCategories}
+
             onOrderClick={(orderId) => {
               setOverflowDay(null);
               handleEventClick(orderId);
