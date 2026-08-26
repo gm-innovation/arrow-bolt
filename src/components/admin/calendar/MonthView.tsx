@@ -5,7 +5,13 @@ import { ServiceOrderHoverCard } from "./ServiceOrderHoverCard";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
 import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
 import { cn } from "@/lib/utils";
-import { Palmtree, CalendarOff, Stethoscope, GraduationCap, Phone } from "lucide-react";
+import {
+  absenceCategory,
+  categoryStyles,
+  classifyEvent,
+  isCategoryActive,
+  type CalendarCategory,
+} from "./eventStyles";
 
 interface MonthViewProps {
   date: Date;
@@ -13,20 +19,13 @@ interface MonthViewProps {
   absences?: CalendarAbsence[];
   onCalls?: CalendarOnCall[];
   isExpanded?: boolean;
+  activeCategories?: CalendarCategory[];
   onEventClick?: (orderId: string) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
 
+export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpanded = false, activeCategories, onEventClick, onDayOverflowClick }: MonthViewProps) => {
 
-const absenceConfig: Record<string, { label: string; bg: string; icon: typeof Palmtree }> = {
-  vacation: { label: "Férias", bg: "bg-blue-50 border-l-blue-500", icon: Palmtree },
-  day_off: { label: "Folga", bg: "bg-green-50 border-l-green-500", icon: CalendarOff },
-  medical_exam: { label: "Exame Médico", bg: "bg-red-50 border-l-red-500", icon: Stethoscope },
-  sick_leave: { label: "Atestado", bg: "bg-red-50 border-l-red-500", icon: Stethoscope },
-  training: { label: "Treinamento", bg: "bg-purple-50 border-l-purple-500", icon: GraduationCap },
-};
-
-export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpanded = false, onEventClick, onDayOverflowClick }: MonthViewProps) => {
   const MAX_VISIBLE_ORDERS = isExpanded ? 10 : 3;
 
   const monthStart = startOfMonth(date);
