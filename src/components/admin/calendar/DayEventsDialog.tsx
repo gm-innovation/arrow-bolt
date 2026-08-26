@@ -96,7 +96,9 @@ export const DayEventsDialog = ({ date, orders, activeCategories, onOrderClick }
                 </div>
               </div>
             </Button>
-          ))}
+            );
+          })}
+
         </div>
       </ScrollArea>
     </DialogContent>
