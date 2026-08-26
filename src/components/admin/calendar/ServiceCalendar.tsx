@@ -361,6 +361,7 @@ export const ServiceCalendar = ({
     const grouped = new Map<string, CalendarServiceOrder>();
 
     (data || [])
+      .filter((task: any) => !isInternalWorkType(task.auvo_task_type))
       .filter((task: any) => !task.service_order_id || orderDateById.get(task.service_order_id) !== task.task_date)
       .forEach((task: any) => {
         const scheduledDate = task.checkin_at
