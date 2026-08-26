@@ -240,7 +240,7 @@ export const ServiceCalendar = ({
         const visitData = visitsByOrder.get(order.id);
         const leadTech = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
         const auxiliaryTechs = visitData?.visit_technicians?.filter((vt: any) => !vt.is_lead) || [];
-        const auvoEnrichment = auvoByOrder.get(order.id);
+        const auvoEnrichment = auvoByOrder.get(auvoOrderDateKey(order.id, order.scheduled_date));
 
         const technicianNames: string[] = order.tasks
           ?.map((task: any) => task.assigned_to?.user?.full_name)
