@@ -44,7 +44,14 @@ export type CalendarServiceOrder = {
   linked_service_order_id?: string;
   /** Origem do escopo/descrição exibida (Auvo é a fonte operacional; Omie é fiscal/financeiro) */
   scope_source?: "auvo" | "omie";
+  auvo_requester_name?: string;
+  auvo_supervisor_name?: string;
+  auvo_coordinator_name?: string;
+  /** Data escrita no texto do Auvo, quando diferente da data agendada */
+  auvo_declared_date?: string;
 };
+
+
 
 type AuvoOrderEnrichment = {
   teamName?: string;
@@ -98,6 +105,18 @@ const isInternalWorkType = (taskType?: string | null): boolean => {
 
 const auvoOrderDateKey = (serviceOrderId: string, taskDate?: string | null) =>
   `${serviceOrderId}|${(taskDate ?? "").slice(0, 10)}`;
+
+/** Data escrita no texto do Auvo ("Data; 19/08/2026"), quando difere da data agendada. */
+const extractDeclaredDate = (orientation?: string | null, taskDate?: string | null): string | undefined => {
+  if (!orientation) return undefined;
+  const match = orientation.match(/^\s*Data\s*[;:]\s*(\d{2})\/(\d{2})\/(\d{4})/im);
+  if (!match) return undefined;
+  const [, day, month, year] = match;
+  const iso = `${year}-${month}-${day}`;
+  if (taskDate && taskDate.slice(0, 10) === iso) return undefined;
+  return `${day}/${month}/${year}`;
+};
+
 
 
 export interface ServiceCalendarProps {
@@ -346,7 +365,11 @@ export const ServiceCalendar = ({
         address,
         orientation,
         location_text,
-        scope_text
+        scope_text,
+        requester_name,
+        supervisor_name,
+        coordinator_name
+
       `)
       .eq("company_id", targetCompanyId)
       .not("task_date", "is", null)
@@ -407,7 +430,12 @@ export const ServiceCalendar = ({
           auvo_task_uid: task.id,
           auvo_status: task.auvo_status,
           linked_service_order_id: task.service_order_id || undefined,
+          auvo_requester_name: task.requester_name?.trim() || undefined,
+          auvo_supervisor_name: task.supervisor_name?.trim() || undefined,
+          auvo_coordinator_name: task.coordinator_name?.trim() || undefined,
+          auvo_declared_date: extractDeclaredDate(task.orientation, task.task_date),
         });
+
       });
 
     return Array.from(grouped.values());

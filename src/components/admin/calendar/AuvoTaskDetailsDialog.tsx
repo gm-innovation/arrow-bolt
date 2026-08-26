@@ -45,14 +45,23 @@ export const AuvoTaskDetailsDialog = ({ event }: AuvoTaskDetailsDialogProps) => 
       <ScrollArea className="max-h-[65vh] pr-4">
         <div className="grid gap-3">
           <DetailRow icon={Clock} label="Horário" value={event.scheduled_time || "Sem horário informado"} />
+          {event.order_number !== "Auvo" && (
+            <DetailRow icon={FileText} label="OS informada" value={event.order_number} />
+          )}
           <DetailRow icon={Ship} label="Embarcação" value={event.vessel_name} />
           <DetailRow icon={User} label="Cliente" value={event.client_name} />
           <DetailRow icon={Users} label="Equipe" value={team} />
+          <DetailRow icon={User} label="Solicitante" value={event.auvo_requester_name} />
+          <DetailRow icon={User} label="Supervisor" value={event.auvo_supervisor_name} />
+          <DetailRow icon={User} label="Coordenador" value={event.auvo_coordinator_name} />
           <DetailRow icon={MapPin} label="Local" value={event.location} />
-          {event.order_number !== "Auvo" && <DetailRow icon={FileText} label="OS informada" value={event.order_number} />}
+          {event.auvo_declared_date && (
+            <DetailRow icon={CalendarDays} label="Data informada no texto" value={event.auvo_declared_date} />
+          )}
           <DetailRow icon={FileText} label="Escopo/descrição" value={event.description} />
         </div>
       </ScrollArea>
+
     </DialogContent>
   );
 };
