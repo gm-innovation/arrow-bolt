@@ -10,12 +10,12 @@ import type { ScheduleEntry } from "./ScheduleEntryDetailsDialog";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
-  absenceCategory,
   categoryStyles,
   classifyEvent,
   isCategoryActive,
   type CalendarCategory,
 } from "./eventStyles";
+import { buildScheduleRows } from "./groupScheduleRows";
 
 interface WeekViewProps {
   date: Date;
@@ -27,12 +27,6 @@ interface WeekViewProps {
   onScheduleEntryClick?: (entry: ScheduleEntry) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
-
-
-type DayEntry =
-  | { kind: "order"; key: string; order: CalendarServiceOrder }
-  | { kind: "absence"; key: string; absence: CalendarAbsence }
-  | { kind: "on_call"; key: string; onCall: CalendarOnCall };
 
 const FALLBACK_ITEM_HEIGHT = 48; // cartão de duas linhas + gap
 
