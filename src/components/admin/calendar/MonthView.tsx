@@ -5,6 +5,8 @@ import { ServiceOrderHoverCard } from "./ServiceOrderHoverCard";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
 import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
 import { cn } from "@/lib/utils";
+import { Phone } from "lucide-react";
+
 import {
   absenceCategory,
   categoryStyles,
