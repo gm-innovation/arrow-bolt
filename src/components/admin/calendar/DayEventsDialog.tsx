@@ -1,29 +1,20 @@
 import { format, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, Clock, Ship, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
+import { categoryStyles, classifyEvent, isCategoryActive, type CalendarCategory } from "./eventStyles";
 
 interface DayEventsDialogProps {
   date: Date;
   orders: CalendarServiceOrder[];
+  activeCategories?: CalendarCategory[];
   onOrderClick: (orderId: string) => void;
 }
 
-const getStatusLabel = (status: string) => {
-  const labels: Record<string, string> = {
-    pending: "Pendente",
-    in_progress: "Em andamento",
-    completed: "Concluído",
-    cancelled: "Cancelado",
-    waiting: "Aguardando",
-    auvo: "Agenda Auvo",
-  };
-  return labels[status] || status;
-};
 
 const getTeamLabel = (order: CalendarServiceOrder) => {
   const localTeam = [
