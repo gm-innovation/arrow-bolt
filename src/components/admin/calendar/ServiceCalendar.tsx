@@ -353,7 +353,11 @@ export const ServiceCalendar = ({
         address,
         orientation,
         location_text,
-        scope_text
+        scope_text,
+        requester_name,
+        supervisor_name,
+        coordinator_name
+
       `)
       .eq("company_id", targetCompanyId)
       .not("task_date", "is", null)
