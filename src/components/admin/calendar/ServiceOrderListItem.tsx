@@ -108,7 +108,7 @@ export const ServiceOrderListItem = ({ order, compact = false, onClick }: Servic
             </div>
 
             {!compact && technicianDisplay.length > 0 && (
-              <div className="text-xs text-muted-foreground space-y-0.5 mt-1">
+              <div className="text-xs opacity-75 space-y-0.5 mt-1">
                 {technicianDisplay.map((name, idx) => (
                   <div key={idx} className="truncate">
                     {name}
