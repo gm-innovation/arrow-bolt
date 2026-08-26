@@ -5,46 +5,60 @@ import { ptBR } from "date-fns/locale";
 import { ServiceOrderListItem } from "./ServiceOrderListItem";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
 import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
-import { Palmtree, CalendarOff, Stethoscope, GraduationCap, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import {
+  absenceCategory,
+  categoryStyles,
+  classifyEvent,
+  isCategoryActive,
+  type CalendarCategory,
+} from "./eventStyles";
 
 interface WeekViewProps {
   date: Date;
   orders: CalendarServiceOrder[];
   absences?: CalendarAbsence[];
   onCalls?: CalendarOnCall[];
+  activeCategories?: CalendarCategory[];
   onEventClick?: (orderId: string) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
 
-const absenceConfig: Record<string, { label: string; bg: string; icon: typeof Palmtree }> = {
-  vacation: { label: "Férias", bg: "bg-blue-50 border-l-blue-500 text-blue-800", icon: Palmtree },
-  day_off: { label: "Folga", bg: "bg-green-50 border-l-green-500 text-green-800", icon: CalendarOff },
-  medical_exam: { label: "Exame", bg: "bg-red-50 border-l-red-500 text-red-800", icon: Stethoscope },
-  sick_leave: { label: "Atestado", bg: "bg-red-50 border-l-red-500 text-red-800", icon: Stethoscope },
-  training: { label: "Treinamento", bg: "bg-purple-50 border-l-purple-500 text-purple-800", icon: GraduationCap },
-};
-
-export const WeekView = ({ date, orders, absences = [], onCalls = [], onEventClick, onDayOverflowClick }: WeekViewProps) => {
+export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCategories, onEventClick, onDayOverflowClick }: WeekViewProps) => {
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const getOrdersForDay = (day: Date) => {
-    return orders.filter(order => isSameDay(order.scheduled_date, day));
+    return orders
+      .filter((order) => isSameDay(order.scheduled_date, day))
+      .filter((order) => isCategoryActive(classifyEvent(order), activeCategories))
+      .sort((a, b) => {
+        const aTime = a.scheduled_time || "";
+        const bTime = b.scheduled_time || "";
+        if (aTime && bTime) return aTime.localeCompare(bTime);
+        if (aTime) return -1;
+        if (bTime) return 1;
+        return 0;
+      });
   };
 
   const getAbsencesForDay = (day: Date) => {
     return absences.filter((absence) => {
       const start = parseISO(absence.start_date);
       const end = parseISO(absence.end_date);
-      return isWithinInterval(day, { start, end });
+      return (
+        isWithinInterval(day, { start, end }) &&
+        isCategoryActive(absenceCategory(absence.absence_type), activeCategories)
+      );
     });
   };
 
   const getOnCallsForDay = (day: Date) => {
+    if (!isCategoryActive("on_call", activeCategories)) return [];
     return onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), day));
   };
+
 
   const formatShortName = (fullName: string) => {
     const parts = fullName.trim().split(" ");
