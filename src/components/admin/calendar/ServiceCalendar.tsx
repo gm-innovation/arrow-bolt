@@ -286,16 +286,20 @@ export const ServiceCalendar = ({
       const isQaOrder = (order: CalendarServiceOrder) =>
         /\[QA\]/i.test(order.vessel_name || "") || /\[QA\]/i.test(order.description || "");
 
-      // O Auvo é a fonte da verdade da agenda: OS espelhada do Omie sem tarefa
-      // Auvo vinculada não aparece aqui (continua na lista de OSs).
-      const hasAuvo = (order: CalendarServiceOrder) => auvoByOrder.has(order.id);
-
       const orderDateById = new Map<string, string>(
         (orders || []).map((order: any) => [order.id, order.scheduled_date || ""]),
       );
+
+      // O Auvo é a fonte da verdade da agenda: a OS só aparece se houver tarefa Auvo
+      // vinculada na MESMA data (OS do Omie sem agendamento no Auvo fica fora).
+      const hasAuvoOnDate = (order: CalendarServiceOrder) =>
+        auvoByOrder.has(auvoOrderDateKey(order.id, orderDateById.get(order.id)));
+
       const auvoEvents = await fetchStandaloneAuvoEvents(profile.company_id, startStr, endStr, orderDateById);
       setServiceOrders([
-        ...formattedOrders.filter((order) => hasAuvo(order) && !isQaOrder(order)),
+        ...formattedOrders.filter(
+          (order) => hasAuvoOnDate(order) && !isQaOrder(order) && !isInternalWorkType(order.task_type),
+        ),
         ...auvoEvents,
       ]);
 
