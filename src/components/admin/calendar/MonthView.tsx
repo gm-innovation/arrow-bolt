@@ -28,7 +28,7 @@ interface MonthViewProps {
 
 export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpanded = false, activeCategories, onEventClick, onDayOverflowClick }: MonthViewProps) => {
 
-  const MAX_VISIBLE_ORDERS = isExpanded ? 10 : 3;
+  const MAX_VISIBLE_ORDERS = isExpanded ? 12 : 4;
 
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);
@@ -126,7 +126,7 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
             <div
               key={`${weekIndex}-${dayIndex}`}
               className={cn(
-                "border-b border-r last:border-r-0 p-2 min-h-[80px] relative overflow-hidden",
+                "border-b border-r last:border-r-0 p-2 min-h-[80px] relative flex flex-col",
                 day && isSameMonth(day, date) ? "bg-background" : "bg-muted/50",
               )}
             >
