@@ -1,28 +1,36 @@
-# Visão mensal: itens não clicáveis e "+N" ausente
+# Visão mensal: serviços "bloqueados" e falta do "+N"
 
-## O que a leitura do código mostrou
+## Diagnóstico
 
-1. **Itens não clicáveis.** Na visão de mês só as atividades vindas de OS/Auvo recebem clique e hover: elas são renderizadas com `onClick` e `HoverCard`. Os itens de **ausência (Férias, Folga, Atestado, Indisponível, Treinamento)** e de **sobreaviso** vindos do RH são renderizados como `div` puro, sem `onClick`, sem `cursor-pointer` e sem hover — por isso parecem "mortos". O mesmo vale na visão semanal.
-2. **"+N" ausente.** O corte na visão de mês é por **contagem fixa** (`MAX_VISIBLE_ORDERS = 4` normal / `12` ampliado), não pelo espaço real da célula. Consequência: enquanto o dia tem até 12 eventos, todos são renderizados e o "+N" nunca aparece — mesmo que não caibam visualmente na célula. O dia 28 da sua imagem mostra "+1 atividades" justamente porque passou de 12; os dias 25, 26 e 27 ficam abaixo do limite e por isso não têm botão, ainda que a célula estoure.
-3. Como as células crescem com o conteúdo, um dia cheio esticando a linha inteira desalinha o mês; o botão "+N" hoje também não tem posição garantida no fim da pilha.
+Os itens apagados/inclicáveis não são só férias e folgas — são também cartões de serviço (OS e Auvo), como no recorte com "Auvo / Marcio Mendes", "Auvo / Jose Eduardo e Cristiano" e "Auvo / Wagner Viana".
+
+Duas causas ligadas, ambas na `MonthView`:
+
+1. **A célula do dia não limita mais o conteúdo.** Na correção anterior o `overflow-hidden` da célula foi removido para o botão "+N" não ser cortado. Com isso, quando o dia tem mais itens do que a altura da linha da semana, o excedente **escapa da célula** e é pintado por baixo das células vizinhas/da linha seguinte, que têm fundo próprio. O resultado visual é exatamente o "meio apagado" e, como o elemento de cima recebe o clique, o cartão fica **inclicável** — inclusive OS e Auvo, não só ausências.
+2. **O corte é por contagem, não por espaço.** O limite é fixo (`4` normal / `12` ampliado). Enquanto o dia tiver até 12 eventos, todos são renderizados e o "+N" nunca aparece, mesmo que não caibam. Foi por isso que só o dia 28 (com mais de 12) mostrou "+1 atividades" e os dias 25, 26 e 27 não mostraram nada.
+
+Complementarmente, ausências e sobreavisos do RH continuam sem clique nem hover na visão de mês (renderizados como `div` sem `onClick`), o que reforça a sensação de item "morto".
 
 ## O que será feito
 
-### 1. Tudo clicável na visão de mês (e semana)
-- Ausências e sobreavisos passam a ser clicáveis, com `cursor-pointer` e hover, abrindo um detalhe do registro (colaborador, tipo, período e observação).
-- Manter OS/Auvo abrindo os diálogos que já existem (detalhe da OS e detalhe da tarefa Auvo).
-- Aplicar o mesmo comportamento no diálogo "Atividades do dia", onde ausências também são apenas texto hoje.
+### 1. Nada mais escapa da célula
+- A célula do dia volta a conter o conteúdo, com altura definida por linha e o excedente nunca vazando para cima de outra célula.
+- A linha do "+N" fica reservada dentro da célula (fixa no rodapé), então ela não é cortada.
+- Rolagem interna na célula como rede de segurança, para nunca haver item invisível/inalcançável.
 
-### 2. "+N" baseado no espaço real, não em contagem
-- Altura de item medida no próprio DOM (como já feito na semana) e altura útil da célula fixada, reservando sempre a linha do "+N".
-- O "+N atividades" aparece sempre que sobrar qualquer evento — OS, Auvo, ausência ou sobreaviso — num único orçamento por dia, ordenado por horário.
-- Célula com rolagem interna como rede de segurança, para nunca existir conteúdo cortado invisível.
-- Linhas do mês com altura consistente, para um dia cheio não esticar a semana inteira.
+### 2. "+N" por espaço real, não por contagem
+- Altura de item medida no DOM (mesma técnica já usada na visão semanal) e recalculada com `ResizeObserver`.
+- Um único orçamento por dia com OS + Auvo + ausências + sobreaviso, ordenado por horário; tudo que não cabe entra no "+{N} atividades", que abre o diálogo do dia já existente com a lista completa.
+- Remoção do limite fixo 4/12.
+
+### 3. Todos os itens clicáveis
+- Cartões de OS e Auvo mantêm clique (detalhe da OS / detalhe da tarefa Auvo) e hover.
+- Ausências e sobreavisos passam a ter `cursor-pointer`, hover e clique, abrindo o detalhe do registro (colaborador, tipo, período, observação).
+- Mesmo comportamento no diálogo "Atividades do dia".
 
 ## Detalhes técnicos
 
-- `src/components/admin/calendar/MonthView.tsx`: substituir `MAX_VISIBLE_ORDERS` fixo por orçamento de altura (item medido via `ref` + `getBoundingClientRect`, célula com `max-h` e `ResizeObserver`); unificar OS + ausências + sobreaviso numa lista `dayEntries` ordenada por horário; "+N" sempre no fim com `mt-auto`; adicionar `onClick`/hover nos itens de RH.
-- `src/components/admin/calendar/ServiceCalendar.tsx`: novo estado/diálogo para detalhe de ausência/sobreaviso e handler `onAbsenceClick` repassado a `MonthView`, `WeekView` e `DayEventsDialog`.
-- `src/components/admin/calendar/WeekView.tsx`: reaproveitar o mesmo handler para ausências/sobreaviso.
-- `src/components/admin/calendar/DayEventsDialog.tsx`: itens de RH viram botões clicáveis.
+- `src/components/admin/calendar/MonthView.tsx`: substituir `MAX_VISIBLE_ORDERS` fixo por orçamento de altura (item medido via `ref` + `getBoundingClientRect`); célula com altura/`max-h` definida, lista interna com `overflow-y-auto` e botão "+N" fora da área rolável (rodapé da célula); unificar OS + ausências + sobreaviso em uma lista `dayEntries` ordenada por horário; adicionar `onClick`/hover aos itens de RH.
+- `src/components/admin/calendar/ServiceCalendar.tsx`: estado e diálogo para detalhe de ausência/sobreaviso, com handler repassado a `MonthView`, `WeekView` e `DayEventsDialog`.
+- `src/components/admin/calendar/WeekView.tsx` e `DayEventsDialog.tsx`: reaproveitar o mesmo handler para ausências/sobreaviso.
 - Sem mudança de schema, RLS ou de regras de sincronização Auvo/Omie — apenas UI e apresentação.
