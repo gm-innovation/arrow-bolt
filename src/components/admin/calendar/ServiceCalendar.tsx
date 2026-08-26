@@ -17,6 +17,7 @@ import { CALENDAR_CATEGORIES, type CalendarCategory } from "./eventStyles";
 
 import { ViewOrderDetailsDialog } from "@/components/admin/orders/ViewOrderDetailsDialog";
 import { AuvoTaskDetailsDialog } from "./AuvoTaskDetailsDialog";
+import { ScheduleEntryDetailsDialog, type ScheduleEntry } from "./ScheduleEntryDetailsDialog";
 
 export type CalendarServiceOrder = {
   id: string;
@@ -121,6 +122,7 @@ export const ServiceCalendar = ({
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedAuvoEvent, setSelectedAuvoEvent] = useState<CalendarServiceOrder | null>(null);
   const [overflowDay, setOverflowDay] = useState<Date | null>(null);
+  const [selectedScheduleEntry, setSelectedScheduleEntry] = useState<ScheduleEntry | null>(null);
   const [serviceOrders, setServiceOrders] = useState<CalendarServiceOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [companyId, setCompanyId] = useState<string | undefined>();
@@ -566,6 +568,7 @@ export const ServiceCalendar = ({
           onCalls={onCalls}
           activeCategories={activeCategories}
           onEventClick={handleEventClick} 
+          onScheduleEntryClick={setSelectedScheduleEntry}
           onDayOverflowClick={setOverflowDay}
         />
       )}
@@ -578,6 +581,7 @@ export const ServiceCalendar = ({
           isExpanded={isExpanded || isFullscreen} 
           activeCategories={activeCategories}
           onEventClick={handleEventClick} 
+          onScheduleEntryClick={setSelectedScheduleEntry}
           onDayOverflowClick={setOverflowDay}
         />
       )}
@@ -632,12 +636,23 @@ export const ServiceCalendar = ({
               setOverflowDay(null);
               handleEventClick(orderId);
             }}
+            onScheduleEntryClick={(entry) => {
+              setOverflowDay(null);
+              setSelectedScheduleEntry(entry);
+            }}
           />
         )}
       </Dialog>
 
       <Dialog open={Boolean(selectedOrderId)} onOpenChange={(open) => !open && setSelectedOrderId(null)}>
         {selectedOrderId && <ViewOrderDetailsDialog orderId={selectedOrderId} />}
+      </Dialog>
+
+      <Dialog
+        open={Boolean(selectedScheduleEntry)}
+        onOpenChange={(open) => !open && setSelectedScheduleEntry(null)}
+      >
+        {selectedScheduleEntry && <ScheduleEntryDetailsDialog entry={selectedScheduleEntry} />}
       </Dialog>
 
       <Dialog open={Boolean(selectedAuvoEvent)} onOpenChange={(open) => !open && setSelectedAuvoEvent(null)}>
