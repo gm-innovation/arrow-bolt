@@ -64,16 +64,14 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
     return onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), day));
   };
 
-  // Todos os eventos do dia (OS + Auvo + ausências + sobreaviso) num único orçamento
-  const getEntriesForDay = (day: Date): DayEntry[] => [
-    ...getOrdersForDay(day).map((order): DayEntry => ({ kind: "order", key: order.id, order })),
-    ...getAbsencesForDay(day).map((absence): DayEntry => ({
-      kind: "absence",
-      key: `absence-${absence.id}-${day.toISOString()}`,
-      absence,
-    })),
-    ...getOnCallsForDay(day).map((onCall): DayEntry => ({ kind: "on_call", key: `oncall-${onCall.id}`, onCall })),
-  ];
+  // Linhas do dia: cartões de serviço + 1 linha agrupada por categoria de RH
+  const getRowsForDay = (day: Date) =>
+    buildScheduleRows(
+      day.toISOString(),
+      getOrdersForDay(day),
+      getAbsencesForDay(day),
+      getOnCallsForDay(day),
+    );
 
   const formatShortName = (fullName: string) => {
     const parts = fullName.trim().split(" ");
