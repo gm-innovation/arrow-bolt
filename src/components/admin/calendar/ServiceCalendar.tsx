@@ -79,6 +79,26 @@ const parseCalendarDate = (dateString?: string | null): Date => {
   return new Date(year, month - 1, day, 12, 0, 0);
 };
 
+const normalizeText = (value?: string | null) =>
+  (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toUpperCase()
+    .trim();
+
+/** Trabalho interno (bancada/laboratório/oficina) não ocupa a agenda dos técnicos. */
+const INTERNAL_WORK_MARKERS = ["BANCADA", "LABORATORIO", "OFICINA", "INTERNO", "INTERNA"];
+
+const isInternalWorkType = (taskType?: string | null): boolean => {
+  const normalized = normalizeText(taskType);
+  if (!normalized) return false;
+  return INTERNAL_WORK_MARKERS.some((marker) => normalized.includes(marker));
+};
+
+const auvoOrderDateKey = (serviceOrderId: string, taskDate?: string | null) =>
+  `${serviceOrderId}|${(taskDate ?? "").slice(0, 10)}`;
+
+
 export interface ServiceCalendarProps {
   isExpanded?: boolean;
   onToggleExpanded?: () => void;
@@ -220,7 +240,7 @@ export const ServiceCalendar = ({
         const visitData = visitsByOrder.get(order.id);
         const leadTech = visitData?.visit_technicians?.find((vt: any) => vt.is_lead);
         const auxiliaryTechs = visitData?.visit_technicians?.filter((vt: any) => !vt.is_lead) || [];
-        const auvoEnrichment = auvoByOrder.get(order.id);
+        const auvoEnrichment = auvoByOrder.get(auvoOrderDateKey(order.id, order.scheduled_date));
 
         const technicianNames: string[] = order.tasks
           ?.map((task: any) => task.assigned_to?.user?.full_name)
@@ -266,16 +286,20 @@ export const ServiceCalendar = ({
       const isQaOrder = (order: CalendarServiceOrder) =>
         /\[QA\]/i.test(order.vessel_name || "") || /\[QA\]/i.test(order.description || "");
 
-      // O Auvo é a fonte da verdade da agenda: OS espelhada do Omie sem tarefa
-      // Auvo vinculada não aparece aqui (continua na lista de OSs).
-      const hasAuvo = (order: CalendarServiceOrder) => auvoByOrder.has(order.id);
-
       const orderDateById = new Map<string, string>(
         (orders || []).map((order: any) => [order.id, order.scheduled_date || ""]),
       );
+
+      // O Auvo é a fonte da verdade da agenda: a OS só aparece se houver tarefa Auvo
+      // vinculada na MESMA data (OS do Omie sem agendamento no Auvo fica fora).
+      const hasAuvoOnDate = (order: CalendarServiceOrder) =>
+        auvoByOrder.has(auvoOrderDateKey(order.id, orderDateById.get(order.id)));
+
       const auvoEvents = await fetchStandaloneAuvoEvents(profile.company_id, startStr, endStr, orderDateById);
       setServiceOrders([
-        ...formattedOrders.filter((order) => hasAuvo(order) && !isQaOrder(order)),
+        ...formattedOrders.filter(
+          (order) => hasAuvoOnDate(order) && !isQaOrder(order) && !isInternalWorkType(order.task_type),
+        ),
         ...auvoEvents,
       ]);
 
@@ -337,6 +361,7 @@ export const ServiceCalendar = ({
     const grouped = new Map<string, CalendarServiceOrder>();
 
     (data || [])
+      .filter((task: any) => !isInternalWorkType(task.auvo_task_type))
       .filter((task: any) => !task.service_order_id || orderDateById.get(task.service_order_id) !== task.task_date)
       .forEach((task: any) => {
         const scheduledDate = task.checkin_at
@@ -415,9 +440,11 @@ export const ServiceCalendar = ({
 
       (data || []).forEach((row: any) => {
         const serviceOrderId = row.service_order_id;
-        if (!serviceOrderId) return;
+        if (!serviceOrderId || !row.task_date) return;
 
-        const existing = enrichmentByOrder.get(serviceOrderId) || { technicianNames: [] };
+        // Indexado por OS + data: o cartão da agenda só usa a tarefa daquele dia.
+        const key = auvoOrderDateKey(serviceOrderId, row.task_date);
+        const existing = enrichmentByOrder.get(key) || { technicianNames: [] };
         const teamName = row.team_name?.trim();
         const vesselName = row.vessel_name_parsed?.trim() || row.vessel_name?.trim();
 
@@ -442,7 +469,7 @@ export const ServiceCalendar = ({
         if (taskType && !existing.taskType) existing.taskType = taskType;
         if (row.checkin_at && !existing.checkinAt) existing.checkinAt = row.checkin_at;
 
-        enrichmentByOrder.set(serviceOrderId, existing);
+        enrichmentByOrder.set(key, existing);
       });
     });
 
