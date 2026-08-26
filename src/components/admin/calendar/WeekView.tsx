@@ -129,71 +129,62 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
       
       <div ref={gridRef} className="grid grid-cols-7 flex-1 overflow-hidden relative">
         {days.map((day, dayIndex) => {
-          const entries = getEntriesForDay(day);
-          const visibleEntries = entries.slice(0, maxVisible);
-          const remainingCount = entries.length - visibleEntries.length;
+          const rows = getRowsForDay(day);
+          const visibleRows = rows.slice(0, maxVisible);
+          const remainingCount = rows.length - visibleRows.length;
 
           return (
             <div
               key={day.toISOString()}
               className="border-r last:border-r-0 p-2 space-y-1 overflow-y-auto"
             >
-              {visibleEntries.map((entry, entryIndex) => {
-                const isProbe = dayIndex === 0 && entryIndex === 0;
+              {visibleRows.map((row, rowIndex) => {
+                const isProbe = dayIndex === 0 && rowIndex === 0;
 
-                if (entry.kind === "order") {
+                if (row.type === "order") {
                   return (
-                    <div key={entry.key} ref={isProbe ? probeRef : undefined}>
+                    <div key={row.key} ref={isProbe ? probeRef : undefined}>
                       <ServiceOrderListItem
-                        order={entry.order}
-                        onClick={() => onEventClick?.(entry.order.id)}
+                        order={row.order}
+                        onClick={() => onEventClick?.(row.order.id)}
                       />
                     </div>
                   );
                 }
 
-                if (entry.kind === "absence") {
-                  const style = categoryStyles[absenceCategory(entry.absence.absence_type)];
-                  const Icon = style.icon;
-                  return (
-                    <div
-                      key={entry.key}
-                      role="button"
-                      tabIndex={0}
-                      className={cn(
-                        "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5 cursor-pointer hover:shadow transition-all",
-                        style.item
-                      )}
-                      onClick={() => onScheduleEntryClick?.({ kind: "absence", absence: entry.absence })}
-                    >
-                      <Icon className="h-3 w-3 flex-shrink-0" />
-                      <span className="font-medium truncate">
-                        {formatShortName(entry.absence.technician_name)}
-                      </span>
-                    </div>
-                  );
-                }
+                const style = categoryStyles[row.category];
+                const Icon = style.icon;
+                const fullNames = row.people.map((p) => p.name);
+                const handleGroupClick = () => {
+                  if (row.people.length === 1) {
+                    const click = row.people[0].click;
+                    if (click.type === "order") onEventClick?.(click.orderId);
+                    else onScheduleEntryClick?.(click.entry);
+                    return;
+                  }
+                  onDayOverflowClick?.(day);
+                };
 
-                const onCallStyle = categoryStyles.on_call;
-                const OnCallIcon = onCallStyle.icon;
                 return (
                   <div
-                    key={entry.key}
+                    key={row.key}
+                    ref={isProbe ? probeRef : undefined}
                     role="button"
                     tabIndex={0}
+                    title={`${style.label}: ${fullNames.join(", ")}`}
                     className={cn(
                       "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5 cursor-pointer hover:shadow transition-all",
-                      onCallStyle.item,
+                      style.item
                     )}
-                    onClick={() => onScheduleEntryClick?.({ kind: "on_call", onCall: entry.onCall })}
+                    onClick={handleGroupClick}
                   >
-                    <OnCallIcon className="h-3 w-3 flex-shrink-0" />
-                    <span className="font-medium truncate">
-                      {formatShortName(entry.onCall.technician_name)}
+                    <Icon className="h-3 w-3 flex-shrink-0" />
+                    <span className="font-semibold shrink-0">{style.label}</span>
+                    <span className="truncate opacity-80">
+                      {fullNames.map(formatShortName).join(", ")}
                     </span>
                   </div>
                 );
-
               })}
 
               {remainingCount > 0 && (
