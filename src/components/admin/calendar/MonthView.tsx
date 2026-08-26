@@ -1,11 +1,12 @@
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { ServiceOrderHoverCard } from "./ServiceOrderHoverCard";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
 import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
+import type { ScheduleEntry } from "./ScheduleEntryDetailsDialog";
 import { cn } from "@/lib/utils";
-import { Phone } from "lucide-react";
 
 import {
   absenceCategory,
@@ -23,13 +24,28 @@ interface MonthViewProps {
   isExpanded?: boolean;
   activeCategories?: CalendarCategory[];
   onEventClick?: (orderId: string) => void;
+  onScheduleEntryClick?: (entry: ScheduleEntry) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
 
-export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpanded = false, activeCategories, onEventClick, onDayOverflowClick }: MonthViewProps) => {
+type DayEntry =
+  | { kind: "order"; key: string; order: CalendarServiceOrder; time: string }
+  | { kind: "absence"; key: string; absence: CalendarAbsence; time: string }
+  | { kind: "on_call"; key: string; onCall: CalendarOnCall; time: string };
 
-  const MAX_VISIBLE_ORDERS = isExpanded ? 12 : 4;
+const FALLBACK_ITEM_HEIGHT = 32;
 
+export const MonthView = ({
+  date,
+  orders,
+  absences = [],
+  onCalls = [],
+  isExpanded = false,
+  activeCategories,
+  onEventClick,
+  onScheduleEntryClick,
+  onDayOverflowClick,
+}: MonthViewProps) => {
   const monthStart = startOfMonth(date);
   const monthEnd = endOfMonth(date);
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -60,15 +76,7 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
   const getOrdersForDay = (day: Date) => {
     return orders
       .filter((order) => isSameDay(order.scheduled_date, day))
-      .filter((order) => isCategoryActive(classifyEvent(order), activeCategories))
-      .sort((a, b) => {
-        const aTime = a.scheduled_time || "";
-        const bTime = b.scheduled_time || "";
-        if (aTime && bTime) return aTime.localeCompare(bTime);
-        if (aTime) return -1;
-        if (bTime) return 1;
-        return 0;
-      });
+      .filter((order) => isCategoryActive(classifyEvent(order), activeCategories));
   };
 
   const getAbsencesForDay = (day: Date) => {
@@ -87,12 +95,78 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
     return onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), day));
   };
 
+  // Orçamento único do dia: OS + Auvo + ausências + sobreaviso, ordenado por horário
+  const getEntriesForDay = (day: Date): DayEntry[] => {
+    const entries: DayEntry[] = [
+      ...getOrdersForDay(day).map((order): DayEntry => ({
+        kind: "order",
+        key: order.id,
+        order,
+        time: order.scheduled_time || "",
+      })),
+      ...getAbsencesForDay(day).map((absence): DayEntry => ({
+        kind: "absence",
+        key: `absence-${absence.id}-${day.toISOString()}`,
+        absence,
+        time: "",
+      })),
+      ...getOnCallsForDay(day).map((onCall): DayEntry => ({
+        kind: "on_call",
+        key: `oncall-${onCall.id}`,
+        onCall,
+        time: "",
+      })),
+    ];
+
+    return entries.sort((a, b) => {
+      if (a.time && b.time) return a.time.localeCompare(b.time);
+      if (a.time) return -1;
+      if (b.time) return 1;
+      return 0;
+    });
+  };
 
   const formatShortName = (fullName: string) => {
     const parts = fullName.trim().split(" ");
     if (parts.length === 1) return parts[0];
     return `${parts[0]} ${parts[parts.length - 1]}`;
   };
+
+  // Quantidade visível calculada pela altura REAL do item e do espaço útil da célula,
+  // nunca por uma contagem fixa (que deixava itens fora da célula e sem "+N").
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const probeRef = useRef<HTMLDivElement | null>(null);
+  const [itemHeight, setItemHeight] = useState(FALLBACK_ITEM_HEIGHT);
+  const [maxVisible, setMaxVisible] = useState(isExpanded ? 8 : 3);
+
+  const cellHeight = isExpanded ? 260 : 148;
+
+  const recalc = useCallback(() => {
+    const el = listRef.current;
+    if (!el) return;
+    const available = el.clientHeight;
+    if (available <= 0) return;
+    setMaxVisible(Math.max(1, Math.floor(available / Math.max(20, itemHeight))));
+  }, [itemHeight]);
+
+  useLayoutEffect(() => {
+    const probe = probeRef.current;
+    if (!probe) return;
+    const measured = probe.getBoundingClientRect().height;
+    if (measured > 0) {
+      const withGap = Math.ceil(measured) + 2;
+      setItemHeight((prev) => (Math.abs(prev - withGap) > 1 ? withGap : prev));
+    }
+  });
+
+  useEffect(() => {
+    recalc();
+    const el = listRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(recalc);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [recalc]);
 
   return (
     <div className="flex-1 grid grid-cols-7 auto-rows-auto border relative overflow-auto">
@@ -108,54 +182,55 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
 
       {weeks.map((week, weekIndex) =>
         week.map((day, dayIndex) => {
-          const dayOrders = day ? getOrdersForDay(day) : [];
-          const dayAbsencesAll = day ? getAbsencesForDay(day) : [];
-          const dayOnCallsAll = day ? getOnCallsForDay(day) : [];
-          // Um único orçamento para OS + Auvo + ausências + sobreaviso: o "+N" cobre tudo
-          const totalEvents = dayOrders.length + dayAbsencesAll.length + dayOnCallsAll.length;
-          const visibleOrders = dayOrders.slice(0, MAX_VISIBLE_ORDERS);
-          const absencesBudget = Math.max(0, MAX_VISIBLE_ORDERS - visibleOrders.length);
-          const dayAbsences = dayAbsencesAll.slice(0, absencesBudget);
-          const onCallsBudget = Math.max(0, absencesBudget - dayAbsences.length);
-          const dayOnCalls = dayOnCallsAll.slice(0, onCallsBudget);
-          const remainingCount =
-            totalEvents - visibleOrders.length - dayAbsences.length - dayOnCalls.length;
-
+          const entries = day ? getEntriesForDay(day) : [];
+          const visibleEntries = entries.slice(0, maxVisible);
+          const remainingCount = entries.length - visibleEntries.length;
+          const isFirstCell = weekIndex === 0 && dayIndex === 0;
 
           return (
             <div
               key={`${weekIndex}-${dayIndex}`}
+              style={{ height: cellHeight }}
               className={cn(
-                "border-b border-r last:border-r-0 p-2 min-h-[80px] relative flex flex-col",
+                "border-b border-r last:border-r-0 p-2 relative flex flex-col overflow-hidden",
                 day && isSameMonth(day, date) ? "bg-background" : "bg-muted/50",
               )}
             >
               {day && (
                 <>
-                  <div className="text-sm font-normal mb-1 text-foreground/60">
+                  <div className="text-sm font-normal mb-1 text-foreground/60 shrink-0">
                     {format(day, "d", { locale: ptBR })}
                   </div>
 
-                  {/* Service Orders */}
-                  {dayOrders.length > 0 && (
-                    <div className="space-y-0.5 mb-1">
-                      {visibleOrders.map((order) => {
+                  <div
+                    ref={isFirstCell ? listRef : undefined}
+                    className="flex-1 min-h-0 space-y-0.5 overflow-y-auto"
+                  >
+                    {visibleEntries.map((entry, entryIndex) => {
+                      const isProbe = isFirstCell && entryIndex === 0;
 
+                      if (entry.kind === "order") {
+                        const order = entry.order;
                         const localTechs = [
                           order.lead_technician,
                           ...(order.auxiliary_technicians || []),
                           ...(order.lead_technician ? [] : order.technician_names || []),
-                        ].filter(Boolean).map(formatShortName).join(", ");
-                        const auvoTechs = order.auvo_team_name || order.auvo_technician_names?.map(formatShortName).join(", ");
+                        ]
+                          .filter(Boolean)
+                          .map(formatShortName)
+                          .join(", ");
+                        const auvoTechs =
+                          order.auvo_team_name || order.auvo_technician_names?.map(formatShortName).join(", ");
                         const allTechs = localTechs || auvoTechs;
                         const category = classifyEvent(order);
                         const style = categoryStyles[category];
                         const CategoryIcon = style.icon;
 
                         return (
-                          <HoverCard key={order.id} openDelay={150} closeDelay={100}>
+                          <HoverCard key={entry.key} openDelay={150} closeDelay={100}>
                             <HoverCardTrigger asChild>
                               <div
+                                ref={isProbe ? probeRef : undefined}
                                 className={cn(
                                   "px-1.5 py-0.5 rounded border-l-2 hover:shadow cursor-pointer transition-all text-[10px]",
                                   style.item,
@@ -170,9 +245,7 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                                   </span>
                                 </div>
                                 {allTechs && (
-                                  <div className="font-medium opacity-75 leading-tight truncate">
-                                    {allTechs}
-                                  </div>
+                                  <div className="font-medium opacity-75 leading-tight truncate">{allTechs}</div>
                                 )}
                               </div>
                             </HoverCardTrigger>
@@ -180,7 +253,7 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                             <HoverCardContent
                               side="right"
                               align="start"
-                              className="w-auto max-w-md"
+                              className="w-auto max-w-md z-[100]"
                               sideOffset={10}
                               collisionPadding={20}
                               avoidCollisions={true}
@@ -189,67 +262,49 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                             </HoverCardContent>
                           </HoverCard>
                         );
-                      })}
-                    </div>
-                  )}
+                      }
 
+                      const category: CalendarCategory =
+                        entry.kind === "absence" ? absenceCategory(entry.absence.absence_type) : "on_call";
+                      const style = categoryStyles[category];
+                      const Icon = style.icon;
+                      const name =
+                        entry.kind === "absence" ? entry.absence.technician_name : entry.onCall.technician_name;
 
-
-                  {/* Absences */}
-                  {dayAbsences.length > 0 && (
-                    <div className="space-y-0.5 mb-1">
-                      {dayAbsences.map((absence) => {
-                        const style = categoryStyles[absenceCategory(absence.absence_type)];
-                        const Icon = style.icon;
-                        return (
-                          <div
-                            key={`${absence.id}-${day.toISOString()}`}
-                            className={cn(
-                              "px-1.5 py-0.5 rounded border-l-2 text-[10px] flex items-center gap-1",
-                              style.item
-                            )}
-                          >
-                            <Icon className="h-3 w-3 flex-shrink-0" />
-                            <span className="font-medium truncate">
-                              {formatShortName(absence.technician_name)}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* On-Calls */}
-                  {dayOnCalls.length > 0 && (
-                    <div className="space-y-0.5">
-                      {dayOnCalls.map((oc) => (
+                      return (
                         <div
-                          key={oc.id}
+                          key={entry.key}
+                          ref={isProbe ? probeRef : undefined}
+                          role="button"
+                          tabIndex={0}
                           className={cn(
-                            "px-1.5 py-0.5 rounded border-l-2 text-[10px] flex items-center gap-1",
-                            categoryStyles.on_call.item
+                            "px-1.5 py-0.5 rounded border-l-2 text-[10px] flex items-center gap-1 cursor-pointer hover:shadow transition-all",
+                            style.item,
                           )}
+                          onClick={() =>
+                            onScheduleEntryClick?.(
+                              entry.kind === "absence"
+                                ? { kind: "absence", absence: entry.absence }
+                                : { kind: "on_call", onCall: entry.onCall },
+                            )
+                          }
                         >
-                          <Phone className="h-3 w-3 flex-shrink-0" />
-                          <span className="font-medium truncate">
-                            {formatShortName(oc.technician_name)}
-                          </span>
+                          <Icon className="h-3 w-3 flex-shrink-0" />
+                          <span className="font-medium truncate">{formatShortName(name)}</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      );
+                    })}
+                  </div>
 
                   {remainingCount > 0 && (
                     <button
                       type="button"
-                      className="w-full text-[10px] font-semibold text-primary hover:underline text-left px-1.5"
+                      className="w-full text-[10px] font-semibold text-primary hover:underline text-left px-1.5 pt-1 shrink-0"
                       onClick={() => onDayOverflowClick?.(day)}
                     >
                       +{remainingCount} atividades
                     </button>
                   )}
-
-
                 </>
               )}
             </div>
