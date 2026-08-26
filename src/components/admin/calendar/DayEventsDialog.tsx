@@ -52,6 +52,8 @@ export const DayEventsDialog = ({
   onCalls = [],
   activeCategories,
   onOrderClick,
+  onScheduleEntryClick,
+
 }: DayEventsDialogProps) => {
   const dayOrders = orders
     .filter((order) => isSameDay(order.scheduled_date, date))
