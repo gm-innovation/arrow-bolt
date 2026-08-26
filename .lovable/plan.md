@@ -1,36 +1,57 @@
-# Hermes Agent como cérebro externo da Marina
+# Marina Copiloto: tela de chat completa com o Hermes por trás
 
-Objetivo: a Marina continua sendo a dona dos dados do Arrow (nenhum acesso direto do Hermes ao banco), e passa a ter um especialista externo — o Hermes na sua VPS — para tudo que exige internet e ferramentas de fora. Um roteador decide, por tarefa, quem responde.
+Para o colaborador existe **uma única assistente: a Marina**. O Hermes na VPS é o motor — nome, marca e interface nunca o mencionam. Quem tem permissão avançada ganha, dentro da mesma tela, o poder de criar skills e conexões (marketing, comercial, quem mais for liberado).
 
 ## O que já foi verificado
 
-- O endpoint responde: `POST http://187.127.60.250:8642/v1/chat/completions` devolveu `401 gateway_auth_error` sem chave, ou seja, está no ar e é compatível com o formato OpenAI.
-- A Marina já tem um despachante de modelos único (`supabase/functions/_shared/llm.ts`) com os provedores `lovable`, `openrouter` e `openai`, além de fallback automático. É exatamente o ponto onde o Hermes entra, sem reescrever a agente.
-- O roteador da Marina (`router.ts`) já classifica domínio e planeja tarefas, e os especialistas já rodam em paralelo (`specialists.ts`). O Hermes vira um novo especialista nessa estrutura.
+- O endpoint responde: `POST http://187.127.60.250:8642/v1/chat/completions` devolveu `401` sem chave — está no ar e fala o formato OpenAI.
+- Pela sua descrição, esse mesmo endpoint dá acesso ao Hermes completo: terminal, leitura/escrita de arquivos, busca e extração web, código Python, gestão de skills e memória. Skills novas entram como arquivos `.md` em `/opt/data/skills/` na VPS.
+- A Marina já tem despachante único de modelos (`_shared/llm.ts` com `lovable`/`openrouter`/`openai` e fallback), roteador com plano de tarefas e especialistas paralelos — o Hermes entra como novo provedor, sem reescrever a agente.
+- Já existem `ai_conversations` e `ai_messages` (com `channel`) para persistir o histórico por usuário.
 
-## Como vai funcionar
+## A nova tela: "Marina" em tela cheia
 
-1. **Novo provedor `hermes`.** A chave e a URL ficam como segredos do backend (`HERMES_API_KEY`, `HERMES_BASE_URL`). Nada de chave no frontend, nada de IP fixo no código.
-2. **Roteamento por tarefa.**
-   - Pedido sobre dados internos (OS, agenda, RH, financeiro, qualidade, Omie/Auvo/EVA) → Marina, como hoje.
-   - Pedido que precisa de internet, pesquisa, sites, documentos públicos, notícias, cotações, ferramentas externas → tarefa delegada ao Hermes.
-   - Pedido misto ("compare o preço do fornecedor X com a nossa última compra") → a Marina busca o dado interno, manda **apenas o contexto necessário** ao Hermes, e junta as duas respostas em uma voz só.
-3. **Contexto sem dados sensíveis.** O Hermes recebe a pergunta e um resumo curto (papel do usuário, empresa, e os números que a Marina já apurou). Nunca recebe token do usuário, nem PII de RH, nem UUIDs — a mesma regra de redação que os guardrails já aplicam.
-4. **Transparência.** Quando a resposta veio do Hermes, isso é citado como fonte ("consultado na internet via Hermes, agora"), no mesmo padrão de "no Arrow agora" / "segundo o Omie às 09:12".
-5. **Degradação segura.** Se o Hermes estiver fora, lento ou sem crédito, a tarefa externa falha em silêncio e a Marina responde com o que tem, dizendo o que não conseguiu consultar. O contrário também vale: cair para o Lovable AI quando o Hermes não responder.
-6. **Painel de controle.** Em `/super-admin/ai-management`, o Hermes aparece como provedor selecionável, com teste de conexão ("pingar o Hermes"), latência da última chamada e um interruptor para ligar/desligar a delegação externa por empresa.
+Rota `/marina` (link no menu de todas as áreas), layout que o colaborador já conhece de ChatGPT/Gemini:
 
-## Onde isso aparece para o colaborador
+- **Lista de conversas** à esquerda: nova conversa, renomear, apagar, busca. Persistido no Arrow por usuário, com título gerado automaticamente da primeira mensagem.
+- **Área central**: mensagens em markdown, streaming (a resposta aparece sendo escrita), código com destaque e botão copiar, tabelas legíveis, anexos (imagem/PDF) e ditado por voz + resposta falada — reaproveitando a voz oficial já configurada.
+- **Compositor** com sugestões iniciais por papel ("OSs em atraso hoje", "pesquisar norma X", "montar campanha de e-mail").
+- **Sinal de trabalho**: "consultando o Arrow…", "pesquisando na internet…", "executando análise…" — sempre em nome da Marina, nunca do motor.
+- **Fontes**: cada resposta que usou dado interno ou web mostra a origem ("no Arrow agora", "web, 26/08 16h"). Sem nomes de ferramenta, sem UUID — os guardrails atuais continuam valendo.
+- O balão flutuante atual e o WhatsApp continuam existindo para perguntas rápidas; a tela cheia é o lugar de trabalho longo.
 
-Chat interno e WhatsApp — sem mudança de interface. A diferença é que perguntas que hoje morrem em "não tenho acesso a isso" passam a ser respondidas, com a fonte declarada.
+## Modo avançado (skills e conexões)
+
+Permissão liberável por usuário pelo super admin ("Usuário avançado de IA"). Para quem tem:
+
+- Aba **Skills**: lista as skills instaladas, permite criar/editar/desativar skill em editor markdown com nome, quando usar e instruções; salvar publica o arquivo na VPS pelo próprio agente. Histórico de quem alterou o quê fica no Arrow.
+- Aba **Conexões**: cadastrar integrações externas (chave em segredo do backend, nunca visível depois), testar conexão e escolher quem pode usar.
+- Aba **Execuções**: o que a Marina rodou em nome do usuário — comando, duração, resultado — para auditoria.
+- Sem a permissão, nada disso aparece: a pessoa vê apenas o chat.
+
+## Limites e segurança
+
+- Terminal, escrita de arquivos e execução de código só existem para usuário avançado, e cada execução é registrada. Colaborador comum tem conversa, dados do Arrow e pesquisa web.
+- Dados do Arrow continuam vindo **só da Marina**, com o token do usuário e RLS: o motor externo nunca recebe token, PII de RH nem identificadores internos — recebe a pergunta e o resumo já apurado.
+- Se o motor externo cair, a Marina responde com o que tem e diz o que não conseguiu consultar (fallback para o modelo interno).
+- Recomendação forte: publicar o Hermes em HTTPS com domínio próprio. Hoje é HTTP em IP puro, então chave e conteúdo viajam sem criptografia entre o backend e a VPS.
+
+## Ordem de entrega
+
+1. Provedor novo no despachante + segredos + teste de conexão.
+2. Tela `/marina` com histórico persistido e streaming.
+3. Roteamento por tarefa: interno na Marina, internet/ferramentas no motor externo, pedidos mistos costurados numa resposta só.
+4. Permissão de usuário avançado + abas Skills, Conexões e Execuções.
+5. Voz, anexos e sugestões por papel.
 
 ## Detalhes técnicos
 
-- `_shared/llm.ts`: `LLMProvider` ganha `"hermes"`; branch lê `HERMES_BASE_URL` (default do valor informado) + `HERMES_API_KEY`, monta `Authorization: Bearer`, modelo `hermes-agent`, `stream: false`. Fallback para `lovable` mantido nos status 5xx/401/429. Sem `AbortSignal.timeout` agressivo: teto próprio de ~90s por chamada, com falha tratada.
-- `router.ts`: `planTasks` passa a poder emitir tarefa do tipo `externo`. Novo `DOMAIN_PERSONA.externo` e módulo correspondente; classificação por sinais explícitos (pesquisar/na internet/site/notícia/cotação/norma pública) e por ausência de entidade interna capaz de responder.
-- `specialists.ts`: `runSpecialist` aceita provedor por especialista, e o especialista `externo` roda no Hermes sem nenhuma ferramenta de banco — retorno normalizado `{ achados, fontes, faltou }` como os demais.
-- Nova ferramenta de leitura `ask_hermes(objetivo, contexto_resumido)` disponível ao orquestrador para chamadas pontuais, registrada em `READONLY_TOOLS` e nunca no catálogo de escrita.
-- `guardrails.ts`: a saída do Hermes passa pelo mesmo scrub (sem UUID, sem nome de ferramenta, sem bastidores) e pela trava anti-especulação; conteúdo externo é marcado como externo antes de entrar na resposta.
-- Observabilidade: cada delegação registrada em `ai_assistant_actions` (provedor, objetivo, ms, sucesso) para medir custo e latência.
-- Segredos: `HERMES_API_KEY` e `HERMES_BASE_URL` via segredos do backend. Recomendação: colocar o Hermes atrás de HTTPS com domínio próprio — hoje é HTTP em IP puro, então a chave e o conteúdo viajam sem criptografia entre a Edge Function e a VPS.
-- Deploy: `ai-assistant` redeployada e validada com "pesquise na internet o preço atual do dólar", "quais OSs estão em atraso" (deve continuar interna) e um pedido misto para conferir a junção das duas fontes.
+- `_shared/llm.ts`: `LLMProvider` ganha `"hermes"`, lendo `HERMES_BASE_URL` e `HERMES_API_KEY` dos segredos do backend; modelo `hermes-agent`; suporte a `stream: true` (SSE repassado ao cliente) e fallback para `lovable` em 5xx/401/429. Sem abort por timer curto — teto próprio generoso, já que tarefas com terminal/pesquisa demoram.
+- Nova Edge Function `marina-chat` (com `verify_jwt = true`, registrada em `config.toml`): resolve o usuário e o papel no servidor, monta o system prompt da Marina (persona + fuso Brasília + permissões), decide o caminho (Marina interna via `ai-assistant` ou motor externo), faz stream SSE de volta e grava em `ai_conversations`/`ai_messages` com `channel = 'marina_web'`.
+- Habilidades sensíveis (terminal, write_file, execute_code, skill_manage) são liberadas na chamada apenas quando o usuário tem a flag avançada; o system prompt do turno também muda. A checagem é server-side, nunca vinda do cliente.
+- Migração: `ai_advanced_users` (ou coluna equivalente verificada por função `SECURITY DEFINER`) + `ai_skill_audit` (quem criou/editou skill, conteúdo anterior) + `ai_agent_runs` (execuções avançadas). Todas com `GRANT` explícito, RLS habilitado e políticas por `auth.uid()`; leitura ampla só para `super_admin`/`director`.
+- Conexões externas reaproveitam a tabela `ai_external_connectors` já existente; credenciais só em segredos do backend.
+- Frontend: `src/pages/marina/MarinaChat.tsx` + `src/components/marina/*` (ThreadList, MessageList, Composer, SourceBadge, SkillsPanel, ConnectionsPanel), hook `useMarinaThreads`/`useMarinaStream` com leitura incremental do SSE. Rota em `src/App.tsx` e item de menu em todas as áreas.
+- `guardrails.ts` aplica-se também à saída do motor externo (sem UUID, sem nome de ferramenta, sem bastidores, sem mencionar o motor); qualquer menção a "Hermes" é substituída por "Marina".
+- Observabilidade: cada delegação e execução registrada em `ai_assistant_actions` (provedor, objetivo, ms, sucesso).
+- Validação depois do deploy: pergunta interna ("OSs em atraso"), pergunta de internet ("cotação do dólar hoje"), pedido misto, criação de skill por usuário avançado e tentativa da mesma ação por usuário comum (deve ser negada).
