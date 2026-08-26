@@ -13,6 +13,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useCalendarAbsences, CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
 import { CalendarLegend } from "./CalendarLegend";
+import { CALENDAR_CATEGORIES, type CalendarCategory } from "./eventStyles";
+
 import { ViewOrderDetailsDialog } from "@/components/admin/orders/ViewOrderDetailsDialog";
 import { AuvoTaskDetailsDialog } from "./AuvoTaskDetailsDialog";
 
