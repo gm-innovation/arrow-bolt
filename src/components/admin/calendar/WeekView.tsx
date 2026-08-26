@@ -22,8 +22,10 @@ interface WeekViewProps {
   onCalls?: CalendarOnCall[];
   activeCategories?: CalendarCategory[];
   onEventClick?: (orderId: string) => void;
+  onScheduleEntryClick?: (entry: ScheduleEntry) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
+
 
 type DayEntry =
   | { kind: "order"; key: string; order: CalendarServiceOrder }
