@@ -1,4 +1,4 @@
-import { format, isSameDay } from "date-fns";
+import { format, isSameDay, isWithinInterval, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { CalendarDays, Clock, Ship, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,11 +6,20 @@ import { DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/c
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
-import { categoryStyles, classifyEvent, isCategoryActive, type CalendarCategory } from "./eventStyles";
+import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
+import {
+  absenceCategory,
+  categoryStyles,
+  classifyEvent,
+  isCategoryActive,
+  type CalendarCategory,
+} from "./eventStyles";
 
 interface DayEventsDialogProps {
   date: Date;
   orders: CalendarServiceOrder[];
+  absences?: CalendarAbsence[];
+  onCalls?: CalendarOnCall[];
   activeCategories?: CalendarCategory[];
   onOrderClick: (orderId: string) => void;
 }
@@ -32,10 +41,32 @@ const getTeamLabel = (order: CalendarServiceOrder) => {
   return "Equipe não informada";
 };
 
-export const DayEventsDialog = ({ date, orders, activeCategories, onOrderClick }: DayEventsDialogProps) => {
+export const DayEventsDialog = ({
+  date,
+  orders,
+  absences = [],
+  onCalls = [],
+  activeCategories,
+  onOrderClick,
+}: DayEventsDialogProps) => {
   const dayOrders = orders
     .filter((order) => isSameDay(order.scheduled_date, date))
     .filter((order) => isCategoryActive(classifyEvent(order), activeCategories));
+
+  const dayAbsences = absences.filter((absence) => {
+    const start = parseISO(absence.start_date);
+    const end = parseISO(absence.end_date);
+    return (
+      isWithinInterval(date, { start, end }) &&
+      isCategoryActive(absenceCategory(absence.absence_type), activeCategories)
+    );
+  });
+
+  const dayOnCalls = isCategoryActive("on_call", activeCategories)
+    ? onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), date))
+    : [];
+
+  const totalEvents = dayOrders.length + dayAbsences.length + dayOnCalls.length;
 
   return (
     <DialogContent className="max-w-3xl">
@@ -45,7 +76,7 @@ export const DayEventsDialog = ({ date, orders, activeCategories, onOrderClick }
           Atividades do dia
         </DialogTitle>
         <DialogDescription>
-          {format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })} • {dayOrders.length} atividade(s)
+          {format(date, "EEEE, dd 'de' MMMM 'de' yyyy", { locale: ptBR })} • {totalEvents} atividade(s)
         </DialogDescription>
       </DialogHeader>
 
@@ -96,6 +127,36 @@ export const DayEventsDialog = ({ date, orders, activeCategories, onOrderClick }
                 </div>
               </div>
             </Button>
+            );
+          })}
+
+          {[
+            ...dayAbsences.map((absence) => ({
+              key: `absence-${absence.id}`,
+              category: absenceCategory(absence.absence_type),
+              name: absence.technician_name,
+            })),
+            ...dayOnCalls.map((oc) => ({
+              key: `oncall-${oc.id}`,
+              category: "on_call" as CalendarCategory,
+              name: oc.technician_name,
+            })),
+          ].map((entry) => {
+            const style = categoryStyles[entry.category];
+            const Icon = style.icon;
+            return (
+              <div key={entry.key} className="flex items-center gap-2 rounded-md border p-3">
+                <span
+                  className={cn(
+                    "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium",
+                    style.badge
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                  {style.label}
+                </span>
+                <span className="truncate text-sm font-medium">{entry.name}</span>
+              </div>
             );
           })}
 
