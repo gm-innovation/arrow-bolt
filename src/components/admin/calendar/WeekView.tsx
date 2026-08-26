@@ -10,6 +10,7 @@ import type { ScheduleEntry } from "./ScheduleEntryDetailsDialog";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
+  absenceCategory,
   categoryStyles,
   classifyEvent,
   isCategoryActive,
