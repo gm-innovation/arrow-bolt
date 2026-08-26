@@ -157,6 +157,7 @@ const CorpUniversityTrail = lazy(() => import("./pages/corp/UniversityTrail"));
 const CorpMyLearning = lazy(() => import("./pages/corp/MyLearning"));
 const CorpMyBenefits = lazy(() => import("./pages/corp/MyBenefits"));
 const CorpMyTimesheet = lazy(() => import("./pages/corp/MyTimesheet"));
+const MarinaChat = lazy(() => import("./pages/marina/MarinaChat"));
 
 const SuppliesDashboard = lazy(() => import("./pages/supplies/Dashboard"));
 const SuppliesRequests = lazy(() => import("./pages/supplies/Requests"));
@@ -449,6 +450,8 @@ const App = () => {
                     <Route path="/corp/university/my-learning" element={<CorpMyLearning />} />
                     <Route path="/corp/benefits" element={<CorpMyBenefits />} />
                     <Route path="/corp/my-timesheet" element={<CorpMyTimesheet />} />
+                    <Route path="/marina" element={<MarinaChat />} />
+                    <Route path="/marina/:threadId" element={<MarinaChat />} />
                   </Route>
                   <Route element={<CorpReportsLayoutRoute />}>
                     <Route path="/corp/reports" element={<CorpReports />} />

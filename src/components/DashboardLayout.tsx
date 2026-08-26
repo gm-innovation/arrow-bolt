@@ -526,7 +526,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     { title: "Meu Ponto", icon: Clock, path: "/corp/my-timesheet" },
   ];
 
-  const menuItems = {
+  const baseMenuItems = {
     "super-admin": superAdminMenuItems,
     admin: adminMenuItems,
     manager: managerMenuItems,
@@ -538,6 +538,9 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     qualidade: qualidadeMenuItems,
     financeiro: financeiroMenuItems,
   }[userType] as MenuEntry[];
+
+  // Copiloto Marina disponível para todas as áreas.
+  const menuItems = ([{ title: "Marina", icon: Sparkles, path: "/marina" }, ...(baseMenuItems ?? [])]) as MenuEntry[];
 
   // Rotas onde o sub-item do menu identifica pelo ?tab=...
   const PATHS_WITH_TABS = [
