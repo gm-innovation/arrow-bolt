@@ -5,6 +5,8 @@ import { ptBR } from "date-fns/locale";
 import { ServiceOrderListItem } from "./ServiceOrderListItem";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
 import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
+import type { ScheduleEntry } from "./ScheduleEntryDetailsDialog";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
