@@ -91,36 +91,14 @@ export const MonthView = ({
     return onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), day));
   };
 
-  // Orçamento único do dia: OS + Auvo + ausências + sobreaviso, ordenado por horário
-  const getEntriesForDay = (day: Date): DayEntry[] => {
-    const entries: DayEntry[] = [
-      ...getOrdersForDay(day).map((order): DayEntry => ({
-        kind: "order",
-        key: order.id,
-        order,
-        time: order.scheduled_time || "",
-      })),
-      ...getAbsencesForDay(day).map((absence): DayEntry => ({
-        kind: "absence",
-        key: `absence-${absence.id}-${day.toISOString()}`,
-        absence,
-        time: "",
-      })),
-      ...getOnCallsForDay(day).map((onCall): DayEntry => ({
-        kind: "on_call",
-        key: `oncall-${onCall.id}`,
-        onCall,
-        time: "",
-      })),
-    ];
-
-    return entries.sort((a, b) => {
-      if (a.time && b.time) return a.time.localeCompare(b.time);
-      if (a.time) return -1;
-      if (b.time) return 1;
-      return 0;
-    });
-  };
+  // Orçamento único do dia: cartões de serviço (OS/Auvo) + 1 linha por categoria de RH
+  const getRowsForDay = (day: Date) =>
+    buildScheduleRows(
+      day.toISOString(),
+      getOrdersForDay(day),
+      getAbsencesForDay(day),
+      getOnCallsForDay(day),
+    );
 
   const formatShortName = (fullName: string) => {
     const parts = fullName.trim().split(" ");
