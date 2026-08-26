@@ -418,7 +418,12 @@ export const ServiceCalendar = ({
           auvo_task_uid: task.id,
           auvo_status: task.auvo_status,
           linked_service_order_id: task.service_order_id || undefined,
+          auvo_requester_name: task.requester_name?.trim() || undefined,
+          auvo_supervisor_name: task.supervisor_name?.trim() || undefined,
+          auvo_coordinator_name: task.coordinator_name?.trim() || undefined,
+          auvo_declared_date: extractDeclaredDate(task.orientation, task.task_date),
         });
+
       });
 
     return Array.from(grouped.values());
