@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { format, startOfWeek, addDays, isSameDay, isWithinInterval, parseISO } from "date-fns";
 
 import { ptBR } from "date-fns/locale";
@@ -24,6 +24,13 @@ interface WeekViewProps {
   onEventClick?: (orderId: string) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
+
+type DayEntry =
+  | { kind: "order"; key: string; order: CalendarServiceOrder }
+  | { kind: "absence"; key: string; absence: CalendarAbsence }
+  | { kind: "on_call"; key: string; onCall: CalendarOnCall };
+
+const FALLBACK_ITEM_HEIGHT = 48; // cartão de duas linhas + gap
 
 export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCategories, onEventClick, onDayOverflowClick }: WeekViewProps) => {
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
@@ -59,6 +66,16 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
     return onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), day));
   };
 
+  // Todos os eventos do dia (OS + Auvo + ausências + sobreaviso) num único orçamento
+  const getEntriesForDay = (day: Date): DayEntry[] => [
+    ...getOrdersForDay(day).map((order): DayEntry => ({ kind: "order", key: order.id, order })),
+    ...getAbsencesForDay(day).map((absence): DayEntry => ({
+      kind: "absence",
+      key: `absence-${absence.id}-${day.toISOString()}`,
+      absence,
+    })),
+    ...getOnCallsForDay(day).map((onCall): DayEntry => ({ kind: "on_call", key: `oncall-${onCall.id}`, onCall })),
+  ];
 
   const formatShortName = (fullName: string) => {
     const parts = fullName.trim().split(" ");
@@ -66,23 +83,38 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
     return `${parts[0]} ${parts[parts.length - 1]}`;
   };
 
-  // Quantidade visível calculada pela altura real da coluna (nunca passa do fim da tela)
+  // Quantidade visível calculada pela altura REAL do cartão (o antigo valor fixo de
+  // 30px subestimava o cartão de duas linhas e o excedente ficava cortado sem "+N")
   const gridRef = useRef<HTMLDivElement>(null);
-  const [maxVisible, setMaxVisible] = useState(10);
+  const probeRef = useRef<HTMLDivElement | null>(null);
+  const [itemHeight, setItemHeight] = useState(FALLBACK_ITEM_HEIGHT);
+  const [maxVisible, setMaxVisible] = useState(6);
 
-  useEffect(() => {
+  const recalc = useCallback(() => {
     const el = gridRef.current;
     if (!el) return;
-    const ITEM_HEIGHT = 30; // item + gap
-    const recalc = () => {
-      const available = el.clientHeight - 16 /* padding */ - 28 /* linha do "+N" */;
-      setMaxVisible(Math.max(1, Math.floor(available / ITEM_HEIGHT)));
-    };
+    const available = el.clientHeight - 16 /* padding */ - 30 /* linha do "+N" */;
+    setMaxVisible(Math.max(1, Math.floor(available / Math.max(24, itemHeight))));
+  }, [itemHeight]);
+
+  useLayoutEffect(() => {
+    const probe = probeRef.current;
+    if (!probe) return;
+    const measured = probe.getBoundingClientRect().height;
+    if (measured > 0) {
+      const withGap = Math.ceil(measured) + 4;
+      setItemHeight((prev) => (Math.abs(prev - withGap) > 1 ? withGap : prev));
+    }
+  });
+
+  useEffect(() => {
     recalc();
+    const el = gridRef.current;
+    if (!el) return;
     const observer = new ResizeObserver(recalc);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [recalc]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-250px)] overflow-hidden">
@@ -100,75 +132,75 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
       </div>
       
       <div ref={gridRef} className="grid grid-cols-7 flex-1 overflow-hidden relative">
-        {days.map((day) => {
-          const dayOrders = getOrdersForDay(day);
-          const dayAbsences = getAbsencesForDay(day);
-          const dayOnCalls = getOnCallsForDay(day);
-          // Ausências e sobreavisos ficam sempre visíveis; o "+N" cobre as OSs excedentes
-          const ordersBudget = Math.max(1, maxVisible - dayAbsences.length - dayOnCalls.length);
-          const visibleOrders = dayOrders.slice(0, ordersBudget);
-          const remainingCount = dayOrders.length - visibleOrders.length;
+        {days.map((day, dayIndex) => {
+          const entries = getEntriesForDay(day);
+          const visibleEntries = entries.slice(0, maxVisible);
+          const remainingCount = entries.length - visibleEntries.length;
 
           return (
-            <div key={day.toISOString()} className="border-r last:border-r-0 p-2 space-y-1 overflow-hidden">
+            <div
+              key={day.toISOString()}
+              className="border-r last:border-r-0 p-2 space-y-1 overflow-y-auto"
+            >
+              {visibleEntries.map((entry, entryIndex) => {
+                const isProbe = dayIndex === 0 && entryIndex === 0;
 
-              {/* Service Orders */}
-              {visibleOrders.map((order) => (
-                <ServiceOrderListItem
-                  key={order.id}
-                  order={order}
-                  onClick={() => onEventClick?.(order.id)}
-                />
-              ))}
+                if (entry.kind === "order") {
+                  return (
+                    <div key={entry.key} ref={isProbe ? probeRef : undefined}>
+                      <ServiceOrderListItem
+                        order={entry.order}
+                        onClick={() => onEventClick?.(entry.order.id)}
+                      />
+                    </div>
+                  );
+                }
+
+                if (entry.kind === "absence") {
+                  const style = categoryStyles[absenceCategory(entry.absence.absence_type)];
+                  const Icon = style.icon;
+                  return (
+                    <div
+                      key={entry.key}
+                      className={cn(
+                        "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5",
+                        style.item
+                      )}
+                    >
+                      <Icon className="h-3 w-3 flex-shrink-0" />
+                      <span className="font-medium truncate">
+                        {formatShortName(entry.absence.technician_name)}
+                      </span>
+                    </div>
+                  );
+                }
+
+                const onCallStyle = categoryStyles.on_call;
+                const OnCallIcon = onCallStyle.icon;
+                return (
+                  <div
+                    key={entry.key}
+                    className={cn("px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5", onCallStyle.item)}
+                  >
+                    <OnCallIcon className="h-3 w-3 flex-shrink-0" />
+                    <span className="font-medium truncate">
+                      {formatShortName(entry.onCall.technician_name)}
+                    </span>
+                  </div>
+                );
+              })}
+
               {remainingCount > 0 && (
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-7 w-full text-xs text-muted-foreground"
+                  className="h-7 w-full text-xs font-semibold text-primary"
                   onClick={() => onDayOverflowClick?.(day)}
                 >
                   +{remainingCount} atividades
                 </Button>
               )}
-
-              {/* Absences */}
-              {dayAbsences.map((absence) => {
-                const style = categoryStyles[absenceCategory(absence.absence_type)];
-                const Icon = style.icon;
-                return (
-                  <div
-                    key={`${absence.id}-${day.toISOString()}`}
-                    className={cn(
-                      "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5",
-                      style.item
-                    )}
-                  >
-                    <Icon className="h-3 w-3 flex-shrink-0" />
-                    <span className="font-medium truncate">
-                      {formatShortName(absence.technician_name)}
-                    </span>
-                  </div>
-                );
-              })}
-
-              {/* On-Calls */}
-              {dayOnCalls.map((oc) => {
-                const style = categoryStyles.on_call;
-                const Icon = style.icon;
-                return (
-                  <div
-                    key={oc.id}
-                    className={cn("px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5", style.item)}
-                  >
-                    <Icon className="h-3 w-3 flex-shrink-0" />
-                    <span className="font-medium truncate">
-                      {formatShortName(oc.technician_name)}
-                    </span>
-                  </div>
-                );
-              })}
-
             </div>
           );
         })}
