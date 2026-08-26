@@ -67,7 +67,7 @@ export function useMarinaThreads() {
         .limit(100);
       if (error) throw error;
       return (data ?? [])
-        .filter((c: any) => (c.context?.channel ?? "marina_web") === "marina_web")
+        .filter((c: any) => c.context?.channel === "marina_web")
         .map((c: any) => ({ id: c.id, title: c.title, created_at: c.created_at, updated_at: c.updated_at }));
     },
   });
