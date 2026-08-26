@@ -15,6 +15,7 @@ import {
   isCategoryActive,
   type CalendarCategory,
 } from "./eventStyles";
+import { buildScheduleRows } from "./groupScheduleRows";
 
 interface MonthViewProps {
   date: Date;
@@ -27,11 +28,6 @@ interface MonthViewProps {
   onScheduleEntryClick?: (entry: ScheduleEntry) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
-
-type DayEntry =
-  | { kind: "order"; key: string; order: CalendarServiceOrder; time: string }
-  | { kind: "absence"; key: string; absence: CalendarAbsence; time: string }
-  | { kind: "on_call"; key: string; onCall: CalendarOnCall; time: string };
 
 const FALLBACK_ITEM_HEIGHT = 32;
 
@@ -95,36 +91,14 @@ export const MonthView = ({
     return onCalls.filter((oc) => isSameDay(parseISO(oc.on_call_date), day));
   };
 
-  // Orçamento único do dia: OS + Auvo + ausências + sobreaviso, ordenado por horário
-  const getEntriesForDay = (day: Date): DayEntry[] => {
-    const entries: DayEntry[] = [
-      ...getOrdersForDay(day).map((order): DayEntry => ({
-        kind: "order",
-        key: order.id,
-        order,
-        time: order.scheduled_time || "",
-      })),
-      ...getAbsencesForDay(day).map((absence): DayEntry => ({
-        kind: "absence",
-        key: `absence-${absence.id}-${day.toISOString()}`,
-        absence,
-        time: "",
-      })),
-      ...getOnCallsForDay(day).map((onCall): DayEntry => ({
-        kind: "on_call",
-        key: `oncall-${onCall.id}`,
-        onCall,
-        time: "",
-      })),
-    ];
-
-    return entries.sort((a, b) => {
-      if (a.time && b.time) return a.time.localeCompare(b.time);
-      if (a.time) return -1;
-      if (b.time) return 1;
-      return 0;
-    });
-  };
+  // Orçamento único do dia: cartões de serviço (OS/Auvo) + 1 linha por categoria de RH
+  const getRowsForDay = (day: Date) =>
+    buildScheduleRows(
+      day.toISOString(),
+      getOrdersForDay(day),
+      getAbsencesForDay(day),
+      getOnCallsForDay(day),
+    );
 
   const formatShortName = (fullName: string) => {
     const parts = fullName.trim().split(" ");
@@ -182,9 +156,9 @@ export const MonthView = ({
 
       {weeks.map((week, weekIndex) =>
         week.map((day, dayIndex) => {
-          const entries = day ? getEntriesForDay(day) : [];
-          const visibleEntries = entries.slice(0, maxVisible);
-          const remainingCount = entries.length - visibleEntries.length;
+          const rows = day ? getRowsForDay(day) : [];
+          const visibleRows = rows.slice(0, maxVisible);
+          const remainingCount = rows.length - visibleRows.length;
           const isFirstCell = weekIndex === 0 && dayIndex === 0;
 
           return (
@@ -206,11 +180,11 @@ export const MonthView = ({
                     ref={isFirstCell ? listRef : undefined}
                     className="flex-1 min-h-0 space-y-0.5 overflow-y-auto"
                   >
-                    {visibleEntries.map((entry, entryIndex) => {
-                      const isProbe = isFirstCell && entryIndex === 0;
+                    {visibleRows.map((row, rowIndex) => {
+                      const isProbe = isFirstCell && rowIndex === 0;
 
-                      if (entry.kind === "order") {
-                        const order = entry.order;
+                      if (row.type === "order") {
+                        const order = row.order;
                         const localTechs = [
                           order.lead_technician,
                           ...(order.auxiliary_technicians || []),
@@ -227,7 +201,7 @@ export const MonthView = ({
                         const CategoryIcon = style.icon;
 
                         return (
-                          <HoverCard key={entry.key} openDelay={150} closeDelay={100}>
+                          <HoverCard key={row.key} openDelay={150} closeDelay={100}>
                             <HoverCardTrigger asChild>
                               <div
                                 ref={isProbe ? probeRef : undefined}
@@ -264,33 +238,37 @@ export const MonthView = ({
                         );
                       }
 
-                      const category: CalendarCategory =
-                        entry.kind === "absence" ? absenceCategory(entry.absence.absence_type) : "on_call";
-                      const style = categoryStyles[category];
+                      const style = categoryStyles[row.category];
                       const Icon = style.icon;
-                      const name =
-                        entry.kind === "absence" ? entry.absence.technician_name : entry.onCall.technician_name;
+                      const fullNames = row.people.map((p) => p.name);
+                      const handleGroupClick = () => {
+                        if (row.people.length === 1) {
+                          const click = row.people[0].click;
+                          if (click.type === "order") onEventClick?.(click.orderId);
+                          else onScheduleEntryClick?.(click.entry);
+                          return;
+                        }
+                        onDayOverflowClick?.(day);
+                      };
 
                       return (
                         <div
-                          key={entry.key}
+                          key={row.key}
                           ref={isProbe ? probeRef : undefined}
                           role="button"
                           tabIndex={0}
+                          title={`${style.label}: ${fullNames.join(", ")}`}
                           className={cn(
                             "px-1.5 py-0.5 rounded border-l-2 text-[10px] flex items-center gap-1 cursor-pointer hover:shadow transition-all",
                             style.item,
                           )}
-                          onClick={() =>
-                            onScheduleEntryClick?.(
-                              entry.kind === "absence"
-                                ? { kind: "absence", absence: entry.absence }
-                                : { kind: "on_call", onCall: entry.onCall },
-                            )
-                          }
+                          onClick={handleGroupClick}
                         >
                           <Icon className="h-3 w-3 flex-shrink-0" />
-                          <span className="font-medium truncate">{formatShortName(name)}</span>
+                          <span className="font-semibold shrink-0">{style.label}</span>
+                          <span className="truncate opacity-80">
+                            {fullNames.map(formatShortName).join(", ")}
+                          </span>
                         </div>
                       );
                     })}
