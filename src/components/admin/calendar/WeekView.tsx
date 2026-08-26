@@ -134,14 +134,14 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
 
               {/* Absences */}
               {dayAbsences.map((absence) => {
-                const config = absenceConfig[absence.absence_type] || absenceConfig.day_off;
-                const Icon = config.icon;
+                const style = categoryStyles[absenceCategory(absence.absence_type)];
+                const Icon = style.icon;
                 return (
                   <div
                     key={`${absence.id}-${day.toISOString()}`}
                     className={cn(
                       "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5",
-                      config.bg
+                      style.item
                     )}
                   >
                     <Icon className="h-3 w-3 flex-shrink-0" />
@@ -153,17 +153,22 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
               })}
 
               {/* On-Calls */}
-              {dayOnCalls.map((oc) => (
-                <div
-                  key={oc.id}
-                  className="px-2 py-1 rounded border-l-2 border-l-amber-500 bg-amber-50 text-xs flex items-center gap-1.5"
-                >
-                  <Phone className="h-3 w-3 flex-shrink-0 text-amber-600" />
-                  <span className="font-medium truncate text-amber-800">
-                    {formatShortName(oc.technician_name)}
-                  </span>
-                </div>
-              ))}
+              {dayOnCalls.map((oc) => {
+                const style = categoryStyles.on_call;
+                const Icon = style.icon;
+                return (
+                  <div
+                    key={oc.id}
+                    className={cn("px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5", style.item)}
+                  >
+                    <Icon className="h-3 w-3 flex-shrink-0" />
+                    <span className="font-medium truncate">
+                      {formatShortName(oc.technician_name)}
+                    </span>
+                  </div>
+                );
+              })}
+
             </div>
           );
         })}
