@@ -478,14 +478,15 @@ export const ServiceCalendar = ({
         )}
       </div>
 
-      <CalendarLegend />
-      
+      <CalendarLegend activeCategories={activeCategories} onToggleCategory={toggleCategory} />
+
       {view === "day" && (
         <DayView 
           date={currentDate} 
           orders={serviceOrders} 
           absences={absences}
           onCalls={onCalls}
+          activeCategories={activeCategories}
           onEventClick={handleEventClick} 
         />
       )}
@@ -495,6 +496,7 @@ export const ServiceCalendar = ({
           orders={serviceOrders} 
           absences={absences}
           onCalls={onCalls}
+          activeCategories={activeCategories}
           onEventClick={handleEventClick} 
           onDayOverflowClick={setOverflowDay}
         />
@@ -506,11 +508,12 @@ export const ServiceCalendar = ({
           absences={absences}
           onCalls={onCalls}
           isExpanded={isExpanded} 
+          activeCategories={activeCategories}
           onEventClick={handleEventClick} 
           onDayOverflowClick={setOverflowDay}
-
         />
       )}
+
 
       <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         <DialogContent>
