@@ -1,45 +1,55 @@
-# Marina: buscar de verdade em vez de supor
+# Marina agêntica: acesso a tudo, com prova de origem
 
-## O que eu verifiquei na sua conversa
+## Por que hoje ela não é isso
 
-Reli a conversa (128 mensagens, a última hoje 09:00 BRT). O trecho que falhou:
+Reli sua última conversa (a última mensagem de hoje 09:00 BRT) e o problema não foi falta de esperteza — foi falta de alcance:
 
-- Você perguntou o que era a notificação **"Conta a receber vencida — [QA] Cliente Recebivel — R$ 980,25 — vencimento 25/08/2026"**, quem/por que criou e qual o resultado.
-- A Marina respondeu com suposição explícita ("**Provavelmente** o QA estava testando...") e, quando você exigiu certeza, encerrou com "Sinto muito não poder te dar o detalhe".
+- Você perguntou o que era a notificação "Conta a receber vencida — [QA] Cliente Recebivel — R$ 980,25 — 25/08/2026". Ela chutou ("**provavelmente** o QA estava testando...") e depois desistiu ("sinto muito não poder te dar o detalhe").
+- Eu achei em dois comandos: é uma notificação do tipo conta vencida apontando para uma conta a receber real de R$ 980,25 com vencimento 25/08/2026, da Lecsor Technology, criada em 05/08 pela conta do Alexandre Silva; o rótulo "[QA]" vem do **cliente de teste**, não da conta.
+- Ela não conseguiu porque **cada assunto do sistema precisa de uma ferramenta escrita à mão** e hoje existem cerca de 60 dessas ferramentas para um banco com mais de 300 tabelas. Notificações não têm ferramenta. Contas a receber têm, mas a busca só olha a descrição (que nessa conta está vazia) e não devolve cliente nem quem criou. Não existe "abrir este registro por id".
 
-Motivos confirmados:
+Enquanto a arquitetura for "uma ferramenta por pergunta", sempre vai faltar. O que você quer é o contrário: **acesso genérico ao sistema todo**, com as permissões do seu usuário.
 
-1. **Ela não tem nenhuma ferramenta de notificações.** Não existe forma de ela abrir a notificação que você viu, nem de chegar ao registro referenciado por ela. Eu achei em segundos: a notificação é do tipo `payment_overdue` e aponta para uma conta a receber real de R$ 980,25, vencimento 25/08/2026, da Lecsor Technology, criada em 05/08 pela conta do Alexandre Silva — o rótulo "[QA] Cliente Recebivel" vem do **cliente de teste**, não da conta.
-2. **A busca em contas a receber não acharia isso mesmo se ela tentasse.** A ferramenta financeira pesquisa só pelo campo de descrição, e nessa conta a descrição está vazia; o texto "[QA] Cliente Recebivel" está no nome do cliente, que ela nem devolve.
-3. **Nada permite consultar um registro por id nem quem o criou.** As ferramentas atuais são listagens por status/período; não há "abra este registro específico" nem tradução de "criado por" para nome de pessoa.
-4. **Respostas mutiladas.** Várias respostas dela chegaram começando em linha vazia ("...É um processo importante para a integridade dos nossos dados."). O filtro de saída remove frases inteiras sem avisar e sem tentar reescrever — o que sobra parece resposta pela metade. Preciso confirmar nos logs qual regra apagou cada frase antes de ajustar.
-5. **Nenhuma trava contra suposição.** Existem travas fortes para escrita (não pode dizer que gravou sem gravar), mas nenhuma para leitura: ela pode responder "provavelmente", "deve ser", "imagino" sobre dado do sistema sem ter consultado nada.
+## A virada: leitura universal em vez de ferramentas avulsas
 
-## O que vou fazer
+### 1. Ela passa a conhecer o sistema inteiro
+Um catálogo de dados vivo: quais entidades existem, o que cada uma significa em português, quais campos, como se ligam entre si e quem pode ver. Gerado a partir do próprio banco, não escrito à mão — quando criarmos uma tabela nova, ela já sabe da existência no dia seguinte sem eu programar ferramenta.
 
-### 1. Ela passa a ver notificações e chegar ao registro de origem
-Nova consulta de notificações (as suas e, para diretoria/super admin, as da empresa) com busca por texto, tipo e período. Ao encontrar, ela segue automaticamente para o registro apontado pela notificação (conta a pagar/receber, OS, chamado, solicitação) e responde com os dados reais: valor, vencimento, status, cliente/fornecedor, quem criou e quando.
+### 2. Uma única ferramenta de consulta, para qualquer entidade
+Em vez de 60 consultas fixas, uma consulta universal: entidade, filtros, período, busca textual, ordenação, contagem real e relacionamentos resolvidos em nome legível (cliente, embarcação, autor, responsável, empresa). Somente leitura, sempre com o **seu** token — o que você não pode ver, ela não vê. Isso cobre notificações, contas, OSs, chamados, medições, documentos, qualidade, RH, tudo.
 
-### 2. Abrir qualquer registro por identificação
-Uma ferramenta única de "abrir este registro": recebe o tipo e o id (ou o número/rótulo) e devolve a ficha completa com os relacionamentos resolvidos em nome legível (cliente, empresa, autor, responsável), respeitando o que o perfil pode ver. Isso resolve toda a classe de perguntas "o que é isso que apareceu aqui".
+### 3. "O que é isso aqui?" com rastro completo
+Ferramenta de abrir um registro por id, número ou rótulo, devolvendo a ficha, os registros vinculados (a notificação que gerou, a OS de origem, os itens, os anexos), quem criou, quando e o que mudou. Dado marcado como teste (prefixo "[QA]") é identificado como teste, não interpretado como teoria.
 
-### 3. Busca financeira que realmente encontra
-As consultas de contas a pagar/receber passam a pesquisar também por nome do cliente/fornecedor, categoria e valor, e a devolver esses campos — não só a descrição.
+### 4. Ela investiga em vários passos antes de responder
+Quando a pergunta não se resolve em uma consulta, ela encadeia: notificação → registro apontado → cliente → OS → origem externa (Omie, Auvo, EVA), com orçamento de passos e tempo. Cada resposta cita a fonte e a data do dado.
 
-### 4. Reconhecer dado de teste
-Registros e notificações com marca de teste (prefixo "[QA]") passam a ser identificados como tal na resposta, com autor e data, em vez de virarem teoria. Ela diz o que o registro é, quem o criou e que se trata de dado de homologação — sem inventar intenção que não está gravada.
-
-### 5. Trava contra suposição em leitura
-Se a resposta contiver linguagem de palpite ("provavelmente", "deve ser", "imagino", "acredito que") sobre dado do sistema e nenhuma consulta tiver sido executada no turno, a resposta é descartada e ela é obrigada a consultar antes de responder. Se após consultar a informação realmente não existir, ela diz exatamente o que procurou e onde não encontrou — nunca "sinto muito" seco.
+### 5. Proibido supor
+Se a resposta contiver palpite ("provavelmente", "deve ser", "imagino") sobre dado do sistema e nenhuma consulta tiver sido feita no turno, a resposta é descartada e ela consulta antes de falar. Se realmente não existir, ela diz o que procurou, onde, e o que falta — nunca um "sinto muito" seco.
 
 ### 6. Parar de entregar resposta cortada
-Quando o filtro de saída remover frases, ela refaz a resposta em vez de publicar o resto colado. Também vou reduzir o falso positivo que apaga frases legítimas quando você, como administrador, pede explicação técnica.
+Várias respostas dessa conversa chegaram começando em linha vazia: o filtro de saída apaga frases inteiras em silêncio. Passa a pedir reescrita antes de publicar, e o filtro deixa de derrubar explicação legítima de processo quando você, como administrador, pede detalhe técnico.
+
+### 7. Base para autonomia futura (integrações)
+Preparar o caminho já usado pelo EVA/Omie/Auvo para virar padrão: um registro de conectores externos (endpoint, credencial em segredo, ações permitidas por papel) que a Marina descobre em tempo de execução — inclusive servidores MCP de terceiros. Assim, ligar uma nova ferramenta passa a ser cadastro, não reprogramação. Nesta etapa entrego o registro e a descoberta; ligar cada ferramenta nova é um passo curto depois.
+
+### 8. Escrita continua sob trava
+Autonomia total na leitura; na escrita, nada muda: continua restrita às ações já homologadas, com confirmação e verificação pós-gravação. Nenhuma consulta universal grava nada.
+
+## Ordem de entrega
+
+1. Catálogo de dados + consulta universal + abrir registro (resolve a dor de hoje e todas as parecidas).
+2. Trava anti-suposição e fim das respostas cortadas.
+3. Investigação multi-passo com citação de fonte.
+4. Registro de conectores externos e descoberta em tempo de execução.
 
 ## Detalhes técnicos
 
-- `supabase/functions/ai-assistant/tools.ts`: novas ferramentas `query_notifications` (tabela `notifications`, filtro por `user_id` próprio; empresa inteira só para `director`/`super_admin`), `explain_notification` (resolve `reference_id` + `notification_type` para a tabela de origem) e `get_record` (mapa tipo→tabela com joins de nome). Todas em `READONLY_TOOLS`; novo módulo `notifications` em `ROLE_MODULES` para todos os papéis (escopo próprio) e leitura ampliada em `ALL`.
-- `basicQueryTool`: aceitar `searchRelations` (busca em coluna de tabela relacionada via `!inner`) e incluir `created_by`/`created_at` no retorno padrão, com resolução de nome em lote via `profiles`. Ajuste de `query_finance_payables`/`query_finance_receivables` para incluir cliente/fornecedor e categoria.
-- `guardrails.ts`: novo `SPECULATION_PATTERNS` + sinal `readToolExecuted` no turno; `checkOutput` marca `speculation_without_read`. Em `index.ts`, uma retentativa determinística (padrão da trava de anúncio) exigindo consulta antes de responder.
-- `guardrails.ts`/`index.ts`: quando `offendingSentences` não estiver vazio, pedir reescrita ao modelo antes de aplicar `rewriteOutput`; restringir `BACKSTAGE_PATTERNS` para não apagar explicação legítima de processo (sincronização, espelho, integração) — verificando primeiro nos logs da função quais regras dispararam nas respostas cortadas dessa conversa.
-- Prompt em `index.ts`: bloco "nunca supor sobre dado do sistema" com a cascata notificação → registro de origem → origem externa (Omie/Auvo/EVA), e obrigação de citar quem criou e quando ao explicar um registro.
-- Deploy de `ai-assistant` e teste com as perguntas reais: "o que é essa notificação de conta a receber vencida [QA]", "quem criou e quando", "isso é teste ou produção".
+- **Catálogo**: função somente leitura no banco (`SECURITY DEFINER`, sem dados) que lista tabelas/colunas/chaves estrangeiras do schema `public`, mais um arquivo de metadados em `supabase/functions/ai-assistant/catalog.ts` com rótulo pt-BR, campos exibíveis, campo de data padrão e sensibilidade por entidade. Entidades sensíveis (PII de RH, `hr_sensitive_data_audit`, `profiles`) marcadas como restritas e acessíveis só pelas RPCs já existentes (`get_employee_pii`, `profiles_public`).
+- **Consulta universal**: nova ferramenta `query_entity` em `tools.ts` (args: `entity`, `filters` tipados, `search`, `date_from/date_to`, `order_by`, `limit`) construída sobre PostgREST **com o token do usuário** — RLS é a única fronteira de permissão; nenhum SQL vindo do modelo, apenas nomes de entidade/coluna validados contra o catálogo, com `count: "exact"` para o total real. Lista de entidades bloqueadas explícita.
+- **Abrir registro**: `get_record` (entidade + id/número) e `explain_notification` (resolve `notifications.reference_id` + `notification_type` para a entidade de origem). Enriquecimento em lote de `created_by`/`updated_by` → nome via `profiles_public`. Ambas em `READONLY_TOOLS`; novo módulo `notifications` em `ROLE_MODULES` (escopo próprio para todos; empresa para `director`/`super_admin`).
+- **Redução do catálogo de ferramentas**: as ~40 `basicQueryTool` viram atalhos do `query_entity` (mantidos por nome para não quebrar prompts), evitando estouro de contexto no catálogo de tools.
+- **Loop de investigação**: em `index.ts`, orçamento de passos por turno (`stepCountIs`-equivalente já existente) com regra de cascata espelho → registro relacionado → origem externa, e obrigação de citar fonte + data do dado.
+- **Guardrails** (`guardrails.ts`): `SPECULATION_PATTERNS` + sinal `readToolExecuted`; nova issue `speculation_without_read` com retentativa determinística (mesmo padrão da trava de anúncio de escrita). Quando `offendingSentences` não estiver vazio, pedir reescrita ao modelo antes de aplicar `rewriteOutput`; afinar `BACKSTAGE_PATTERNS` para não apagar explicação de processo (sincronização, espelho, integração) — antes disso, conferir nos logs da função quais regras cortaram as frases dessa conversa.
+- **Conectores externos**: tabela `ai_external_connectors` (nome, tipo `rest`/`mcp`, base_url, nome do segredo, ações permitidas, papéis permitidos, `company_id`) com `GRANT`, RLS habilitado e leitura só para `director`/`super_admin`; credenciais sempre em segredos do backend, nunca na tabela. Descoberta em runtime no `ai-assistant`, chamadas via função proxy, seguindo o padrão de `omie-proxy`.
+- **Deploy e teste**: `ai-assistant` redeployada e validada com as perguntas reais: "o que é essa notificação [QA] de conta a receber vencida", "quem criou e quando", "quantas contas a receber estão vencidas", "abra a OS 5543 e diga a etapa no Omie".
