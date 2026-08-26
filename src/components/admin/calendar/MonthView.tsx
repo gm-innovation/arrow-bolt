@@ -197,14 +197,14 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                   {dayAbsences.length > 0 && (
                     <div className="space-y-0.5 mb-1">
                       {dayAbsences.map((absence) => {
-                        const config = absenceConfig[absence.absence_type] || absenceConfig.day_off;
-                        const Icon = config.icon;
+                        const style = categoryStyles[absenceCategory(absence.absence_type)];
+                        const Icon = style.icon;
                         return (
                           <div
                             key={`${absence.id}-${day.toISOString()}`}
                             className={cn(
                               "px-1.5 py-0.5 rounded border-l-2 text-[10px] flex items-center gap-1",
-                              config.bg
+                              style.item
                             )}
                           >
                             <Icon className="h-3 w-3 flex-shrink-0" />
@@ -223,16 +223,20 @@ export const MonthView = ({ date, orders, absences = [], onCalls = [], isExpande
                       {dayOnCalls.map((oc) => (
                         <div
                           key={oc.id}
-                          className="px-1.5 py-0.5 rounded border-l-2 border-l-amber-500 bg-amber-50 text-[10px] flex items-center gap-1"
+                          className={cn(
+                            "px-1.5 py-0.5 rounded border-l-2 text-[10px] flex items-center gap-1",
+                            categoryStyles.on_call.item
+                          )}
                         >
-                          <Phone className="h-3 w-3 flex-shrink-0 text-amber-600" />
-                          <span className="font-medium truncate text-amber-800">
+                          <Phone className="h-3 w-3 flex-shrink-0" />
+                          <span className="font-medium truncate">
                             {formatShortName(oc.technician_name)}
                           </span>
                         </div>
                       ))}
                     </div>
                   )}
+
                 </>
               )}
             </div>
