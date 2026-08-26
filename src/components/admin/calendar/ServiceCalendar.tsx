@@ -556,6 +556,8 @@ export const ServiceCalendar = ({
           <DayEventsDialog
             date={overflowDay}
             orders={serviceOrders}
+            activeCategories={activeCategories}
+
             onOrderClick={(orderId) => {
               setOverflowDay(null);
               handleEventClick(orderId);
