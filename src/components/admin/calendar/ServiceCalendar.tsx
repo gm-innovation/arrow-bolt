@@ -41,12 +41,19 @@ export type CalendarServiceOrder = {
   auvo_task_uid?: string;
   auvo_status?: string;
   linked_service_order_id?: string;
+  /** Origem do escopo/descrição exibida (Auvo é a fonte operacional; Omie é fiscal/financeiro) */
+  scope_source?: "auvo" | "omie";
 };
 
 type AuvoOrderEnrichment = {
   teamName?: string;
   technicianNames: string[];
   vesselName?: string;
+  clientName?: string;
+  scopeText?: string;
+  locationText?: string;
+  taskType?: string;
+  checkinAt?: string;
 };
 
 const splitAuvoTeam = (teamName?: string | null): string[] => {
@@ -224,18 +231,28 @@ export const ServiceCalendar = ({
           .map((vt: any) => vt.technicians?.profiles?.full_name)
           .filter((name: any): name is string => Boolean(name));
 
+        // Precedência: o Auvo tem escopo/embarcação/equipe/local; o Omie fica com
+        // número da OS, cliente e dados fiscais/financeiros.
+        const auvoCheckin = auvoEnrichment?.checkinAt ? new Date(auvoEnrichment.checkinAt) : null;
+        const scheduledTime = order.service_date_time
+          ? format(new Date(order.service_date_time), "HH:mm")
+          : auvoCheckin
+            ? format(auvoCheckin, "HH:mm")
+            : "";
+
         return {
           id: order.id,
           order_number: order.order_number,
-          vessel_name: order.vessels?.name || auvoEnrichment?.vesselName || "Sem embarcação",
-          client_name: order.clients?.name,
+          vessel_name: auvoEnrichment?.vesselName || order.vessels?.name || "Sem embarcação",
+          client_name: order.clients?.name || auvoEnrichment?.clientName,
           supervisor_name: order.supervisor?.full_name,
           status: order.status,
-          scheduled_time: order.service_date_time ? format(new Date(order.service_date_time), "HH:mm") : "",
+          scheduled_time: scheduledTime,
           scheduled_date: scheduledDateTime,
-          task_type: taskTypes[0],
-          description: order.description,
-          location: order.location,
+          task_type: auvoEnrichment?.taskType || taskTypes[0],
+          description: auvoEnrichment?.scopeText || order.description,
+          scope_source: auvoEnrichment?.scopeText ? ("auvo" as const) : ("omie" as const),
+          location: auvoEnrichment?.locationText || order.location,
           technician_names: uniqueTechNames,
           lead_technician: leadTech?.technicians?.profiles?.full_name,
           auxiliary_technicians: auxiliaryNames,
@@ -246,11 +263,14 @@ export const ServiceCalendar = ({
         };
       });
 
+      const isQaOrder = (order: CalendarServiceOrder) =>
+        /\[QA\]/i.test(order.vessel_name || "") || /\[QA\]/i.test(order.description || "");
+
       const orderDateById = new Map<string, string>(
         (orders || []).map((order: any) => [order.id, order.scheduled_date || ""]),
       );
       const auvoEvents = await fetchStandaloneAuvoEvents(profile.company_id, startStr, endStr, orderDateById);
-      setServiceOrders([...formattedOrders, ...auvoEvents]);
+      setServiceOrders([...formattedOrders.filter((order) => !isQaOrder(order)), ...auvoEvents]);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -370,7 +390,9 @@ export const ServiceCalendar = ({
     const responses = await Promise.all(
       chunks.map((chunk) =>
         (supabase.from("auvo_tasks") as any)
-          .select("service_order_id, team_name, technician_name, vessel_name_parsed, vessel_name, task_date")
+          .select(
+            "service_order_id, team_name, technician_name, vessel_name_parsed, vessel_name, client_name_parsed, customer_name, scope_text, orientation, location_text, address, auvo_task_type, checkin_at, task_date",
+          )
           .in("service_order_id", chunk)
           .order("task_date", { ascending: false })
           .limit(5000),
@@ -400,6 +422,17 @@ export const ServiceCalendar = ({
         if (vesselName && !existing.vesselName) {
           existing.vesselName = vesselName;
         }
+
+        // Auvo é a fonte da verdade operacional: escopo, local, tipo e horário real
+        const scopeText = row.scope_text?.trim() || row.orientation?.trim();
+        if (scopeText && !existing.scopeText) existing.scopeText = scopeText;
+        const locationText = row.location_text?.trim() || row.address?.trim();
+        if (locationText && !existing.locationText) existing.locationText = locationText;
+        const clientName = row.client_name_parsed?.trim() || row.customer_name?.trim();
+        if (clientName && !existing.clientName) existing.clientName = clientName;
+        const taskType = row.auvo_task_type?.trim();
+        if (taskType && !existing.taskType) existing.taskType = taskType;
+        if (row.checkin_at && !existing.checkinAt) existing.checkinAt = row.checkin_at;
 
         enrichmentByOrder.set(serviceOrderId, existing);
       });
@@ -556,6 +589,8 @@ export const ServiceCalendar = ({
           <DayEventsDialog
             date={overflowDay}
             orders={serviceOrders}
+            absences={absences}
+            onCalls={onCalls}
             activeCategories={activeCategories}
 
             onOrderClick={(orderId) => {
