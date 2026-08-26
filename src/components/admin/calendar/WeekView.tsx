@@ -166,10 +166,13 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
                   return (
                     <div
                       key={entry.key}
+                      role="button"
+                      tabIndex={0}
                       className={cn(
-                        "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5",
+                        "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5 cursor-pointer hover:shadow transition-all",
                         style.item
                       )}
+                      onClick={() => onScheduleEntryClick?.({ kind: "absence", absence: entry.absence })}
                     >
                       <Icon className="h-3 w-3 flex-shrink-0" />
                       <span className="font-medium truncate">
@@ -184,7 +187,13 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
                 return (
                   <div
                     key={entry.key}
-                    className={cn("px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5", onCallStyle.item)}
+                    role="button"
+                    tabIndex={0}
+                    className={cn(
+                      "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5 cursor-pointer hover:shadow transition-all",
+                      onCallStyle.item,
+                    )}
+                    onClick={() => onScheduleEntryClick?.({ kind: "on_call", onCall: entry.onCall })}
                   >
                     <OnCallIcon className="h-3 w-3 flex-shrink-0" />
                     <span className="font-medium truncate">
@@ -192,6 +201,7 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
                     </span>
                   </div>
                 );
+
               })}
 
               {remainingCount > 0 && (
