@@ -74,43 +74,58 @@ export const DayView = ({ date, orders, absences = [], onCalls = [], activeCateg
       {/* Absences, On-Call and Unscheduled Orders Summary */}
       {(dayAbsences.length > 0 || dayOnCalls.length > 0 || untimedOrders.length > 0) && (
         <div className="sticky top-[70px] bg-muted/50 z-10 px-4 py-2 border-b flex flex-wrap gap-2">
-          {untimedOrders.map((order) => (
-            <div
-              key={order.id}
-              onClick={() => onEventClick?.(order.id)}
-              className="px-3 py-1.5 rounded-md border text-sm flex items-center gap-2 cursor-pointer hover:shadow bg-blue-50 border-blue-200 text-blue-800"
-            >
-              <span className="font-medium">{order.order_number}</span>
-              <span className="text-xs opacity-80">({order.vessel_name})</span>
-            </div>
-          ))}
+          {untimedOrders.map((order) => {
+            const category = classifyEvent(order);
+            const style = categoryStyles[category];
+            const Icon = style.icon;
+            return (
+              <div
+                key={order.id}
+                onClick={() => onEventClick?.(order.id)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md border text-sm flex items-center gap-2 cursor-pointer hover:shadow",
+                  style.badge
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span className="font-medium">
+                  {category === "os" ? order.order_number : style.label}
+                </span>
+                <span className="text-xs opacity-80">({order.vessel_name})</span>
+              </div>
+            );
+          })}
           {dayAbsences.map((absence) => {
-            const config = absenceConfig[absence.absence_type] || absenceConfig.day_off;
-            const Icon = config.icon;
+            const style = categoryStyles[absenceCategory(absence.absence_type)];
+            const Icon = style.icon;
             return (
               <div
                 key={absence.id}
                 className={cn(
                   "px-3 py-1.5 rounded-md border text-sm flex items-center gap-2",
-                  config.bg
+                  style.badge
                 )}
               >
                 <Icon className="h-4 w-4" />
                 <span className="font-medium">{formatShortName(absence.technician_name)}</span>
-                <span className="text-xs opacity-80">({config.label})</span>
+                <span className="text-xs opacity-80">({style.label})</span>
               </div>
             );
           })}
           {dayOnCalls.map((oc) => (
             <div
               key={oc.id}
-              className="px-3 py-1.5 rounded-md border bg-amber-100 border-amber-300 text-amber-800 text-sm flex items-center gap-2"
+              className={cn(
+                "px-3 py-1.5 rounded-md border text-sm flex items-center gap-2",
+                categoryStyles.on_call.badge
+              )}
             >
               <Phone className="h-4 w-4" />
               <span className="font-medium">{formatShortName(oc.technician_name)}</span>
               <span className="text-xs opacity-80">(Sobreaviso)</span>
             </div>
           ))}
+
         </div>
       )}
       
