@@ -15,6 +15,7 @@ import {
   isCategoryActive,
   type CalendarCategory,
 } from "./eventStyles";
+import { buildScheduleRows } from "./groupScheduleRows";
 
 interface MonthViewProps {
   date: Date;
@@ -27,11 +28,6 @@ interface MonthViewProps {
   onScheduleEntryClick?: (entry: ScheduleEntry) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
-
-type DayEntry =
-  | { kind: "order"; key: string; order: CalendarServiceOrder; time: string }
-  | { kind: "absence"; key: string; absence: CalendarAbsence; time: string }
-  | { kind: "on_call"; key: string; onCall: CalendarOnCall; time: string };
 
 const FALLBACK_ITEM_HEIGHT = 32;
 
