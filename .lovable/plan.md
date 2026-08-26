@@ -26,10 +26,27 @@ Agravante: férias, folgas e sobreaviso são renderizados **depois** do botão "
 4. Aplicar a mesma correção de contagem na visão **Mês** (mesmo padrão de orçamento/`+N`).
 5. Deixar o diálogo "+N" listando o dia completo (já suporta as duas fontes), com o badge de origem visível.
 6. **Ocultar/limpar as OSs de teste** "[QA] Navio E2E" da agenda (filtro por marcação de teste ou remoção dos registros de QA, conforme sua preferência).
+7. **Auvo como fonte da verdade operacional**: para toda OS da agenda, buscar a tarefa Auvo correspondente e usar dela embarcação, equipe/técnicos, escopo, local e descrição — o Omie fica só como fonte de número da OS, cliente, dados fiscais e financeiros. Se o Auvo tiver o dado, ele prevalece sobre o texto vindo do Omie; o dado do Omie só aparece quando o Auvo não tem nada.
+
+## Precedência de dados por campo
+
+| Campo | Fonte principal | Fallback |
+| --- | --- | --- |
+| Escopo / descrição técnica | Auvo (`scope_text`, orientação) | Omie (descrição da OS) |
+| Embarcação | Auvo (embarcação extraída) | Omie / cadastro Arrow |
+| Equipe / técnicos | Auvo (`Equipe:`) | visitas e tarefas do Arrow |
+| Local | Auvo (`Local:`) | Omie |
+| Horário real (check-in/out) | Auvo | — |
+| Cliente, número da OS, valores, faturamento | Omie | Auvo (cliente) |
+
+Essa precedência será aplicada em um único ponto de montagem dos eventos, para valer igualmente no cartão da agenda, no hover, no diálogo "+N" e no modal de detalhes da OS.
 
 ## Detalhes técnicos
 
+- `src/components/admin/calendar/ServiceCalendar.tsx`: ampliar o enriquecimento Auvo por OS para trazer também escopo, local, orientação e horário de check-in, e aplicar a precedência acima ao montar `CalendarServiceOrder` (Auvo primeiro nos campos operacionais).
 - `src/components/admin/calendar/WeekView.tsx`: unificar os três arrays em uma lista `dayEvents` ordenada, altura de item medida via `ref` + `getBoundingClientRect`, `+N` sempre no fim, coluna com `overflow-y-auto`.
 - `src/components/admin/calendar/MonthView.tsx`: mesmo orçamento unificado.
 - `src/components/admin/calendar/DayEventsDialog.tsx`: garantir que receba ausências/sobreaviso além das OSs.
+- `ServiceOrderHoverCard.tsx` / `ViewOrderDetailsDialog.tsx`: exibir escopo e local vindos do Auvo, marcando a origem do dado.
 - Sem mudanças de schema; a origem de cada cartão continua vindo de `event_source` (`arrow` vs `auvo`).
+
