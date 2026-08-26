@@ -35,17 +35,8 @@ interface ServiceOrderListItemProps {
 }
 
 export const ServiceOrderListItem = ({ order, compact = false, onClick }: ServiceOrderListItemProps) => {
-  const getStatusColor = (status: string) => {
-    const colors: Record<string, string> = {
-      pending: "bg-yellow-500",
-      in_progress: "bg-blue-500",
-      completed: "bg-green-500",
-      cancelled: "bg-red-500",
-      waiting: "bg-gray-500",
-      auvo: "bg-cyan-500",
-    };
-    return colors[status] || "bg-gray-500";
-  };
+
+
 
   // Build technician display array with short names
   const technicianDisplay: string[] = [];
