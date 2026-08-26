@@ -1,6 +1,8 @@
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { ServiceOrderHoverCard } from "./ServiceOrderHoverCard";
 import { cn } from "@/lib/utils";
+import { categoryStyles, classifyEvent } from "./eventStyles";
+
 
 const formatShortName = (fullName: string) => {
   const parts = fullName.trim().split(' ');
