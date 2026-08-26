@@ -141,17 +141,25 @@ export const DayEventsDialog = ({
               key: `absence-${absence.id}`,
               category: absenceCategory(absence.absence_type),
               name: absence.technician_name,
+              entry: { kind: "absence" as const, absence },
             })),
             ...dayOnCalls.map((oc) => ({
               key: `oncall-${oc.id}`,
               category: "on_call" as CalendarCategory,
               name: oc.technician_name,
+              entry: { kind: "on_call" as const, onCall: oc },
             })),
-          ].map((entry) => {
-            const style = categoryStyles[entry.category];
+          ].map((item) => {
+            const style = categoryStyles[item.category];
             const Icon = style.icon;
             return (
-              <div key={entry.key} className="flex items-center gap-2 rounded-md border p-3">
+              <Button
+                key={item.key}
+                type="button"
+                variant="ghost"
+                className="h-auto w-full justify-start gap-2 rounded-md border p-3 text-left hover:bg-accent/50"
+                onClick={() => onScheduleEntryClick?.(item.entry)}
+              >
                 <span
                   className={cn(
                     "flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium",
@@ -161,10 +169,11 @@ export const DayEventsDialog = ({
                   <Icon className="h-3 w-3" />
                   {style.label}
                 </span>
-                <span className="truncate text-sm font-medium">{entry.name}</span>
-              </div>
+                <span className="truncate text-sm font-medium">{item.name}</span>
+              </Button>
             );
           })}
+
 
         </div>
       </ScrollArea>
