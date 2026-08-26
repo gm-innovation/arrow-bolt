@@ -5,6 +5,8 @@ import { ptBR } from "date-fns/locale";
 import { ServiceOrderListItem } from "./ServiceOrderListItem";
 import type { CalendarServiceOrder } from "./ServiceCalendar";
 import type { CalendarAbsence, CalendarOnCall } from "@/hooks/useCalendarAbsences";
+import type { ScheduleEntry } from "./ScheduleEntryDetailsDialog";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,8 +24,10 @@ interface WeekViewProps {
   onCalls?: CalendarOnCall[];
   activeCategories?: CalendarCategory[];
   onEventClick?: (orderId: string) => void;
+  onScheduleEntryClick?: (entry: ScheduleEntry) => void;
   onDayOverflowClick?: (day: Date) => void;
 }
+
 
 type DayEntry =
   | { kind: "order"; key: string; order: CalendarServiceOrder }
@@ -32,7 +36,7 @@ type DayEntry =
 
 const FALLBACK_ITEM_HEIGHT = 48; // cartão de duas linhas + gap
 
-export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCategories, onEventClick, onDayOverflowClick }: WeekViewProps) => {
+export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCategories, onEventClick, onScheduleEntryClick, onDayOverflowClick }: WeekViewProps) => {
   const weekStart = startOfWeek(date, { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -162,10 +166,13 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
                   return (
                     <div
                       key={entry.key}
+                      role="button"
+                      tabIndex={0}
                       className={cn(
-                        "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5",
+                        "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5 cursor-pointer hover:shadow transition-all",
                         style.item
                       )}
+                      onClick={() => onScheduleEntryClick?.({ kind: "absence", absence: entry.absence })}
                     >
                       <Icon className="h-3 w-3 flex-shrink-0" />
                       <span className="font-medium truncate">
@@ -180,7 +187,13 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
                 return (
                   <div
                     key={entry.key}
-                    className={cn("px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5", onCallStyle.item)}
+                    role="button"
+                    tabIndex={0}
+                    className={cn(
+                      "px-2 py-1 rounded border-l-2 text-xs flex items-center gap-1.5 cursor-pointer hover:shadow transition-all",
+                      onCallStyle.item,
+                    )}
+                    onClick={() => onScheduleEntryClick?.({ kind: "on_call", onCall: entry.onCall })}
                   >
                     <OnCallIcon className="h-3 w-3 flex-shrink-0" />
                     <span className="font-medium truncate">
@@ -188,6 +201,7 @@ export const WeekView = ({ date, orders, absences = [], onCalls = [], activeCate
                     </span>
                   </div>
                 );
+
               })}
 
               {remainingCount > 0 && (
