@@ -45,7 +45,7 @@ O usuário escreve, por exemplo: "crie uma habilidade para montar o relatório s
 
 Editar e desativar também funcionam por conversa ("ajuste a habilidade X para incluir…"). Nada é gravado sem confirmação explícita, seguindo o padrão de confirmação pendente já usado pela Marina.
 
-Permissão: **usuário avançado** cria e ativa habilidades diretamente. Usuário comum pode **pedir** — a habilidade entra como *sugerida* e um usuário avançado aprova. A checagem é sempre no servidor.
+Permissão: qualquer colaborador cria e ativa habilidades pelo chat, sem aprovação de terceiros — a habilidade fica no escopo de quem pediu. A checagem é sempre no servidor.
 
 ## 4. Aprender habilidades pelo uso
 
