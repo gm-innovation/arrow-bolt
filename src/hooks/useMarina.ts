@@ -198,6 +198,7 @@ export function useMarinaStream(threadId: string | undefined, onThreadCreated: (
         setState((s) => ({ ...s, streaming: false, status: null }));
         const id = threadId ?? createdId;
         qc.invalidateQueries({ queryKey: ["marina-threads"] });
+        qc.invalidateQueries({ queryKey: ["marina-skills"] });
         if (id) await qc.invalidateQueries({ queryKey: ["marina-messages", id] });
         setState({ streaming: false, status: null, draft: "" });
       }
@@ -213,12 +214,21 @@ export function useMarinaStream(threadId: string | undefined, onThreadCreated: (
 // ------------------------------------------------------- habilidades e execuções
 
 export interface MarinaSkill {
+  id: string;
   name: string;
+  slug: string;
   file: string;
-  description?: string;
+  description?: string | null;
+  when_to_use?: string | null;
+  category?: string | null;
+  origin: "builtin" | "user" | "auto";
+  scope: "global" | "empresa";
+  usage_hits: number;
+  active: boolean;
+  suggested: boolean;
 }
 
-export function useMarinaSkills(enabled: boolean) {
+export function useMarinaSkills(enabled = true) {
   return useQuery({
     queryKey: ["marina-skills"],
     enabled,
@@ -226,29 +236,44 @@ export function useMarinaSkills(enabled: boolean) {
   });
 }
 
-export function useMarinaSkillContent(file?: string) {
+export function useMarinaSkillContent(id?: string) {
   return useQuery({
-    queryKey: ["marina-skill", file],
-    enabled: !!file,
-    queryFn: async () => ((await callMarina("skill", { params: { file: file! } })) as { content: string }).content,
+    queryKey: ["marina-skill", id],
+    enabled: !!id,
+    queryFn: async () => ((await callMarina("skill", { params: { id: id! } })) as { content: string }).content,
+  });
+}
+
+function useSkillMutation(action: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Record<string, unknown>) => await callMarina(action, { method: "POST", body }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-skills"] }),
   });
 }
 
 export function useSaveMarinaSkill() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: { name: string; content: string; file?: string }) =>
-      await callMarina("save_skill", { method: "POST", body: payload }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-skills"] }),
-  });
+  return useSkillMutation("save_skill");
+}
+
+export function useActivateMarinaSkill() {
+  const m = useSkillMutation("activate_skill");
+  return { ...m, mutateAsync: (id: string) => m.mutateAsync({ id }) };
+}
+
+export function useDeactivateMarinaSkill() {
+  const m = useSkillMutation("deactivate_skill");
+  return { ...m, mutateAsync: (id: string) => m.mutateAsync({ id }) };
+}
+
+export function useDismissMarinaSuggestion() {
+  const m = useSkillMutation("dismiss_suggestion");
+  return { ...m, mutateAsync: (id: string) => m.mutateAsync({ id }) };
 }
 
 export function useDeleteMarinaSkill() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (file: string) => await callMarina("delete_skill", { method: "POST", body: { file } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-skills"] }),
-  });
+  const m = useSkillMutation("delete_skill");
+  return { ...m, mutateAsync: (id: string) => m.mutateAsync({ id }) };
 }
 
 export function useMarinaRuns(enabled: boolean) {
