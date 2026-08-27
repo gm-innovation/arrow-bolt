@@ -24,6 +24,11 @@ import { MarinaComposer } from "@/components/marina/MarinaComposer";
 import { MarinaSkillsPanel } from "@/components/marina/MarinaSkillsPanel";
 import { MarinaConnectionsPanel } from "@/components/marina/MarinaConnectionsPanel";
 import { MarinaRunsPanel } from "@/components/marina/MarinaRunsPanel";
+import { DesignWorkspace } from "@/components/marina/design/DesignWorkspace";
+
+/** Papéis com acesso ao palco de design (Canva). */
+const DESIGN_ROLES = ["marketing", "commercial", "director", "super_admin"];
+
 
 const SUGGESTIONS: Record<string, string[]> = {
   coordinator: ["Quais OSs estão em atraso hoje?", "Quem está disponível amanhã?", "Resumo da agenda desta semana"],
