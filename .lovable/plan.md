@@ -47,13 +47,14 @@ Layout em duas colunas, no estilo do Lovable: conversa estreita à esquerda, pal
 
 ## Arquivos
 
-- `src/pages/marina/MarinaChat.tsx` — aba Design + aba Aprovados, com controle por papel
+- `src/pages/marina/MarinaChat.tsx` — aba Design com layout de duas colunas, controle por papel
+- `src/components/marina/design/DesignWorkspace.tsx` — divisão conversa + palco (responsivo, alternância no celular)
 - `src/components/marina/design/DesignQuickActions.tsx` — botões e formulários
-- `src/components/marina/design/DesignPreviewCard.tsx` — prévia, aprovar/ajustar/descartar
+- `src/components/marina/design/DesignStage.tsx` — palco de preview, barra de ações, fita de versões, estados vazio/carregando
 - `src/components/marina/design/ApprovedDesignsPanel.tsx` — histórico de aprovados
 - `src/lib/marina/designSignal.ts` — leitura da linha `DESIGNCANVA:`
 - `src/hooks/useMarinaDesigns.ts` — fila pendente, aprovações, exportações
-- `src/components/marina/MarinaMessageList.tsx` — renderiza o card quando há sinal
+
 - `supabase/functions/marina-chat/index.ts` — prompt de design, sinal em `metadata`, rota de aprovação/exportação
 - `supabase/functions/marina-chat/router.ts` — sinais de design
 - `supabase/functions/marina-chat/sanitize.ts` — preserva a linha e URLs do Canva
