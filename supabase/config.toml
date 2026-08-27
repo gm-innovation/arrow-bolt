@@ -18,6 +18,9 @@ verify_jwt = true
 [functions.marina-chat]
 verify_jwt = true
 
+[functions.marina-skill-learner]
+verify_jwt = true
+
 [functions.ai-assistant]
 verify_jwt = false
 
