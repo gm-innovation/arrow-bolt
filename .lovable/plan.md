@@ -21,36 +21,24 @@ O gateway é o endereço do próprio Hermes. Então, quando a Marina pede uma re
 
 O limite de 10 é o padrão interno do Hermes e **não é o problema** — subir esse número só faria o laço demorar um pouco mais para estourar. A correção é apontar o modelo para um provedor de verdade.
 
-## Corrigir na VPS (é aqui que o problema morre)
+## Estado na VPS
 
-O `model` deve apontar para um provedor real, não para o gateway. Você já tem `deepseek/deepseek-v4-flash` como `default`, então basta remover o bloco `custom` autorreferente:
+Já feito por você: o bloco `model` autorreferente saiu e o motor agora usa `provider: openrouter`, sem nenhuma referência a `187.127.60.250`. O gateway foi reiniciado.
+
+Falta confirmar duas coisas — sem elas o motor apenas troca o 429 por um erro de credencial do provedor:
 
 ```bash
 C=hermes-agent-ohcv-hermes-agent-1
 
-# 1) backup
-docker exec $C cp /opt/data/config.yaml /opt/data/config.yaml.bak
+# a chave do OpenRouter está disponível para o container?
+docker exec $C sh -lc 'env | grep -c OPENROUTER_API_KEY'
+docker exec $C sh -lc 'grep -rn OPENROUTER /opt/data/.env /opt/data/config.yaml 2>/dev/null | sed "s/=.*/=***/"'
 
-# 2) veja quais provedores já estão configurados (chaves reais, não o gateway)
-docker exec $C sh -lc 'grep -rniE "provider|api_key|base_url" /opt/data/config.yaml /opt/data/profiles/*/config.yaml | grep -v 187.127.60.250'
-
-# 3) edite o bloco model: deixe apenas o provedor real, por exemplo
-#    model:
-#      default: deepseek/deepseek-v4-flash
-#      api_key: <chave do provedor real>
-#    e REMOVA provider/base_url/model que apontam para 187.127.60.250:8642
-docker exec -it $C sh -lc 'vi /opt/data/config.yaml'
-
-# 4) confirme que não sobrou nenhuma autorreferência
-docker exec $C sh -lc 'grep -n "187.127.60.250" /opt/data/config.yaml || echo "ok: sem autorreferencia"'
-
-# 5) reinicie e confirme
-docker exec $C hermes gateway restart
-sleep 12
+# gateway de pé, sem agentes acumulados
 docker exec $C sh -lc 'cat /opt/data/gateway_state.json'
 ```
 
-Teste de fora, com a chave completa:
+Teste de ponta a ponta, com a chave completa do api server:
 
 ```bash
 K=<chave do api server>
@@ -58,16 +46,24 @@ H=http://187.127.60.250:8642
 
 curl -s -o /dev/null -w 'models:%{http_code}\n' $H/v1/models -H "Authorization: Bearer $K"
 
-curl -s -o /dev/null -w 'chat:%{http_code}\n' $H/v1/chat/completions \
-  -H "Authorization: Bearer $K" -H 'Content-Type: application/json' \
-  -d '{"model":"hermes-agent","messages":[{"role":"user","content":"responda ok"}],"max_tokens":20}'
+curl -s $H/v1/chat/completions -H "Authorization: Bearer $K" \
+  -H 'Content-Type: application/json' \
+  -d '{"model":"hermes-agent","messages":[{"role":"user","content":"responda apenas: ok"}],"max_tokens":20}'
 ```
 
-Se `chat` responder 200, o laço acabou. Se ainda der 429, o log dirá quem está chamando:
+Se voltar erro de credencial do provedor, basta cadastrar a chave e reiniciar:
+
+```bash
+docker exec $C sh -lc 'echo "OPENROUTER_API_KEY=<chave>" >> /opt/data/.env'
+docker exec $C hermes gateway restart
+```
+
+Enquanto eu testo pelo Arrow, deixe o log aberto:
 
 ```bash
 docker exec $C sh -lc 'tail -n 200 -F /opt/data/logs/gateways/default/current'
 ```
+
 
 ## O que eu faço no Arrow
 
