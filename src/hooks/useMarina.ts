@@ -153,8 +153,19 @@ interface StreamState {
   draft: string;
 }
 
+export interface SendOptions {
+  /** Perfil/área do pedido (ex.: marketing) — usado nos pedidos de design. */
+  profile?: string;
+  /** Marca o turno como pedido de design (Canva). */
+  design?: boolean;
+}
+
 /** Envia a mensagem e consome o stream da Marina. */
-export function useMarinaStream(threadId: string | undefined, onThreadCreated: (id: string) => void) {
+export function useMarinaStream(
+  threadId: string | undefined,
+  onThreadCreated: (id: string) => void,
+  onDesign?: (design: MarinaDesign) => void,
+) {
   const qc = useQueryClient();
   const [state, setState] = useState<StreamState>({ streaming: false, status: null, draft: "" });
   const abortRef = useRef<AbortController | null>(null);
@@ -162,11 +173,12 @@ export function useMarinaStream(threadId: string | undefined, onThreadCreated: (
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const send = useCallback(
-    async (message: string) => {
+    async (message: string, options?: SendOptions) => {
       if (!message.trim() || state.streaming) return;
       const controller = new AbortController();
       abortRef.current = controller;
       setState({ streaming: true, status: "pensando…", draft: "" });
+
 
       let createdId: string | null = null;
       try {
