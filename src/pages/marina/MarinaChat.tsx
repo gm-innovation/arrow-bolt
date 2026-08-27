@@ -16,6 +16,7 @@ import {
   useMarinaStream,
   useMarinaThreads,
   useRenameThread,
+  useToggleThreadPin,
 } from "@/hooks/useMarina";
 import { MarinaThreadList } from "@/components/marina/MarinaThreadList";
 import { MarinaMessageList } from "@/components/marina/MarinaMessageList";
@@ -45,6 +46,7 @@ export default function MarinaChat() {
   const { data: messages } = useMarinaMessages(threadId);
   const rename = useRenameThread();
   const removeThread = useDeleteThread();
+  const togglePin = useToggleThreadPin();
   const { send, stop, streaming, status, draft } = useMarinaStream(threadId, (id) => navigate(`/marina/${id}`, { replace: true }));
 
   useEffect(() => {
@@ -74,6 +76,7 @@ export default function MarinaChat() {
         removeThread.mutate(id);
         if (id === threadId) navigate("/marina");
       }}
+      onTogglePin={(id, pinned) => togglePin.mutate({ id, pinned })}
     />
   );
 
