@@ -56,3 +56,67 @@
 ## Dependência operacional
 
 A correção definitiva exige uma ação inicial na VPS para limpar as execuções que já estão presas e confirmar/atualizar a versão do Hermes. As alterações no Arrow evitam que o problema volte, mas não conseguem apagar retroativamente essas runs sem acesso ao serviço externo.
+
+## Comandos para executar na VPS
+
+Substitua `SEU_DOMINIO` e `SUA_CHAVE` pelos valores reais do Hermes. Rode como usuário com acesso ao serviço.
+
+### 1. Ver o estado atual do motor
+
+```bash
+export H=https://SEU_DOMINIO
+export K=SUA_CHAVE
+
+# o motor responde?
+curl -s -o /dev/null -w '%{http_code}\n' $H/v1/models -H "Authorization: Bearer $K"
+
+# execuções ativas (se a versão expõe a API de runs)
+curl -s $H/v1/runs -H "Authorization: Bearer $K" | head -c 4000
+```
+
+### 2. Encerrar execuções presas
+
+```bash
+# encerra uma execução específica
+curl -s -X POST $H/v1/runs/RUN_ID/stop -H "Authorization: Bearer $K"
+
+# encerra todas as que aparecerem como ativas
+for id in $(curl -s $H/v1/runs -H "Authorization: Bearer $K" \
+  | grep -oE '"(id|run_id)":"[^"]+"' | cut -d'"' -f4); do
+  curl -s -X POST $H/v1/runs/$id/stop -H "Authorization: Bearer $K" >/dev/null
+  echo "parado: $id"
+done
+```
+
+### 3. Se a API de runs não existir nessa versão
+
+```bash
+# descubra o nome do serviço
+systemctl list-units --type=service | grep -i hermes
+docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' | grep -i hermes
+
+# reinicie só o gateway do Hermes
+sudo systemctl restart hermes        # instalação por systemd
+docker restart NOME_DO_CONTAINER     # instalação por docker
+```
+
+### 4. Elevar o teto de concorrência e confirmar
+
+```bash
+# veja a configuração atual de concorrência
+grep -rEn 'max_in_progress|MAX_IN_PROGRESS|concurren' /etc/hermes /opt/hermes 2>/dev/null
+
+# ajuste (exemplo: 24) e recarregue
+sudo sed -i 's/^max_in_progress:.*/max_in_progress: 24/' /etc/hermes/config.yaml
+sudo systemctl restart hermes
+
+# teste final: uma chamada simples deve responder 200
+curl -s -o /dev/null -w '%{http_code}\n' $H/v1/chat/completions \
+  -H "Authorization: Bearer $K" -H 'Content-Type: application/json' \
+  -d '{"model":"hermes-agent","messages":[{"role":"user","content":"ok"}],"max_tokens":10}'
+
+# logs enquanto testa pelo Arrow
+sudo journalctl -u hermes -n 200 -f
+```
+
+Me envie a saída dos passos 1 e 4 — com isso eu confirmo se o teto foi liberado e se a versão instalada suporta o cancelamento explícito que vou usar no Arrow.
