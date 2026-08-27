@@ -8,6 +8,7 @@ import { Bot, Copy, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import type { MarinaMessage } from "@/hooks/useMarina";
+import { stripDesignSignal } from "@/lib/marina/designSignal";
 
 interface Props {
   messages: MarinaMessage[];
@@ -64,7 +65,7 @@ export function MarinaMessageList({ messages, draft, status, streaming, avatarUr
                   m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted",
                 )}
               >
-                {m.role === "assistant" ? <Markdown content={m.content} /> : <p className="whitespace-pre-wrap">{m.content}</p>}
+                {m.role === "assistant" ? <Markdown content={stripDesignSignal(m.content)} /> : <p className="whitespace-pre-wrap">{m.content}</p>}
               </div>
               {m.role === "assistant" && (
                 <div className="flex items-center gap-2">
@@ -73,7 +74,7 @@ export function MarinaMessageList({ messages, draft, status, streaming, avatarUr
                       {s === "Arrow" ? "no Arrow" : "web"}
                     </Badge>
                   ))}
-                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copy(m.content)} aria-label="Copiar resposta">
+                  <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => copy(stripDesignSignal(m.content))} aria-label="Copiar resposta">
                     <Copy className="h-3 w-3" />
                   </Button>
                 </div>
@@ -93,7 +94,7 @@ export function MarinaMessageList({ messages, draft, status, streaming, avatarUr
           </Avatar>
           <div className="max-w-[85%] rounded-2xl bg-muted px-4 py-3 text-sm">
             {draft ? (
-              <Markdown content={draft} />
+              <Markdown content={stripDesignSignal(draft)} />
             ) : (
               <span className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
