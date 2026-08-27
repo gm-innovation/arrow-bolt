@@ -52,7 +52,7 @@ export default function MarinaChat() {
   const rename = useRenameThread();
   const removeThread = useDeleteThread();
   const togglePin = useToggleThreadPin();
-  const { send, stop, streaming, status, draft } = useMarinaStream(threadId, (id) => navigate(`/marina/${id}`, { replace: true }));
+  const { send, stop, streaming, status, draft, retry, retryLast } = useMarinaStream(threadId, (id) => navigate(`/marina/${id}`, { replace: true }));
 
   useEffect(() => {
     supabase
@@ -135,6 +135,18 @@ export default function MarinaChat() {
         agentName={agentName}
         emptyState={emptyState}
       />
+      {retry && !streaming && (
+        <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+          <span className="text-muted-foreground">
+            {retry.reason === "engine_busy"
+              ? "Não abriu espaço para essa tarefa agora."
+              : "Esse pedido não foi concluído."}
+          </span>
+          <Button size="sm" variant="outline" onClick={retryLast}>
+            Tentar de novo
+          </Button>
+        </div>
+      )}
       <MarinaComposer onSend={send} onStop={stop} streaming={streaming} threadId={threadId} />
     </div>
   );

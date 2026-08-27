@@ -152,6 +152,8 @@ interface StreamState {
   streaming: boolean;
   status: string | null;
   draft: string;
+  /** Último turno não concluiu (motor ocupado ou erro): permite tentar de novo. */
+  retry: { message: string; options?: SendOptions; reason: string } | null;
 }
 
 export interface SendOptions {
@@ -168,7 +170,7 @@ export function useMarinaStream(
   onDesign?: (design: MarinaDesign) => void,
 ) {
   const qc = useQueryClient();
-  const [state, setState] = useState<StreamState>({ streaming: false, status: null, draft: "" });
+  const [state, setState] = useState<StreamState>({ streaming: false, status: null, draft: "", retry: null });
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -178,7 +180,7 @@ export function useMarinaStream(
       if (!message.trim() || state.streaming) return;
       const controller = new AbortController();
       abortRef.current = controller;
-      setState({ streaming: true, status: "pensando…", draft: "" });
+      setState({ streaming: true, status: "pensando…", draft: "", retry: null });
 
 
       let createdId: string | null = null;
@@ -236,6 +238,9 @@ export function useMarinaStream(
               onDesign?.(event.design as MarinaDesign);
               qc.invalidateQueries({ queryKey: ["marina-designs"] });
             }
+            if (event.type === "retryable") {
+              setState((s) => ({ ...s, retry: { message, options, reason: event.reason ?? "engine_error" } }));
+            }
             if (event.type === "error") {
               draft += `\n\n${event.message}`;
               setState((s) => ({ ...s, status: null, draft }));
@@ -244,7 +249,11 @@ export function useMarinaStream(
         }
       } catch (e) {
         if ((e as Error).name !== "AbortError") {
-          setState((s) => ({ ...s, draft: s.draft || `Não consegui responder agora: ${(e as Error).message}` }));
+          setState((s) => ({
+            ...s,
+            draft: s.draft || `Não consegui responder agora: ${(e as Error).message}`,
+            retry: { message, options, reason: "network" },
+          }));
         }
       } finally {
         setState((s) => ({ ...s, streaming: false, status: null }));
@@ -252,7 +261,7 @@ export function useMarinaStream(
         qc.invalidateQueries({ queryKey: ["marina-threads"] });
         qc.invalidateQueries({ queryKey: ["marina-skills"] });
         if (id) await qc.invalidateQueries({ queryKey: ["marina-messages", id] });
-        setState({ streaming: false, status: null, draft: "" });
+        setState((s) => ({ streaming: false, status: null, draft: "", retry: s.retry }));
       }
     },
     [threadId, state.streaming, onThreadCreated, onDesign, qc],
@@ -261,7 +270,14 @@ export function useMarinaStream(
 
   const stop = useCallback(() => abortRef.current?.abort(), []);
 
-  return { ...state, send, stop };
+  const retryLast = useCallback(() => {
+    const pending = state.retry;
+    if (!pending) return;
+    setState((s) => ({ ...s, retry: null }));
+    void send(pending.message, pending.options);
+  }, [state.retry, send]);
+
+  return { ...state, send, stop, retryLast };
 }
 
 // ------------------------------------------------------- habilidades e execuções
