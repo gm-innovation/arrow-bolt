@@ -40,12 +40,14 @@ O usuário escreve, por exemplo: "crie uma habilidade para montar o relatório s
 
 1. reconhece a intenção de criar habilidade (novo caminho no roteador, antes de qualquer pesquisa);
 2. faz no máximo duas perguntas de esclarecimento se algo essencial faltar;
-3. redige a habilidade em markdown (nome, quando usar, passo a passo, cuidados) e mostra no chat um cartão de confirmação **Salvar habilidade / Ajustar / Descartar**;
-4. ao confirmar, grava no catálogo, instala no motor e responde "já posso usar".
+3. explica em linguagem simples o que a habilidade vai fazer, qual resultado ela entrega e pergunta se é isso mesmo — sem mostrar markdown nem detalhes técnicos;
+4. se o usuário disser que não é, ela ajusta e explica de novo, quantas vezes for preciso; quando ele confirmar, grava e responde "já posso usar".
 
 Editar e desativar também funcionam por conversa ("ajuste a habilidade X para incluir…"). Nada é gravado sem confirmação explícita, seguindo o padrão de confirmação pendente já usado pela Marina.
 
-Permissão: qualquer colaborador cria e ativa habilidades pelo chat, sem aprovação de terceiros — a habilidade fica no escopo de quem pediu. A checagem é sempre no servidor.
+Toda habilidade criada por conversa entra na **biblioteca** e pode ser reutilizada por outros colaboradores. A Marina também **indica** habilidades já existentes: antes de criar, procura na biblioteca uma parecida ("já existe 'X', quer usar essa?") e, quando alguém do mesmo papel ativa uma habilidade, ela sugere a mesma para os colegas daquele papel. Isso evita habilidades duplicadas.
+
+Permissão: qualquer colaborador cria e ativa habilidades pelo chat, sem aprovação de terceiros. A checagem é sempre no servidor.
 
 ## 4. Aprender habilidades pelo uso
 
@@ -57,9 +59,10 @@ A Marina passa a observar padrões de uso e propor habilidades sozinha:
 
 ## Detalhes técnicos
 
-- **Migração**: `ai_skills` (id, company_id, name, slug, description, when_to_use, content, category, status, origin `builtin|user|auto`, created_by, approved_by, usage_hits, timestamps, unique por company+slug) e `ai_skill_suggestions` opcional embutida no mesmo status `sugerida`. `GRANT` explícito para `authenticated`/`service_role`, RLS habilitado; leitura por `company_id` do usuário, escrita só via Edge Function (service role) após checar `is_ai_advanced_user`. Seed das habilidades da biblioteca com `company_id = null` (globais, somente leitura) e `origin = 'builtin'`.
-- **`marina-chat`**: `listSkills` deixa de perguntar ao motor e passa a ler `ai_skills`; novas ações `activate_skill`, `deactivate_skill`, `library`, `suggestions`, `approve_suggestion`, `dismiss_suggestion`. `writeSkill`/`deleteSkill` continuam sendo a sincronização com `${SKILLS_DIR}` e passam a ser chamados na ativação/desativação, com o estado de sincronia guardado na linha (`synced_at`, `sync_error`).
-- **Intenção de criação no chat**: novo módulo `skills-intent.ts` com detecção (`criar|nova|ensinar|aprender` + `skill|habilidade|rotina|procedimento`) avaliada antes de `pickRoute`; o rascunho é gerado com prompt dedicado e devolvido no SSE como evento `skill_draft`, renderizado pelo cartão de confirmação no `MarinaChat`. A confirmação chama `save_skill`, reaproveitando o registro em `ai_skill_audit`.
+- **Migração**: `ai_skills` (id, company_id, name, slug, description, when_to_use, content, category, status, origin `builtin|user|auto`, created_by, target_roles (papéis a quem indicar), usage_hits, timestamps, unique por company+slug) e `ai_skill_activations` (skill_id, user_id) para saber quem tem cada habilidade ativa. `GRANT` explícito para `authenticated`/`service_role`, RLS habilitado; leitura da biblioteca por `company_id` do usuário (mais as globais), escrita só via Edge Function (service role). Seed das habilidades prontas com `company_id = null` e `origin = 'builtin'`.
+- **`marina-chat`**: `listSkills` deixa de perguntar ao motor e passa a ler `ai_skills`; novas ações `activate_skill`, `deactivate_skill`, `library`, `suggestions`, `dismiss_suggestion`. `writeSkill`/`deleteSkill` continuam sendo a sincronização com `${SKILLS_DIR}` na ativação/desativação, com o estado guardado na linha (`synced_at`, `sync_error`).
+- **Intenção de criação no chat**: novo módulo `skills-intent.ts` com detecção (`criar|nova|ensinar|aprender` + `skill|habilidade|rotina|procedimento`) avaliada antes de `pickRoute`. Antes de redigir, busca por similaridade na biblioteca (nome/descrição, com `pg_trgm`) e oferece a existente. O markdown é gerado no servidor e **não** vai para a tela: o SSE manda apenas o resumo em linguagem natural (evento `skill_draft` com `summary`), e o usuário confirma ou pede ajuste na própria conversa, mantendo o rascunho no estado da thread até salvar. O salvamento reaproveita `save_skill` e o registro em `ai_skill_audit`.
+- **Indicação por papel**: ao ativar, a habilidade recebe o papel de quem ativou em `target_roles`; colegas do mesmo papel passam a ver a habilidade na aba Sugestões e recebem um aviso discreto no chat. Descartes ficam registrados para não repetir.
 - **Aprendizado automático**: nova Edge Function `marina-skill-learner` (`verify_jwt = true` para chamada manual; execução agendada por cron do banco) que varre `ai_messages`/`ai_agent_runs` dos últimos 14 dias, agrupa por similaridade de intenção com o modelo do Lovable AI Gateway e insere `ai_skills` com `status = 'sugerida'`, `origin = 'auto'`. Deduplicação por slug e por temas já descartados.
 - **Frontend**: `MarinaSkillsPanel` ganha as seções Instaladas / Biblioteca / Sugestões com filtros; `useMarina` ganha os hooks das novas ações; o cartão de rascunho vira `MarinaSkillDraftCard`. Nada expõe o motor externo — a `sanitize.ts` continua valendo para qualquer texto vindo dele, inclusive rascunhos de habilidade.
 - **Prompt**: o system prompt passa a listar as habilidades ativas do usuário (nome + quando usar) para que a Marina as aplique sem precisar consultar arquivos, e a instrução sobre gestão de habilidades passa a citar o fluxo de confirmação.
