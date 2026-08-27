@@ -69,6 +69,9 @@ export default function MarinaChat() {
   const agentName = agentIdentity?.name || "Marina";
   const avatarUrl = agentIdentity?.avatar_url || defaultAvatar.url;
   const suggestions = useMemo(() => SUGGESTIONS[userRole ?? ""] ?? SUGGESTIONS.coordinator, [userRole]);
+  const canDesign = DESIGN_ROLES.includes(userRole ?? "");
+  const designProfile = userRole === "commercial" ? "comercial" : "marketing";
+
 
   const threadList = (
     <MarinaThreadList
