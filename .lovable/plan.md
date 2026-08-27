@@ -1,122 +1,100 @@
-# Plano — eliminar as execuções presas da Marina
+# Plano — Marina: destravar o 429 com o motor limpo
 
-## Diagnóstico confirmado
+## O que o seu diagnóstico mudou
 
-- As duas tentativas mais recentes, às **18:59:54** e **19:00:24 de 27/08**, chegaram ao backend e falharam novamente com **429 `engine_busy`** no motor externo.
-- O Arrow chama hoje o endpoint `/chat/completions` do Hermes. Essa chamada não fornece ao Arrow um identificador de execução para interrompê-la explicitamente na VPS.
-- O controle criado no Arrow usa contadores em memória (`inflightTotal`). Em uma função serverless, cada instância possui seu próprio contador; portanto ele não é um limite global e não enxerga as execuções que já ficaram ativas na VPS.
-- No cliente, trocar de conversa não aborta necessariamente a solicitação anterior: o `AbortController` só é encerrado ao desmontar o hook. Além disso, a conversa comum e o palco de Design mantêm instâncias separadas do stream.
-- A versão atual do Hermes oferece o fluxo de execuções com `run_id` e interrupção explícita (`POST /v1/runs/{run_id}/stop`), que é mais confiável do que depender apenas do fechamento da conexão HTTP.
+- O motor está **v0.20.4, rodando, com 0 agentes ativos** — não existem execuções órfãs consumindo vagas.
+- **Não existe `/v1/runs` nem `/v1/runs/stop`** nessa versão (405). Cancelamento explícito por `run_id` está fora de cogitação: só temos o fechamento da conexão HTTP.
+- Existem **6 gateways** (`default`, `super-admin`, `marketing`, `cahuan-fernandes`, `onboarding-test`, `test-user`), mas todo o tráfego do Arrow entra por uma única chave de API server.
+- Consequência: o 429 não vem de acúmulo de trabalho real. Vem de um limite por gateway/sessão, ou o Arrow está desistindo cedo por conta própria e mostrando a mesma frase.
 
-## Correção proposta
+Um detalhe do nosso código explica a confusão da tela: quando o limitador interno esgota as tentativas, o Arrow devolve exatamente `{"error":"engine_busy"}` — a mesma forma que registramos como “motor externo falhou 429”. Ou seja, hoje **não é possível distinguir no log** um 429 vindo da VPS de um 429 gerado pelo próprio Arrow. É isso que vamos resolver primeiro.
 
-### 1. Recuperar a VPS antes de novos testes
+## O que faço no Arrow agora
 
-- Consultar as execuções ativas no Hermes e identificar idade, sessão e origem.
-- Encerrar as execuções órfãs; se a versão instalada não expuser essa administração, reiniciar somente o serviço do gateway Hermes.
-- Confirmar que o contador de execuções volta a zero e executar uma chamada simples diretamente na VPS.
-- Registrar a versão do Hermes e conferir se ela já contém a API `/v1/runs` com operação `stop`.
+### 1. Separar culpa: erro do motor x erro nosso
 
-### 2. Tornar o cancelamento explícito de ponta a ponta
+- Passar a registrar, no 429, se veio da VPS ou do limitador interno, com o corpo e os cabeçalhos da resposta do motor (inclusive `Retry-After`), sem expor a credencial.
+- Códigos distintos: `motor_ocupado` (VPS), `sem_vaga_local` (nosso limitador), `motor_indisponivel`, `falha_de_rede`.
+- Aba **Execuções** passa a mostrar esses códigos, o gateway usado e a última resposta do motor.
 
-- Migrar as conversas da Marina de `/chat/completions` para `/v1/runs` quando suportado.
-- Capturar o `run_id`, consumir os eventos SSE e chamar `/v1/runs/{run_id}/stop` ao clicar em **Parar**, trocar de conversa, sair da aba Design ou fechar a tela.
-- Manter fallback compatível para instalações antigas, mas cancelar e drenar corretamente o stream nesse caminho.
-- Tratar cancelamento como estado normal, preservando o texto parcial e sem gerar resposta genérica de erro.
+### 2. Parar de criar escassez artificial
 
-### 3. Corrigir o ciclo de vida no frontend
+- Elevar o teto interno e deixar de tratá-lo como limite global: ele volta a ser só proteção por instância, já que cada instância da função tem contador próprio e o número nunca foi global de verdade.
+- Uma única chamada ao motor por mensagem: rascunho de habilidade, resumo e aprendiz saem do caminho da resposta e passam a rodar como fundo, depois.
+- Remover a soma de retentativas: o backoff interno e o botão **Tentar de novo** deixam de disputar; o botão fica bloqueado enquanto houver chamada pendente na mesma conversa.
 
-- Abortar o pedido anterior sempre que `threadId` mudar, e não apenas quando o componente desmontar.
-- Garantir que apenas o stream da aba ativa possa permanecer em execução.
-- Bloquear envio duplicado e tornar **Tentar de novo** uma nova execução única, nunca uma repetição paralela.
-- Manter o botão **Parar** disponível desde o primeiro instante de “pensando”, inclusive antes do primeiro token.
+### 3. Cancelar da melhor forma possível sem `/v1/runs`
 
-### 4. Mover o limite real para o lugar correto
+- Manter a propagação do `AbortSignal` até o `fetch` do motor e drenar o corpo ao cancelar, que é o único mecanismo que a versão instalada oferece.
+- Abortar a chamada anterior quando o usuário **troca de conversa** — hoje isso só acontece ao desmontar a tela, e a execução antiga continua bloqueando o envio seguinte.
+- Impedir que a aba **Conversa** e a aba **Design** mantenham dois streams vivos ao mesmo tempo na mesma conversa.
+- Tratar cancelamento como estado normal: preserva o texto parcial, sem mensagem genérica de erro.
 
-- Usar o limite global do próprio Hermes/VPS como fonte de verdade; o contador local do Arrow ficará apenas como proteção por instância e telemetria.
-- Configurar capacidade reservada para interações humanas e um teto menor para tarefas de fundo.
-- Adicionar expiração/reaper para execuções sem heartbeat, evitando que uma queda de rede ocupe vaga indefinidamente.
-- Suspender tarefas automáticas da Marina enquanto não houver capacidade, sem competir com chat e Design.
+### 4. Mensagem honesta na tela
 
-### 5. Diagnóstico operacional
+- Enquanto está esperando: “aguardando vaga no motor”.
+- Se o motor recusou: dizer que o motor recusou e mostrar em quantos segundos ele pediu para tentar de novo.
+- Se fomos nós: dizer que a fila do Arrow está cheia, sem culpar o motor.
 
-- Registrar `run_id`, origem (chat, Design, WhatsApp ou fundo), início, fim, cancelamento, duração e status — sem conteúdo sensível.
-- Exibir na aba **Execuções** quantidade ativa, limite, execuções antigas e ação administrativa para interromper uma execução presa.
-- Diferenciar claramente `motor_ocupado`, `execução_cancelada`, `falha_de_rede` e `motor_indisponível`.
+## O que preciso da VPS
 
-## Validação
+O limite que está recusando não está no Arrow. Como não há execuções ativas, ele é configuração do gateway. Os comandos abaixo mostram qual é e onde mudar.
 
-1. Confirmar zero execuções ativas após a limpeza inicial.
-2. Enviar uma pergunta simples e uma criação no Canva; ambas devem iniciar e concluir.
-3. Parar durante “pensando”, durante texto e durante uma ferramenta; a vaga deve ser liberada em até 1 segundo.
-4. Trocar de conversa e de aba durante uma execução; não pode restar run ativa na VPS.
-5. Executar vários pedidos controlados e verificar que o teto global é respeitado sem 429 para interação humana.
-6. Confirmar que chat web, Design e WhatsApp usam o mesmo controle e que tarefas de fundo não esgotam as vagas.
-
-## Dependência operacional
-
-A correção definitiva exige uma ação inicial na VPS para limpar as execuções que já estão presas e confirmar/atualizar a versão do Hermes. As alterações no Arrow evitam que o problema volte, mas não conseguem apagar retroativamente essas runs sem acesso ao serviço externo.
-
-## Comandos para executar na VPS
-
-Substitua `SEU_DOMINIO` e `SUA_CHAVE` pelos valores reais do Hermes. Rode como usuário com acesso ao serviço.
-
-### 1. Ver o estado atual do motor
+### A. Ver a configuração de concorrência do gateway
 
 ```bash
-export H=https://SEU_DOMINIO
-export K=SUA_CHAVE
+C=hermes-agent-ohcv-hermes-agent-1
 
-# o motor responde?
-curl -s -o /dev/null -w '%{http_code}\n' $H/v1/models -H "Authorization: Bearer $K"
-
-# execuções ativas (se a versão expõe a API de runs)
-curl -s $H/v1/runs -H "Authorization: Bearer $K" | head -c 4000
+docker exec $C sh -lc 'grep -rniE "max_in_progress|max_concurrent|concurrency|rate_limit|429" /opt/data/*.json /opt/data/*.y*ml /opt/hermes/*.y*ml 2>/dev/null | head -40'
+docker exec $C sh -lc 'ls -la /opt/data; sed -n "1,200p" /opt/data/config.yaml 2>/dev/null'
+docker exec $C env | grep -iE 'max|concurr|limit|api_server' 
 ```
 
-### 2. Encerrar execuções presas
+### B. Ver o 429 acontecendo do lado do motor
 
 ```bash
-# encerra uma execução específica
-curl -s -X POST $H/v1/runs/RUN_ID/stop -H "Authorization: Bearer $K"
-
-# encerra todas as que aparecerem como ativas
-for id in $(curl -s $H/v1/runs -H "Authorization: Bearer $K" \
-  | grep -oE '"(id|run_id)":"[^"]+"' | cut -d'"' -f4); do
-  curl -s -X POST $H/v1/runs/$id/stop -H "Authorization: Bearer $K" >/dev/null
-  echo "parado: $id"
-done
+# deixe rodando e mande uma mensagem para a Marina pelo Arrow
+docker exec $C sh -lc 'tail -n 200 -F /opt/data/logs/gateways/default/current'
+docker logs -n 200 -f $C
 ```
 
-### 3. Se a API de runs não existir nessa versão
+### C. Confirmar de fora (a chave completa, sem truncar)
 
 ```bash
-# descubra o nome do serviço
-systemctl list-units --type=service | grep -i hermes
-docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' | grep -i hermes
+K=31070037463e82f533385844d9e1998b5bde1cbc29d7f9adc34dff6a4bf8b634
+H=http://187.127.60.250:8642
 
-# reinicie só o gateway do Hermes
-sudo systemctl restart hermes        # instalação por systemd
-docker restart NOME_DO_CONTAINER     # instalação por docker
-```
+curl -s -o /dev/null -w 'models:%{http_code}\n' $H/v1/models -H "Authorization: Bearer $K"
 
-### 4. Elevar o teto de concorrência e confirmar
-
-```bash
-# veja a configuração atual de concorrência
-grep -rEn 'max_in_progress|MAX_IN_PROGRESS|concurren' /etc/hermes /opt/hermes 2>/dev/null
-
-# ajuste (exemplo: 24) e recarregue
-sudo sed -i 's/^max_in_progress:.*/max_in_progress: 24/' /etc/hermes/config.yaml
-sudo systemctl restart hermes
-
-# teste final: uma chamada simples deve responder 200
-curl -s -o /dev/null -w '%{http_code}\n' $H/v1/chat/completions \
-  -H "Authorization: Bearer $K" -H 'Content-Type: application/json' \
+# uma chamada real, e depois duas ao mesmo tempo: a segunda dá 429?
+curl -s -D- -o /dev/null $H/v1/chat/completions -H "Authorization: Bearer $K" \
+  -H 'Content-Type: application/json' \
   -d '{"model":"hermes-agent","messages":[{"role":"user","content":"ok"}],"max_tokens":10}'
 
-# logs enquanto testa pelo Arrow
-sudo journalctl -u hermes -n 200 -f
+for i in 1 2; do
+  curl -s -o /dev/null -w "req$i:%{http_code}\n" $H/v1/chat/completions \
+    -H "Authorization: Bearer $K" -H 'Content-Type: application/json' \
+    -d '{"model":"hermes-agent","messages":[{"role":"user","content":"conte ate 200"}],"max_tokens":600}' &
+done; wait
 ```
 
-Me envie a saída dos passos 1 e 4 — com isso eu confirmo se o teto foi liberado e se a versão instalada suporta o cancelamento explícito que vou usar no Arrow.
+### D. Elevar o limite quando ele aparecer
+
+```bash
+# ajuste o valor no arquivo que o passo A apontou e recarregue
+docker exec $C hermes gateway restart
+sleep 10
+docker exec $C sh -lc 'cat /opt/data/gateway_state.json'
+```
+
+## Como validamos
+
+1. O passo C mostra se **duas chamadas paralelas** já geram 429 — isso identifica o teto real do gateway.
+2. Com o log do passo B aberto, uma mensagem no Arrow tem que aparecer no gateway `default`; se não aparecer, o 429 é nosso e o novo código vai dizer isso explicitamente.
+3. Depois do ajuste: pergunta simples, criação no Canva e um ajuste seguido — todos concluem.
+4. Parar durante “pensando” e trocar de conversa no meio: o envio seguinte funciona na hora.
+5. Aba Execuções mostra origem, gateway e código do erro em cada tentativa.
+
+## Observação de segurança
+
+A chave do gateway apareceu por extenso na sua mensagem. Depois de resolvermos isso, vale trocá-la e atualizar o segredo no Arrow — e migrar o endpoint de HTTP em IP puro para HTTPS com domínio, já que hoje a credencial viaja sem criptografia.
