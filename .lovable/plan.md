@@ -6,18 +6,30 @@ Nova aba **Design** dentro da Marina (`/marina`), para o time de marketing/comer
 
 **Aba Design** (visível para `marketing`, `commercial`, `director`, `super_admin`; padrão de perfil = papel do usuário no Arrow, sem dropdown livre).
 
-1. **Conversa** — reusa o chat da Marina (mesmas conversas, mesmo histórico, mesmo indicador "trabalhando…"), com markdown e blocos de código já suportados.
-2. **Ações rápidas** — quatro botões que abrem um formulário curto e montam o pedido:
+Layout em duas colunas, no estilo do Lovable: conversa estreita à esquerda, palco de preview ocupando o resto da tela.
+
+```text
++----------------------+---------------------------------------+
+|  Conversa (~380px)   |  Palco do design                      |
+|  histórico + status   |  prévia do Canva em tela grande        |
+|  ações rápidas        |  Abrir no Canva · Aprovar · Ajustar    |
+|  campo de mensagem    |  abas: Atual | Aprovados              |
++----------------------+---------------------------------------+
+```
+
+1. **Coluna de conversa** — reusa o chat da Marina (mesmas conversas, histórico, indicador "trabalhando…"), com markdown e blocos de código. A lista de conversas passa a ser um menu/painel lateral recolhível, para não roubar largura. No celular vira uma coluna só, com alternância Conversa ⇄ Preview.
+2. **Ações rápidas** — quatro botões acima do campo de mensagem, cada um abrindo um formulário curto que monta o pedido:
    - Criar post para rede social (tema, texto principal, formato/tamanho)
    - Editar design existente (link do Canva + o que mudar)
    - Exportar design (link + PNG/JPG/PDF + dimensão)
    - Buscar assets / brand kit (termo)
-3. **Card de preview** — quando a resposta traz uma linha começando com `DESIGNCANVA: <url>`, aparece um card com prévia embutida do Canva, link "Abrir no Canva" (nova aba) e três ações:
+3. **Palco de preview** — quando a resposta traz uma linha começando com `DESIGNCANVA: <url>`, o painel direito carrega o design em tela cheia (embed do Canva, com fallback de link e miniatura quando o embed for bloqueado), mais barra de ações:
    - **Aprovar e publicar** — pede a exportação ao agente, baixa o arquivo para o armazenamento do Arrow e registra como aprovado
    - **Solicitar ajuste** — campo "o que mudar?" e reenvio ao agente com o link
    - **Descartar** — marca como descartado, sai da fila
-   Sem essa linha, nada de card: é resposta normal.
-4. **Aba Aprovados** — lista dos designs aprovados com miniatura, quem aprovou, quando, link do Canva e link do arquivo exportado guardado no Arrow.
+   Enquanto não há design, o palco mostra estado vazio ("peça uma peça para a Marina") e, durante o trabalho, um esqueleto de carregamento. Quando vários designs aparecem na conversa, uma fita de versões no rodapé permite voltar às anteriores.
+4. **Aba Aprovados** (no próprio palco) — designs aprovados com miniatura, quem aprovou, quando, link do Canva e link do arquivo exportado guardado no Arrow; clicar abre no palco.
+
 
 ## Como funciona por baixo
 
@@ -35,13 +47,14 @@ Nova aba **Design** dentro da Marina (`/marina`), para o time de marketing/comer
 
 ## Arquivos
 
-- `src/pages/marina/MarinaChat.tsx` — aba Design + aba Aprovados, com controle por papel
+- `src/pages/marina/MarinaChat.tsx` — aba Design com layout de duas colunas, controle por papel
+- `src/components/marina/design/DesignWorkspace.tsx` — divisão conversa + palco (responsivo, alternância no celular)
 - `src/components/marina/design/DesignQuickActions.tsx` — botões e formulários
-- `src/components/marina/design/DesignPreviewCard.tsx` — prévia, aprovar/ajustar/descartar
+- `src/components/marina/design/DesignStage.tsx` — palco de preview, barra de ações, fita de versões, estados vazio/carregando
 - `src/components/marina/design/ApprovedDesignsPanel.tsx` — histórico de aprovados
 - `src/lib/marina/designSignal.ts` — leitura da linha `DESIGNCANVA:`
 - `src/hooks/useMarinaDesigns.ts` — fila pendente, aprovações, exportações
-- `src/components/marina/MarinaMessageList.tsx` — renderiza o card quando há sinal
+
 - `supabase/functions/marina-chat/index.ts` — prompt de design, sinal em `metadata`, rota de aprovação/exportação
 - `supabase/functions/marina-chat/router.ts` — sinais de design
 - `supabase/functions/marina-chat/sanitize.ts` — preserva a linha e URLs do Canva
