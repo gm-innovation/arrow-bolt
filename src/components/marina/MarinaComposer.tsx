@@ -45,7 +45,7 @@ export function MarinaComposer({ onSend, onStop, streaming, threadId, placeholde
             }
           }}
           rows={1}
-          placeholder="Pergunte à Marina — dados do Arrow, pesquisa, análises…"
+          placeholder={placeholder ?? "Pergunte à Marina — dados do Arrow, pesquisa, análises…"}
           className="min-h-[44px] max-h-40 resize-none"
         />
         {streaming ? (
