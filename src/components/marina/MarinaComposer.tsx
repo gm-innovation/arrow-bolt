@@ -8,9 +8,11 @@ interface Props {
   onStop: () => void;
   streaming: boolean;
   threadId?: string;
+  placeholder?: string;
 }
 
-export function MarinaComposer({ onSend, onStop, streaming, threadId }: Props) {
+export function MarinaComposer({ onSend, onStop, streaming, threadId, placeholder }: Props) {
+
   const [value, setValue] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
