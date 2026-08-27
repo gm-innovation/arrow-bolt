@@ -8,9 +8,11 @@ interface Props {
   onStop: () => void;
   streaming: boolean;
   threadId?: string;
+  placeholder?: string;
 }
 
-export function MarinaComposer({ onSend, onStop, streaming, threadId }: Props) {
+export function MarinaComposer({ onSend, onStop, streaming, threadId, placeholder }: Props) {
+
   const [value, setValue] = useState("");
   const ref = useRef<HTMLTextAreaElement>(null);
 
@@ -43,7 +45,7 @@ export function MarinaComposer({ onSend, onStop, streaming, threadId }: Props) {
             }
           }}
           rows={1}
-          placeholder="Pergunte à Marina — dados do Arrow, pesquisa, análises…"
+          placeholder={placeholder ?? "Pergunte à Marina — dados do Arrow, pesquisa, análises…"}
           className="min-h-[44px] max-h-40 resize-none"
         />
         {streaming ? (

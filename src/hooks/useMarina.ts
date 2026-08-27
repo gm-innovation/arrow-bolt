@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import type { MarinaDesign } from "@/hooks/useMarinaDesigns";
 
 const FUNCTIONS_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/marina-chat`;
 
@@ -153,8 +154,19 @@ interface StreamState {
   draft: string;
 }
 
+export interface SendOptions {
+  /** Perfil/área do pedido (ex.: marketing) — usado nos pedidos de design. */
+  profile?: string;
+  /** Marca o turno como pedido de design (Canva). */
+  design?: boolean;
+}
+
 /** Envia a mensagem e consome o stream da Marina. */
-export function useMarinaStream(threadId: string | undefined, onThreadCreated: (id: string) => void) {
+export function useMarinaStream(
+  threadId: string | undefined,
+  onThreadCreated: (id: string) => void,
+  onDesign?: (design: MarinaDesign) => void,
+) {
   const qc = useQueryClient();
   const [state, setState] = useState<StreamState>({ streaming: false, status: null, draft: "" });
   const abortRef = useRef<AbortController | null>(null);
@@ -162,11 +174,12 @@ export function useMarinaStream(threadId: string | undefined, onThreadCreated: (
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const send = useCallback(
-    async (message: string) => {
+    async (message: string, options?: SendOptions) => {
       if (!message.trim() || state.streaming) return;
       const controller = new AbortController();
       abortRef.current = controller;
       setState({ streaming: true, status: "pensando…", draft: "" });
+
 
       let createdId: string | null = null;
       try {
@@ -174,7 +187,13 @@ export function useMarinaStream(threadId: string | undefined, onThreadCreated: (
         const res = await fetch(`${FUNCTIONS_URL}?action=chat`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ message, conversation_id: threadId ?? null }),
+          body: JSON.stringify({
+            message,
+            conversation_id: threadId ?? null,
+            ...(options?.profile ? { profile: options.profile } : {}),
+            ...(options?.design ? { design: true } : {}),
+          }),
+
           signal: controller.signal,
         });
         if (!res.ok || !res.body) {
@@ -213,6 +232,10 @@ export function useMarinaStream(threadId: string | undefined, onThreadCreated: (
               draft += event.text ?? "";
               setState((s) => ({ ...s, status: null, draft }));
             }
+            if (event.type === "design" && event.design) {
+              onDesign?.(event.design as MarinaDesign);
+              qc.invalidateQueries({ queryKey: ["marina-designs"] });
+            }
             if (event.type === "error") {
               draft += `\n\n${event.message}`;
               setState((s) => ({ ...s, status: null, draft }));
@@ -232,8 +255,9 @@ export function useMarinaStream(threadId: string | undefined, onThreadCreated: (
         setState({ streaming: false, status: null, draft: "" });
       }
     },
-    [threadId, state.streaming, onThreadCreated, qc],
+    [threadId, state.streaming, onThreadCreated, onDesign, qc],
   );
+
 
   const stop = useCallback(() => abortRef.current?.abort(), []);
 
