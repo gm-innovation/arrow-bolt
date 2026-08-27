@@ -40,7 +40,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   const approve = useApproveDesign();
   const setStatus = useSetDesignStatus();
 
-  const { send, stop, streaming, status, draft } = useMarinaStream(
+  const { send, stop, streaming, status, draft, retry, retryLast } = useMarinaStream(
     threadId,
     (id) => navigate(`/marina/${id}`, { replace: true }),
     (design) => {
@@ -152,6 +152,18 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
           </div>
         }
       />
+      {retry && !streaming && (
+        <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
+          <span className="text-muted-foreground">
+            {retry.reason === "engine_busy"
+              ? "Não abriu espaço para essa tarefa agora."
+              : "Esse pedido não foi concluído."}
+          </span>
+          <Button size="sm" variant="outline" onClick={retryLast}>
+            Tentar de novo
+          </Button>
+        </div>
+      )}
       <DesignQuickActions onSend={ask} disabled={streaming} />
       <MarinaComposer
         onSend={ask}
