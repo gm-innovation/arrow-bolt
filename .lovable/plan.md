@@ -21,7 +21,21 @@ Tom: executivo sênior de empresa de tecnologia — pouco texto por slide, núme
 | Habilidades ativas da Marina | 12 |
 | Documentos de RH sob gestão | 266 |
 
-Módulos com adoção ainda baixa (medições: 6, oportunidades: 4, solicitações internas: 3, ponto eletrônico: 0 batidas) entram como **"pronto, aguardando adoção"** — é exatamente o argumento do plano de migração, não um número escondido.
+### Auditoria interna automatizada (números reais)
+
+| Indicador | Valor |
+|---|---|
+| Serviços auditados pelo motor de auditoria | 997 |
+| Divergências de material identificadas | 578 |
+| Valor em risco apontado (baixa sem relato) | R$ 537.695,76 |
+| Materiais relatados em campo conferidos | 525 |
+| Achados extraídos de fotos de campo | 1.315 |
+| Divergências aguardando revisão humana | 578 |
+| Auditorias do SGQ registradas | 9 |
+
+Quebra por classificação (usada no slide de como a auditoria funciona): relatado sem baixa 412 · baixado sem relato 111 (R$ 537.597,22) · confere 33 · devolvido 11 · não identificado 7 · divergência de quantidade 2 (R$ 98,54) · casado entre OSs 2.
+
+Módulos com adoção ainda baixa (medições: 6, oportunidades: 4, solicitações internas: 3, requisições de compra: 4, contas a pagar/receber: 5/4, ponto eletrônico: 0 batidas) entram como **"pronto, aguardando adoção"** — é exatamente o argumento do plano de migração, não um número escondido.
 
 ## Estrutura do deck (16 slides)
 
