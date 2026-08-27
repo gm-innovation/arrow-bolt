@@ -186,7 +186,13 @@ export function useMarinaStream(
         const res = await fetch(`${FUNCTIONS_URL}?action=chat`, {
           method: "POST",
           headers,
-          body: JSON.stringify({ message, conversation_id: threadId ?? null }),
+          body: JSON.stringify({
+            message,
+            conversation_id: threadId ?? null,
+            ...(options?.profile ? { profile: options.profile } : {}),
+            ...(options?.design ? { design: true } : {}),
+          }),
+
           signal: controller.signal,
         });
         if (!res.ok || !res.body) {
