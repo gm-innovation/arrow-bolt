@@ -2,7 +2,7 @@
 
 Entrega: um deck em **.pptx** (editável) + o mesmo deck em **.pdf**, ambos disponíveis para download aqui no chat. Nada é construído dentro do sistema.
 
-Tom: executivo sênior de empresa de tecnologia — pouco texto por slide, números reais, decisão clara no fim. Português do Brasil, identidade visual Lecsor/GM Innovation (base escura nos slides de abertura/seção, claros no conteúdo).
+Tom: executivo sênior de empresa de tecnologia — pouco texto por slide, números reais, decisão clara no fim. Português do Brasil, identidade visual Lecsor (base escura nos slides de abertura/seção, claros no conteúdo).
 
 ## Números reais já confirmados no banco (serão usados no deck)
 
