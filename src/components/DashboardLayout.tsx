@@ -539,8 +539,15 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
     financeiro: financeiroMenuItems,
   }[userType] as MenuEntry[];
 
-  // Copiloto Marina disponível para todas as áreas.
-  const menuItems = ([{ title: "Marina", icon: Sparkles, path: "/marina" }, ...(baseMenuItems ?? [])]) as MenuEntry[];
+  // Copiloto Marina disponível para todas as áreas, logo abaixo do Dashboard.
+  const menuItems = (() => {
+    const base = [...((baseMenuItems ?? []) as MenuEntry[])];
+    const marina = { title: "Marina", icon: Sparkles, path: "/marina" } as MenuEntry;
+    const dashIndex = base.findIndex((item: any) => typeof item?.path === "string" && item.path.includes("dashboard"));
+    base.splice(dashIndex >= 0 ? dashIndex + 1 : 0, 0, marina);
+    return base;
+  })() as MenuEntry[];
+
 
   // Rotas onde o sub-item do menu identifica pelo ?tab=...
   const PATHS_WITH_TABS = [
