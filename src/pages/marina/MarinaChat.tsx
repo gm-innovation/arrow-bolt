@@ -135,22 +135,22 @@ export default function MarinaChat() {
     </div>
   );
 
-  if (!access?.advanced) return chatShell;
-
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Badge variant="secondary" className="gap-1">
-          <Sparkles className="h-3 w-3" /> Acesso avançado
-        </Badge>
-        <span className="text-xs text-muted-foreground">Você pode criar habilidades e conexões para a {agentName}.</span>
-      </div>
+      {access?.advanced && (
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="gap-1">
+            <Sparkles className="h-3 w-3" /> Acesso avançado
+          </Badge>
+          <span className="text-xs text-muted-foreground">Você pode criar conexões externas para a {agentName}.</span>
+        </div>
+      )}
       <Tabs defaultValue="chat">
         <TabsList>
           <TabsTrigger value="chat">Conversa</TabsTrigger>
           <TabsTrigger value="skills">Habilidades</TabsTrigger>
-          <TabsTrigger value="connections">Conexões</TabsTrigger>
-          <TabsTrigger value="runs">Execuções</TabsTrigger>
+          {access?.advanced && <TabsTrigger value="connections">Conexões</TabsTrigger>}
+          {access?.advanced && <TabsTrigger value="runs">Execuções</TabsTrigger>}
         </TabsList>
         <TabsContent value="chat" className="mt-4">
           {chatShell}
@@ -158,12 +158,16 @@ export default function MarinaChat() {
         <TabsContent value="skills" className="mt-4">
           <MarinaSkillsPanel />
         </TabsContent>
-        <TabsContent value="connections" className="mt-4">
-          <MarinaConnectionsPanel />
-        </TabsContent>
-        <TabsContent value="runs" className="mt-4">
-          <MarinaRunsPanel />
-        </TabsContent>
+        {access?.advanced && (
+          <TabsContent value="connections" className="mt-4">
+            <MarinaConnectionsPanel />
+          </TabsContent>
+        )}
+        {access?.advanced && (
+          <TabsContent value="runs" className="mt-4">
+            <MarinaRunsPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
