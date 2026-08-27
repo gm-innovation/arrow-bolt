@@ -32,7 +32,7 @@ Módulos com adoção ainda baixa (medições: 6, oportunidades: 4, solicitaçõ
 5. **Números da plataforma hoje** — grid de estatísticas grandes (tabela acima).
 6. **Em produção e usado todo dia** — OS e agenda unificada, espelho Omie, espelho Auvo, RH documental, notificações, Marina no chat e no WhatsApp.
 7. **Marina, a copilota corporativa** — o que ela já responde e faz, canais (Arrow + WhatsApp), acesso por papel, habilidades.
-8. **Pronto, aguardando adoção** — medições, CRM comercial, solicitações internas, ponto/jornada, universidade corporativa, SGQ.
+8. **Pronto, aguardando adoção** — medições, CRM comercial, solicitações internas, ponto/jornada (ainda não integrado ao RHiD, plataforma que hoje gerencia o ponto), universidade corporativa, SGQ.
 9. **Arquitetura e integrações** — diagrama: Arrow no centro; Omie (ERP) e EVA (estoque) integrados de forma permanente; Auvo e planilhas como origens a serem descontinuadas.
 10. **Segurança e governança** — dados por empresa, acesso por papel, auditoria, segredos no backend, app com atualização remota.
 11. **Roadmap 3 ondas** — próximos 3, 6 e 12 meses (consolidação de adoção → jornada/ponto e SGQ completos → analytics e autonomia da IA).
