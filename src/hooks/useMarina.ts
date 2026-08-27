@@ -198,6 +198,7 @@ export function useMarinaStream(threadId: string | undefined, onThreadCreated: (
         setState((s) => ({ ...s, streaming: false, status: null }));
         const id = threadId ?? createdId;
         qc.invalidateQueries({ queryKey: ["marina-threads"] });
+        qc.invalidateQueries({ queryKey: ["marina-skills"] });
         if (id) await qc.invalidateQueries({ queryKey: ["marina-messages", id] });
         setState({ streaming: false, status: null, draft: "" });
       }
