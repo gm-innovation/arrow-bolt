@@ -8,6 +8,9 @@ const FUNCTIONS_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supab
 export interface MarinaThread {
   id: string;
   title: string | null;
+  subject: string | null;
+  channel: "marina_web" | "whatsapp" | string;
+  pinned_at: string | null;
   updated_at: string;
   created_at: string;
 }
@@ -52,7 +55,7 @@ export function useMarinaAccess() {
   });
 }
 
-/** Conversas do Copiloto (canal marina_web) do usuário logado. */
+/** Conversas do Copiloto (chat do Arrow e assuntos vindos do WhatsApp). */
 export function useMarinaThreads() {
   const { user } = useAuth();
   return useQuery({
@@ -61,15 +64,38 @@ export function useMarinaThreads() {
     queryFn: async (): Promise<MarinaThread[]> => {
       const { data, error } = await supabase
         .from("ai_conversations")
-        .select("id, title, created_at, updated_at, context")
+        .select("id, title, subject, channel, pinned_at, created_at, updated_at, last_message_at")
         .eq("user_id", user!.id)
+        .in("channel", ["marina_web", "whatsapp"])
+        .order("pinned_at", { ascending: false, nullsFirst: false })
         .order("updated_at", { ascending: false })
-        .limit(100);
+        .limit(200);
       if (error) throw error;
-      return (data ?? [])
-        .filter((c: any) => c.context?.channel === "marina_web")
-        .map((c: any) => ({ id: c.id, title: c.title, created_at: c.created_at, updated_at: c.updated_at }));
+      return (data ?? []).map((c: any) => ({
+        id: c.id,
+        title: c.subject || c.title,
+        subject: c.subject,
+        channel: c.channel ?? "marina_web",
+        pinned_at: c.pinned_at ?? null,
+        created_at: c.created_at,
+        updated_at: c.last_message_at ?? c.updated_at,
+      }));
     },
+  });
+}
+
+/** Fixa/desfixa uma conversa na coluna lateral. */
+export function useToggleThreadPin() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, pinned }: { id: string; pinned: boolean }) => {
+      const { error } = await supabase
+        .from("ai_conversations")
+        .update({ pinned_at: pinned ? new Date().toISOString() : null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-threads"] }),
   });
 }
 
@@ -99,7 +125,10 @@ export function useRenameThread() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, title }: { id: string; title: string }) => {
-      const { error } = await supabase.from("ai_conversations").update({ title }).eq("id", id);
+      const { error } = await supabase
+        .from("ai_conversations")
+        .update({ title, subject: title, title_locked: true })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-threads"] }),
@@ -296,5 +325,49 @@ export function useMarinaRuns(enabled: boolean) {
 export function useMarinaEnginePing() {
   return useMutation({
     mutationFn: async () => (await callMarina("ping")) as { ok: boolean; latency_ms?: number; status?: number },
+  });
+}
+
+// ------------------------------------------------------- conexões do motor
+
+export interface MarinaConnectorField {
+  name: string;
+  label: string;
+  placeholder?: string;
+  secret?: boolean;
+}
+
+export interface MarinaCatalogConnector {
+  key: string;
+  label: string;
+  description: string;
+  category: string;
+  fields: MarinaConnectorField[];
+  connected: boolean;
+  connection_id: string | null;
+}
+
+export function useMarinaConnectorCatalog(enabled: boolean) {
+  return useQuery({
+    queryKey: ["marina-connector-catalog"],
+    enabled,
+    queryFn: async () =>
+      (await callMarina("connector_catalog")) as {
+        source: "engine" | "catalogo";
+        catalog: MarinaCatalogConnector[];
+        custom: any[];
+      },
+  });
+}
+
+export function useSetConnectorCredential() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { key: string; values: Record<string, string> }) =>
+      await callMarina("set_connector_credential", { method: "POST", body: payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["marina-connector-catalog"] });
+      qc.invalidateQueries({ queryKey: ["marina-connectors"] });
+    },
   });
 }

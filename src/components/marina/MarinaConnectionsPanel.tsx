@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plug, Plus, Save } from "lucide-react";
+import { CheckCircle2, Plug, Plus, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useMarinaConnectorCatalog, useSetConnectorCredential } from "@/hooks/useMarina";
 
 interface Connector {
   id: string;
@@ -27,6 +28,11 @@ export function MarinaConnectionsPanel() {
   const qc = useQueryClient();
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ label: "", base_url: "", description: "", secret_name: "" });
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [values, setValues] = useState<Record<string, string>>({});
+
+  const catalog = useMarinaConnectorCatalog(true);
+  const setCredential = useSetConnectorCredential();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["marina-connectors"],
@@ -72,14 +78,99 @@ export function MarinaConnectionsPanel() {
     onError: (e) => toast({ title: "Não foi possível cadastrar", description: (e as Error).message, variant: "destructive" }),
   });
 
+  const connect = (key: string) => {
+    setCredential.mutate(
+      { key, values },
+      {
+        onSuccess: () => {
+          toast({ title: "Conexão ativada" });
+          setOpenKey(null);
+          setValues({});
+        },
+        onError: (e) =>
+          toast({ title: "Não foi possível conectar", description: (e as Error).message, variant: "destructive" }),
+      },
+    );
+  };
+
+  const engineItems = catalog.data?.catalog ?? [];
+
   return (
     <div className="space-y-4">
       <Card className="p-4">
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold">Conexões disponíveis</h3>
+          <p className="text-xs text-muted-foreground">
+            Serviços que a Marina já sabe usar. Informe as credenciais para liberar cada um — elas seguem protegidas e
+            nunca ficam guardadas aqui.
+          </p>
+        </div>
+
+        {catalog.isLoading && <Skeleton className="h-24 w-full" />}
+        {catalog.error && (
+          <p className="text-xs text-destructive">Não consegui carregar as conexões disponíveis agora.</p>
+        )}
+
+        <div className="grid gap-2 md:grid-cols-2">
+          {engineItems.map((c) => (
+            <div key={c.key} className="rounded-lg border border-border p-3">
+              <div className="flex items-start gap-2">
+                <Plug className="mt-0.5 h-4 w-4 text-primary" />
+                <div className="flex-1">
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    {c.label}
+                    {c.connected && (
+                      <Badge variant="secondary" className="gap-1 text-[10px]">
+                        <CheckCircle2 className="h-3 w-3" /> conectada
+                      </Badge>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{c.description}</p>
+                  <p className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">{c.category}</p>
+                </div>
+                <Button
+                  size="sm"
+                  variant={c.connected ? "outline" : "default"}
+                  onClick={() => {
+                    setOpenKey(openKey === c.key ? null : c.key);
+                    setValues({});
+                  }}
+                >
+                  {c.connected ? "Atualizar" : "Conectar"}
+                </Button>
+              </div>
+
+              {openKey === c.key && (
+                <div className="mt-3 space-y-2 border-t border-border pt-3">
+                  {c.fields.map((f) => (
+                    <div key={f.name} className="space-y-1">
+                      <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
+                      <Input
+                        type={f.secret ? "password" : "text"}
+                        placeholder={f.placeholder}
+                        value={values[f.name] ?? ""}
+                        onChange={(e) => setValues((v) => ({ ...v, [f.name]: e.target.value }))}
+                      />
+                    </div>
+                  ))}
+                  <div className="flex justify-end">
+                    <Button size="sm" onClick={() => connect(c.key)} disabled={setCredential.isPending}>
+                      <Save className="mr-1 h-4 w-4" /> Salvar e conectar
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-4">
         <div className="mb-3 flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-semibold">Conexões externas</h3>
+            <h3 className="text-sm font-semibold">Conexões próprias</h3>
             <p className="text-xs text-muted-foreground">
-              Serviços que a Marina pode usar. Credenciais ficam guardadas nos segredos do backend — nunca aqui.
+              APIs internas ou de terceiros cadastradas por vocês. Credenciais ficam nos segredos do backend.
             </p>
           </div>
           <Button size="sm" variant="outline" onClick={() => setCreating((v) => !v)}>
@@ -116,21 +207,23 @@ export function MarinaConnectionsPanel() {
         {isLoading && <Skeleton className="h-20 w-full" />}
         {error && <p className="text-xs text-destructive">Você não tem acesso às conexões desta empresa.</p>}
         <div className="space-y-2">
-          {(data ?? []).map((c) => (
-            <div key={c.id} className="flex items-start gap-3 rounded-md border border-border p-3">
-              <Plug className="mt-0.5 h-4 w-4 text-primary" />
-              <div className="flex-1">
-                <p className="text-sm font-medium">
-                  {c.label} {!c.is_active && <Badge variant="outline" className="ml-1 text-[10px]">inativa</Badge>}
-                </p>
-                <p className="text-xs text-muted-foreground">{c.base_url}</p>
-                {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
+          {(data ?? [])
+            .filter((c) => c.kind !== "engine")
+            .map((c) => (
+              <div key={c.id} className="flex items-start gap-3 rounded-md border border-border p-3">
+                <Plug className="mt-0.5 h-4 w-4 text-primary" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">
+                    {c.label} {!c.is_active && <Badge variant="outline" className="ml-1 text-[10px]">inativa</Badge>}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{c.base_url}</p>
+                  {c.description && <p className="text-xs text-muted-foreground">{c.description}</p>}
+                </div>
+                {c.secret_name && <Badge variant="secondary" className="text-[10px]">credencial protegida</Badge>}
               </div>
-              {c.secret_name && <Badge variant="secondary" className="text-[10px]">credencial protegida</Badge>}
-            </div>
-          ))}
-          {!isLoading && (data ?? []).length === 0 && (
-            <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma conexão cadastrada ainda.</p>
+            ))}
+          {!isLoading && (data ?? []).filter((c) => c.kind !== "engine").length === 0 && (
+            <p className="py-4 text-center text-xs text-muted-foreground">Nenhuma conexão própria cadastrada ainda.</p>
           )}
         </div>
       </Card>
