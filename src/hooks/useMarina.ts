@@ -231,6 +231,10 @@ export function useMarinaStream(
               draft += event.text ?? "";
               setState((s) => ({ ...s, status: null, draft }));
             }
+            if (event.type === "design" && event.design) {
+              onDesign?.(event.design as MarinaDesign);
+              qc.invalidateQueries({ queryKey: ["marina-designs"] });
+            }
             if (event.type === "error") {
               draft += `\n\n${event.message}`;
               setState((s) => ({ ...s, status: null, draft }));
@@ -250,8 +254,9 @@ export function useMarinaStream(
         setState({ streaming: false, status: null, draft: "" });
       }
     },
-    [threadId, state.streaming, onThreadCreated, qc],
+    [threadId, state.streaming, onThreadCreated, onDesign, qc],
   );
+
 
   const stop = useCallback(() => abortRef.current?.abort(), []);
 
