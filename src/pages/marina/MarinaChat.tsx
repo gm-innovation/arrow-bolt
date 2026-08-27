@@ -159,6 +159,7 @@ export default function MarinaChat() {
       <Tabs defaultValue="chat">
         <TabsList>
           <TabsTrigger value="chat">Conversa</TabsTrigger>
+          {canDesign && <TabsTrigger value="design">Design</TabsTrigger>}
           <TabsTrigger value="skills">Habilidades</TabsTrigger>
           {access?.advanced && <TabsTrigger value="connections">Conexões</TabsTrigger>}
           {access?.advanced && <TabsTrigger value="runs">Execuções</TabsTrigger>}
@@ -166,9 +167,21 @@ export default function MarinaChat() {
         <TabsContent value="chat" className="mt-4">
           {chatShell}
         </TabsContent>
+        {canDesign && (
+          <TabsContent value="design" className="mt-4">
+            <DesignWorkspace
+              threadId={threadId}
+              threadList={threadList}
+              avatarUrl={avatarUrl}
+              agentName={agentName}
+              profile={designProfile}
+            />
+          </TabsContent>
+        )}
         <TabsContent value="skills" className="mt-4">
           <MarinaSkillsPanel />
         </TabsContent>
+
         {access?.advanced && (
           <TabsContent value="connections" className="mt-4">
             <MarinaConnectionsPanel />
