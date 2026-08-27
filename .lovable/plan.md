@@ -40,12 +40,14 @@ O usuário escreve, por exemplo: "crie uma habilidade para montar o relatório s
 
 1. reconhece a intenção de criar habilidade (novo caminho no roteador, antes de qualquer pesquisa);
 2. faz no máximo duas perguntas de esclarecimento se algo essencial faltar;
-3. redige a habilidade em markdown (nome, quando usar, passo a passo, cuidados) e mostra no chat um cartão de confirmação **Salvar habilidade / Ajustar / Descartar**;
-4. ao confirmar, grava no catálogo, instala no motor e responde "já posso usar".
+3. explica em linguagem simples o que a habilidade vai fazer, qual resultado ela entrega e pergunta se é isso mesmo — sem mostrar markdown nem detalhes técnicos;
+4. se o usuário disser que não é, ela ajusta e explica de novo, quantas vezes for preciso; quando ele confirmar, grava e responde "já posso usar".
 
 Editar e desativar também funcionam por conversa ("ajuste a habilidade X para incluir…"). Nada é gravado sem confirmação explícita, seguindo o padrão de confirmação pendente já usado pela Marina.
 
-Permissão: qualquer colaborador cria e ativa habilidades pelo chat, sem aprovação de terceiros — a habilidade fica no escopo de quem pediu. A checagem é sempre no servidor.
+Toda habilidade criada por conversa entra na **biblioteca** e pode ser reutilizada por outros colaboradores. A Marina também **indica** habilidades já existentes: antes de criar, procura na biblioteca uma parecida ("já existe 'X', quer usar essa?") e, quando alguém do mesmo papel ativa uma habilidade, ela sugere a mesma para os colegas daquele papel. Isso evita habilidades duplicadas.
+
+Permissão: qualquer colaborador cria e ativa habilidades pelo chat, sem aprovação de terceiros. A checagem é sempre no servidor.
 
 ## 4. Aprender habilidades pelo uso
 
