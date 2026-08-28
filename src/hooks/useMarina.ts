@@ -185,7 +185,7 @@ export function useMarinaStream(
   onDesign?: (design: MarinaDesign) => void,
 ) {
   const qc = useQueryClient();
-  const [state, setState] = useState<StreamState>({ streaming: false, status: null, draft: "", retry: null });
+  const [state, setState] = useState<StreamState>({ streaming: false, status: null, draft: "", steps: [], retry: null });
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => abortRef.current?.abort(), []);
@@ -195,7 +195,7 @@ export function useMarinaStream(
       if (!message.trim() || state.streaming) return;
       const controller = new AbortController();
       abortRef.current = controller;
-      setState({ streaming: true, status: "pensando…", draft: "", retry: null });
+      setState({ streaming: true, status: "pensando…", draft: "", steps: [], retry: null });
 
 
       let createdId: string | null = null;
@@ -208,7 +208,8 @@ export function useMarinaStream(
             message,
             conversation_id: threadId ?? null,
             ...(options?.profile ? { profile: options.profile } : {}),
-            ...(options?.design ? { design: true } : {}),
+            ...(options?.design !== undefined ? { design: options.design } : {}),
+            ...(options?.focusDesignId ? { focus_design_id: options.focusDesignId } : {}),
             ...(options?.references?.length ? { references: options.references } : {}),
           }),
 
@@ -250,6 +251,9 @@ export function useMarinaStream(
               draft += event.text ?? "";
               setState((s) => ({ ...s, status: null, draft }));
             }
+            if (event.type === "steps" && Array.isArray(event.steps)) {
+              setState((s) => ({ ...s, steps: event.steps as MarinaStep[] }));
+            }
             if (event.type === "design" && event.design) {
               onDesign?.(event.design as MarinaDesign);
               qc.invalidateQueries({ queryKey: ["marina-designs"] });
@@ -277,7 +281,7 @@ export function useMarinaStream(
         qc.invalidateQueries({ queryKey: ["marina-threads"] });
         qc.invalidateQueries({ queryKey: ["marina-skills"] });
         if (id) await qc.invalidateQueries({ queryKey: ["marina-messages", id] });
-        setState((s) => ({ streaming: false, status: null, draft: "", retry: s.retry }));
+        setState((s) => ({ streaming: false, status: null, draft: "", steps: s.steps, retry: s.retry }));
       }
     },
     [threadId, state.streaming, onThreadCreated, onDesign, qc],
