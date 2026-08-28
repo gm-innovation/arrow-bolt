@@ -50,6 +50,14 @@ O "Criar post" hoje só tem tema, texto e formato. Ele passa a ser um pedido de 
 - **Meus modelos**: dá para salvar o pedido montado como modelo próprio (nome + campos preenchidos), reutilizar e apagar. Os modelos são por pessoa/empresa.
 - Os mesmos campos alimentam também "Editar design" (especificações do ajuste) — sem mexer em Exportar e Assets.
 
+**6. Padrão ultrarrealista e fidelidade aos produtos reais**
+
+- O estilo **padrão passa a ser fotografia ultrarrealista** (luz natural, profundidade de campo real, sem ilustração, sem 3D, sem cartoon, sem elementos "cara de IA"). Desenho/ilustração só sai se a pessoa escolher explicitamente no seletor de estilo.
+- Esse padrão vale nos dois caminhos: no pedido enviado ao Canva **e** na prévia gerada pela própria Marina.
+- **Imagens de referência**: no "Criar post" dá para anexar fotos reais de produtos/equipamentos. Elas viajam com o pedido e a prévia é gerada a partir delas, com a regra de que o equipamento deve ser reproduzido fielmente — mesmo modelo, cor, marca e proporções, sem inventar peça, logo ou detalhe que não esteja na foto.
+- Quando não houver foto anexada e o pedido mencionar equipamento específico, a Marina avisa em uma linha que gerou uma composição genérica e sugere anexar a foto real.
+
+
 
 ## Detalhes técnicos
 
