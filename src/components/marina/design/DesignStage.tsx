@@ -119,13 +119,14 @@ export function DesignStage({
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Preparando a peça…</p>
           </div>
-        ) : isMarinaPreview && design.file_url ? (
+        ) : hasArt ? (
           <img
             key={design.id}
-            src={design.file_url}
-            alt={design.title ?? "Prévia da peça gerada pela Marina"}
+            src={design.file_url!}
+            alt={design.title ?? "Arte da peça gerada pela Marina"}
             className="h-full w-full rounded-lg border border-border bg-background object-contain"
           />
+
         ) : embed && !embedFailed ? (
           <iframe
             key={design.id}
