@@ -5,9 +5,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, ExternalLink, ImageOff, Loader2, PenLine, RefreshCw, Trash2 } from "lucide-react";
+import { Check, CircleDot, ExternalLink, ImageOff, Loader2, PenLine, RefreshCw, RotateCcw, Trash2, TriangleAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { MarinaDesign } from "@/hooks/useMarinaDesigns";
+import type { MarinaDesign, MarinaDesignStep } from "@/hooks/useMarinaDesigns";
 
 interface Props {
   design: MarinaDesign | null;
@@ -22,6 +22,40 @@ interface Props {
   retryingCanva: boolean;
   /** Etapa atual informada pela Marina (ex.: "montando as camadas no Canva…"). */
   statusLabel?: string | null;
+  /** Trilha de etapas em tempo real do turno em andamento. */
+  liveSteps?: MarinaDesignStep[];
+  /** Peças descartadas desta conversa, para recuperar se foi engano. */
+  discarded?: MarinaDesign[];
+  onDiscardVersion: (id: string) => void;
+  onKeepOnly: (id: string) => void;
+  onRestore: (id: string) => void;
+}
+
+/** Trilha das etapas: concluídas com tempo, atual com giro, futuras apagadas. */
+function StepTrail({ steps, elapsed }: { steps: MarinaDesignStep[]; elapsed: number }) {
+  if (!steps.length) return null;
+  return (
+    <ol className="space-y-1 text-xs">
+      {steps.map((s) => (
+        <li key={`${s.id}-${s.label}`} className="flex items-center gap-2">
+          {s.state === "andamento" ? (
+            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+          ) : s.state === "falhou" ? (
+            <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-destructive" />
+          ) : (
+            <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+          )}
+          <span className={cn("min-w-0 flex-1 truncate", s.state === "andamento" ? "text-foreground" : "text-muted-foreground")}>
+            {s.label}
+            {s.detail ? ` — ${s.detail}` : ""}
+          </span>
+          <span className="shrink-0 tabular-nums text-muted-foreground">
+            {s.state === "andamento" ? formatElapsed(elapsed) : s.ms != null ? formatElapsed(Math.round(s.ms / 1000)) : ""}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -60,6 +94,11 @@ export function DesignStage({
   approving,
   retryingCanva,
   statusLabel,
+  liveSteps,
+  discarded,
+  onDiscardVersion,
+  onKeepOnly,
+  onRestore,
 }: Props) {
   const [format, setFormat] = useState<"png" | "jpg" | "pdf">("png");
   const [adjustOpen, setAdjustOpen] = useState(false);
@@ -71,7 +110,9 @@ export function DesignStage({
   // Pronto para aprovar só com arquivo-mestre no Canva E preview exportado dele.
   const ready = hasPreview && hasCanva && !!design?.export_format;
   const preparando = !!design && !ready && !design.fail_reason;
-  const elapsed = useElapsed((working || preparando) && !ready, design?.id);
+  const trail: MarinaDesignStep[] = (liveSteps?.length ? liveSteps : design?.steps ?? []) as MarinaDesignStep[];
+  const currentStep = trail.find((s) => s.state === "andamento") ?? null;
+  const elapsed = useElapsed((working || preparando) && !ready, `${design?.id}-${currentStep?.id ?? ""}`);
   const demorando = elapsed >= 90;
 
 
@@ -157,8 +198,10 @@ export function DesignStage({
         ) : preparando ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-border bg-background p-6 text-center">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">{statusLabel || "Preparando a peça…"}</p>
-            <p className="text-xs text-muted-foreground">{formatElapsed(elapsed)}</p>
+            <p className="text-sm text-muted-foreground">{currentStep?.label || statusLabel || "Preparando a peça…"}</p>
+            <div className="w-full max-w-sm text-left">
+              <StepTrail steps={trail} elapsed={elapsed} />
+            </div>
           </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border p-6 text-center">
@@ -176,13 +219,13 @@ export function DesignStage({
         )}
       </div>
 
-      {preparando && hasPreview && (
-        <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2 text-xs text-muted-foreground">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-          <span>{statusLabel || "montando a versão editável no Canva…"}</span>
-          <span>· {formatElapsed(elapsed)}</span>
-          {demorando && (
-            <span>· está demorando mais que o normal; pode continuar conversando que eu aviso quando terminar</span>
+      {trail.length > 0 && (
+        <div className="space-y-1 border-t border-border px-3 py-2">
+          <StepTrail steps={trail} elapsed={elapsed} />
+          {preparando && demorando && (
+            <p className="text-xs text-muted-foreground">
+              Está demorando mais que o normal — pode continuar conversando, eu aviso quando terminar.
+            </p>
           )}
         </div>
       )}
@@ -232,15 +275,42 @@ export function DesignStage({
       {versions.length > 1 && (
         <div className="flex items-center gap-2 overflow-x-auto border-t border-border p-2">
           {versions.map((v, i) => (
-            <button
+            <div
               key={v.id}
-              onClick={() => onSelect(v)}
               className={cn(
-                "shrink-0 rounded-md border px-3 py-1 text-xs",
+                "flex shrink-0 items-center gap-1 rounded-md border pl-3 pr-1 text-xs",
                 v.id === design.id ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground",
               )}
             >
-              Versão {versions.length - i}
+              <button onClick={() => onSelect(v)} className="py-1">
+                Versão {versions.length - i}
+              </button>
+              <button
+                onClick={() => onDiscardVersion(v.id)}
+                aria-label={`Descartar versão ${versions.length - i}`}
+                className="rounded p-1 hover:bg-destructive/10 hover:text-destructive"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+          <Button variant="ghost" size="sm" className="shrink-0 text-xs" onClick={() => onKeepOnly(design.id)}>
+            Descartar todas menos esta
+          </Button>
+        </div>
+      )}
+
+      {!!discarded?.length && (
+        <div className="flex items-center gap-2 overflow-x-auto border-t border-border p-2 text-xs text-muted-foreground">
+          <CircleDot className="h-3 w-3 shrink-0" />
+          <span className="shrink-0">Descartadas:</span>
+          {discarded.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => onRestore(d.id)}
+              className="flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 hover:text-foreground"
+            >
+              <RotateCcw className="h-3 w-3" /> {d.title?.slice(0, 24) || "peça"} · recuperar
             </button>
           ))}
         </div>
