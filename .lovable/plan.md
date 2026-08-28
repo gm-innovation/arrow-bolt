@@ -1,99 +1,42 @@
-# Plano — causa raiz encontrada: o motor está chamando a si mesmo
+# Marina Design: entregar a imagem e não perder a conversa
 
-## O diagnóstico
+Dois problemas no mesmo pedido: (1) tudo o que a Marina falou durante o trabalho desapareceu da conversa; (2) ela ficou tentando abrir navegador/Chrome, tropeçou no token do Canva e terminou sem nenhuma imagem.
 
-O `config.yaml` do Hermes tem:
+## O que muda
 
-```yaml
-model:
-  provider: custom
-  base_url: http://187.127.60.250:8642/v1   # o próprio gateway
-  model: hermes-agent
-```
+**1. Nada do que a Marina disser se perde**
 
-O gateway é o endereço do próprio Hermes. Então, quando a Marina pede uma resposta:
+Hoje a resposta só é gravada no fim do turno. Se o turno termina em erro, se a aba fecha ou se a conexão cai, o texto que estava aparecendo na tela é descartado — foi exatamente o que aconteceu.
 
-1. o Arrow chama o gateway;
-2. o agente precisa do modelo e chama... o gateway de novo;
-3. essa segunda chamada abre outra execução, que chama o gateway outra vez.
+- O texto parcial passa a ser gravado na conversa mesmo quando o turno falha, é cancelado ou estoura o tempo, marcado como incompleto ("interrompi aqui").
+- A conversa volta a mostrar esse trecho ao recarregar a página, com o botão "tentar de novo" ao lado.
 
-É recursão. Uma única mensagem da Marina consome as 10 vagas em poucos segundos e todas as chamadas seguintes recebem 429. Isso explica todos os sintomas: motor "limpo" com 0 agentes entre tentativas (o laço morre e libera), 429 imediato mesmo sem ninguém usando, e o mesmo erro no chat e no Design.
+**2. A Marina para de tentar abrir navegador para fazer design**
 
-O limite de 10 é o padrão interno do Hermes e **não é o problema** — subir esse número só faria o laço demorar um pouco mais para estourar. A correção é apontar o modelo para um provedor de verdade.
+- A instrução de design fica explícita: peça gráfica é feita pelas ferramentas do Canva, nunca abrindo navegador, Chrome ou clicando em telas.
+- O relato de bastidores (tentativas, tokens, ferramentas) deixa de ir para a conversa como resposta: vira linha de status ("preparando a peça…", "reconectando o Canva…"), e a conversa fica com o resultado e a explicação em português.
 
-## Estado na VPS
+**3. Token do Canva expirado deixa de virar silêncio**
 
-Já feito por você: o bloco `model` autorreferente saiu e o motor agora usa `provider: openrouter`, sem nenhuma referência a `187.127.60.250`. O gateway foi reiniciado.
+- Quando o Canva recusa por credencial vencida/desconectada, a Marina diz isso com clareza e aponta a aba Conexões para reconectar — em vez de seguir tentando caminhos alternativos.
 
-Falta confirmar duas coisas — sem elas o motor apenas troca o 429 por um erro de credencial do provedor:
+**4. Todo pedido de imagem termina com uma imagem**
 
-```bash
-C=hermes-agent-ohcv-hermes-agent-1
+Conforme sua escolha: avisa o problema do Canva **e** entrega uma prévia própria.
 
-# a chave do OpenRouter está disponível para o container?
-docker exec $C sh -lc 'env | grep -c OPENROUTER_API_KEY'
-docker exec $C sh -lc 'grep -rn OPENROUTER /opt/data/.env /opt/data/config.yaml 2>/dev/null | sed "s/=.*/=***/"'
+- Se o Canva não produzir peça, a Marina gera a imagem pelo gerador de imagens do próprio Arrow, guarda no armazenamento privado de designs e mostra no palco como "prévia gerada pela Marina" (editável depois no Canva quando a conexão voltar).
+- Essa prévia entra na mesma fila de aprovação já existente (pendente → aprovado / ajuste / descartado), com a origem registrada (Canva ou Marina).
+- O palco nunca mais fica vazio depois de um pedido: mostra a peça, a prévia própria ou o motivo, sempre com ação de repetir.
 
-# gateway de pé, sem agentes acumulados
-docker exec $C sh -lc 'cat /opt/data/gateway_state.json'
-```
+## Detalhes técnicos
 
-Teste de ponta a ponta, com a chave completa do api server:
+- `supabase/functions/marina-chat/index.ts`: gravar `ai_messages` com o texto acumulado nos caminhos de erro/abort (metadata `partial: true`); mover o relato de bastidores para eventos `status`; após pedido de design sem sinal `DESIGNCANVA`, acionar o caminho de fallback.
+- `supabase/functions/marina-chat/design.ts`: bloco de prompt reforçado (proibido navegador/Chrome; usar ferramentas do Canva), detecção de falha de credencial do Canva e nova função de fallback que gera a imagem via Lovable AI Gateway (`/v1/images/generations`, modelo `google/gemini-3.1-flash-image`, `stream: true`), grava no bucket `marina-designs` e cria o registro em `marina_design_approvals` com `source = 'marina'`.
+- Migração: coluna `source` (`canva` | `marina`) em `marina_design_approvals`, default `canva`.
+- `src/hooks/useMarina.ts`: preservar o rascunho na falha até a lista de mensagens recarregar (sem limpar o `draft` antes do refetch).
+- `src/components/marina/design/DesignStage.tsx`: exibir prévia própria (imagem do Arrow) além do embed do Canva, com selo de origem e motivo quando o Canva falhou.
+- `src/hooks/useMarinaDesigns.ts` / `ApprovedDesignsPanel.tsx`: mostrar a origem do design.
 
-```bash
-K=<chave do api server>
-H=http://187.127.60.250:8642
+## Fora do escopo
 
-curl -s -o /dev/null -w 'models:%{http_code}\n' $H/v1/models -H "Authorization: Bearer $K"
-
-curl -s $H/v1/chat/completions -H "Authorization: Bearer $K" \
-  -H 'Content-Type: application/json' \
-  -d '{"model":"hermes-agent","messages":[{"role":"user","content":"responda apenas: ok"}],"max_tokens":20}'
-```
-
-Se voltar erro de credencial do provedor, basta cadastrar a chave e reiniciar:
-
-```bash
-docker exec $C sh -lc 'echo "OPENROUTER_API_KEY=<chave>" >> /opt/data/.env'
-docker exec $C hermes gateway restart
-```
-
-Enquanto eu testo pelo Arrow, deixe o log aberto:
-
-```bash
-docker exec $C sh -lc 'tail -n 200 -F /opt/data/logs/gateways/default/current'
-```
-
-
-## O que eu faço no Arrow
-
-Independente da VPS, o Arrow precisa parar de esconder esse tipo de falha e parar de amplificá-la.
-
-1. **Erro honesto e rastreável**
-   Distinguir `motor_ocupado` (recusa da VPS, com o `Retry-After` que ela mandar) de `sem_vaga_local` (nosso limitador), `motor_indisponivel` e `falha_de_rede`. Hoje as duas primeiras produzem exatamente a mesma frase e o mesmo log, o que travou o diagnóstico por dias.
-
-2. **Uma chamada ao motor por mensagem**
-   Rascunho de habilidade, resumo de conversa e aprendiz saem do caminho da resposta e passam a rodar depois, em fundo — nunca competindo com quem está esperando.
-
-3. **Sem retentativa em cima de retentativa**
-   O backoff interno e o botão **Tentar de novo** deixam de disputar: o botão fica bloqueado enquanto houver chamada pendente na mesma conversa.
-
-4. **Ciclo de vida certo no frontend**
-   Abortar a chamada anterior ao trocar de conversa (hoje só acontece ao sair da tela) e impedir que as abas **Conversa** e **Design** mantenham dois streams vivos na mesma conversa. Manter **Parar** ativo desde o primeiro instante de “pensando”.
-
-5. **Aba Execuções útil**
-   Mostrar por tentativa: origem (chat, Design, WhatsApp, fundo), duração, código do erro e a última resposta do motor — sem expor credencial.
-
-Não vou implementar cancelamento por `run_id`: essa versão não tem `/v1/runs` (405). Fica valendo o fechamento da conexão, que já propagamos.
-
-## Validação
-
-1. Na VPS: `grep 187.127.60.250 /opt/data/config.yaml` não retorna nada no bloco `model`.
-2. `curl` de chat responde 200 e `gateway_state.json` não fica acumulando agentes.
-3. No Arrow: pergunta simples ("cotação do dólar"), criação no Canva e um ajuste em seguida — os três concluem.
-4. Parar durante “pensando” e trocar de conversa no meio: o envio seguinte funciona na hora.
-5. Se um 429 ainda aparecer, a aba Execuções diz se foi o motor ou o Arrow.
-
-## Segurança
-
-A chave do gateway apareceu por extenso — e ela está gravada em texto puro no `config.yaml`, servida por HTTP em IP puro. Depois da correção: gerar chave nova, atualizar o segredo no Arrow e publicar o motor em HTTPS com domínio próprio.
+Reconfiguração do Canva na VPS (OAuth do motor) e publicação automática em redes sociais.
