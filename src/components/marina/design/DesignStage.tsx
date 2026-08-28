@@ -84,7 +84,6 @@ export function DesignStage({
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
           {STATUS_LABEL[design.status] ?? design.status}
         </Badge>
-        <Badge variant="outline" className="text-[10px] uppercase">
         {hasArt && (
           <Badge variant="outline" className="text-[10px] uppercase">
             arte da Marina
@@ -96,8 +95,8 @@ export function DesignStage({
           </Badge>
         )}
         <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          {design.title ?? design.canva_url ?? "Arte gerada pela Marina"}
 
-          {design.title ?? design.canva_url ?? "Prévia gerada pela Marina"}
         </span>
         {design.canva_url && (
           <Button asChild variant="outline" size="sm">
