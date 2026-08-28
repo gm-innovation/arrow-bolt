@@ -43,10 +43,12 @@ export function DesignStage({
   const [note, setNote] = useState("");
   const [embedFailed, setEmbedFailed] = useState(false);
 
-  const isMarinaPreview = design?.source === "marina" || (!design?.canva_url && !!design?.file_url);
-  // Registro já criado, arquivo ainda em produção.
-  const preparando = !!design && !design.canva_url && !design.file_url && !design.fail_reason;
+  const hasArt = !!design?.file_url;
+  const hasCanva = !!design?.canva_url;
+  // Registro já criado, arte ainda em produção.
+  const preparando = !!design && !hasArt && !design.fail_reason;
   const embed = design?.canva_url ? canvaEmbedUrl(design.canva_url) : null;
+
 
   if (!design) {
     return (
@@ -82,11 +84,19 @@ export function DesignStage({
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
           {STATUS_LABEL[design.status] ?? design.status}
         </Badge>
-        <Badge variant="outline" className="text-[10px] uppercase">
-          {isMarinaPreview ? "prévia da Marina" : "Canva"}
-        </Badge>
+        {hasArt && (
+          <Badge variant="outline" className="text-[10px] uppercase">
+            arte da Marina
+          </Badge>
+        )}
+        {hasCanva && (
+          <Badge variant="outline" className="text-[10px] uppercase">
+            editável no Canva
+          </Badge>
+        )}
         <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-          {design.title ?? design.canva_url ?? "Prévia gerada pela Marina"}
+          {design.title ?? design.canva_url ?? "Arte gerada pela Marina"}
+
         </span>
         {design.canva_url && (
           <Button asChild variant="outline" size="sm">
@@ -109,13 +119,14 @@ export function DesignStage({
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">Preparando a peça…</p>
           </div>
-        ) : isMarinaPreview && design.file_url ? (
+        ) : hasArt ? (
           <img
             key={design.id}
-            src={design.file_url}
-            alt={design.title ?? "Prévia da peça gerada pela Marina"}
+            src={design.file_url!}
+            alt={design.title ?? "Arte da peça gerada pela Marina"}
             className="h-full w-full rounded-lg border border-border bg-background object-contain"
           />
+
         ) : embed && !embedFailed ? (
           <iframe
             key={design.id}
@@ -154,7 +165,7 @@ export function DesignStage({
       )}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border p-3">
-        {!isMarinaPreview && (
+        {hasCanva && (
           <Select value={format} onValueChange={(v) => setFormat(v as typeof format)}>
             <SelectTrigger className="w-28">
               <SelectValue />
