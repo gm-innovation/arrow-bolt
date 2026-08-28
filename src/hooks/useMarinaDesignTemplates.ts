@@ -37,12 +37,13 @@ export function useSaveDesignTemplate() {
   const { user, profile } = useAuth();
   return useMutation({
     mutationFn: async (payload: { name: string; spec: DesignSpec }) => {
-      const { error } = await supabase.from("marina_design_templates").insert({
+      const row = {
         user_id: user!.id,
-        company_id: (profile as any)?.company_id ?? null,
+        ...((profile as any)?.company_id ? { company_id: (profile as any).company_id as string } : {}),
         name: payload.name,
         payload: payload.spec as unknown as Record<string, unknown>,
-      });
+      };
+      const { error } = await supabase.from("marina_design_templates").insert([row] as never);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-design-templates"] }),
