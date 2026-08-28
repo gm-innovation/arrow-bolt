@@ -1,12 +1,27 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Star, Trash2, Upload } from "lucide-react";
+import { AlertTriangle, Loader2, MoreHorizontal, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -21,6 +36,37 @@ import {
 
 const EDIT_ROLES = ["marketing", "commercial", "director", "super_admin"];
 
+/** Pistas para avisar quando a categoria escolhida parece incoerente. */
+const CATEGORY_HINTS: Array<{ category: string; re: RegExp }> = [
+  { category: "equipamentos", re: /starlink|antena|radar|r[aá]dio|furuno|icom|sensor|equipamento|instrumento|gps|sonda/i },
+  { category: "equipe_epi", re: /capacete|epi|luva|macac[ãa]o|bota|[oó]culos|talabarte|cinto|t[eé]cnic|equipe/i },
+  { category: "embarcacoes", re: /embarca|navio|psv|osv|barco|casco|plataforma|rebocador/i },
+  { category: "marca", re: /logo|marca|assinatura|brand/i },
+  { category: "ambientes", re: /laborat[oó]rio|bancada|oficina|deck|praça de m[aá]quinas|ponte de comando/i },
+];
+
+function suggestCategory(texto: string): string | null {
+  const hit = CATEGORY_HINTS.find((h) => h.re.test(texto));
+  return hit?.category ?? null;
+}
+
+interface FormState {
+  id?: string;
+  category: string;
+  name: string;
+  description: string;
+  tags: string;
+  is_default: boolean;
+}
+
+const EMPTY_FORM: FormState = {
+  category: ASSET_CATEGORIES[0].value,
+  name: "",
+  description: "",
+  tags: "",
+  is_default: false,
+};
+
 interface Props {
   /** Permite escolher assets como referência de um pedido de peça. */
   onUseAsReference?: (assets: MarinaDesignAsset[]) => void;
@@ -32,13 +78,23 @@ export function DesignAssetsPanel({ onUseAsReference }: Props) {
   const { data: assets, isLoading } = useMarinaDesignAssets();
   const save = useSaveDesignAsset();
   const remove = useDeleteDesignAsset();
-  const fileRef = useRef<HTMLInputElement>(null);
 
   const [filtro, setFiltro] = useState<string>("todos");
   const [busca, setBusca] = useState("");
-  const [uploading, setUploading] = useState(false);
-  const [novo, setNovo] = useState({ category: ASSET_CATEGORIES[0].value as string, name: "", description: "", tags: "" });
   const [selecionados, setSelecionados] = useState<string[]>([]);
+
+  const [aberto, setAberto] = useState(false);
+  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [arquivo, setArquivo] = useState<File | null>(null);
+  const [previa, setPrevia] = useState<string | null>(null);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    if (!arquivo) return;
+    const url = URL.createObjectURL(arquivo);
+    setPrevia(url);
+    return () => URL.revokeObjectURL(url);
+  }, [arquivo]);
 
   const lista = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -49,36 +105,69 @@ export function DesignAssetsPanel({ onUseAsReference }: Props) {
     });
   }, [assets, filtro, busca]);
 
-  const subir = async (files: FileList | null) => {
-    if (!files?.length) return;
-    setUploading(true);
+  const sugestao = useMemo(() => {
+    const texto = [form.name, form.description, form.tags].join(" ");
+    const s = suggestCategory(texto);
+    return s && s !== form.category ? s : null;
+  }, [form.name, form.description, form.tags, form.category]);
+
+  const abrirNovo = () => {
+    setForm({ ...EMPTY_FORM, category: filtro !== "todos" ? filtro : EMPTY_FORM.category });
+    setArquivo(null);
+    setPrevia(null);
+    setAberto(true);
+  };
+
+  const abrirEdicao = (a: MarinaDesignAsset) => {
+    setForm({
+      id: a.id,
+      category: a.category,
+      name: a.name,
+      description: a.description ?? "",
+      tags: (a.tags ?? []).join(", "),
+      is_default: a.is_default,
+    });
+    setArquivo(null);
+    setPrevia(a.file_url);
+    setAberto(true);
+  };
+
+  const salvar = async () => {
+    if (!form.id && !arquivo) {
+      toast({ title: "Escolha uma imagem para o asset", variant: "destructive" });
+      return;
+    }
+    setSalvando(true);
     try {
-      for (const file of Array.from(files).slice(0, 8)) {
-        const path = await uploadAssetFile(file);
-        await save.mutateAsync({
-          category: novo.category,
-          name: (novo.name.trim() || file.name.replace(/\.[^.]+$/, "")).slice(0, 120),
-          description: novo.description.trim() || undefined,
-          tags: novo.tags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-          storage_path: path,
-        });
-      }
-      setNovo((n) => ({ ...n, name: "", description: "", tags: "" }));
-      toast({ title: "Assets guardados na biblioteca" });
+      const storage_path = arquivo ? await uploadAssetFile(arquivo) : undefined;
+      await save.mutateAsync({
+        id: form.id,
+        category: form.category,
+        name: (form.name.trim() || arquivo?.name.replace(/\.[^.]+$/, "") || "Asset").slice(0, 120),
+        description: form.description.trim() || undefined,
+        tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+        is_default: form.is_default,
+        ...(storage_path ? { storage_path } : {}),
+      });
+      toast({ title: form.id ? "Asset atualizado" : "Asset guardado na biblioteca" });
+      setAberto(false);
     } catch (e) {
-      toast({ title: "Não deu para subir", description: (e as Error).message, variant: "destructive" });
+      toast({ title: "Não deu para salvar", description: (e as Error).message, variant: "destructive" });
     } finally {
-      setUploading(false);
-      if (fileRef.current) fileRef.current.value = "";
+      setSalvando(false);
     }
   };
 
   const alternarPadrao = async (asset: MarinaDesignAsset) => {
     try {
-      await save.mutateAsync({ id: asset.id, category: asset.category, name: asset.name, is_default: !asset.is_default });
+      await save.mutateAsync({
+        id: asset.id,
+        category: asset.category,
+        name: asset.name,
+        description: asset.description ?? undefined,
+        tags: asset.tags ?? [],
+        is_default: !asset.is_default,
+      });
     } catch (e) {
       toast({ title: "Não deu para alterar", description: (e as Error).message, variant: "destructive" });
     }
@@ -102,67 +191,6 @@ export function DesignAssetsPanel({ onUseAsReference }: Props) {
 
   return (
     <div className="space-y-4">
-      {canEdit && (
-        <Card className="space-y-3 p-4">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label>Categoria</Label>
-              <Select value={novo.category} onValueChange={(v) => setNovo((n) => ({ ...n, category: v }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ASSET_CATEGORIES.map((c) => (
-                    <SelectItem key={c.value} value={c.value}>
-                      {c.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label>Nome (opcional)</Label>
-              <Input
-                value={novo.name}
-                onChange={(e) => setNovo((n) => ({ ...n, name: e.target.value }))}
-                placeholder="Ex.: PSV atendimento offshore"
-              />
-            </div>
-          </div>
-          <div className="space-y-1">
-            <Label>Descrição (opcional)</Label>
-            <Textarea
-              value={novo.description}
-              onChange={(e) => setNovo((n) => ({ ...n, description: e.target.value }))}
-              placeholder="O que essa imagem mostra e quando usar"
-              rows={2}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label>Etiquetas (separadas por vírgula)</Label>
-            <Input
-              value={novo.tags}
-              onChange={(e) => setNovo((n) => ({ ...n, tags: e.target.value }))}
-              placeholder="starlink, antena, marítima"
-            />
-          </div>
-          <div className="relative w-fit">
-            <Button type="button" variant="outline" disabled={uploading}>
-              {uploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-              Subir imagens
-            </Button>
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              multiple
-              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-              onChange={(e) => void subir(e.target.files)}
-            />
-          </div>
-        </Card>
-      )}
-
       <div className="flex flex-wrap items-center gap-2">
         <Select value={filtro} onValueChange={setFiltro}>
           <SelectTrigger className="w-48">
@@ -184,8 +212,13 @@ export function DesignAssetsPanel({ onUseAsReference }: Props) {
           className="max-w-xs"
         />
         {onUseAsReference && selecionados.length > 0 && (
-          <Button size="sm" onClick={usarSelecionados}>
+          <Button size="sm" variant="secondary" onClick={usarSelecionados}>
             Usar {selecionados.length} como referência
+          </Button>
+        )}
+        {canEdit && (
+          <Button size="sm" className="ml-auto" onClick={abrirNovo}>
+            <Plus className="mr-2 h-4 w-4" /> Novo asset
           </Button>
         )}
       </div>
@@ -219,38 +252,36 @@ export function DesignAssetsPanel({ onUseAsReference }: Props) {
                     </div>
                   )}
                 </button>
-                <div className="space-y-2 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{a.name}</p>
-                      <p className="text-xs text-muted-foreground">{categoryLabel(a.category)}</p>
-                    </div>
-                    {a.is_default && (
-                      <Badge variant="secondary" className="gap-1">
-                        <Star className="h-3 w-3" /> Padrão
-                      </Badge>
-                    )}
+                <div className="flex items-start gap-2 p-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">{a.name}</p>
+                    <p className="text-xs text-muted-foreground">{categoryLabel(a.category)}</p>
                   </div>
-                  {a.description && <p className="line-clamp-2 text-xs text-muted-foreground">{a.description}</p>}
-                  {(a.tags ?? []).length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {(a.tags ?? []).slice(0, 4).map((t) => (
-                        <Badge key={t} variant="outline" className="text-[10px]">
-                          {t}
-                        </Badge>
-                      ))}
-                    </div>
+                  {a.is_default && (
+                    <Badge variant="secondary" className="gap-1">
+                      <Star className="h-3 w-3" /> Padrão
+                    </Badge>
                   )}
                   {canEdit && (
-                    <div className="flex gap-2">
-                      <Button size="sm" variant="outline" onClick={() => void alternarPadrao(a)}>
-                        <Star className="mr-1 h-3 w-3" />
-                        {a.is_default ? "Remover padrão" : "Marcar padrão"}
-                      </Button>
-                      <Button size="sm" variant="ghost" onClick={() => void excluir(a)} aria-label={`Excluir ${a.name}`}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-7 w-7" aria-label={`Ações de ${a.name}`}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => abrirEdicao(a)}>
+                          <Pencil className="mr-2 h-4 w-4" /> Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => void alternarPadrao(a)}>
+                          <Star className="mr-2 h-4 w-4" />
+                          {a.is_default ? "Remover padrão" : "Definir como padrão"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => void excluir(a)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Excluir
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
                 </div>
               </Card>
@@ -258,6 +289,118 @@ export function DesignAssetsPanel({ onUseAsReference }: Props) {
           })}
         </div>
       )}
+
+      <Dialog open={aberto} onOpenChange={setAberto}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{form.id ? "Editar asset" : "Novo asset"}</DialogTitle>
+            <DialogDescription>
+              Imagens de referência que a Marina usa para manter fidelidade ao equipamento, à embarcação e ao uniforme.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Imagem</Label>
+              <div className="relative flex h-40 items-center justify-center overflow-hidden rounded-md border border-dashed border-border bg-muted/40">
+                {previa ? (
+                  <img src={previa} alt="Prévia do asset" className="h-full w-full object-contain" />
+                ) : (
+                  <span className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Upload className="h-4 w-4" /> Arraste ou clique para escolher
+                  </span>
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                  onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
+                />
+              </div>
+              {form.id && <p className="text-xs text-muted-foreground">Escolha um arquivo só se quiser trocar a imagem.</p>}
+            </div>
+
+            <div className="space-y-1">
+              <Label>Nome</Label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="Ex.: Antena Starlink Maritime"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label>Categoria</Label>
+              <Select value={form.category} onValueChange={(v) => setForm((f) => ({ ...f, category: v }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASSET_CATEGORIES.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {sugestao && (
+                <button
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, category: sugestao }))}
+                  className="flex items-start gap-2 rounded-md bg-muted p-2 text-left text-xs text-muted-foreground"
+                >
+                  <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                  <span>
+                    Pelo nome, esse asset parece ser de <strong>{categoryLabel(sugestao)}</strong>. Clique para trocar.
+                  </span>
+                </button>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <Label>Descrição (opcional)</Label>
+              <Textarea
+                value={form.description}
+                onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+                placeholder="O que essa imagem mostra e quando usar"
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label>Etiquetas (separadas por vírgula)</Label>
+              <Input
+                value={form.tags}
+                onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+                placeholder="starlink, antena, marítima"
+              />
+            </div>
+
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox
+                checked={form.is_default}
+                onCheckedChange={(v) => setForm((f) => ({ ...f, is_default: v === true }))}
+              />
+              <span>
+                Usar como referência padrão
+                <span className="block text-xs text-muted-foreground">
+                  Entra automaticamente quando o pedido falar desse tema.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAberto(false)} disabled={salvando}>
+              Cancelar
+            </Button>
+            <Button onClick={() => void salvar()} disabled={salvando}>
+              {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
