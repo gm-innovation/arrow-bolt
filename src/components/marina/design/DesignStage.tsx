@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, ExternalLink, ImageOff, Loader2, PenLine, Trash2 } from "lucide-react";
+import { Check, ExternalLink, ImageOff, Loader2, PenLine, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MarinaDesign } from "@/hooks/useMarinaDesigns";
 
@@ -16,6 +16,7 @@ interface Props {
   onApprove: (format: "png" | "jpg" | "pdf") => void;
   onAdjust: (note: string) => void;
   onDiscard: () => void;
+  onRetryCanva: () => void;
   working: boolean;
   approving: boolean;
 }
@@ -34,6 +35,7 @@ export function DesignStage({
   onApprove,
   onAdjust,
   onDiscard,
+  onRetryCanva,
   working,
   approving,
 }: Props) {
@@ -44,7 +46,8 @@ export function DesignStage({
   const hasArt = !!design?.file_url;
   const hasCanva = !!design?.canva_url;
   // Registro já criado, arte ainda em produção.
-  const preparando = !!design && !hasArt && !design.fail_reason;
+  const preparando = !!design && (!hasArt || !hasCanva) && !design.fail_reason;
+  const ready = hasArt && hasCanva;
 
 
   if (!design) {
@@ -79,7 +82,7 @@ export function DesignStage({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
-          {STATUS_LABEL[design.status] ?? design.status}
+          {ready ? (STATUS_LABEL[design.status] ?? design.status) : design.fail_reason ? "Canva pendente" : "Preparando no Canva"}
         </Badge>
         {hasArt && (
           <Badge variant="outline" className="text-[10px] uppercase">
@@ -106,7 +109,7 @@ export function DesignStage({
 
       {design.fail_reason && (
         <p className="border-b border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          {design.fail_reason}. Se for a conexão do Canva, renove na aba Conexões e peça de novo — a arte no palco continua valendo.
+          {design.fail_reason}. A peça só poderá ser aprovada quando a versão editável e o preview exportado do Canva estiverem prontos.
         </p>
       )}
 
@@ -163,10 +166,15 @@ export function DesignStage({
           </Select>
         )}
 
-        <Button onClick={() => onApprove(format)} disabled={approving || design.status === "aprovado"}>
+        <Button onClick={() => onApprove(format)} disabled={!ready || approving || design.status === "aprovado"}>
           {approving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-          Aprovar e publicar
+          Aprovar peça
         </Button>
+        {!ready && !!design.fail_reason && (
+          <Button variant="outline" onClick={onRetryCanva} disabled={working}>
+            <RefreshCw className="mr-2 h-4 w-4" /> Tentar criar no Canva novamente
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setAdjustOpen(true)} disabled={working}>
           <PenLine className="mr-2 h-4 w-4" /> Solicitar ajuste
         </Button>

@@ -122,6 +122,12 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     toast({ title: "Design descartado" });
   };
 
+  const handleRetryCanva = () => {
+    if (!stageDesign?.prompt) return;
+    ask(stageDesign.prompt);
+    if (isMobile) setMobilePane("conversa");
+  };
+
   const conversa = (
     <div className="flex h-full min-h-0 flex-col border-r border-border">
       {isMobile && (
@@ -227,6 +233,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             onApprove={handleApprove}
             onAdjust={handleAdjust}
             onDiscard={handleDiscard}
+            onRetryCanva={handleRetryCanva}
             working={streaming}
             approving={approve.isPending}
           />
