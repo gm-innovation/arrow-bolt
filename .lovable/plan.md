@@ -45,7 +45,7 @@ Hoje o formulário de upload fica solto no topo e cada cartão vira um painel de
 - `supabase/functions/marina-chat/artDirector.ts`: `ART_DIRECTION` perde a instrução de criar copy; `ArtBrief` passa a ter `textos: string[]` preenchido **só** com frases extraídas literalmente do pedido (vazio = peça sem texto); `BRIEF_MODEL` → `openai/gpt-5.5`; `reviewArt` recebe `textos` e reprova palavra fora da lista.
 - `supabase/functions/marina-chat/design.ts`: `generateMarinaImage` recebe o modelo e monta o corpo por família (`messages` + `modalities` para o Gemini de imagem; `prompt`/`size`/`quality` para `openai/gpt-image-2`); novo bloco de regra "sem texto quando a lista de frases estiver vazia" e reforço de `FIDELITY_RULES` sempre que houver referência.
 - `supabase/functions/marina-chat/index.ts`: casamento de assets padrão por nome/etiqueta além de categoria; laço com até duas refações; `fail_reason` quando entrega com aviso; frase de aviso quando a peça sai sem texto.
-- `src/components/marina/design/DesignAssetsPanel.tsx`: aviso de categoria incoerente ao salvar/marcar como padrão.
+- `src/components/marina/design/DesignAssetsPanel.tsx`: reescrito como grade + toolbar; novo `AssetFormDialog` (shadcn `Dialog` + `DropdownMenu`) para criar/editar, reaproveitando as mutations de `useMarinaDesignAssets.ts` (que ganha `update`); aviso de categoria incoerente dentro do modal.
 - Sem mudança de schema.
 
 # Fora do escopo
