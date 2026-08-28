@@ -27,7 +27,20 @@ Regras fixas no prompt de geração e no prompt do Canva:
 - Espaço para logo, site e WhatsApp no rodapé, discreto.
 - Formato respeitado (1080x1080, 1080x1350, story, banner).
 
+
+## Agente Diretor de Arte (subagente + skill)
+
+Em vez de espalhar regras no prompt, ganha um especialista próprio — igual aos outros subagentes da Marina:
+
+- **Subagente "diretor de arte"** dentro do `marina-chat`: recebe o pedido cru da pessoa e devolve um **briefing estruturado** (conceito, cena fotográfica, hierarquia de texto com as palavras exatas, paleta, tipografia, enquadramento, o que é proibido). Só depois esse briefing vai para o gerador de imagem e para o Canva. É ele que impede "template genérico".
+- **Skill da biblioteca** (`ai_skills`): "Direção de arte LECSOR", ativável por marketing/comercial, guardando a identidade da marca (paleta, tom, rodapé padrão, referências visuais) para reaproveitar em todos os pedidos — inclusive pelo WhatsApp.
+- **Crítica antes de mostrar:** depois de gerar, o diretor de arte confere a peça (legibilidade, placeholder, estilo, formato). Se reprovar, refaz uma vez com o ajuste apontado; só então o palco mostra.
+- No Canva, o briefing é passado como instrução de montagem (e o Canva é proibido de escolher template decorativo por conta própria).
+
+Assim a qualidade fica em um lugar só, evolui com o uso e vale para chat e WhatsApp.
+
 ## Detalhes técnicos
+
 
 - `supabase/functions/marina-chat/design.ts`
   - `ART_DIRECTION` novo bloco (tipografia, paleta, proibições, placeholders) usado tanto em `generateMarinaImage` quanto em `DESIGN_PROMPT`.
