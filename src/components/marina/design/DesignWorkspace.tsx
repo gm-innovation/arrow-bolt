@@ -10,6 +10,7 @@ import { useMarinaMessages, useMarinaStream } from "@/hooks/useMarina";
 import {
   useApproveDesign,
   useMarinaDesigns,
+  useRetryCanvaDesign,
   useSetDesignStatus,
   type MarinaDesign,
 } from "@/hooks/useMarinaDesigns";
@@ -41,6 +42,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   const { data: designs } = useMarinaDesigns();
   const approve = useApproveDesign();
   const setStatus = useSetDesignStatus();
+  const retryCanva = useRetryCanvaDesign();
 
   const { send, stop, streaming, status, draft, retry, retryLast } = useMarinaStream(
     threadId,
@@ -122,10 +124,14 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     toast({ title: "Design descartado" });
   };
 
-  const handleRetryCanva = () => {
-    if (!stageDesign?.prompt) return;
-    ask(stageDesign.prompt);
-    if (isMobile) setMobilePane("conversa");
+  const handleRetryCanva = async () => {
+    if (!stageDesign || stageDesign.id === "streaming") return;
+    try {
+      await retryCanva.mutateAsync({ id: stageDesign.id });
+      toast({ title: "Peça editável criada no Canva" });
+    } catch (e) {
+      toast({ title: "Canva ainda pendente", description: (e as Error).message, variant: "destructive" });
+    }
   };
 
   const conversa = (
@@ -236,6 +242,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             onRetryCanva={handleRetryCanva}
             working={streaming}
             approving={approve.isPending}
+            retryingCanva={retryCanva.isPending}
           />
         ) : (
           <ApprovedDesignsPanel

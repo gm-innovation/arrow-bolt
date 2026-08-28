@@ -19,6 +19,7 @@ interface Props {
   onRetryCanva: () => void;
   working: boolean;
   approving: boolean;
+  retryingCanva: boolean;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -38,13 +39,14 @@ export function DesignStage({
   onRetryCanva,
   working,
   approving,
+  retryingCanva,
 }: Props) {
   const [format, setFormat] = useState<"png" | "jpg" | "pdf">("png");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [note, setNote] = useState("");
 
-  const hasArt = !!design?.file_url;
   const hasCanva = !!design?.canva_url;
+  const hasArt = !!design?.file_url && hasCanva;
   // Registro já criado, arte ainda em produção.
   const preparando = !!design && (!hasArt || !hasCanva) && !design.fail_reason;
   const ready = hasArt && hasCanva;
@@ -171,8 +173,8 @@ export function DesignStage({
           Aprovar peça
         </Button>
         {!ready && !!design.fail_reason && (
-          <Button variant="outline" onClick={onRetryCanva} disabled={working}>
-            <RefreshCw className="mr-2 h-4 w-4" /> Tentar criar no Canva novamente
+          <Button variant="outline" onClick={onRetryCanva} disabled={working || retryingCanva}>
+            <RefreshCw className={cn("mr-2 h-4 w-4", retryingCanva && "animate-spin")} /> Tentar criar no Canva novamente
           </Button>
         )}
         <Button variant="outline" onClick={() => setAdjustOpen(true)} disabled={working}>
