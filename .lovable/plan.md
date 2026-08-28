@@ -20,7 +20,7 @@ Regra nova e dura, válida no chat, no WhatsApp e no palco de Design:
 ## 2. Referências passam a ser a fonte da verdade do equipamento
 - As imagens de referência (Starlink marítima, capacete/EPI, embarcação) entram sempre no pedido de imagem com regra de fidelidade total: mesmo modelo, formato, proporção e acabamento.
 - O casamento de asset padrão deixa de depender só da categoria: passa a usar também o **nome e as etiquetas** do asset. Um asset chamado "starlink" entra quando o pedido fala de Starlink, esteja ele em qualquer categoria.
-- Na aba Assets, categoria evidentemente incoerente (capacete e antena em "Embarcações") gera aviso e sugestão de categoria correta ao salvar — sem bloquear.
+- Categoria evidentemente incoerente (capacete e antena em "Embarcações") gera aviso e sugestão de categoria correta ao salvar — sem bloquear.
 
 ## 3. Revisão que reprova de fato
 - Coordenação/crítica sobem para `openai/gpt-5.5` (leitura de imagem e raciocínio melhores que o flash atual).
