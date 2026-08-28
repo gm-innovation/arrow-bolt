@@ -144,18 +144,22 @@ export function DesignStage({
       )}
 
       <div className="min-h-0 flex-1 bg-muted/30 p-3">
-        {preparando ? (
+        {hasPreview ? (
+          <img
+            key={design.file_url ?? design.id}
+            src={design.file_url ?? undefined}
+            alt={design.title ?? "Prévia da peça"}
+            className={cn(
+              "h-full w-full rounded-lg border border-border bg-background object-contain",
+              !ready && "opacity-90",
+            )}
+          />
+        ) : preparando ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-border bg-background p-6 text-center">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Preparando a peça…</p>
+            <p className="text-sm text-muted-foreground">{statusLabel || "Preparando a peça…"}</p>
+            <p className="text-xs text-muted-foreground">{formatElapsed(elapsed)}</p>
           </div>
-        ) : hasArt ? (
-          <img
-            key={design.id}
-            src={design.file_url ?? undefined}
-            alt={design.title ?? "Preview exportado da peça no Canva"}
-            className="h-full w-full rounded-lg border border-border bg-background object-contain"
-          />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border p-6 text-center">
             <p className="max-w-sm text-sm text-muted-foreground">
@@ -171,6 +175,18 @@ export function DesignStage({
           </div>
         )}
       </div>
+
+      {preparando && hasPreview && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+          <span>{statusLabel || "montando a versão editável no Canva…"}</span>
+          <span>· {formatElapsed(elapsed)}</span>
+          {demorando && (
+            <span>· está demorando mais que o normal; pode continuar conversando que eu aviso quando terminar</span>
+          )}
+        </div>
+      )}
+
 
 
       {ready && design.file_url && (
