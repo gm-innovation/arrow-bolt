@@ -69,6 +69,9 @@ O "Criar post" hoje só tem tema, texto e formato. Ele passa a ser um pedido de 
 - `src/lib/marina/designTemplates.ts` (novo): catálogo de modelos com prompt base e campos sugeridos + função que monta o prompt final a partir de modelo, especificações, formato, tom, CTA e estilo.
 - `src/components/marina/design/DesignQuickActions.tsx`: seletor de modelo, campo longo de especificações, tom/CTA/estilo, prévia do prompt e ações de salvar/usar/apagar "Meus modelos".
 - Migração: tabela `marina_design_templates` (`id`, `user_id`, `company_id`, `name`, `payload jsonb`, timestamps) com `GRANT` para `authenticated`/`service_role`, RLS habilitada e políticas restritas ao próprio usuário; hook `src/hooks/useMarinaDesignTemplates.ts`.
+- `supabase/functions/marina-chat/design.ts`: preâmbulo de estilo ultrarrealista em `generateMarinaImage` (fotografia real, sem ilustração/3D/cartoon) e suporte a imagens de referência — `google/gemini-3.1-flash-image` com `messages` + `modalities: ["image","text"]` e blocos `image_url` das fotos anexadas, com instrução de fidelidade ao equipamento; `DESIGN_PROMPT` ganha a mesma regra de realismo e uso das fotos enviadas.
+- Referências reaproveitam os anexos já existentes da conversa (`useMarinaAttachments`), passando as URLs assinadas no corpo do pedido de design.
+
 
 
 ## Fora do escopo
