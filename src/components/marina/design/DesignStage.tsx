@@ -117,7 +117,7 @@ export function DesignStage({
   const trail: MarinaDesignStep[] = (liveSteps?.length ? liveSteps : design?.steps ?? []) as MarinaDesignStep[];
   const currentStep = trail.find((s) => s.state === "andamento") ?? null;
   const updatedAt = design?.updated_at ? Date.parse(design.updated_at) : NaN;
-  const stale = !!currentStep && !working && !retryingCanva && Number.isFinite(updatedAt) && Date.now() - updatedAt > 90_000;
+  const stale = !!currentStep && !working && !retryingCanva && Number.isFinite(updatedAt) && Date.now() - updatedAt > 5 * 60_000;
   const preparing = !!design && !ready && !design.fail_reason && !!currentStep && !stale;
   const pendingCanva = !!design && !ready && !preparing;
   const elapsed = useElapsed((working || retryingCanva || preparing) && !ready, `${design?.id}-${currentStep?.id ?? ""}`, currentStep?.started_at);
@@ -236,7 +236,7 @@ export function DesignStage({
             </p>
           )}
           {stale && (
-            <p className="text-xs text-destructive">Canva interrompido: não houve atualização recente. Tente novamente para retomar.</p>
+            <p className="text-xs text-destructive">Canva interrompido: não houve atualização por mais de cinco minutos. Retome do último avanço confirmado.</p>
           )}
           {currentStep?.updated_at && !stale && (
             <p className="text-xs text-muted-foreground">
@@ -245,7 +245,7 @@ export function DesignStage({
           )}
           {(preparing || retryingCanva) && demorando && (
             <p className="text-xs text-muted-foreground">
-              Está demorando mais que o normal — pode continuar conversando, eu aviso quando terminar.
+              Esta fase está levando mais tempo que o normal — ela continua em segundo plano e será retomável a partir do último avanço.
             </p>
           )}
         </div>

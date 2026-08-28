@@ -144,7 +144,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     try {
       await setStatus.mutateAsync({ id: stageDesign.id, status: "ajuste_solicitado", note });
       await adjustCanva.mutateAsync({ id: stageDesign.id, note });
-      toast({ title: "Peça ajustada no Canva", description: "O palco já mostra a nova exportação do mesmo arquivo." });
+      toast({ title: "Ajuste iniciado", description: "Acompanhe as etapas no palco; o mesmo arquivo será atualizado e exportado em segundo plano." });
     } catch (e) {
       toast({ title: "Não deu para ajustar", description: (e as Error).message, variant: "destructive" });
     }
