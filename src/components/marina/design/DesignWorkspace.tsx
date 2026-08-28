@@ -50,14 +50,18 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     },
   );
 
-  const ask = (message: string) => send(message, { profile, design: true });
+  const ask = (message: string, extra?: { references?: string[] }) =>
+    send(message, { profile, design: true, references: extra?.references });
 
   /** Designs desta conversa, mais novos primeiro. */
   const threadDesigns = useMemo(() => {
     const list = designs ?? [];
     if (!threadId) return list.filter((d) => d.status !== "descartado");
     const fromThread = list.filter((d) => d.conversation_id === threadId && d.status !== "descartado");
-    return fromThread.length ? fromThread : [];
+    if (fromThread.length) return fromThread;
+    // Sem peça nesta conversa: mostra a mais recente ainda pendente, para o
+    // palco nunca ficar vazio depois de um pedido.
+    return list.filter((d) => d.status === "pendente").slice(0, 1);
   }, [designs, threadId]);
 
   const approved = useMemo(() => (designs ?? []).filter((d) => d.status === "aprovado"), [designs]);
