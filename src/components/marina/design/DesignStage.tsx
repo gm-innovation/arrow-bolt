@@ -44,6 +44,8 @@ export function DesignStage({
   const [embedFailed, setEmbedFailed] = useState(false);
 
   const isMarinaPreview = design?.source === "marina" || (!design?.canva_url && !!design?.file_url);
+  // Registro já criado, arquivo ainda em produção.
+  const preparando = !!design && !design.canva_url && !design.file_url && !design.fail_reason;
   const embed = design?.canva_url ? canvaEmbedUrl(design.canva_url) : null;
 
   if (!design) {
@@ -102,7 +104,12 @@ export function DesignStage({
       )}
 
       <div className="min-h-0 flex-1 bg-muted/30 p-3">
-        {isMarinaPreview && design.file_url ? (
+        {preparando ? (
+          <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-border bg-background p-6 text-center">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">Preparando a peça…</p>
+          </div>
+        ) : isMarinaPreview && design.file_url ? (
           <img
             key={design.id}
             src={design.file_url}

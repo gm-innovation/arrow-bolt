@@ -48,6 +48,7 @@ export function useMarinaDesigns(enabled = true) {
   return useQuery({
     queryKey: ["marina-designs"],
     enabled,
+    refetchOnWindowFocus: true,
     queryFn: async () => ((await callDesign("designs")) as { designs: MarinaDesign[] }).designs ?? [],
   });
 }

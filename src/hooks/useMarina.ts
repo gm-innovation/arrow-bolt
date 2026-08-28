@@ -161,6 +161,8 @@ export interface SendOptions {
   profile?: string;
   /** Marca o turno como pedido de design (Canva). */
   design?: boolean;
+  /** Fotos reais que a peça deve reproduzir com fidelidade. */
+  references?: string[];
 }
 
 /** Envia a mensagem e consome o stream da Marina. */
@@ -194,6 +196,7 @@ export function useMarinaStream(
             conversation_id: threadId ?? null,
             ...(options?.profile ? { profile: options.profile } : {}),
             ...(options?.design ? { design: true } : {}),
+            ...(options?.references?.length ? { references: options.references } : {}),
           }),
 
           signal: controller.signal,
