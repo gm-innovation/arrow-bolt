@@ -32,6 +32,9 @@ type ActionKey = "post" | "editar" | "exportar" | "assets";
 interface Props {
   onSend: (prompt: string, extra?: { references?: string[] }) => void;
   disabled?: boolean;
+  /** Assets da biblioteca escolhidos no painel de Assets. */
+  assetReferences?: { url: string; name: string }[];
+  onClearAssetReferences?: () => void;
 }
 
 /** Remove acentos e espaços do nome do arquivo (exigência do storage). */
@@ -42,7 +45,7 @@ function safeName(name: string) {
     .replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
-export function DesignQuickActions({ onSend, disabled }: Props) {
+export function DesignQuickActions({ onSend, disabled, assetReferences = [], onClearAssetReferences }: Props) {
   const { user } = useAuth();
   const [open, setOpen] = useState<ActionKey | null>(null);
   const [spec, setSpec] = useState<DesignSpec>(emptySpec());
@@ -70,9 +73,15 @@ export function DesignQuickActions({ onSend, disabled }: Props) {
   const close = () => setOpen(null);
   const patch = (v: Partial<DesignSpec>) => setSpec((s) => ({ ...s, ...v }));
 
+  /** Fotos anexadas agora + assets marcados na biblioteca (no máximo 4). */
+  const todasReferencias = useMemo(
+    () => [...assetReferences, ...refFiles].slice(0, 4),
+    [assetReferences, refFiles],
+  );
+
   const fullSpec: DesignSpec = useMemo(
-    () => ({ ...spec, referencias: refFiles.map((r) => r.url) }),
-    [spec, refFiles],
+    () => ({ ...spec, referencias: todasReferencias.map((r) => r.url) }),
+    [spec, todasReferencias],
   );
   const previewPrompt = useMemo(() => buildDesignPrompt(fullSpec), [fullSpec]);
 
@@ -115,6 +124,7 @@ export function DesignQuickActions({ onSend, disabled }: Props) {
     onSend(previewPrompt, { references: fullSpec.referencias });
     setSpec(emptySpec());
     setRefFiles([]);
+    onClearAssetReferences?.();
     close();
   };
 
@@ -177,6 +187,15 @@ export function DesignQuickActions({ onSend, disabled }: Props) {
           onChange={(e) => void subirReferencias(e.target.files)}
         />
       </div>
+      {assetReferences.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {assetReferences.map((r) => (
+            <Badge key={r.url} variant="outline" className="max-w-[200px] gap-1">
+              <span className="truncate">{r.name} (biblioteca)</span>
+            </Badge>
+          ))}
+        </div>
+      )}
       {refFiles.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {refFiles.map((r) => (
