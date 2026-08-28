@@ -18,7 +18,26 @@ Onde entra:
 - Skill de biblioteca `direcao-de-arte-lecsor` em `ai_skills` — conteúdo atualizado para valer também no WhatsApp.
 - Textos de identidade em `whatsapp-in` e nos documentos do projeto (`AGENTS.md`, `docs/arrow-knowledge.md`) ajustados para "Lecsor Technology".
 
-## Parte 2 — Área de Assets
+## Parte 2 — Contexto da empresa (extraído de lecsor.com.br)
+
+Um dossiê institucional único que a Marina usa em chat, WhatsApp, design e textos comerciais:
+
+- **Posicionamento:** "Tecnologia que mantém o que não pode parar" — tecnologia operacional para operações críticas.
+- **O que fazemos:** instalação, integração e manutenção de sistemas eletrônicos, de comunicação e de navegação, com engenharia e P&D próprios.
+- **Serviços:** manutenção a bordo (resposta rápida em campo, 24/7), instalação e comissionamento (testes de aceitação, conformidade), reparo em laboratório (bancada calibrada, diagnóstico avançado), vistorias técnicas (inspeções, laudos, conformidade regulatória) e projeto e integração de sistemas (engenharia sob medida, documentação técnica).
+- **Mercados:** naval, offshore, industrial, robótica e agro.
+- **Produtos:** comunicação, navegação, monitoramento e TI/segurança/entretenimento, com marcas como Furuno e Icom.
+- **Números e credenciais:** +10 anos, +100 atendimentos mensais, base no Rio de Janeiro, suporte 24/7, ISO 9001 e ABS.
+- **Clientes de referência:** OceanPact, Oceânica, Bravante, Camorim, DOF, Grupo CBO, Belov, Jotun — só citar em peça pública com autorização.
+- **Tom:** técnico, confiável e sóbrio; foco em disponibilidade, segurança e continuidade operacional. Nada de linguagem de varejo.
+
+Onde entra:
+- Novo `supabase/functions/marina-chat/company.ts` com `LECSOR_CONTEXT` (fonte única), importado pelo prompt da Marina, pelo diretor de arte e pelo prompt de design.
+- Mesmo conteúdo espelhado em `docs/lecsor-contexto.md` e em uma skill de biblioteca `contexto-lecsor` em `ai_skills`, para valer também no WhatsApp.
+- O contexto é texto curto e revisável: quando o site mudar, atualiza-se em um lugar só.
+
+## Parte 3 — Área de Assets
+
 
 Nova aba **Assets** dentro da área de Design em `/marina`, com biblioteca compartilhada da empresa.
 
