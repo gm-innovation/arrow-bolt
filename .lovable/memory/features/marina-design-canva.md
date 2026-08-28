@@ -21,5 +21,5 @@ type: feature
 ## Diretor de arte (subagente + skill)
 - `supabase/functions/marina-chat/artDirector.ts`: `buildBrief` monta briefing estruturado (CONCEITO/CENA/TEXTOS/COR E TIPO/ENQUADRAMENTO/PROIBIDO) e `reviewArt` critica a peça gerada, permitindo uma única refação. Modelo `google/gemini-3.5-flash` no gateway do Arrow.
 - `ART_DIRECTION`/`LECSOR_BRAND` são a fonte única da identidade: azul-marinho, sans industrial, fotografia ultrarrealista; proibido pixel/retrô/cartoon/vetor/3D e qualquer placeholder.
-- Fluxo "os dois": a Marina SEMPRE gera a arte (vai para o palco) e o `canva_url`, quando existir, fica no mesmo registro como caminho editável. Preview prioriza `file_url`; iframe só como último recurso.
+- Fluxo "os dois" em **uma peça só**: a arte é gerada e guardada ANTES de qualquer chamada ao Canva; a URL assinada dessa arte é enviada ao motor, que só cria no Canva um design usando essa mesma imagem como base (proibido outra foto/template). Palco mostra sempre `file_url`; o iframe do Canva foi removido (403 em design privado) e o Canva fica só como link. Falha só do Canva usa `canvaEditFailReason` e não invalida a peça.
 - Skill de biblioteca `direcao-de-arte-lecsor` em `ai_skills` (global, catálogo) para marketing/comercial/direção — vale no chat e no WhatsApp.

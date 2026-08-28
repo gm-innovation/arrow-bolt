@@ -6,7 +6,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Check, ExternalLink, ImageOff, Loader2, PenLine, Trash2 } from "lucide-react";
-import { canvaEmbedUrl } from "@/lib/marina/designSignal";
 import { cn } from "@/lib/utils";
 import type { MarinaDesign } from "@/hooks/useMarinaDesigns";
 
@@ -41,13 +40,11 @@ export function DesignStage({
   const [format, setFormat] = useState<"png" | "jpg" | "pdf">("png");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [note, setNote] = useState("");
-  const [embedFailed, setEmbedFailed] = useState(false);
 
   const hasArt = !!design?.file_url;
   const hasCanva = !!design?.canva_url;
   // Registro já criado, arte ainda em produção.
   const preparando = !!design && !hasArt && !design.fail_reason;
-  const embed = design?.canva_url ? canvaEmbedUrl(design.canva_url) : null;
 
 
   if (!design) {
@@ -109,7 +106,7 @@ export function DesignStage({
 
       {design.fail_reason && (
         <p className="border-b border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          {design.fail_reason}. Se for a conexão do Canva, renove na aba Conexões e peça de novo.
+          {design.fail_reason}. Se for a conexão do Canva, renove na aba Conexões e peça de novo — a arte no palco continua valendo.
         </p>
       )}
 
@@ -126,27 +123,15 @@ export function DesignStage({
             alt={design.title ?? "Arte da peça gerada pela Marina"}
             className="h-full w-full rounded-lg border border-border bg-background object-contain"
           />
-
-        ) : embed && !embedFailed ? (
-          <iframe
-            key={design.id}
-            src={embed}
-            title={design.title ?? "Prévia do design"}
-            className="h-full w-full rounded-lg border border-border bg-background"
-            allow="fullscreen"
-            onError={() => setEmbedFailed(true)}
-          />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border p-6 text-center">
             <p className="max-w-sm text-sm text-muted-foreground">
-              {design.canva_url
-                ? "O Canva não permitiu a prévia embutida deste design. Abra em uma nova aba para conferir antes de aprovar."
-                : "Ainda não tenho arquivo para mostrar desta peça. Peça para a Marina tentar de novo na conversa."}
+              Ainda não tenho arquivo para mostrar desta peça. Peça para a Marina tentar de novo na conversa.
             </p>
             {design.canva_url && (
               <Button asChild size="sm">
                 <a href={design.canva_url} target="_blank" rel="noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" /> Ver o design
+                  <ExternalLink className="mr-2 h-4 w-4" /> Abrir no Canva
                 </a>
               </Button>
             )}
