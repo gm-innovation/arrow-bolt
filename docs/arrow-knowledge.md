@@ -6,7 +6,7 @@ Documento de contexto em nível de **visão geral por módulo**. Destinado a age
 
 ## 1. Identidade
 
-O **Arrow** é uma plataforma de gestão operacional (ERP + SGQ + RH + CRM) construída para a **Lecsor Technology / GM Innovation**, atuante em serviços técnicos navais e industriais (calibração, inspeção, medição, docagem de embarcações).
+O **Arrow** é uma plataforma de gestão operacional (ERP + SGQ + RH + CRM) construída para a **Lecsor Technology**, atuante em serviços técnicos navais e industriais (calibração, inspeção, medição, docagem de embarcações).
 
 Características centrais:
 

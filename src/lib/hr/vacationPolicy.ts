@@ -1,5 +1,5 @@
 /**
- * Política de solicitação de férias (Lecsor / GM Innovation).
+ * Política de solicitação de férias (Lecsor Technology).
  *
  * Padrões aceitos sem exceção:
  *  - 30 dias de gozo, sem venda de dias;
