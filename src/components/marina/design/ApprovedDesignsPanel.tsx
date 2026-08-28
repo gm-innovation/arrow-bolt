@@ -35,7 +35,7 @@ export function ApprovedDesignsPanel({ designs, onOpen }: Props) {
             <div className="flex items-start justify-between gap-2">
               <p className="line-clamp-2 text-sm font-medium">{d.title ?? "Design aprovado"}</p>
               <Badge variant="outline" className="shrink-0 text-[10px] uppercase">
-                {d.export_format ?? "canva"}
+                {d.source === "marina" ? "prévia da Marina" : (d.export_format ?? "canva")}
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -48,11 +48,14 @@ export function ApprovedDesignsPanel({ designs, onOpen }: Props) {
               <Button size="sm" variant="outline" onClick={() => onOpen(d)}>
                 Ver no palco
               </Button>
-              <Button asChild size="sm" variant="ghost">
-                <a href={d.canva_url} target="_blank" rel="noreferrer">
-                  <ExternalLink className="mr-1 h-3.5 w-3.5" /> Canva
-                </a>
-              </Button>
+              {d.canva_url && (
+                <Button asChild size="sm" variant="ghost">
+                  <a href={d.canva_url} target="_blank" rel="noreferrer">
+                    <ExternalLink className="mr-1 h-3.5 w-3.5" /> Canva
+                  </a>
+                </Button>
+              )}
+
               {d.file_url && (
                 <Button asChild size="sm" variant="ghost">
                   <a href={d.file_url} target="_blank" rel="noreferrer">
