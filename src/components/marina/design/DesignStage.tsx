@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +20,8 @@ interface Props {
   working: boolean;
   approving: boolean;
   retryingCanva: boolean;
+  /** Etapa atual informada pela Marina (ex.: "montando as camadas no Canva…"). */
+  statusLabel?: string | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -28,6 +30,23 @@ const STATUS_LABEL: Record<string, string> = {
   ajuste_solicitado: "Ajuste solicitado",
   descartado: "Descartado",
 };
+
+/** Cronômetro simples da etapa em andamento, para a espera nunca ser cega. */
+function useElapsed(active: boolean, resetKey?: string) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    setSeconds(0);
+    if (!active) return;
+    const started = Date.now();
+    const t = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [active, resetKey]);
+  return seconds;
+}
+
+function formatElapsed(s: number) {
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}min ${String(s % 60).padStart(2, "0")}s`;
+}
 
 export function DesignStage({
   design,
@@ -40,16 +59,20 @@ export function DesignStage({
   working,
   approving,
   retryingCanva,
+  statusLabel,
 }: Props) {
   const [format, setFormat] = useState<"png" | "jpg" | "pdf">("png");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [note, setNote] = useState("");
 
   const hasCanva = !!design?.canva_url;
-  const hasArt = !!design?.file_url && hasCanva;
-  // Registro já criado, arte ainda em produção.
-  const preparando = !!design && (!hasArt || !hasCanva) && !design.fail_reason;
-  const ready = hasArt && hasCanva;
+  // Prévia disponível: a fotografia-base já aparece antes do Canva ficar pronto.
+  const hasPreview = !!design?.file_url;
+  // Pronto para aprovar só com arquivo-mestre no Canva E preview exportado dele.
+  const ready = hasPreview && hasCanva && !!design?.export_format;
+  const preparando = !!design && !ready && !design.fail_reason;
+  const elapsed = useElapsed((working || preparando) && !ready, design?.id);
+  const demorando = elapsed >= 90;
 
 
   if (!design) {
