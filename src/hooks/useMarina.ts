@@ -148,10 +148,20 @@ export function useDeleteThread() {
   });
 }
 
+export interface MarinaStep {
+  id: string;
+  label: string;
+  state: "andamento" | "concluida" | "falhou";
+  ms?: number;
+  detail?: string;
+}
+
 interface StreamState {
   streaming: boolean;
   status: string | null;
   draft: string;
+  /** Trilha de etapas da peça em produção (design). */
+  steps: MarinaStep[];
   /** Último turno não concluiu (motor ocupado ou erro): permite tentar de novo. */
   retry: { message: string; options?: SendOptions; reason: string } | null;
 }
@@ -159,11 +169,14 @@ interface StreamState {
 export interface SendOptions {
   /** Perfil/área do pedido (ex.: marketing) — usado nos pedidos de design. */
   profile?: string;
-  /** Marca o turno como pedido de design (Canva). */
+  /** Marca o turno como pedido de peça (true) ou como conversa (false). */
   design?: boolean;
   /** Fotos reais que a peça deve reproduzir com fidelidade. */
   references?: string[];
+  /** Peça no palco: dá contexto para conversar sobre ela sem criar outra. */
+  focusDesignId?: string | null;
 }
+
 
 /** Envia a mensagem e consome o stream da Marina. */
 export function useMarinaStream(
