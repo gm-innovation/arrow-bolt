@@ -39,6 +39,18 @@ docker exec hermes-agent-ohcv-hermes-agent-1 hermes gateway status
 
 Se o `mcp list` sem perfil não mostrar o Canva, o login precisa ser repetido no perfil que atende o gateway (ou o Arrow passa a apontar para `super-admin` via o segredo acima).
 
+**5. Ações rápidas configuráveis (modelos + especificações)**
+
+O "Criar post" hoje só tem tema, texto e formato. Ele passa a ser um pedido de verdade, montado a partir de um modelo:
+
+- **Modelos pré-definidos** com prompt base pronto (promoção/desconto, lançamento de serviço, caso de sucesso, vaga/RH, aviso operacional, institucional, evento/feira). Ao escolher o modelo, os campos já vêm sugeridos com o texto base — e podem ser editados.
+- **Campo de especificações** livre e longo: o que precisa aparecer, o que evitar, referências, produtos, dados técnicos.
+- Campos objetivos junto: formato, tom de voz (institucional, comercial, técnico, descontraído), chamada de ação (CTA), paleta/estilo (usar brand kit, imagem realista, ilustração, foto de bordo) e observação de marca (logo, contato, site).
+- Prévia do pedido antes de enviar: a pessoa vê o texto final que vai para a Marina e pode ajustar na mão.
+- **Meus modelos**: dá para salvar o pedido montado como modelo próprio (nome + campos preenchidos), reutilizar e apagar. Os modelos são por pessoa/empresa.
+- Os mesmos campos alimentam também "Editar design" (especificações do ajuste) — sem mexer em Exportar e Assets.
+
+
 ## Detalhes técnicos
 
 - `supabase/functions/marina-chat/index.ts`: inserir a linha de `ai_messages` do assistente logo no início do turno (`metadata.streaming = true`) e atualizá-la por *flush* periódico e nos caminhos de erro/abort/timeout (`metadata.partial`); criar o registro em `marina_design_approvals` antes de `generateMarinaImage`, atualizando `storage_path`/`fail_reason` depois; reduzir o `AbortSignal.timeout` de design para 75 s.
