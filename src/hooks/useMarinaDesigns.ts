@@ -7,8 +7,13 @@ export type MarinaDesignStatus = "pendente" | "aprovado" | "ajuste_solicitado" |
 
 export interface MarinaDesign {
   id: string;
-  canva_url: string;
+  canva_url: string | null;
+  /** Origem da peça: Canva ou prévia gerada pela própria Marina. */
+  source?: "canva" | "marina" | string;
+  /** Motivo quando o Canva não entregou a peça. */
+  fail_reason?: string | null;
   status: MarinaDesignStatus | string;
+
   profile: string;
   title: string | null;
   prompt?: string | null;

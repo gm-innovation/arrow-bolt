@@ -43,7 +43,8 @@ export function DesignStage({
   const [note, setNote] = useState("");
   const [embedFailed, setEmbedFailed] = useState(false);
 
-  const embed = design ? canvaEmbedUrl(design.canva_url) : null;
+  const isMarinaPreview = design?.source === "marina" || (!design?.canva_url && !!design?.file_url);
+  const embed = design?.canva_url ? canvaEmbedUrl(design.canva_url) : null;
 
   if (!design) {
     return (
@@ -79,16 +80,36 @@ export function DesignStage({
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
           {STATUS_LABEL[design.status] ?? design.status}
         </Badge>
-        <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">{design.title ?? design.canva_url}</span>
-        <Button asChild variant="outline" size="sm">
-          <a href={design.canva_url} target="_blank" rel="noreferrer">
-            <ExternalLink className="mr-2 h-4 w-4" /> Abrir no Canva
-          </a>
-        </Button>
+        <Badge variant="outline" className="text-[10px] uppercase">
+          {isMarinaPreview ? "prévia da Marina" : "Canva"}
+        </Badge>
+        <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
+          {design.title ?? design.canva_url ?? "Prévia gerada pela Marina"}
+        </span>
+        {design.canva_url && (
+          <Button asChild variant="outline" size="sm">
+            <a href={design.canva_url} target="_blank" rel="noreferrer">
+              <ExternalLink className="mr-2 h-4 w-4" /> Abrir no Canva
+            </a>
+          </Button>
+        )}
       </div>
 
+      {design.fail_reason && (
+        <p className="border-b border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+          {design.fail_reason}. Se for a conexão do Canva, renove na aba Conexões e peça de novo.
+        </p>
+      )}
+
       <div className="min-h-0 flex-1 bg-muted/30 p-3">
-        {embed && !embedFailed ? (
+        {isMarinaPreview && design.file_url ? (
+          <img
+            key={design.id}
+            src={design.file_url}
+            alt={design.title ?? "Prévia da peça gerada pela Marina"}
+            className="h-full w-full rounded-lg border border-border bg-background object-contain"
+          />
+        ) : embed && !embedFailed ? (
           <iframe
             key={design.id}
             src={embed}
@@ -98,18 +119,23 @@ export function DesignStage({
             onError={() => setEmbedFailed(true)}
           />
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border text-center">
+          <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border p-6 text-center">
             <p className="max-w-sm text-sm text-muted-foreground">
-              O Canva não permitiu a prévia embutida deste design. Abra em uma nova aba para conferir antes de aprovar.
+              {design.canva_url
+                ? "O Canva não permitiu a prévia embutida deste design. Abra em uma nova aba para conferir antes de aprovar."
+                : "Ainda não tenho arquivo para mostrar desta peça. Peça para a Marina tentar de novo na conversa."}
             </p>
-            <Button asChild size="sm">
-              <a href={design.canva_url} target="_blank" rel="noreferrer">
-                <ExternalLink className="mr-2 h-4 w-4" /> Ver o design
-              </a>
-            </Button>
+            {design.canva_url && (
+              <Button asChild size="sm">
+                <a href={design.canva_url} target="_blank" rel="noreferrer">
+                  <ExternalLink className="mr-2 h-4 w-4" /> Ver o design
+                </a>
+              </Button>
+            )}
           </div>
         )}
       </div>
+
 
       {design.file_url && (
         <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
@@ -121,16 +147,19 @@ export function DesignStage({
       )}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border p-3">
-        <Select value={format} onValueChange={(v) => setFormat(v as typeof format)}>
-          <SelectTrigger className="w-28">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="png">PNG</SelectItem>
-            <SelectItem value="jpg">JPG</SelectItem>
-            <SelectItem value="pdf">PDF</SelectItem>
-          </SelectContent>
-        </Select>
+        {!isMarinaPreview && (
+          <Select value={format} onValueChange={(v) => setFormat(v as typeof format)}>
+            <SelectTrigger className="w-28">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="png">PNG</SelectItem>
+              <SelectItem value="jpg">JPG</SelectItem>
+              <SelectItem value="pdf">PDF</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+
         <Button onClick={() => onApprove(format)} disabled={approving || design.status === "aprovado"}>
           {approving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
           Aprovar e publicar
