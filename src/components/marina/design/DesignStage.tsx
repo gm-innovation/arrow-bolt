@@ -70,15 +70,16 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 /** Cronômetro simples da etapa em andamento, para a espera nunca ser cega. */
-function useElapsed(active: boolean, resetKey?: string) {
+function useElapsed(active: boolean, resetKey?: string, startedAt?: string) {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
-    setSeconds(0);
+    const parsed = startedAt ? Date.parse(startedAt) : NaN;
+    const getSeconds = () => Number.isFinite(parsed) ? Math.max(0, Math.floor((Date.now() - parsed) / 1000)) : 0;
+    setSeconds(getSeconds());
     if (!active) return;
-    const started = Date.now();
-    const t = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    const t = setInterval(() => setSeconds(getSeconds()), 1000);
     return () => clearInterval(t);
-  }, [active, resetKey]);
+  }, [active, resetKey, startedAt]);
   return seconds;
 }
 
@@ -116,10 +117,10 @@ export function DesignStage({
   const trail: MarinaDesignStep[] = (liveSteps?.length ? liveSteps : design?.steps ?? []) as MarinaDesignStep[];
   const currentStep = trail.find((s) => s.state === "andamento") ?? null;
   const updatedAt = design?.updated_at ? Date.parse(design.updated_at) : NaN;
-  const stale = !!currentStep && !working && !retryingCanva && Number.isFinite(updatedAt) && Date.now() - updatedAt > 15 * 60_000;
+  const stale = !!currentStep && !working && !retryingCanva && Number.isFinite(updatedAt) && Date.now() - updatedAt > 90_000;
   const preparing = !!design && !ready && !design.fail_reason && !!currentStep && !stale;
   const pendingCanva = !!design && !ready && !preparing;
-  const elapsed = useElapsed((working || retryingCanva || preparing) && !ready, `${design?.id}-${currentStep?.id ?? ""}`);
+  const elapsed = useElapsed((working || retryingCanva || preparing) && !ready, `${design?.id}-${currentStep?.id ?? ""}`, currentStep?.started_at);
   const demorando = elapsed >= 90;
 
 
@@ -235,7 +236,12 @@ export function DesignStage({
             </p>
           )}
           {stale && (
-            <p className="text-xs text-destructive">A preparação foi interrompida sem atualização. Tente novamente para retomar do Canva.</p>
+            <p className="text-xs text-destructive">Canva interrompido: não houve atualização recente. Tente novamente para retomar.</p>
+          )}
+          {currentStep?.updated_at && !stale && (
+            <p className="text-xs text-muted-foreground">
+              Último avanço às {new Date(currentStep.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.
+            </p>
           )}
           {(preparing || retryingCanva) && demorando && (
             <p className="text-xs text-muted-foreground">

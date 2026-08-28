@@ -182,7 +182,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     if (!stageDesign || stageDesign.id === "streaming") return;
     try {
       await retryCanva.mutateAsync({ id: stageDesign.id });
-      toast({ title: "Peça editável criada no Canva" });
+      toast({ title: "Preparação iniciada", description: "Você pode continuar usando o Arrow enquanto acompanho as etapas no palco." });
     } catch (e) {
       toast({ title: "Canva ainda pendente", description: (e as Error).message, variant: "destructive" });
     }

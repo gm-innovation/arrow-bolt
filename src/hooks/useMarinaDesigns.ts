@@ -53,8 +53,14 @@ async function callDesign(action: string, init?: { method?: string; body?: unkno
     },
     ...(init?.body ? { body: JSON.stringify(init.body) } : {}),
   });
-  const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json?.error || "Não foi possível concluir a ação.");
+  const raw = await res.text().catch(() => "");
+  let json: any = {};
+  try {
+    json = raw ? JSON.parse(raw) : {};
+  } catch {
+    json = {};
+  }
+  if (!res.ok) throw new Error(json?.message || json?.error || (raw ? raw.slice(0, 240) : "Não foi possível concluir a ação."));
   return json;
 }
 
@@ -66,7 +72,11 @@ export function useMarinaDesigns(enabled = true) {
     refetchOnWindowFocus: true,
     refetchInterval: (query) => {
       const rows = query.state.data as MarinaDesign[] | undefined;
-      return rows?.some((design) => design.steps?.some((step) => step.state === "andamento")) ? 2500 : false;
+      const now = Date.now();
+      return rows?.some((design) =>
+        design.steps?.some((step) => step.state === "andamento") &&
+        (!design.updated_at || now - Date.parse(design.updated_at) < 120_000)
+      ) ? 2500 : false;
     },
     queryFn: async () => ((await callDesign("designs")) as { designs: MarinaDesign[] }).designs ?? [],
   });
@@ -111,7 +121,10 @@ export function useRetryCanvaDesign() {
                 steps: [
                   { id: "briefing", label: "Direção de arte e briefing", state: "concluida", detail: "reutilizado" },
                   { id: "arte", label: "Fotografia-base", state: "concluida", detail: "reutilizada" },
-                  { id: "canva", label: "Montando as camadas editáveis no Canva", state: "andamento", started_at: new Date().toISOString() },
+                  { id: "revisao", label: "Revisão da direção de arte", state: "concluida", detail: "reutilizada" },
+                  { id: "refacao", label: "Refação, se necessária", state: "concluida", detail: "reutilizada" },
+                  { id: "guardar_previa", label: "Prévia no Arrow", state: "concluida", detail: "reutilizada" },
+                  { id: "canva", label: "Iniciando o Canva via MCP", state: "andamento", started_at: new Date().toISOString(), updated_at: new Date().toISOString() },
                   { id: "exportacao", label: "Exportação do Canva", state: "aguardando" },
                   { id: "guardar_preview", label: "Preview final no Arrow", state: "aguardando" },
                 ],
