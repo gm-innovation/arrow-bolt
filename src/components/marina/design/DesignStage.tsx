@@ -109,9 +109,14 @@ export function DesignStage({
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
           {ready ? (STATUS_LABEL[design.status] ?? design.status) : design.fail_reason ? "Canva pendente" : "Preparando no Canva"}
         </Badge>
-        {hasArt && (
+        {hasPreview && !ready && (
           <Badge variant="outline" className="text-[10px] uppercase">
-            arte da Marina
+            prévia — versão editável em preparo
+          </Badge>
+        )}
+        {ready && (
+          <Badge variant="outline" className="text-[10px] uppercase">
+            preview do Canva
           </Badge>
         )}
         {hasCanva && (
