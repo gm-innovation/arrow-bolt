@@ -19,6 +19,7 @@ import { MarinaComposer } from "@/components/marina/MarinaComposer";
 import { DesignQuickActions } from "./DesignQuickActions";
 import { DesignStage } from "./DesignStage";
 import { ApprovedDesignsPanel } from "./ApprovedDesignsPanel";
+import { DesignAssetsPanel } from "./DesignAssetsPanel";
 
 interface Props {
   threadId?: string;
@@ -31,7 +32,8 @@ interface Props {
 export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, profile }: Props) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const [view, setView] = useState<"atual" | "aprovados">("atual");
+  const [view, setView] = useState<"atual" | "aprovados" | "assets">("atual");
+  const [assetRefs, setAssetRefs] = useState<{ url: string; name: string }[]>([]);
   const [mobilePane, setMobilePane] = useState<"conversa" | "preview">("conversa");
   const [activeId, setActiveId] = useState<string | null>(null);
 
@@ -168,7 +170,12 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
           </Button>
         </div>
       )}
-      <DesignQuickActions onSend={ask} disabled={streaming} />
+      <DesignQuickActions
+        onSend={ask}
+        disabled={streaming}
+        assetReferences={assetRefs}
+        onClearAssetReferences={() => setAssetRefs([])}
+      />
       <MarinaComposer
         onSend={ask}
         onStop={stop}
@@ -186,6 +193,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
           <TabsList>
             <TabsTrigger value="atual">Atual</TabsTrigger>
             <TabsTrigger value="aprovados">Aprovados{approved.length ? ` (${approved.length})` : ""}</TabsTrigger>
+            <TabsTrigger value="assets">Assets</TabsTrigger>
           </TabsList>
         </Tabs>
         {isMobile && (
@@ -195,7 +203,23 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
         )}
       </div>
       <div className="min-h-0 flex-1">
-        {view === "atual" ? (
+        {view === "assets" ? (
+          <div className="h-full overflow-auto p-3">
+            <DesignAssetsPanel
+              onUseAsReference={(assets) => {
+                setAssetRefs(
+                  assets
+                    .filter((a) => a.file_url)
+                    .map((a) => ({ url: a.file_url as string, name: a.name }))
+                    .slice(0, 4),
+                );
+                setView("atual");
+                if (isMobile) setMobilePane("conversa");
+                toast({ title: "Assets marcados como referência do próximo pedido" });
+              }}
+            />
+          </div>
+        ) : view === "atual" ? (
           <DesignStage
             design={stageDesign}
             versions={threadDesigns}

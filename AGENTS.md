@@ -4,7 +4,7 @@ Leia este arquivo antes de qualquer alteração. O contexto completo por módulo
 
 ## O que é o Arrow
 
-Plataforma de gestão operacional (ERP + SGQ + RH + CRM) da Lecsor Technology / GM Innovation, voltada a serviços técnicos navais e industriais. É multiempresa (dados segmentados por `company_id`), multipapel (cada área tem rota base e permissões próprias) e multi-plataforma (web, PWA e app Android via Capacitor com atualização OTA). Interface e dados em português do Brasil.
+Plataforma de gestão operacional (ERP + SGQ + RH + CRM) da Lecsor Technology, voltada a serviços técnicos navais e industriais. É multiempresa (dados segmentados por `company_id`), multipapel (cada área tem rota base e permissões próprias) e multi-plataforma (web, PWA e app Android via Capacitor com atualização OTA). Interface e dados em português do Brasil.
 
 ## Stack
 
