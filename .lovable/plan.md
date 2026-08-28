@@ -55,5 +55,8 @@ Assim a qualidade fica em um lugar só, evolui com o uso e vale para chat e What
   - iframe só como último recurso, com aviso de design privado e botão "Abrir no Canva";
   - selo passa a indicar "arte da Marina" + "editável no Canva" quando os dois existirem.
 - `src/hooks/useMarinaDesigns.ts` — sem mudança de contrato (usa `file_url`/`canva_url` já existentes).
+- novo `supabase/functions/marina-chat/artDirector.ts` — subagente: `buildBrief(pedido, referencias)` (chamada estruturada ao gateway) e `reviewArt(briefing, imagem)` para a crítica/refação única.
+- semear a skill "Direção de arte LECSOR" em `ai_skills` (registro global, sem alterar estrutura da tabela).
 
 Sem mudança de schema.
+
