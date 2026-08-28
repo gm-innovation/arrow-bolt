@@ -50,6 +50,14 @@ O "Criar post" hoje só tem tema, texto e formato. Ele passa a ser um pedido de 
 - **Meus modelos**: dá para salvar o pedido montado como modelo próprio (nome + campos preenchidos), reutilizar e apagar. Os modelos são por pessoa/empresa.
 - Os mesmos campos alimentam também "Editar design" (especificações do ajuste) — sem mexer em Exportar e Assets.
 
+**6. Padrão ultrarrealista e fidelidade aos produtos reais**
+
+- O estilo **padrão passa a ser fotografia ultrarrealista** (luz natural, profundidade de campo real, sem ilustração, sem 3D, sem cartoon, sem elementos "cara de IA"). Desenho/ilustração só sai se a pessoa escolher explicitamente no seletor de estilo.
+- Esse padrão vale nos dois caminhos: no pedido enviado ao Canva **e** na prévia gerada pela própria Marina.
+- **Imagens de referência**: no "Criar post" dá para anexar fotos reais de produtos/equipamentos. Elas viajam com o pedido e a prévia é gerada a partir delas, com a regra de que o equipamento deve ser reproduzido fielmente — mesmo modelo, cor, marca e proporções, sem inventar peça, logo ou detalhe que não esteja na foto.
+- Quando não houver foto anexada e o pedido mencionar equipamento específico, a Marina avisa em uma linha que gerou uma composição genérica e sugere anexar a foto real.
+
+
 
 ## Detalhes técnicos
 
@@ -61,6 +69,9 @@ O "Criar post" hoje só tem tema, texto e formato. Ele passa a ser um pedido de 
 - `src/lib/marina/designTemplates.ts` (novo): catálogo de modelos com prompt base e campos sugeridos + função que monta o prompt final a partir de modelo, especificações, formato, tom, CTA e estilo.
 - `src/components/marina/design/DesignQuickActions.tsx`: seletor de modelo, campo longo de especificações, tom/CTA/estilo, prévia do prompt e ações de salvar/usar/apagar "Meus modelos".
 - Migração: tabela `marina_design_templates` (`id`, `user_id`, `company_id`, `name`, `payload jsonb`, timestamps) com `GRANT` para `authenticated`/`service_role`, RLS habilitada e políticas restritas ao próprio usuário; hook `src/hooks/useMarinaDesignTemplates.ts`.
+- `supabase/functions/marina-chat/design.ts`: preâmbulo de estilo ultrarrealista em `generateMarinaImage` (fotografia real, sem ilustração/3D/cartoon) e suporte a imagens de referência — `google/gemini-3.1-flash-image` com `messages` + `modalities: ["image","text"]` e blocos `image_url` das fotos anexadas, com instrução de fidelidade ao equipamento; `DESIGN_PROMPT` ganha a mesma regra de realismo e uso das fotos enviadas.
+- Referências reaproveitam os anexos já existentes da conversa (`useMarinaAttachments`), passando as URLs assinadas no corpo do pedido de design.
+
 
 
 ## Fora do escopo
