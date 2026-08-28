@@ -9,7 +9,9 @@ import { toast } from "@/hooks/use-toast";
 import { useMarinaMessages, useMarinaStream } from "@/hooks/useMarina";
 import {
   useApproveDesign,
+  useAdjustCanvaDesign,
   useMarinaDesigns,
+  useRetryCanvaDesign,
   useSetDesignStatus,
   type MarinaDesign,
 } from "@/hooks/useMarinaDesigns";
@@ -40,7 +42,9 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   const { data: messages } = useMarinaMessages(threadId);
   const { data: designs } = useMarinaDesigns();
   const approve = useApproveDesign();
+  const adjustCanva = useAdjustCanvaDesign();
   const setStatus = useSetDesignStatus();
+  const retryCanva = useRetryCanvaDesign();
 
   const { send, stop, streaming, status, draft, retry, retryLast } = useMarinaStream(
     threadId,
@@ -107,12 +111,18 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   };
 
   const handleAdjust = async (note: string) => {
-    if (!stageDesign) return;
-    if (stageDesign.id !== "streaming") {
-      await setStatus.mutateAsync({ id: stageDesign.id, status: "ajuste_solicitado", note }).catch(() => undefined);
+    if (!stageDesign || stageDesign.id === "streaming") return;
+    if (!stageDesign.canva_url) {
+      toast({ title: "Canva ainda pendente", description: "Crie a versão editável antes de solicitar ajustes.", variant: "destructive" });
+      return;
     }
-    ask(`Ajuste o design ${stageDesign.canva_url}: ${note}. Ao terminar, devolva o link do design atualizado.`);
-    if (isMobile) setMobilePane("conversa");
+    try {
+      await setStatus.mutateAsync({ id: stageDesign.id, status: "ajuste_solicitado", note });
+      await adjustCanva.mutateAsync({ id: stageDesign.id, note });
+      toast({ title: "Peça ajustada no Canva", description: "O palco já mostra a nova exportação do mesmo arquivo." });
+    } catch (e) {
+      toast({ title: "Não deu para ajustar", description: (e as Error).message, variant: "destructive" });
+    }
   };
 
   const handleDiscard = async () => {
@@ -120,6 +130,16 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     await setStatus.mutateAsync({ id: stageDesign.id, status: "descartado" }).catch(() => undefined);
     setActiveId(null);
     toast({ title: "Design descartado" });
+  };
+
+  const handleRetryCanva = async () => {
+    if (!stageDesign || stageDesign.id === "streaming") return;
+    try {
+      await retryCanva.mutateAsync({ id: stageDesign.id });
+      toast({ title: "Peça editável criada no Canva" });
+    } catch (e) {
+      toast({ title: "Canva ainda pendente", description: (e as Error).message, variant: "destructive" });
+    }
   };
 
   const conversa = (
@@ -227,8 +247,10 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             onApprove={handleApprove}
             onAdjust={handleAdjust}
             onDiscard={handleDiscard}
-            working={streaming}
+            onRetryCanva={handleRetryCanva}
+            working={streaming || adjustCanva.isPending}
             approving={approve.isPending}
+            retryingCanva={retryCanva.isPending}
           />
         ) : (
           <ApprovedDesignsPanel

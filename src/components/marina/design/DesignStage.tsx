@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, ExternalLink, ImageOff, Loader2, PenLine, Trash2 } from "lucide-react";
+import { Check, ExternalLink, ImageOff, Loader2, PenLine, RefreshCw, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MarinaDesign } from "@/hooks/useMarinaDesigns";
 
@@ -16,8 +16,10 @@ interface Props {
   onApprove: (format: "png" | "jpg" | "pdf") => void;
   onAdjust: (note: string) => void;
   onDiscard: () => void;
+  onRetryCanva: () => void;
   working: boolean;
   approving: boolean;
+  retryingCanva: boolean;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -34,17 +36,20 @@ export function DesignStage({
   onApprove,
   onAdjust,
   onDiscard,
+  onRetryCanva,
   working,
   approving,
+  retryingCanva,
 }: Props) {
   const [format, setFormat] = useState<"png" | "jpg" | "pdf">("png");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [note, setNote] = useState("");
 
-  const hasArt = !!design?.file_url;
   const hasCanva = !!design?.canva_url;
+  const hasArt = !!design?.file_url && hasCanva;
   // Registro já criado, arte ainda em produção.
-  const preparando = !!design && !hasArt && !design.fail_reason;
+  const preparando = !!design && (!hasArt || !hasCanva) && !design.fail_reason;
+  const ready = hasArt && hasCanva;
 
 
   if (!design) {
@@ -79,7 +84,7 @@ export function DesignStage({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
-          {STATUS_LABEL[design.status] ?? design.status}
+          {ready ? (STATUS_LABEL[design.status] ?? design.status) : design.fail_reason ? "Canva pendente" : "Preparando no Canva"}
         </Badge>
         {hasArt && (
           <Badge variant="outline" className="text-[10px] uppercase">
@@ -106,7 +111,7 @@ export function DesignStage({
 
       {design.fail_reason && (
         <p className="border-b border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          {design.fail_reason}. Se for a conexão do Canva, renove na aba Conexões e peça de novo — a arte no palco continua valendo.
+          {design.fail_reason}. A peça só poderá ser aprovada quando a versão editável e o preview exportado do Canva estiverem prontos.
         </p>
       )}
 
@@ -119,8 +124,8 @@ export function DesignStage({
         ) : hasArt ? (
           <img
             key={design.id}
-            src={design.file_url!}
-            alt={design.title ?? "Arte da peça gerada pela Marina"}
+            src={design.file_url ?? undefined}
+            alt={design.title ?? "Preview exportado da peça no Canva"}
             className="h-full w-full rounded-lg border border-border bg-background object-contain"
           />
         ) : (
@@ -140,9 +145,9 @@ export function DesignStage({
       </div>
 
 
-      {design.file_url && (
+      {ready && design.file_url && (
         <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-          Arquivo {design.export_format?.toUpperCase()} guardado no Arrow ·{" "}
+          Preview {design.export_format?.toUpperCase()} exportado do Canva ·{" "}
           <a className="text-primary underline" href={design.file_url} target="_blank" rel="noreferrer">
             baixar
           </a>
@@ -163,10 +168,15 @@ export function DesignStage({
           </Select>
         )}
 
-        <Button onClick={() => onApprove(format)} disabled={approving || design.status === "aprovado"}>
+        <Button onClick={() => onApprove(format)} disabled={!ready || approving || design.status === "aprovado"}>
           {approving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
-          Aprovar e publicar
+          Aprovar peça
         </Button>
+        {!ready && !!design.fail_reason && (
+          <Button variant="outline" onClick={onRetryCanva} disabled={working || retryingCanva}>
+            <RefreshCw className={cn("mr-2 h-4 w-4", retryingCanva && "animate-spin")} /> Tentar criar no Canva novamente
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setAdjustOpen(true)} disabled={working}>
           <PenLine className="mr-2 h-4 w-4" /> Solicitar ajuste
         </Button>
