@@ -85,3 +85,13 @@ export function useRetryCanvaDesign() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
   });
 }
+
+/** Ajusta as camadas do arquivo Canva existente e atualiza seu preview. */
+export function useAdjustCanvaDesign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { id: string; note: string }) =>
+      await callDesign("design_adjust_canva", { method: "POST", body: payload }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
+  });
+}

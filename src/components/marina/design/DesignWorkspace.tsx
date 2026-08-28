@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { useMarinaMessages, useMarinaStream } from "@/hooks/useMarina";
 import {
   useApproveDesign,
+  useAdjustCanvaDesign,
   useMarinaDesigns,
   useRetryCanvaDesign,
   useSetDesignStatus,
@@ -41,6 +42,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   const { data: messages } = useMarinaMessages(threadId);
   const { data: designs } = useMarinaDesigns();
   const approve = useApproveDesign();
+  const adjustCanva = useAdjustCanvaDesign();
   const setStatus = useSetDesignStatus();
   const retryCanva = useRetryCanvaDesign();
 
@@ -109,12 +111,18 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   };
 
   const handleAdjust = async (note: string) => {
-    if (!stageDesign) return;
-    if (stageDesign.id !== "streaming") {
-      await setStatus.mutateAsync({ id: stageDesign.id, status: "ajuste_solicitado", note }).catch(() => undefined);
+    if (!stageDesign || stageDesign.id === "streaming") return;
+    if (!stageDesign.canva_url) {
+      toast({ title: "Canva ainda pendente", description: "Crie a versão editável antes de solicitar ajustes.", variant: "destructive" });
+      return;
     }
-    ask(`Ajuste o design ${stageDesign.canva_url}: ${note}. Ao terminar, devolva o link do design atualizado.`);
-    if (isMobile) setMobilePane("conversa");
+    try {
+      await setStatus.mutateAsync({ id: stageDesign.id, status: "ajuste_solicitado", note });
+      await adjustCanva.mutateAsync({ id: stageDesign.id, note });
+      toast({ title: "Peça ajustada no Canva", description: "O palco já mostra a nova exportação do mesmo arquivo." });
+    } catch (e) {
+      toast({ title: "Não deu para ajustar", description: (e as Error).message, variant: "destructive" });
+    }
   };
 
   const handleDiscard = async () => {
@@ -240,7 +248,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             onAdjust={handleAdjust}
             onDiscard={handleDiscard}
             onRetryCanva={handleRetryCanva}
-            working={streaming}
+            working={streaming || adjustCanva.isPending}
             approving={approve.isPending}
             retryingCanva={retryCanva.isPending}
           />
