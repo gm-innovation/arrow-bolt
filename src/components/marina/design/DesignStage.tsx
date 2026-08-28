@@ -124,8 +124,8 @@ export function DesignStage({
         ) : hasArt ? (
           <img
             key={design.id}
-            src={design.file_url!}
-            alt={design.title ?? "Arte da peça gerada pela Marina"}
+            src={design.file_url ?? undefined}
+            alt={design.title ?? "Preview exportado da peça no Canva"}
             className="h-full w-full rounded-lg border border-border bg-background object-contain"
           />
         ) : (
@@ -145,9 +145,9 @@ export function DesignStage({
       </div>
 
 
-      {design.file_url && (
+      {ready && design.file_url && (
         <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-          Arquivo {design.export_format?.toUpperCase()} guardado no Arrow ·{" "}
+          Preview {design.export_format?.toUpperCase()} exportado do Canva ·{" "}
           <a className="text-primary underline" href={design.file_url} target="_blank" rel="noreferrer">
             baixar
           </a>
