@@ -20,7 +20,7 @@ Regra nova e dura, válida no chat, no WhatsApp e no palco de Design:
 ## 2. Referências passam a ser a fonte da verdade do equipamento
 - As imagens de referência (Starlink marítima, capacete/EPI, embarcação) entram sempre no pedido de imagem com regra de fidelidade total: mesmo modelo, formato, proporção e acabamento.
 - O casamento de asset padrão deixa de depender só da categoria: passa a usar também o **nome e as etiquetas** do asset. Um asset chamado "starlink" entra quando o pedido fala de Starlink, esteja ele em qualquer categoria.
-- Na aba Assets, categoria evidentemente incoerente (capacete e antena em "Embarcações") gera aviso e sugestão de categoria correta ao salvar — sem bloquear.
+- Categoria evidentemente incoerente (capacete e antena em "Embarcações") gera aviso e sugestão de categoria correta ao salvar — sem bloquear.
 
 ## 3. Revisão que reprova de fato
 - Coordenação/crítica sobem para `openai/gpt-5.5` (leitura de imagem e raciocínio melhores que o flash atual).
@@ -31,12 +31,21 @@ Regra nova e dura, válida no chat, no WhatsApp e no palco de Design:
 - Peça **com** referências de equipamento (o caso normal aqui) → `google/gemini-3.1-flash-image`, que é o que respeita imagem de entrada.
 - Peça **com frases fornecidas** e sem referência obrigatória → `openai/gpt-image-2`, o melhor do catálogo para texto legível.
 
+## 5. Tela de Assets mais simples
+Hoje o formulário de upload fica solto no topo e cada cartão vira um painel de edição — fica confuso.
+
+- A aba passa a ser só a **biblioteca**: barra com busca, filtro de categoria e um botão **"Novo asset"** à direita.
+- "Novo asset" abre um **modal** com: imagem (arrastar ou escolher, com prévia), nome, categoria, descrição curta, etiquetas e a opção "usar como referência padrão desta categoria". Salvar fecha o modal e o asset aparece na grade.
+- O cartão fica limpo: miniatura, nome, categoria, selo "Padrão" quando for o caso, e um menu (⋯) com **Editar**, **Definir/remover padrão** e **Excluir**. Editar reabre o mesmo modal já preenchido — assim dá para arrumar o capacete e a Starlink que estão em "Embarcações".
+- Selecionar para usar como referência continua no clique do cartão, com borda e contador do que está selecionado.
+
+
 # Detalhes técnicos
 
 - `supabase/functions/marina-chat/artDirector.ts`: `ART_DIRECTION` perde a instrução de criar copy; `ArtBrief` passa a ter `textos: string[]` preenchido **só** com frases extraídas literalmente do pedido (vazio = peça sem texto); `BRIEF_MODEL` → `openai/gpt-5.5`; `reviewArt` recebe `textos` e reprova palavra fora da lista.
 - `supabase/functions/marina-chat/design.ts`: `generateMarinaImage` recebe o modelo e monta o corpo por família (`messages` + `modalities` para o Gemini de imagem; `prompt`/`size`/`quality` para `openai/gpt-image-2`); novo bloco de regra "sem texto quando a lista de frases estiver vazia" e reforço de `FIDELITY_RULES` sempre que houver referência.
 - `supabase/functions/marina-chat/index.ts`: casamento de assets padrão por nome/etiqueta além de categoria; laço com até duas refações; `fail_reason` quando entrega com aviso; frase de aviso quando a peça sai sem texto.
-- `src/components/marina/design/DesignAssetsPanel.tsx`: aviso de categoria incoerente ao salvar/marcar como padrão.
+- `src/components/marina/design/DesignAssetsPanel.tsx`: reescrito como grade + toolbar; novo `AssetFormDialog` (shadcn `Dialog` + `DropdownMenu`) para criar/editar, reaproveitando as mutations de `useMarinaDesignAssets.ts` (que ganha `update`); aviso de categoria incoerente dentro do modal.
 - Sem mudança de schema.
 
 # Fora do escopo
