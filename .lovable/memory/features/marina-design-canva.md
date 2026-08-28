@@ -17,3 +17,9 @@ type: feature
 - **Realismo é padrão:** sem estilo escolhido, a peça sai em fotografia ultrarrealista (proibido ilustração/cartoon/3D). Fotos anexadas são referências OBRIGATÓRIAS: equipamento fiel (modelo, cor, marca, proporções); sem foto, a Marina avisa que é composição e pede a foto real. Referências vão em `references` (URLs assinadas de `marina-designs/{user_id}/refs/`) e entram como blocos `image_url` no gateway de imagens.
 - **Ações rápidas configuráveis:** `src/lib/marina/designTemplates.ts` (modelos prontos, formatos, tons, estilos, CTA, marca e montagem do prompt com prévia) + "Meus modelos" em `marina_design_templates` via `useMarinaDesignTemplates`.
 - Perfil do motor enviado pelo segredo `HERMES_PROFILE` (hoje `super-admin`), para o Canva autenticado nesse perfil valer para o Arrow.
+
+## Diretor de arte (subagente + skill)
+- `supabase/functions/marina-chat/artDirector.ts`: `buildBrief` monta briefing estruturado (CONCEITO/CENA/TEXTOS/COR E TIPO/ENQUADRAMENTO/PROIBIDO) e `reviewArt` critica a peça gerada, permitindo uma única refação. Modelo `google/gemini-3.5-flash` no gateway do Arrow.
+- `ART_DIRECTION`/`LECSOR_BRAND` são a fonte única da identidade: azul-marinho, sans industrial, fotografia ultrarrealista; proibido pixel/retrô/cartoon/vetor/3D e qualquer placeholder.
+- Fluxo "os dois": a Marina SEMPRE gera a arte (vai para o palco) e o `canva_url`, quando existir, fica no mesmo registro como caminho editável. Preview prioriza `file_url`; iframe só como último recurso.
+- Skill de biblioteca `direcao-de-arte-lecsor` em `ai_skills` (global, catálogo) para marketing/comercial/direção — vale no chat e no WhatsApp.
