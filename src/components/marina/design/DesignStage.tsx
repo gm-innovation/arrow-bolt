@@ -43,10 +43,12 @@ export function DesignStage({
   const [note, setNote] = useState("");
   const [embedFailed, setEmbedFailed] = useState(false);
 
-  const isMarinaPreview = design?.source === "marina" || (!design?.canva_url && !!design?.file_url);
-  // Registro já criado, arquivo ainda em produção.
-  const preparando = !!design && !design.canva_url && !design.file_url && !design.fail_reason;
+  const hasArt = !!design?.file_url;
+  const hasCanva = !!design?.canva_url;
+  // Registro já criado, arte ainda em produção.
+  const preparando = !!design && !hasArt && !design.fail_reason;
   const embed = design?.canva_url ? canvaEmbedUrl(design.canva_url) : null;
+
 
   if (!design) {
     return (
