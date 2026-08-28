@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Menu, MessageSquare, Palette } from "lucide-react";
+import { Menu, MessageSquare, Palette, Sparkles } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "@/hooks/use-toast";
 import { useMarinaMessages, useMarinaStream } from "@/hooks/useMarina";
@@ -38,6 +38,8 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   const [assetRefs, setAssetRefs] = useState<{ url: string; name: string }[]>([]);
   const [mobilePane, setMobilePane] = useState<"conversa" | "preview">("conversa");
   const [activeId, setActiveId] = useState<string | null>(null);
+  /** Ligado: a próxima mensagem é pedido de peça. Desligado: é conversa. */
+  const [gerarPeca, setGerarPeca] = useState(false);
 
   const { data: messages } = useMarinaMessages(threadId);
   const { data: designs } = useMarinaDesigns();
@@ -46,7 +48,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   const setStatus = useSetDesignStatus();
   const retryCanva = useRetryCanvaDesign();
 
-  const { send, stop, streaming, status, draft, retry, retryLast } = useMarinaStream(
+  const { send, stop, streaming, status, draft, steps, retry, retryLast } = useMarinaStream(
     threadId,
     (id) => navigate(`/marina/${id}`, { replace: true }),
     (design) => {
@@ -56,8 +58,22 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     },
   );
 
-  const ask = (message: string, extra?: { references?: string[] }) =>
-    send(message, { profile, design: true, references: extra?.references });
+  /** Pedido de peça: só pelas ações rápidas ou com "Gerar peça" ligado. */
+  const askDesign = (message: string, extra?: { references?: string[] }) => {
+    setGerarPeca(false);
+    return send(message, { profile, design: true, references: extra?.references });
+  };
+
+  /** Conversa sobre o trabalho: nada é gerado, a peça do palco vai como contexto. */
+  const askChat = (message: string, extra?: { references?: string[] }) =>
+    gerarPeca
+      ? askDesign(message, extra)
+      : send(message, {
+          profile,
+          design: false,
+          references: extra?.references,
+          focusDesignId: activeId && activeId !== "streaming" ? activeId : null,
+        });
 
   /** Designs desta conversa, mais novos primeiro. */
   const threadDesigns = useMemo(() => {
@@ -71,6 +87,15 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   }, [designs, threadId]);
 
   const approved = useMemo(() => (designs ?? []).filter((d) => d.status === "aprovado"), [designs]);
+
+  /** Descartadas desta conversa, para recuperar caso tenha sido engano. */
+  const discarded = useMemo(
+    () =>
+      (designs ?? []).filter(
+        (d) => d.status === "descartado" && (!threadId || d.conversation_id === threadId),
+      ),
+    [designs, threadId],
+  );
 
   const active = useMemo(
     () => threadDesigns.find((d) => d.id === activeId) ?? approved.find((d) => d.id === activeId) ?? threadDesigns[0] ?? null,
@@ -132,6 +157,27 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     toast({ title: "Design descartado" });
   };
 
+  const handleDiscardVersion = async (id: string) => {
+    await setStatus.mutateAsync({ id, status: "descartado" }).catch(() => undefined);
+    if (activeId === id) setActiveId(null);
+    toast({ title: "Versão descartada" });
+  };
+
+  const handleKeepOnly = async (id: string) => {
+    const others = threadDesigns.filter((d) => d.id !== id && d.id !== "streaming");
+    for (const d of others) {
+      await setStatus.mutateAsync({ id: d.id, status: "descartado" }).catch(() => undefined);
+    }
+    setActiveId(id);
+    toast({ title: `Mantive só esta versão`, description: `${others.length} descartada(s).` });
+  };
+
+  const handleRestore = async (id: string) => {
+    await setStatus.mutateAsync({ id, status: "pendente" }).catch(() => undefined);
+    setActiveId(id);
+    toast({ title: "Versão recuperada" });
+  };
+
   const handleRetryCanva = async () => {
     if (!stageDesign || stageDesign.id === "streaming") return;
     try {
@@ -190,14 +236,30 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
           </Button>
         </div>
       )}
+      <div className="flex items-center gap-2 border-t border-border px-3 py-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={gerarPeca ? "default" : "outline"}
+          onClick={() => setGerarPeca((v) => !v)}
+          aria-pressed={gerarPeca}
+        >
+          <Sparkles className="mr-2 h-4 w-4" /> Gerar peça
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          {gerarPeca
+            ? "A próxima mensagem cria uma peça nova."
+            : "Mensagens são conversa sobre o trabalho — ligue para criar uma peça."}
+        </span>
+      </div>
       <DesignQuickActions
-        onSend={ask}
+        onSend={askDesign}
         disabled={streaming}
         assetReferences={assetRefs}
         onClearAssetReferences={() => setAssetRefs([])}
       />
       <MarinaComposer
-        onSend={ask}
+        onSend={askChat}
         onStop={stop}
         streaming={streaming}
         threadId={threadId}
@@ -252,6 +314,11 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             approving={approve.isPending}
             retryingCanva={retryCanva.isPending}
             statusLabel={adjustCanva.isPending ? "ajustando as camadas no Canva…" : status}
+            liveSteps={steps}
+            discarded={discarded}
+            onDiscardVersion={handleDiscardVersion}
+            onKeepOnly={handleKeepOnly}
+            onRestore={handleRestore}
           />
         ) : (
           <ApprovedDesignsPanel
