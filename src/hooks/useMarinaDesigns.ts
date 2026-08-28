@@ -9,9 +9,11 @@ export type MarinaDesignStatus = "pendente" | "aprovado" | "ajuste_solicitado" |
 export interface MarinaDesignStep {
   id: string;
   label: string;
-  state: "andamento" | "concluida" | "falhou";
+  state: "aguardando" | "andamento" | "concluida" | "falhou" | "cancelada";
   ms?: number;
   detail?: string;
+  started_at?: string;
+  updated_at?: string;
 }
 
 export interface MarinaDesign {
@@ -37,6 +39,7 @@ export interface MarinaDesign {
   approved_at?: string | null;
   conversation_id?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 async function callDesign(action: string, init?: { method?: string; body?: unknown }) {
@@ -61,6 +64,10 @@ export function useMarinaDesigns(enabled = true) {
     queryKey: ["marina-designs"],
     enabled,
     refetchOnWindowFocus: true,
+    refetchInterval: (query) => {
+      const rows = query.state.data as MarinaDesign[] | undefined;
+      return rows?.some((design) => design.steps?.some((step) => step.state === "andamento")) ? 2500 : false;
+    },
     queryFn: async () => ((await callDesign("designs")) as { designs: MarinaDesign[] }).designs ?? [],
   });
 }
@@ -94,7 +101,26 @@ export function useRetryCanvaDesign() {
   return useMutation({
     mutationFn: async (payload: { id: string }) =>
       await callDesign("design_retry_canva", { method: "POST", body: payload }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
+    onMutate: ({ id }) => {
+      qc.setQueryData<MarinaDesign[]>(["marina-designs"], (rows) =>
+        rows?.map((design) =>
+          design.id === id
+            ? {
+                ...design,
+                fail_reason: null,
+                steps: [
+                  { id: "briefing", label: "Direção de arte e briefing", state: "concluida", detail: "reutilizado" },
+                  { id: "arte", label: "Fotografia-base", state: "concluida", detail: "reutilizada" },
+                  { id: "canva", label: "Montando as camadas editáveis no Canva", state: "andamento", started_at: new Date().toISOString() },
+                  { id: "exportacao", label: "Exportação do Canva", state: "aguardando" },
+                  { id: "guardar_preview", label: "Preview final no Arrow", state: "aguardando" },
+                ],
+              }
+            : design,
+        ),
+      );
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
   });
 }
 
