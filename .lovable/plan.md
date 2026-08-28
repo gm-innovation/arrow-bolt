@@ -58,6 +58,10 @@ O "Criar post" hoje só tem tema, texto e formato. Ele passa a ser um pedido de 
 - `src/hooks/useMarina.ts`: tratar mensagens `streaming`/`partial` na lista, sem duplicar o rascunho local.
 - `src/components/marina/design/DesignWorkspace.tsx`: cair para a peça pendente mais recente quando a conversa não tem peça; `refetchOnWindowFocus` e invalidação ao fim do stream.
 - `src/components/marina/design/DesignStage.tsx`: estado "preparando a peça…" para registro sem arquivo.
+- `src/lib/marina/designTemplates.ts` (novo): catálogo de modelos com prompt base e campos sugeridos + função que monta o prompt final a partir de modelo, especificações, formato, tom, CTA e estilo.
+- `src/components/marina/design/DesignQuickActions.tsx`: seletor de modelo, campo longo de especificações, tom/CTA/estilo, prévia do prompt e ações de salvar/usar/apagar "Meus modelos".
+- Migração: tabela `marina_design_templates` (`id`, `user_id`, `company_id`, `name`, `payload jsonb`, timestamps) com `GRANT` para `authenticated`/`service_role`, RLS habilitada e políticas restritas ao próprio usuário; hook `src/hooks/useMarinaDesignTemplates.ts`.
+
 
 ## Fora do escopo
 
