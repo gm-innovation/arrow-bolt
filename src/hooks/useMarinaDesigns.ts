@@ -5,6 +5,15 @@ const FUNCTIONS_URL = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supab
 
 export type MarinaDesignStatus = "pendente" | "aprovado" | "ajuste_solicitado" | "descartado";
 
+/** Etapa da produção da peça, com tempo gasto. */
+export interface MarinaDesignStep {
+  id: string;
+  label: string;
+  state: "andamento" | "concluida" | "falhou";
+  ms?: number;
+  detail?: string;
+}
+
 export interface MarinaDesign {
   id: string;
   canva_url: string | null;
@@ -12,7 +21,10 @@ export interface MarinaDesign {
   source?: "canva" | "marina" | string;
   /** Motivo quando o Canva não entregou a peça. */
   fail_reason?: string | null;
+  /** Trilha de etapas já registradas para esta peça. */
+  steps?: MarinaDesignStep[] | null;
   status: MarinaDesignStatus | string;
+
 
   profile: string;
   title: string | null;
