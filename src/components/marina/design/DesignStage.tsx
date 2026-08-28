@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,6 +20,8 @@ interface Props {
   working: boolean;
   approving: boolean;
   retryingCanva: boolean;
+  /** Etapa atual informada pela Marina (ex.: "montando as camadas no Canva…"). */
+  statusLabel?: string | null;
 }
 
 const STATUS_LABEL: Record<string, string> = {
@@ -28,6 +30,23 @@ const STATUS_LABEL: Record<string, string> = {
   ajuste_solicitado: "Ajuste solicitado",
   descartado: "Descartado",
 };
+
+/** Cronômetro simples da etapa em andamento, para a espera nunca ser cega. */
+function useElapsed(active: boolean, resetKey?: string) {
+  const [seconds, setSeconds] = useState(0);
+  useEffect(() => {
+    setSeconds(0);
+    if (!active) return;
+    const started = Date.now();
+    const t = setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, [active, resetKey]);
+  return seconds;
+}
+
+function formatElapsed(s: number) {
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}min ${String(s % 60).padStart(2, "0")}s`;
+}
 
 export function DesignStage({
   design,
@@ -40,16 +59,20 @@ export function DesignStage({
   working,
   approving,
   retryingCanva,
+  statusLabel,
 }: Props) {
   const [format, setFormat] = useState<"png" | "jpg" | "pdf">("png");
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [note, setNote] = useState("");
 
   const hasCanva = !!design?.canva_url;
-  const hasArt = !!design?.file_url && hasCanva;
-  // Registro já criado, arte ainda em produção.
-  const preparando = !!design && (!hasArt || !hasCanva) && !design.fail_reason;
-  const ready = hasArt && hasCanva;
+  // Prévia disponível: a fotografia-base já aparece antes do Canva ficar pronto.
+  const hasPreview = !!design?.file_url;
+  // Pronto para aprovar só com arquivo-mestre no Canva E preview exportado dele.
+  const ready = hasPreview && hasCanva && !!design?.export_format;
+  const preparando = !!design && !ready && !design.fail_reason;
+  const elapsed = useElapsed((working || preparando) && !ready, design?.id);
+  const demorando = elapsed >= 90;
 
 
   if (!design) {
@@ -86,9 +109,14 @@ export function DesignStage({
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
           {ready ? (STATUS_LABEL[design.status] ?? design.status) : design.fail_reason ? "Canva pendente" : "Preparando no Canva"}
         </Badge>
-        {hasArt && (
+        {hasPreview && !ready && (
           <Badge variant="outline" className="text-[10px] uppercase">
-            arte da Marina
+            prévia — versão editável em preparo
+          </Badge>
+        )}
+        {ready && (
+          <Badge variant="outline" className="text-[10px] uppercase">
+            preview do Canva
           </Badge>
         )}
         {hasCanva && (
@@ -116,18 +144,22 @@ export function DesignStage({
       )}
 
       <div className="min-h-0 flex-1 bg-muted/30 p-3">
-        {preparando ? (
+        {hasPreview ? (
+          <img
+            key={design.file_url ?? design.id}
+            src={design.file_url ?? undefined}
+            alt={design.title ?? "Prévia da peça"}
+            className={cn(
+              "h-full w-full rounded-lg border border-border bg-background object-contain",
+              !ready && "opacity-90",
+            )}
+          />
+        ) : preparando ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-border bg-background p-6 text-center">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Preparando a peça…</p>
+            <p className="text-sm text-muted-foreground">{statusLabel || "Preparando a peça…"}</p>
+            <p className="text-xs text-muted-foreground">{formatElapsed(elapsed)}</p>
           </div>
-        ) : hasArt ? (
-          <img
-            key={design.id}
-            src={design.file_url ?? undefined}
-            alt={design.title ?? "Preview exportado da peça no Canva"}
-            className="h-full w-full rounded-lg border border-border bg-background object-contain"
-          />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border p-6 text-center">
             <p className="max-w-sm text-sm text-muted-foreground">
@@ -143,6 +175,18 @@ export function DesignStage({
           </div>
         )}
       </div>
+
+      {preparando && hasPreview && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 py-2 text-xs text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+          <span>{statusLabel || "montando a versão editável no Canva…"}</span>
+          <span>· {formatElapsed(elapsed)}</span>
+          {demorando && (
+            <span>· está demorando mais que o normal; pode continuar conversando que eu aviso quando terminar</span>
+          )}
+        </div>
+      )}
+
 
 
       {ready && design.file_url && (

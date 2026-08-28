@@ -251,6 +251,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             working={streaming || adjustCanva.isPending}
             approving={approve.isPending}
             retryingCanva={retryCanva.isPending}
+            statusLabel={adjustCanva.isPending ? "ajustando as camadas no Canva…" : status}
           />
         ) : (
           <ApprovedDesignsPanel
