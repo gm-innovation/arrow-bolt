@@ -36,9 +36,8 @@ Onde entra:
 - Mesmo conteúdo espelhado em `docs/lecsor-contexto.md` e em uma skill de biblioteca `contexto-lecsor` em `ai_skills`, para valer também no WhatsApp.
 - O contexto é texto curto e revisável: quando o site mudar, atualiza-se em um lugar só.
 
+## Parte 3 — Área de Assets
 
-
-## Parte 2 — Área de Assets
 
 Nova aba **Assets** dentro da área de Design em `/marina`, com biblioteca compartilhada da empresa.
 
