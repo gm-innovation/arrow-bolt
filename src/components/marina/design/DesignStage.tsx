@@ -165,7 +165,7 @@ export function DesignStage({
       )}
 
       <div className="flex flex-wrap items-center gap-2 border-t border-border p-3">
-        {!isMarinaPreview && (
+        {hasCanva && (
           <Select value={format} onValueChange={(v) => setFormat(v as typeof format)}>
             <SelectTrigger className="w-28">
               <SelectValue />
