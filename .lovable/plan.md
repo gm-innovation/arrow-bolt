@@ -31,6 +31,15 @@ Regra nova e dura, válida no chat, no WhatsApp e no palco de Design:
 - Peça **com** referências de equipamento (o caso normal aqui) → `google/gemini-3.1-flash-image`, que é o que respeita imagem de entrada.
 - Peça **com frases fornecidas** e sem referência obrigatória → `openai/gpt-image-2`, o melhor do catálogo para texto legível.
 
+## 5. Tela de Assets mais simples
+Hoje o formulário de upload fica solto no topo e cada cartão vira um painel de edição — fica confuso.
+
+- A aba passa a ser só a **biblioteca**: barra com busca, filtro de categoria e um botão **"Novo asset"** à direita.
+- "Novo asset" abre um **modal** com: imagem (arrastar ou escolher, com prévia), nome, categoria, descrição curta, etiquetas e a opção "usar como referência padrão desta categoria". Salvar fecha o modal e o asset aparece na grade.
+- O cartão fica limpo: miniatura, nome, categoria, selo "Padrão" quando for o caso, e um menu (⋯) com **Editar**, **Definir/remover padrão** e **Excluir**. Editar reabre o mesmo modal já preenchido — assim dá para arrumar o capacete e a Starlink que estão em "Embarcações".
+- Selecionar para usar como referência continua no clique do cartão, com borda e contador do que está selecionado.
+
+
 # Detalhes técnicos
 
 - `supabase/functions/marina-chat/artDirector.ts`: `ART_DIRECTION` perde a instrução de criar copy; `ArtBrief` passa a ter `textos: string[]` preenchido **só** com frases extraídas literalmente do pedido (vazio = peça sem texto); `BRIEF_MODEL` → `openai/gpt-5.5`; `reviewArt` recebe `textos` e reprova palavra fora da lista.
