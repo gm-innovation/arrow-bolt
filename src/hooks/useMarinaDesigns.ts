@@ -39,6 +39,7 @@ export interface MarinaDesign {
   approved_at?: string | null;
   conversation_id?: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 async function callDesign(action: string, init?: { method?: string; body?: unknown }) {

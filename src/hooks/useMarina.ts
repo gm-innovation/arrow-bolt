@@ -151,9 +151,11 @@ export function useDeleteThread() {
 export interface MarinaStep {
   id: string;
   label: string;
-  state: "andamento" | "concluida" | "falhou";
+  state: "aguardando" | "andamento" | "concluida" | "falhou" | "cancelada";
   ms?: number;
   detail?: string;
+  started_at?: string;
+  updated_at?: string;
 }
 
 interface StreamState {
@@ -385,6 +387,21 @@ export function useMarinaRuns(enabled: boolean) {
 export function useMarinaEnginePing() {
   return useMutation({
     mutationFn: async () => (await callMarina("ping")) as { ok: boolean; latency_ms?: number; status?: number },
+  });
+}
+
+export interface CanvaMcpHealth {
+  ok: boolean;
+  profile: string | null;
+  profile_configured: boolean;
+  status: "conectado" | "autenticacao_necessaria" | "indisponivel" | "inconclusivo";
+  detail: string;
+}
+
+/** Verifica o MCP Canva dentro do mesmo perfil Hermes usado pelo Arrow. */
+export function useCanvaMcpHealth() {
+  return useMutation({
+    mutationFn: async () => (await callMarina("canva_mcp_health")) as CanvaMcpHealth,
   });
 }
 

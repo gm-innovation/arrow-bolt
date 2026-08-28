@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle2, Plug, Plus, Save } from "lucide-react";
+import { CheckCircle2, CircleAlert, Loader2, Plug, Plus, RefreshCw, Save } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { useMarinaConnectorCatalog, useSetConnectorCredential } from "@/hooks/useMarina";
+import { useCanvaMcpHealth, useMarinaConnectorCatalog, useSetConnectorCredential } from "@/hooks/useMarina";
 
 interface Connector {
   id: string;
@@ -33,6 +33,7 @@ export function MarinaConnectionsPanel() {
 
   const catalog = useMarinaConnectorCatalog(true);
   const setCredential = useSetConnectorCredential();
+  const canvaHealth = useCanvaMcpHealth();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["marina-connectors"],
@@ -97,6 +98,35 @@ export function MarinaConnectionsPanel() {
 
   return (
     <div className="space-y-4">
+      <Card className="p-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex min-w-0 flex-1 items-start gap-2">
+            <Plug className="mt-0.5 h-4 w-4 text-primary" />
+            <div>
+              <h3 className="text-sm font-semibold">Canva via MCP</h3>
+              <p className="text-xs text-muted-foreground">
+                Verifica o Canva dentro do mesmo perfil Hermes usado pela Marina.
+              </p>
+              {canvaHealth.data && (
+                <p className="mt-1 text-xs text-muted-foreground">{canvaHealth.data.detail}</p>
+              )}
+              {canvaHealth.error && (
+                <p className="mt-1 text-xs text-destructive">{(canvaHealth.error as Error).message}</p>
+              )}
+            </div>
+          </div>
+          {canvaHealth.data && (
+            <Badge variant={canvaHealth.data.ok ? "secondary" : "outline"} className="gap-1">
+              {canvaHealth.data.ok ? <CheckCircle2 className="h-3 w-3" /> : <CircleAlert className="h-3 w-3" />}
+              {canvaHealth.data.ok ? "conectado" : "não confirmado"}
+            </Badge>
+          )}
+          <Button size="sm" variant="outline" onClick={() => canvaHealth.mutate()} disabled={canvaHealth.isPending}>
+            {canvaHealth.isPending ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1 h-4 w-4" />}
+            Testar conexão
+          </Button>
+        </div>
+      </Card>
       <Card className="p-4">
         <div className="mb-3">
           <h3 className="text-sm font-semibold">Conexões disponíveis</h3>

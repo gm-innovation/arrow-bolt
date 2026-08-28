@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, CircleDot, ExternalLink, ImageOff, Loader2, PenLine, RefreshCw, RotateCcw, Trash2, TriangleAlert, X } from "lucide-react";
+import { Check, Circle, CircleDot, ExternalLink, ImageOff, Loader2, PenLine, RefreshCw, RotateCcw, Trash2, TriangleAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MarinaDesign, MarinaDesignStep } from "@/hooks/useMarinaDesigns";
 
@@ -42,10 +42,14 @@ function StepTrail({ steps, elapsed }: { steps: MarinaDesignStep[]; elapsed: num
             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
           ) : s.state === "falhou" ? (
             <TriangleAlert className="h-3.5 w-3.5 shrink-0 text-destructive" />
+          ) : s.state === "aguardando" ? (
+            <Circle className="h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+          ) : s.state === "cancelada" ? (
+            <X className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
           ) : (
             <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
           )}
-          <span className={cn("min-w-0 flex-1 truncate", s.state === "andamento" ? "text-foreground" : "text-muted-foreground")}>
+          <span className={cn("min-w-0 flex-1", s.state === "andamento" ? "text-foreground" : "text-muted-foreground")}>
             {s.label}
             {s.detail ? ` — ${s.detail}` : ""}
           </span>
@@ -109,10 +113,13 @@ export function DesignStage({
   const hasPreview = !!design?.file_url;
   // Pronto para aprovar só com arquivo-mestre no Canva E preview exportado dele.
   const ready = hasPreview && hasCanva && !!design?.export_format;
-  const preparando = !!design && !ready && !design.fail_reason;
   const trail: MarinaDesignStep[] = (liveSteps?.length ? liveSteps : design?.steps ?? []) as MarinaDesignStep[];
   const currentStep = trail.find((s) => s.state === "andamento") ?? null;
-  const elapsed = useElapsed((working || preparando) && !ready, `${design?.id}-${currentStep?.id ?? ""}`);
+  const updatedAt = design?.updated_at ? Date.parse(design.updated_at) : NaN;
+  const stale = !!currentStep && !working && !retryingCanva && Number.isFinite(updatedAt) && Date.now() - updatedAt > 15 * 60_000;
+  const preparing = !!design && !ready && !design.fail_reason && !!currentStep && !stale;
+  const pendingCanva = !!design && !ready && !preparing;
+  const elapsed = useElapsed((working || retryingCanva || preparing) && !ready, `${design?.id}-${currentStep?.id ?? ""}`);
   const demorando = elapsed >= 90;
 
 
@@ -148,11 +155,11 @@ export function DesignStage({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
-          {ready ? (STATUS_LABEL[design.status] ?? design.status) : design.fail_reason ? "Canva pendente" : "Preparando no Canva"}
+          {ready ? (STATUS_LABEL[design.status] ?? design.status) : preparing || retryingCanva ? "Preparando no Canva" : "Canva pendente"}
         </Badge>
         {hasPreview && !ready && (
           <Badge variant="outline" className="text-[10px] uppercase">
-            prévia — versão editável em preparo
+            {preparing || retryingCanva ? "prévia — versão editável em preparo" : "prévia — Canva pendente"}
           </Badge>
         )}
         {ready && (
@@ -195,7 +202,7 @@ export function DesignStage({
               !ready && "opacity-90",
             )}
           />
-        ) : preparando ? (
+        ) : preparing || retryingCanva ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-border bg-background p-6 text-center">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
             <p className="text-sm text-muted-foreground">{currentStep?.label || statusLabel || "Preparando a peça…"}</p>
@@ -219,10 +226,18 @@ export function DesignStage({
         )}
       </div>
 
-      {trail.length > 0 && (
+      {(trail.length > 0 || pendingCanva) && (
         <div className="space-y-1 border-t border-border px-3 py-2">
           <StepTrail steps={trail} elapsed={elapsed} />
-          {preparando && demorando && (
+          {pendingCanva && trail.length === 0 && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <TriangleAlert className="h-3.5 w-3.5" /> Esta versão não possui uma execução ativa registrada no Canva.
+            </p>
+          )}
+          {stale && (
+            <p className="text-xs text-destructive">A preparação foi interrompida sem atualização. Tente novamente para retomar do Canva.</p>
+          )}
+          {(preparing || retryingCanva) && demorando && (
             <p className="text-xs text-muted-foreground">
               Está demorando mais que o normal — pode continuar conversando, eu aviso quando terminar.
             </p>
@@ -259,7 +274,7 @@ export function DesignStage({
           {approving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
           Aprovar peça
         </Button>
-        {!ready && !!design.fail_reason && (
+        {!ready && !preparing && (
           <Button variant="outline" onClick={onRetryCanva} disabled={working || retryingCanva}>
             <RefreshCw className={cn("mr-2 h-4 w-4", retryingCanva && "animate-spin")} /> Tentar criar no Canva novamente
           </Button>
