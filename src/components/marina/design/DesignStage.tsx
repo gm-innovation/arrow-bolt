@@ -110,8 +110,9 @@ export function DesignStage({
   const [note, setNote] = useState("");
 
   const hasCanva = !!design?.canva_url;
-  // Prévia disponível: a fotografia-base já aparece antes do Canva ficar pronto.
+  // Prévia = exportação do próprio design do Canva.
   const hasPreview = !!design?.file_url;
+
   // Pronto para aprovar só com arquivo-mestre no Canva E preview exportado dele.
   const ready = hasPreview && hasCanva && !!design?.export_format;
   const trail: MarinaDesignStep[] = (liveSteps?.length ? liveSteps : design?.steps ?? []) as MarinaDesignStep[];
