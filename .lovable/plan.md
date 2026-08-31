@@ -4,6 +4,9 @@ A montagem trava porque o fluxo atual quebra o Canva em fases de edição (`crea
 
 A correção é abandonar a montagem por edição na criação: o pedido inteiro (título, subtítulo, CTA, logotipo, formato, fundo, estilo) vai em UM prompt, direto para `generate_design`, que devolve o design já com texto em cerca de 50 segundos.
 
+**Sim, o arquivo continua editável no Canva.** `generate_design` cria um design nativo — as frases nascem como caixas de texto do Canva, e fundo, formas e imagem são elementos próprios do arquivo. Não é um PNG achatado subido como imagem. A diferença em relação ao plano anterior é só quem monta as camadas: passa a ser a própria geração, em vez de uma sequência de edições que a API não suporta. Como o texto já vem na peça, o ajuste posterior (trocar uma frase, uma cor, uma imagem) funciona pela via de edição, que só sabe alterar o que existe. Se algum pedido de ajuste exigir texto novo, sai uma nova versão gerada.
+
+
 ## Como fica o fluxo
 
 ```text
