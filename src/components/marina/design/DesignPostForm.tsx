@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Sparkles, X } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronDown, Loader2, Sparkles, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { MarinaDesignForm } from "@/hooks/useMarinaDesigns";
 
 interface Props {
@@ -30,6 +32,7 @@ const STYLES: { value: MarinaDesignForm["style"]; label: string }[] = [
 
 /** Formulário "Criar post": o motor recebe um briefing só e devolve as variações. */
 export function DesignPostForm({ onCreate, creating, assetReferences, onClearAssetReferences }: Props) {
+  const [open, setOpen] = useState(true);
   const [form, setForm] = useState<MarinaDesignForm>({
     size: "quadrado",
     theme: "",
@@ -51,18 +54,22 @@ export function DesignPostForm({ onCreate, creating, assetReferences, onClearAss
   };
 
   return (
+    <Collapsible open={open} onOpenChange={setOpen} className="border-t border-border">
+      <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-left hover:bg-muted/50">
+        <span className="text-sm font-medium">Criar post</span>
+        <span className="flex items-center gap-2 text-xs text-muted-foreground">
+          4 variações no Canva
+          <ChevronDown className={cn("h-4 w-4 transition-transform", open && "rotate-180")} />
+        </span>
+      </CollapsibleTrigger>
+      <CollapsibleContent>
     <form
-      className="space-y-3 border-t border-border p-3"
+      className="space-y-3 p-3 pt-0"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
     >
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">Criar post</p>
-        <span className="text-xs text-muted-foreground">4 variações no Canva</span>
-      </div>
-
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label className="text-xs">Tamanho</Label>
@@ -191,5 +198,7 @@ export function DesignPostForm({ onCreate, creating, assetReferences, onClearAss
         Criar post no Canva
       </Button>
     </form>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
