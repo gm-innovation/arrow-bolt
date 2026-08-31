@@ -188,39 +188,51 @@ export function emptySpec(): DesignSpec {
   };
 }
 
-/** Monta o pedido final que vai para a Marina. */
+/**
+ * Monta o pedido final que vai para a Marina.
+ *
+ * Regra da casa: TODO o texto da peça (título, subtítulo, CTA, logotipo) entra
+ * neste pedido, porque o design é gerado de uma vez no Canva — a edição só
+ * altera texto que já existe, nunca insere texto novo.
+ */
 export function buildDesignPrompt(spec: DesignSpec): string {
   const modelo = TEMPLATES.find((t) => t.key === spec.template);
   const estilo = spec.estilo?.trim() || ESTILO_PADRAO;
   const linhas = [
-    `Crie no Canva um ${spec.formato} para a LECSOR sobre: ${spec.tema.trim()}.`,
+    "Use generate_design do Canva com este briefing completo:",
+    `Tamanho: ${spec.formato}`,
+    `Assunto: ${spec.tema.trim()}`,
     modelo && modelo.key !== "livre" ? `Tipo de peça: ${modelo.label} — ${modelo.descricao}` : "",
-    spec.texto.trim() ? `Texto principal da peça: "${spec.texto.trim()}".` : "",
-    spec.especificacoes.trim() ? `Especificações: ${spec.especificacoes.trim()}` : "",
-    spec.tom.trim() ? `Tom de voz: ${spec.tom.trim()}.` : "",
-    spec.cta.trim() ? `Chamada para ação: "${spec.cta.trim()}".` : "",
-    `Estilo da imagem: ${estilo}.`,
+    spec.texto.trim() ? `Título: ${spec.texto.trim()}` : "Título: nenhum texto informado",
+    spec.especificacoes.trim() ? `Subtítulo/especificações: ${spec.especificacoes.trim()}` : "",
+    spec.cta.trim() ? `CTA: ${spec.cta.trim()}` : "",
+    "Logotipo: LECSOR TECHNOLOGY",
+    spec.marca.trim() ? `Elementos de marca: ${spec.marca.trim()}` : "Fundo e cores: brand kit da LECSOR",
+    spec.tom.trim() ? `Tom de voz: ${spec.tom.trim()}` : "",
+    `Estilo: ${estilo}`,
     spec.referencias.length
-      ? `Use as ${spec.referencias.length} foto(s) de referência anexadas como referência OBRIGATÓRIA do equipamento real: mantenha modelo, cor, marca e proporções fiéis, sem inventar nem deformar detalhes.`
-      : "Não tenho foto de referência do equipamento: se o equipamento precisar ser fiel ao original, me avise antes de finalizar.",
-    spec.marca.trim() ? `Elementos de marca: ${spec.marca.trim()}` : "Use o brand kit e as cores da LECSOR.",
-    "Ao terminar, devolva o link do design.",
+      ? `Referências: use as ${spec.referencias.length} foto(s) anexadas como referência OBRIGATÓRIA do equipamento real — mantenha modelo, cor, marca e proporções, sem inventar nem deformar detalhes.`
+      : "Referências: nenhuma foto anexada; se o equipamento precisar ser fiel ao original, me avise antes de finalizar.",
+    "Gere o design já com todos esses textos aplicados, sem placeholder e sem inventar frases.",
+    "Retorne os links no formato DESIGNCANVA: <url>",
   ];
-  return linhas.filter(Boolean).join(" ");
+  return linhas.filter(Boolean).join("\n");
 }
 
 /** Pedido de ajuste, aproveitando as mesmas especificações. */
 export function buildAdjustPrompt(link: string, instrucao: string, spec: Partial<DesignSpec>): string {
   const estilo = spec.estilo?.trim() || ESTILO_PADRAO;
   return [
-    `Edite o design do Canva ${link} com os seguintes ajustes: ${instrucao}.`,
+    `Ajuste o design do Canva ${link}: ${instrucao}.`,
+    "Altere apenas elementos que já existem na peça. Se o ajuste pedir texto novo, gere outra versão já com esse texto em vez de editar.",
     spec.especificacoes?.trim() ? `Especificações a respeitar: ${spec.especificacoes.trim()}` : "",
-    `Estilo da imagem: ${estilo}.`,
+    `Estilo: ${estilo}`,
     spec.referencias?.length
       ? "Mantenha o equipamento fiel às fotos de referência: mesmo modelo, cor, marca e proporções."
       : "Preserve a identidade e os detalhes do equipamento já presente na peça.",
-    "Ao terminar, devolva o link do design atualizado.",
+    "Retorne o link no formato DESIGNCANVA: <url>",
   ]
     .filter(Boolean)
-    .join(" ");
+    .join("\n");
 }
+

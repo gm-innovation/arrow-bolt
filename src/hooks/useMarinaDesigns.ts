@@ -119,17 +119,12 @@ export function useRetryCanvaDesign() {
                 ...design,
                 fail_reason: null,
                 steps: [
-                  { id: "briefing", label: "Direção de arte e briefing", state: "concluida", detail: "reutilizado" },
-                  { id: "arte", label: "Fotografia-base", state: "concluida", detail: "reutilizada" },
-                  { id: "revisao", label: "Revisão da direção de arte", state: "concluida", detail: "reutilizada" },
-                  { id: "refacao", label: "Refação, se necessária", state: "concluida", detail: "reutilizada" },
-                  { id: "guardar_previa", label: "Prévia no Arrow", state: "concluida", detail: "reutilizada" },
-                  { id: "canva_arquivo", label: "Criando o arquivo e importando a fotografia", state: "andamento", started_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-                  { id: "canva_camadas", label: "Montando textos e elementos", state: "aguardando" },
-                  { id: "canva_validacao", label: "Validando as camadas editáveis", state: "aguardando" },
+                  { id: "briefing", label: "Direção de arte e briefing", state: "aguardando" },
+                  { id: "canva_geracao", label: "Gerando o design no Canva", state: "andamento", started_at: new Date().toISOString(), updated_at: new Date().toISOString() },
                   { id: "exportacao", label: "Exportação do Canva", state: "aguardando" },
-                  { id: "guardar_preview", label: "Preview final no Arrow", state: "aguardando" },
+                  { id: "guardar_preview", label: "Preview no Arrow", state: "aguardando" },
                 ],
+
               }
             : design,
         ),

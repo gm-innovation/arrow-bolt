@@ -110,8 +110,9 @@ export function DesignStage({
   const [note, setNote] = useState("");
 
   const hasCanva = !!design?.canva_url;
-  // Prévia disponível: a fotografia-base já aparece antes do Canva ficar pronto.
+  // Prévia = exportação do próprio design do Canva.
   const hasPreview = !!design?.file_url;
+
   // Pronto para aprovar só com arquivo-mestre no Canva E preview exportado dele.
   const ready = hasPreview && hasCanva && !!design?.export_format;
   const trail: MarinaDesignStep[] = (liveSteps?.length ? liveSteps : design?.steps ?? []) as MarinaDesignStep[];
@@ -156,12 +157,13 @@ export function DesignStage({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
-          {ready ? (STATUS_LABEL[design.status] ?? design.status) : preparing || retryingCanva ? "Preparando no Canva" : "Canva pendente"}
+          {ready ? (STATUS_LABEL[design.status] ?? design.status) : preparing || retryingCanva ? "Gerando no Canva" : "Canva pendente"}
         </Badge>
         {hasPreview && !ready && (
           <Badge variant="outline" className="text-[10px] uppercase">
-            {preparing || retryingCanva ? "prévia — versão editável em preparo" : "prévia — Canva pendente"}
+            {preparing || retryingCanva ? "prévia — exportação em preparo" : "prévia — Canva pendente"}
           </Badge>
+
         )}
         {ready && (
           <Badge variant="outline" className="text-[10px] uppercase">
