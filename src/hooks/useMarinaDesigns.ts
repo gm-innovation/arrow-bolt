@@ -129,27 +129,13 @@ export function useRetryCanvaDesign() {
     mutationFn: async (payload: { id: string; layer?: string; force?: boolean; full?: boolean }) =>
       await callDesign("design_retry_canva", { method: "POST", body: payload }),
     onSuccess: (_data, { id }) => {
-
+      // O servidor decide se recomeça do briefing ou retoma da etapa que faltou;
+      // aqui só limpamos o motivo da falha e deixamos o refetch trazer as etapas.
       qc.setQueryData<MarinaDesign[]>(["marina-designs"], (rows) =>
-        rows?.map((design) =>
-          design.id === id
-            ? {
-                ...design,
-                fail_reason: null,
-                steps: [
-                  { id: "briefing", label: "Briefing e plano de camadas", state: "andamento", started_at: new Date().toISOString(), updated_at: new Date().toISOString() },
-                  { id: "camadas", label: "Camadas (fotos reais e composições)", state: "aguardando" },
-                  { id: "canva_geracao", label: "Montagem no Canva", state: "aguardando" },
-                  { id: "revisao", label: "Revisão automática", state: "aguardando" },
-                  { id: "exportacao", label: "Exportação do Canva", state: "aguardando" },
-                  { id: "guardar_preview", label: "Preview no Arrow", state: "aguardando" },
-                ],
-
-              }
-            : design,
-        ),
+        rows?.map((design) => (design.id === id ? { ...design, fail_reason: null } : design)),
       );
     },
+
     onSettled: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
   });
 }
