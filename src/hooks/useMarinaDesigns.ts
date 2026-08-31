@@ -126,9 +126,10 @@ export function useSetDesignStatus() {
 export function useRetryCanvaDesign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { id: string; layer?: string }) =>
+    mutationFn: async (payload: { id: string; layer?: string; force?: boolean; full?: boolean }) =>
       await callDesign("design_retry_canva", { method: "POST", body: payload }),
-    onMutate: ({ id }) => {
+    onSuccess: (_data, { id }) => {
+
       qc.setQueryData<MarinaDesign[]>(["marina-designs"], (rows) =>
         rows?.map((design) =>
           design.id === id
