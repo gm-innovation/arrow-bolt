@@ -303,12 +303,14 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             : "Mensagens são conversa sobre o trabalho — ligue para criar uma peça."}
         </span>
       </div>
-      <DesignPostForm
-        onCreate={handleCreate}
-        creating={createDesign.isPending}
-        assetReferences={assetRefs}
-        onClearAssetReferences={() => setAssetRefs([])}
-      />
+      <div className="max-h-[50%] shrink-0 overflow-y-auto">
+        <DesignPostForm
+          onCreate={handleCreate}
+          creating={createDesign.isPending}
+          assetReferences={assetRefs}
+          onClearAssetReferences={() => setAssetRefs([])}
+        />
+      </div>
       <MarinaComposer
         onSend={askChat}
         onStop={stop}

@@ -41,11 +41,11 @@ export function MarinaMessageList({ messages, draft, status, streaming, avatarUr
   };
 
   if (messages.length === 0 && !draft && !streaming && emptyState) {
-    return <div className="flex-1 overflow-y-auto px-4 py-6">{emptyState}</div>;
+    return <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">{emptyState}</div>;
   }
 
   return (
-    <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6">
+    <div className="min-h-0 flex-1 overflow-y-auto px-4 py-6 space-y-6">
       {messages.map((m) => {
         const sources = (m.metadata as any)?.sources as string[] | undefined;
         return (
