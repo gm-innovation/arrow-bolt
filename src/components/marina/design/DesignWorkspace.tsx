@@ -144,7 +144,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     try {
       await setStatus.mutateAsync({ id: stageDesign.id, status: "ajuste_solicitado", note });
       await adjustCanva.mutateAsync({ id: stageDesign.id, note });
-      toast({ title: "Ajuste iniciado", description: "Acompanhe as etapas no palco; o mesmo arquivo será atualizado e exportado em segundo plano." });
+      toast({ title: "Ajuste iniciado", description: "Acompanhe as etapas no palco. Se o ajuste pedir um texto que não existe na peça, eu gero outra versão já com ele." });
     } catch (e) {
       toast({ title: "Não deu para ajustar", description: (e as Error).message, variant: "destructive" });
     }
@@ -182,7 +182,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     if (!stageDesign || stageDesign.id === "streaming") return;
     try {
       await retryCanva.mutateAsync({ id: stageDesign.id });
-      toast({ title: "Preparação iniciada", description: "Você pode continuar usando o Arrow enquanto acompanho as etapas no palco." });
+      toast({ title: "Preparação iniciada", description: "Estou gerando o design no Canva; leva cerca de um minuto e você acompanha as etapas no palco." });
     } catch (e) {
       toast({ title: "Canva ainda pendente", description: (e as Error).message, variant: "destructive" });
     }
@@ -313,7 +313,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             working={streaming || adjustCanva.isPending}
             approving={approve.isPending}
             retryingCanva={retryCanva.isPending}
-            statusLabel={adjustCanva.isPending ? "ajustando as camadas no Canva…" : status}
+            statusLabel={adjustCanva.isPending ? "ajustando o design no Canva…" : status}
             liveSteps={steps}
             discarded={discarded}
             onDiscardVersion={handleDiscardVersion}
