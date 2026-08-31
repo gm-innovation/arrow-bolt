@@ -16,6 +16,21 @@ export interface MarinaDesignStep {
   updated_at?: string;
 }
 
+/** Camada da peça: foto real do acervo ou composição gerada, sempre separada no Canva. */
+export interface MarinaDesignLayer {
+  id: string;
+  role: "fundo" | "embarcacao" | "equipamento" | "pessoa" | "apoio" | string;
+  label: string;
+  origin: "biblioteca" | "gerada" | "falhou" | string;
+  order: number;
+  transparent?: boolean;
+  cutout?: boolean;
+  asset_name?: string | null;
+  detail?: string | null;
+  storage_path?: string | null;
+  file_url?: string | null;
+}
+
 export interface MarinaDesign {
   id: string;
   canva_url: string | null;
@@ -26,6 +41,8 @@ export interface MarinaDesign {
   /** Trilha de etapas já registradas para esta peça. */
   steps?: MarinaDesignStep[] | null;
   status: MarinaDesignStatus | string;
+  /** Camadas da peça, na ordem de trás para frente. */
+  layers?: MarinaDesignLayer[] | null;
 
 
   profile: string;
@@ -109,7 +126,7 @@ export function useSetDesignStatus() {
 export function useRetryCanvaDesign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { id: string }) =>
+    mutationFn: async (payload: { id: string; layer?: string }) =>
       await callDesign("design_retry_canva", { method: "POST", body: payload }),
     onMutate: ({ id }) => {
       qc.setQueryData<MarinaDesign[]>(["marina-designs"], (rows) =>
@@ -119,8 +136,10 @@ export function useRetryCanvaDesign() {
                 ...design,
                 fail_reason: null,
                 steps: [
-                  { id: "briefing", label: "Direção de arte e briefing", state: "aguardando" },
-                  { id: "canva_geracao", label: "Gerando o design no Canva", state: "andamento", started_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+                  { id: "briefing", label: "Briefing e plano de camadas", state: "andamento", started_at: new Date().toISOString(), updated_at: new Date().toISOString() },
+                  { id: "camadas", label: "Camadas (fotos reais e composições)", state: "aguardando" },
+                  { id: "canva_geracao", label: "Montagem no Canva", state: "aguardando" },
+                  { id: "revisao", label: "Revisão automática", state: "aguardando" },
                   { id: "exportacao", label: "Exportação do Canva", state: "aguardando" },
                   { id: "guardar_preview", label: "Preview no Arrow", state: "aguardando" },
                 ],
@@ -141,5 +160,15 @@ export function useAdjustCanvaDesign() {
     mutationFn: async (payload: { id: string; note: string }) =>
       await callDesign("design_adjust_canva", { method: "POST", body: payload }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
+  });
+}
+
+/** Refaz somente uma camada da peça e volta a aplicá-la no arquivo do Canva. */
+export function useRetryDesignLayer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: { id: string; layer: string }) =>
+      await callDesign("design_retry_canva", { method: "POST", body: payload }),
+    onSettled: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
   });
 }

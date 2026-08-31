@@ -12,6 +12,7 @@ import {
   useAdjustCanvaDesign,
   useMarinaDesigns,
   useRetryCanvaDesign,
+  useRetryDesignLayer,
   useSetDesignStatus,
   type MarinaDesign,
 } from "@/hooks/useMarinaDesigns";
@@ -47,6 +48,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   const adjustCanva = useAdjustCanvaDesign();
   const setStatus = useSetDesignStatus();
   const retryCanva = useRetryCanvaDesign();
+  const retryLayer = useRetryDesignLayer();
 
   const { send, stop, streaming, status, draft, steps, retry, retryLast } = useMarinaStream(
     threadId,
@@ -176,6 +178,16 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     await setStatus.mutateAsync({ id, status: "pendente" }).catch(() => undefined);
     setActiveId(id);
     toast({ title: "Versão recuperada" });
+  };
+
+  const handleRetryLayer = async (layerId: string) => {
+    if (!stageDesign || stageDesign.id === "streaming") return;
+    try {
+      await retryLayer.mutateAsync({ id: stageDesign.id, layer: layerId });
+      toast({ title: "Refazendo a camada", description: "Vou buscar/gerar essa camada de novo e trocá-la no arquivo do Canva." });
+    } catch (e) {
+      toast({ title: "Não deu para refazer a camada", description: (e as Error).message, variant: "destructive" });
+    }
   };
 
   const handleRetryCanva = async () => {
@@ -310,6 +322,8 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             onAdjust={handleAdjust}
             onDiscard={handleDiscard}
             onRetryCanva={handleRetryCanva}
+            onRetryLayer={handleRetryLayer}
+            retryingLayer={retryLayer.isPending ? (retryLayer.variables?.layer ?? null) : null}
             working={streaming || adjustCanva.isPending}
             approving={approve.isPending}
             retryingCanva={retryCanva.isPending}
