@@ -125,6 +125,27 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
         }
       : null);
 
+  /** Variações do lote da peça no palco (ordenadas pela posição no lote). */
+  const variants = useMemo(() => {
+    if (!stageDesign?.batch_id) return stageDesign ? [stageDesign] : [];
+    return threadDesigns
+      .filter((d) => d.batch_id === stageDesign.batch_id)
+      .sort((a, b) => (a.variant_index ?? 0) - (b.variant_index ?? 0));
+  }, [threadDesigns, stageDesign]);
+
+  /** Um representante por pedido (lote), para navegar entre pedidos da conversa. */
+  const batchHeads = useMemo(() => {
+    const seen = new Set<string>();
+    return threadDesigns.filter((d) => {
+      const key = d.batch_id ?? d.id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [threadDesigns]);
+
+
+
   const handleApprove = async (format: "png" | "jpg" | "pdf") => {
     if (!stageDesign || stageDesign.id === "streaming") return;
     try {
