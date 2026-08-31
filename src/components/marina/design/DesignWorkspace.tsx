@@ -203,14 +203,15 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   };
 
   /** Formulário "Criar post": um briefing só, o motor devolve as variações. */
-  const handleCreate = async (form: MarinaDesignForm) => {
+  const handleCreate = async (form: MarinaDesignForm, extraReferences: string[] = []) => {
     try {
       const result = await createDesign.mutateAsync({
         form,
         profile,
         conversation_id: threadId ?? null,
-        references: assetRefs.map((a) => a.url),
+        references: [...extraReferences, ...assetRefs.map((a) => a.url)].slice(0, 4),
       });
+
       setActiveId(result.design_id ?? result.design?.id ?? null);
       setView("atual");
       if (isMobile) setMobilePane("preview");
