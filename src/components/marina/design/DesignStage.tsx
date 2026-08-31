@@ -157,12 +157,13 @@ export function DesignStage({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
-          {ready ? (STATUS_LABEL[design.status] ?? design.status) : preparing || retryingCanva ? "Preparando no Canva" : "Canva pendente"}
+          {ready ? (STATUS_LABEL[design.status] ?? design.status) : preparing || retryingCanva ? "Gerando no Canva" : "Canva pendente"}
         </Badge>
         {hasPreview && !ready && (
           <Badge variant="outline" className="text-[10px] uppercase">
-            {preparing || retryingCanva ? "prévia — versão editável em preparo" : "prévia — Canva pendente"}
+            {preparing || retryingCanva ? "prévia — exportação em preparo" : "prévia — Canva pendente"}
           </Badge>
+
         )}
         {ready && (
           <Badge variant="outline" className="text-[10px] uppercase">
