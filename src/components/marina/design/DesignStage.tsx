@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Skeleton } from "@/components/ui/skeleton";
 import { Check, Circle, CircleDot, ExternalLink, ImageOff, Loader2, PenLine, RefreshCw, RotateCcw, Trash2, TriangleAlert, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { MarinaDesign, MarinaDesignStep } from "@/hooks/useMarinaDesigns";
+import type { MarinaDesign, MarinaDesignLayer, MarinaDesignStep } from "@/hooks/useMarinaDesigns";
 
 interface Props {
   design: MarinaDesign | null;
@@ -17,6 +17,9 @@ interface Props {
   onAdjust: (note: string) => void;
   onDiscard: () => void;
   onRetryCanva: () => void;
+  /** Refaz apenas uma camada da peça. */
+  onRetryLayer?: (layerId: string) => void;
+  retryingLayer?: string | null;
   working: boolean;
   approving: boolean;
   retryingCanva: boolean;
@@ -87,6 +90,76 @@ function formatElapsed(s: number) {
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}min ${String(s % 60).padStart(2, "0")}s`;
 }
 
+const LAYER_ORIGIN: Record<string, string> = {
+  biblioteca: "foto real do acervo",
+  gerada: "composição gerada",
+  falhou: "não ficou pronta",
+};
+
+/** Camadas da peça: origem de cada uma e refação individual. */
+function LayersPanel({
+  layers,
+  onRetryLayer,
+  retryingLayer,
+}: {
+  layers: MarinaDesignLayer[];
+  onRetryLayer?: (layerId: string) => void;
+  retryingLayer?: string | null;
+}) {
+  if (!layers.length) return null;
+  const ordered = [...layers].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  return (
+    <div className="space-y-1 border-t border-border px-3 py-2">
+      <p className="text-xs font-medium text-muted-foreground">
+        Camadas do arquivo ({ordered.length}) — cada uma é um elemento separado no Canva
+      </p>
+      <ul className="space-y-1">
+        {ordered.map((layer) => (
+          <li key={layer.id} className="flex items-center gap-2 text-xs">
+            {layer.file_url ? (
+              <img
+                src={layer.file_url}
+                alt={layer.label}
+                className="h-8 w-8 shrink-0 rounded border border-border bg-muted object-cover"
+              />
+            ) : (
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-dashed border-border">
+                <ImageOff className="h-3.5 w-3.5 text-muted-foreground" />
+              </span>
+            )}
+            <span className="min-w-0 flex-1 truncate">
+              {layer.label}
+              <span className="text-muted-foreground">
+                {" "}
+                · {LAYER_ORIGIN[layer.origin] ?? layer.origin}
+                {layer.asset_name ? ` (${layer.asset_name})` : ""}
+                {layer.transparent && layer.origin === "gerada" && !layer.cutout ? " · sem recorte" : ""}
+                {layer.detail ? ` · ${layer.detail}` : ""}
+              </span>
+            </span>
+            {onRetryLayer && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2"
+                disabled={retryingLayer === layer.id}
+                onClick={() => onRetryLayer(layer.id)}
+              >
+                {retryingLayer === layer.id ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-3.5 w-3.5" />
+                )}
+                <span className="ml-1">Refazer</span>
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function DesignStage({
   design,
   versions,
@@ -95,6 +168,8 @@ export function DesignStage({
   onAdjust,
   onDiscard,
   onRetryCanva,
+  onRetryLayer,
+  retryingLayer,
   working,
   approving,
   retryingCanva,
@@ -228,6 +303,8 @@ export function DesignStage({
           </div>
         )}
       </div>
+
+      <LayersPanel layers={design.layers ?? []} onRetryLayer={onRetryLayer} retryingLayer={retryingLayer} />
 
       {(trail.length > 0 || pendingCanva) && (
         <div className="space-y-1 border-t border-border px-3 py-2">
