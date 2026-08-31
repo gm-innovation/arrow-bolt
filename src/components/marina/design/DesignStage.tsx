@@ -5,34 +5,53 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, Circle, CircleDot, ExternalLink, ImageOff, Loader2, PenLine, RefreshCw, RotateCcw, Trash2, TriangleAlert, X } from "lucide-react";
+import {
+  Check,
+  ChevronRight,
+  Circle,
+  ExternalLink,
+  ImageOff,
+  Loader2,
+  PenLine,
+  RefreshCw,
+  RotateCcw,
+  Trash2,
+  TriangleAlert,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { MarinaDesign, MarinaDesignLayer, MarinaDesignStep } from "@/hooks/useMarinaDesigns";
+import type { MarinaDesign, MarinaDesignStep } from "@/hooks/useMarinaDesigns";
 
 interface Props {
   design: MarinaDesign | null;
+  /** Variações do mesmo pedido (mesmo lote). */
+  variants: MarinaDesign[];
+  /** Demais pedidos desta conversa, mais novos primeiro. */
   versions: MarinaDesign[];
   onSelect: (design: MarinaDesign) => void;
   onApprove: (format: "png" | "jpg" | "pdf") => void;
   onAdjust: (note: string) => void;
   onDiscard: () => void;
   onRetryCanva: () => void;
-  /** Refaz apenas uma camada da peça. */
-  onRetryLayer?: (layerId: string) => void;
-  retryingLayer?: string | null;
+  /** Passa para a próxima variação do lote. */
+  onNext: () => void;
   working: boolean;
   approving: boolean;
   retryingCanva: boolean;
-  /** Etapa atual informada pela Marina (ex.: "montando as camadas no Canva…"). */
   statusLabel?: string | null;
-  /** Trilha de etapas em tempo real do turno em andamento. */
   liveSteps?: MarinaDesignStep[];
-  /** Peças descartadas desta conversa, para recuperar se foi engano. */
   discarded?: MarinaDesign[];
   onDiscardVersion: (id: string) => void;
   onKeepOnly: (id: string) => void;
   onRestore: (id: string) => void;
 }
+
+const STATUS_LABEL: Record<string, string> = {
+  pendente: "Aguardando aprovação",
+  aprovado: "Aprovado",
+  ajuste_solicitado: "Ajuste solicitado",
+  descartado: "Descartado",
+};
 
 /** Trilha das etapas: concluídas com tempo, atual com giro, futuras apagadas. */
 function StepTrail({ steps, elapsed }: { steps: MarinaDesignStep[]; elapsed: number }) {
@@ -65,19 +84,12 @@ function StepTrail({ steps, elapsed }: { steps: MarinaDesignStep[]; elapsed: num
   );
 }
 
-const STATUS_LABEL: Record<string, string> = {
-  pendente: "Aguardando aprovação",
-  aprovado: "Aprovado",
-  ajuste_solicitado: "Ajuste solicitado",
-  descartado: "Descartado",
-};
-
 /** Cronômetro simples da etapa em andamento, para a espera nunca ser cega. */
 function useElapsed(active: boolean, resetKey?: string, startedAt?: string) {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
     const parsed = startedAt ? Date.parse(startedAt) : NaN;
-    const getSeconds = () => Number.isFinite(parsed) ? Math.max(0, Math.floor((Date.now() - parsed) / 1000)) : 0;
+    const getSeconds = () => (Number.isFinite(parsed) ? Math.max(0, Math.floor((Date.now() - parsed) / 1000)) : 0);
     setSeconds(getSeconds());
     if (!active) return;
     const t = setInterval(() => setSeconds(getSeconds()), 1000);
@@ -90,86 +102,20 @@ function formatElapsed(s: number) {
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}min ${String(s % 60).padStart(2, "0")}s`;
 }
 
-const LAYER_ORIGIN: Record<string, string> = {
-  biblioteca: "foto real do acervo",
-  gerada: "composição gerada",
-  falhou: "não ficou pronta",
-};
-
-/** Camadas da peça: origem de cada uma e refação individual. */
-function LayersPanel({
-  layers,
-  onRetryLayer,
-  retryingLayer,
-}: {
-  layers: MarinaDesignLayer[];
-  onRetryLayer?: (layerId: string) => void;
-  retryingLayer?: string | null;
-}) {
-  if (!layers.length) return null;
-  const ordered = [...layers].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  return (
-    <div className="space-y-1 border-t border-border px-3 py-2">
-      <p className="text-xs font-medium text-muted-foreground">
-        Camadas do arquivo ({ordered.length}) — cada uma é um elemento separado no Canva
-      </p>
-      <ul className="space-y-1">
-        {ordered.map((layer) => (
-          <li key={layer.id} className="flex items-center gap-2 text-xs">
-            {layer.file_url ? (
-              <img
-                src={layer.file_url}
-                alt={layer.label}
-                className="h-8 w-8 shrink-0 rounded border border-border bg-muted object-cover"
-              />
-            ) : (
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-dashed border-border">
-                <ImageOff className="h-3.5 w-3.5 text-muted-foreground" />
-              </span>
-            )}
-            <span className="min-w-0 flex-1 truncate">
-              {layer.label}
-              <span className="text-muted-foreground">
-                {" "}
-                · {LAYER_ORIGIN[layer.origin] ?? layer.origin}
-                {layer.asset_name ? ` (${layer.asset_name})` : ""}
-                {layer.transparent && layer.origin === "gerada" && !layer.cutout ? " · sem recorte" : ""}
-                {layer.detail ? ` · ${layer.detail}` : ""}
-              </span>
-            </span>
-            {onRetryLayer && (
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2"
-                disabled={retryingLayer === layer.id}
-                onClick={() => onRetryLayer(layer.id)}
-              >
-                {retryingLayer === layer.id ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-3.5 w-3.5" />
-                )}
-                <span className="ml-1">Refazer</span>
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
+function previewOf(design: MarinaDesign) {
+  return design.file_url || design.preview_url || null;
 }
 
 export function DesignStage({
   design,
+  variants,
   versions,
   onSelect,
   onApprove,
   onAdjust,
   onDiscard,
   onRetryCanva,
-  onRetryLayer,
-  retryingLayer,
+  onNext,
   working,
   approving,
   retryingCanva,
@@ -185,20 +131,17 @@ export function DesignStage({
   const [note, setNote] = useState("");
 
   const hasCanva = !!design?.canva_url;
-  // Prévia = exportação do próprio design do Canva.
-  const hasPreview = !!design?.file_url;
+  const preview = design ? previewOf(design) : null;
+  const ready = !!preview && hasCanva;
 
-  // Pronto para aprovar só com arquivo-mestre no Canva E preview exportado dele.
-  const ready = hasPreview && hasCanva && !!design?.export_format;
   const trail: MarinaDesignStep[] = (liveSteps?.length ? liveSteps : design?.steps ?? []) as MarinaDesignStep[];
   const currentStep = trail.find((s) => s.state === "andamento") ?? null;
   const updatedAt = design?.updated_at ? Date.parse(design.updated_at) : NaN;
-  const stale = !!currentStep && !working && !retryingCanva && Number.isFinite(updatedAt) && Date.now() - updatedAt > 5 * 60_000;
+  const stale =
+    !!currentStep && !working && !retryingCanva && Number.isFinite(updatedAt) && Date.now() - updatedAt > 12 * 60_000;
   const preparing = !!design && !ready && !design.fail_reason && !!currentStep && !stale;
-  const pendingCanva = !!design && !ready && !preparing;
   const elapsed = useElapsed((working || retryingCanva || preparing) && !ready, `${design?.id}-${currentStep?.id ?? ""}`, currentStep?.started_at);
-  const demorando = elapsed >= 90;
-
+  const demorando = elapsed >= 120;
 
   if (!design) {
     return (
@@ -207,7 +150,7 @@ export function DesignStage({
           <div className="w-full max-w-2xl space-y-3">
             <Skeleton className="h-[420px] w-full rounded-xl" />
             <p className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> A Marina está trabalhando na peça…
+              <Loader2 className="h-4 w-4 animate-spin" /> A Marina está gerando as variações no Canva…
             </p>
           </div>
         ) : (
@@ -218,8 +161,7 @@ export function DesignStage({
             <div>
               <h3 className="font-semibold">Nenhum design no palco</h3>
               <p className="max-w-sm text-sm text-muted-foreground">
-                Peça uma peça para a Marina na conversa ao lado — quando ela criar no Canva, a prévia aparece aqui para você
-                aprovar.
+                Preencha o formulário "Criar post" ao lado — as variações geradas no Canva aparecem aqui para você aprovar.
               </p>
             </div>
           </>
@@ -232,17 +174,11 @@ export function DesignStage({
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b border-border p-3">
         <Badge variant={design.status === "aprovado" ? "default" : "secondary"}>
-          {ready ? (STATUS_LABEL[design.status] ?? design.status) : preparing || retryingCanva ? "Gerando no Canva" : "Canva pendente"}
+          {ready ? STATUS_LABEL[design.status] ?? design.status : preparing || retryingCanva ? "Gerando no Canva" : "Canva pendente"}
         </Badge>
-        {hasPreview && !ready && (
+        {variants.length > 1 && (
           <Badge variant="outline" className="text-[10px] uppercase">
-            {preparing || retryingCanva ? "prévia — exportação em preparo" : "prévia — Canva pendente"}
-          </Badge>
-
-        )}
-        {ready && (
-          <Badge variant="outline" className="text-[10px] uppercase">
-            preview do Canva
+            variação {(design.variant_index ?? 0) + 1} de {variants.length}
           </Badge>
         )}
         {hasCanva && (
@@ -251,8 +187,7 @@ export function DesignStage({
           </Badge>
         )}
         <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-          {design.title ?? design.canva_url ?? "Arte gerada pela Marina"}
-
+          {design.title ?? design.form?.title ?? "Arte gerada pela Marina"}
         </span>
         {design.canva_url && (
           <Button asChild variant="outline" size="sm">
@@ -265,25 +200,22 @@ export function DesignStage({
 
       {design.fail_reason && (
         <p className="border-b border-border bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          {design.fail_reason}. A peça só poderá ser aprovada quando a versão editável e o preview exportado do Canva estiverem prontos.
+          {design.fail_reason}. Você pode pedir uma nova geração com o mesmo briefing.
         </p>
       )}
 
       <div className="min-h-0 flex-1 bg-muted/30 p-3">
-        {hasPreview ? (
+        {preview ? (
           <img
-            key={design.file_url ?? design.id}
-            src={design.file_url ?? undefined}
+            key={preview}
+            src={preview}
             alt={design.title ?? "Prévia da peça"}
-            className={cn(
-              "h-full w-full rounded-lg border border-border bg-background object-contain",
-              !ready && "opacity-90",
-            )}
+            className="h-full w-full rounded-lg border border-border bg-background object-contain"
           />
         ) : preparing || retryingCanva ? (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-border bg-background p-6 text-center">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">{currentStep?.label || statusLabel || "Preparando a peça…"}</p>
+            <p className="text-sm text-muted-foreground">{currentStep?.label || statusLabel || "Preparando as variações…"}</p>
             <div className="w-full max-w-sm text-left">
               <StepTrail steps={trail} elapsed={elapsed} />
             </div>
@@ -291,51 +223,60 @@ export function DesignStage({
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border p-6 text-center">
             <p className="max-w-sm text-sm text-muted-foreground">
-              Ainda não tenho arquivo para mostrar desta peça. Peça para a Marina tentar de novo na conversa.
+              Ainda não tenho arquivo para mostrar desta peça.
             </p>
-            {design.canva_url && (
-              <Button asChild size="sm">
-                <a href={design.canva_url} target="_blank" rel="noreferrer">
-                  <ExternalLink className="mr-2 h-4 w-4" /> Abrir no Canva
-                </a>
-              </Button>
-            )}
+            <Button size="sm" variant="outline" onClick={onRetryCanva} disabled={working || retryingCanva}>
+              <RefreshCw className={cn("mr-2 h-4 w-4", retryingCanva && "animate-spin")} /> Gerar de novo
+            </Button>
           </div>
         )}
       </div>
 
-      <LayersPanel layers={design.layers ?? []} onRetryLayer={onRetryLayer} retryingLayer={retryingLayer} />
+      {variants.length > 1 && (
+        <div className="flex items-center gap-2 overflow-x-auto border-t border-border p-2">
+          {variants.map((v, i) => {
+            const thumb = previewOf(v);
+            return (
+              <button
+                key={v.id}
+                onClick={() => onSelect(v)}
+                className={cn(
+                  "h-16 w-16 shrink-0 overflow-hidden rounded-md border",
+                  v.id === design.id ? "border-primary ring-2 ring-primary/30" : "border-border",
+                )}
+                aria-label={`Variação ${i + 1}`}
+              >
+                {thumb ? (
+                  <img src={thumb} alt={`Variação ${i + 1}`} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-xs text-muted-foreground">{i + 1}</span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
-      {(trail.length > 0 || pendingCanva) && (
+      {(trail.length > 0 || stale) && (
         <div className="space-y-1 border-t border-border px-3 py-2">
           <StepTrail steps={trail} elapsed={elapsed} />
-          {pendingCanva && trail.length === 0 && (
-            <p className="flex items-center gap-2 text-xs text-muted-foreground">
-              <TriangleAlert className="h-3.5 w-3.5" /> Esta versão não possui uma execução ativa registrada no Canva.
-            </p>
-          )}
           {stale && (
-            <p className="text-xs text-destructive">Canva interrompido: não houve atualização por mais de cinco minutos. Retome do último avanço confirmado.</p>
-          )}
-          {currentStep?.updated_at && !stale && (
-            <p className="text-xs text-muted-foreground">
-              Último avanço às {new Date(currentStep.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}.
+            <p className="text-xs text-destructive">
+              Sem atualização por mais de doze minutos. Peça uma nova geração com o mesmo briefing.
             </p>
           )}
           {(preparing || retryingCanva) && demorando && (
             <p className="text-xs text-muted-foreground">
-              Esta fase está levando mais tempo que o normal — ela continua em segundo plano e será retomável a partir do último avanço.
+              A geração das variações continua em segundo plano — normalmente leva de um a três minutos.
             </p>
           )}
         </div>
       )}
 
-
-
-      {ready && design.file_url && (
+      {ready && preview && (
         <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
-          Preview {design.export_format?.toUpperCase()} exportado do Canva ·{" "}
-          <a className="text-primary underline" href={design.file_url} target="_blank" rel="noreferrer">
+          Prévia exportada do Canva ·{" "}
+          <a className="text-primary underline" href={preview} target="_blank" rel="noreferrer">
             baixar
           </a>
         </div>
@@ -354,19 +295,23 @@ export function DesignStage({
             </SelectContent>
           </Select>
         )}
-
         <Button onClick={() => onApprove(format)} disabled={!ready || approving || design.status === "aprovado"}>
           {approving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
           Aprovar peça
         </Button>
-        {!ready && !preparing && (
-          <Button variant="outline" onClick={onRetryCanva} disabled={working || retryingCanva}>
-            <RefreshCw className={cn("mr-2 h-4 w-4", retryingCanva && "animate-spin")} /> Tentar criar no Canva novamente
-          </Button>
-        )}
         <Button variant="outline" onClick={() => setAdjustOpen(true)} disabled={working}>
           <PenLine className="mr-2 h-4 w-4" /> Solicitar ajuste
         </Button>
+        {variants.length > 1 && (
+          <Button variant="outline" onClick={onNext}>
+            Próximo <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        )}
+        {!ready && !preparing && (
+          <Button variant="outline" onClick={onRetryCanva} disabled={working || retryingCanva}>
+            <RefreshCw className={cn("mr-2 h-4 w-4", retryingCanva && "animate-spin")} /> Gerar de novo
+          </Button>
+        )}
         <Button variant="ghost" onClick={onDiscard}>
           <Trash2 className="mr-2 h-4 w-4" /> Descartar
         </Button>
@@ -383,35 +328,32 @@ export function DesignStage({
               )}
             >
               <button onClick={() => onSelect(v)} className="py-1">
-                Versão {versions.length - i}
+                Pedido {versions.length - i}
               </button>
               <button
                 onClick={() => onDiscardVersion(v.id)}
-                aria-label={`Descartar versão ${versions.length - i}`}
-                className="rounded p-1 hover:bg-destructive/10 hover:text-destructive"
+                className="rounded p-1 hover:bg-muted"
+                aria-label="Descartar esta versão"
               >
                 <X className="h-3 w-3" />
               </button>
             </div>
           ))}
-          <Button variant="ghost" size="sm" className="shrink-0 text-xs" onClick={() => onKeepOnly(design.id)}>
-            Descartar todas menos esta
-          </Button>
+          {design.id !== "streaming" && (
+            <Button size="sm" variant="ghost" className="shrink-0" onClick={() => onKeepOnly(design.id)}>
+              Manter só esta
+            </Button>
+          )}
         </div>
       )}
 
       {!!discarded?.length && (
         <div className="flex items-center gap-2 overflow-x-auto border-t border-border p-2 text-xs text-muted-foreground">
-          <CircleDot className="h-3 w-3 shrink-0" />
           <span className="shrink-0">Descartadas:</span>
           {discarded.map((d) => (
-            <button
-              key={d.id}
-              onClick={() => onRestore(d.id)}
-              className="flex shrink-0 items-center gap-1 rounded-md border border-border px-2 py-1 hover:text-foreground"
-            >
-              <RotateCcw className="h-3 w-3" /> {d.title?.slice(0, 24) || "peça"} · recuperar
-            </button>
+            <Button key={d.id} size="sm" variant="ghost" className="shrink-0" onClick={() => onRestore(d.id)}>
+              <RotateCcw className="mr-1 h-3 w-3" /> {d.title ?? "peça"}
+            </Button>
           ))}
         </div>
       )}
@@ -419,27 +361,27 @@ export function DesignStage({
       <Dialog open={adjustOpen} onOpenChange={setAdjustOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>O que mudar nesta peça?</DialogTitle>
+            <DialogTitle>O que deve mudar?</DialogTitle>
           </DialogHeader>
           <Textarea
             value={note}
             onChange={(e) => setNote(e.target.value)}
+            placeholder="Ex.: trocar o título por…, deixar o fundo mais escuro, aumentar a logo"
             rows={4}
-            placeholder="Ex.: deixar o título maior e trocar a foto de fundo"
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setAdjustOpen(false)}>
+            <Button variant="ghost" onClick={() => setAdjustOpen(false)}>
               Cancelar
             </Button>
             <Button
-              disabled={!note.trim()}
               onClick={() => {
-                onAdjust(note.trim());
+                onAdjust(note);
                 setNote("");
                 setAdjustOpen(false);
               }}
+              disabled={!note.trim()}
             >
-              Pedir ajuste
+              Enviar ajuste
             </Button>
           </DialogFooter>
         </DialogContent>

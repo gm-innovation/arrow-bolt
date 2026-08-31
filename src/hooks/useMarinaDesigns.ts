@@ -16,34 +16,31 @@ export interface MarinaDesignStep {
   updated_at?: string;
 }
 
-/** Camada da peça: foto real do acervo ou composição gerada, sempre separada no Canva. */
-export interface MarinaDesignLayer {
-  id: string;
-  role: "fundo" | "embarcacao" | "equipamento" | "pessoa" | "apoio" | string;
-  label: string;
-  origin: "biblioteca" | "gerada" | "falhou" | string;
-  order: number;
-  transparent?: boolean;
-  cutout?: boolean;
-  asset_name?: string | null;
-  detail?: string | null;
-  storage_path?: string | null;
-  file_url?: string | null;
+/** Briefing preenchido no formulário "Criar post". */
+export interface MarinaDesignForm {
+  size: "quadrado" | "story" | "feed";
+  theme?: string;
+  title: string;
+  subtitle?: string;
+  cta?: string;
+  style: "moderno" | "corporativo" | "criativo" | "minimalista";
+  background?: string;
+  logo?: boolean;
+  variations?: number;
 }
 
 export interface MarinaDesign {
   id: string;
   canva_url: string | null;
-  /** Origem da peça: Canva ou prévia gerada pela própria Marina. */
+  /** Lote: todas as variações de um mesmo pedido compartilham este id. */
+  batch_id?: string | null;
+  variant_index?: number | null;
+  /** Briefing usado no pedido. */
+  form?: MarinaDesignForm | null;
   source?: "canva" | "marina" | string;
-  /** Motivo quando o Canva não entregou a peça. */
   fail_reason?: string | null;
-  /** Trilha de etapas já registradas para esta peça. */
   steps?: MarinaDesignStep[] | null;
   status: MarinaDesignStatus | string;
-  /** Camadas da peça, na ordem de trás para frente. */
-  layers?: MarinaDesignLayer[] | null;
-
 
   profile: string;
   title: string | null;
@@ -51,7 +48,10 @@ export interface MarinaDesign {
   adjust_note?: string | null;
   export_format?: string | null;
   storage_path?: string | null;
+  /** PNG exportado do Canva (link direto devolvido pelo motor). */
+  preview_url?: string | null;
   export_url?: string | null;
+  /** Prévia guardada no Arrow (URL assinada). */
   file_url?: string | null;
   approved_at?: string | null;
   conversation_id?: string | null;
@@ -92,14 +92,33 @@ export function useMarinaDesigns(enabled = true) {
       const now = Date.now();
       return rows?.some((design) =>
         design.steps?.some((step) => step.state === "andamento") &&
-        (!design.updated_at || now - Date.parse(design.updated_at) < 120_000)
-      ) ? 2500 : false;
+        (!design.updated_at || now - Date.parse(design.updated_at) < 15 * 60_000)
+      ) ? 4000 : false;
     },
     queryFn: async () => ((await callDesign("designs")) as { designs: MarinaDesign[] }).designs ?? [],
   });
 }
 
-/** Aprova o design: pede a exportação e guarda o arquivo no Arrow. */
+/** Cria o pedido pelo formulário: o motor gera as variações no Canva. */
+export function useCreateDesign() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      form: MarinaDesignForm;
+      profile?: string;
+      conversation_id?: string | null;
+      references?: string[];
+    }) =>
+      (await callDesign("design_create", { method: "POST", body: payload })) as {
+        design: MarinaDesign;
+        design_id: string;
+        batch_id: string;
+      },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
+  });
+}
+
+/** Aprova o design: guarda o arquivo aprovado no Arrow. */
 export function useApproveDesign() {
   const qc = useQueryClient();
   return useMutation({
@@ -122,40 +141,27 @@ export function useSetDesignStatus() {
   });
 }
 
-/** Mantém o pedido e refaz somente a etapa obrigatória de criação no Canva. */
+/** Pede ao motor uma nova geração do mesmo briefing. */
 export function useRetryCanvaDesign() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { id: string; layer?: string; force?: boolean; full?: boolean }) =>
+    mutationFn: async (payload: { id: string; force?: boolean }) =>
       await callDesign("design_retry_canva", { method: "POST", body: payload }),
     onSuccess: (_data, { id }) => {
-      // O servidor decide se recomeça do briefing ou retoma da etapa que faltou;
-      // aqui só limpamos o motivo da falha e deixamos o refetch trazer as etapas.
       qc.setQueryData<MarinaDesign[]>(["marina-designs"], (rows) =>
         rows?.map((design) => (design.id === id ? { ...design, fail_reason: null } : design)),
       );
     },
-
     onSettled: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
   });
 }
 
-/** Ajusta as camadas do arquivo Canva existente e atualiza seu preview. */
+/** Ajusta a peça: o motor gera a nova versão a partir do design do Canva. */
 export function useAdjustCanvaDesign() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { id: string; note: string }) =>
       await callDesign("design_adjust_canva", { method: "POST", body: payload }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
-  });
-}
-
-/** Refaz somente uma camada da peça e volta a aplicá-la no arquivo do Canva. */
-export function useRetryDesignLayer() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (payload: { id: string; layer: string }) =>
-      await callDesign("design_retry_canva", { method: "POST", body: payload }),
-    onSettled: () => qc.invalidateQueries({ queryKey: ["marina-designs"] }),
   });
 }

@@ -11,15 +11,16 @@ import {
   useApproveDesign,
   useAdjustCanvaDesign,
   useMarinaDesigns,
+  useCreateDesign,
   useRetryCanvaDesign,
-  useRetryDesignLayer,
   useSetDesignStatus,
+  type MarinaDesignForm,
   type MarinaDesign,
 } from "@/hooks/useMarinaDesigns";
 import { readDesignSignal } from "@/lib/marina/designSignal";
 import { MarinaMessageList } from "@/components/marina/MarinaMessageList";
 import { MarinaComposer } from "@/components/marina/MarinaComposer";
-import { DesignQuickActions } from "./DesignQuickActions";
+import { DesignPostForm } from "./DesignPostForm";
 import { DesignStage } from "./DesignStage";
 import { ApprovedDesignsPanel } from "./ApprovedDesignsPanel";
 import { DesignAssetsPanel } from "./DesignAssetsPanel";
@@ -48,7 +49,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   const adjustCanva = useAdjustCanvaDesign();
   const setStatus = useSetDesignStatus();
   const retryCanva = useRetryCanvaDesign();
-  const retryLayer = useRetryDesignLayer();
+  const createDesign = useCreateDesign();
 
   const { send, stop, streaming, status, draft, steps, retry, retryLast } = useMarinaStream(
     threadId,
@@ -124,6 +125,27 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
         }
       : null);
 
+  /** Variações do lote da peça no palco (ordenadas pela posição no lote). */
+  const variants = useMemo(() => {
+    if (!stageDesign?.batch_id) return stageDesign ? [stageDesign] : [];
+    return threadDesigns
+      .filter((d) => d.batch_id === stageDesign.batch_id)
+      .sort((a, b) => (a.variant_index ?? 0) - (b.variant_index ?? 0));
+  }, [threadDesigns, stageDesign]);
+
+  /** Um representante por pedido (lote), para navegar entre pedidos da conversa. */
+  const batchHeads = useMemo(() => {
+    const seen = new Set<string>();
+    return threadDesigns.filter((d) => {
+      const key = d.batch_id ?? d.id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [threadDesigns]);
+
+
+
   const handleApprove = async (format: "png" | "jpg" | "pdf") => {
     if (!stageDesign || stageDesign.id === "streaming") return;
     try {
@@ -180,14 +202,31 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
     toast({ title: "Versão recuperada" });
   };
 
-  const handleRetryLayer = async (layerId: string) => {
-    if (!stageDesign || stageDesign.id === "streaming") return;
+  /** Formulário "Criar post": um briefing só, o motor devolve as variações. */
+  const handleCreate = async (form: MarinaDesignForm) => {
     try {
-      await retryLayer.mutateAsync({ id: stageDesign.id, layer: layerId });
-      toast({ title: "Refazendo a camada", description: "Vou buscar/gerar essa camada de novo e trocá-la no arquivo do Canva." });
+      const result = await createDesign.mutateAsync({
+        form,
+        profile,
+        conversation_id: threadId ?? null,
+        references: assetRefs.map((a) => a.url),
+      });
+      setActiveId(result.design_id ?? result.design?.id ?? null);
+      setView("atual");
+      if (isMobile) setMobilePane("preview");
+      setAssetRefs([]);
+      toast({ title: "Pedido enviado", description: "Estou gerando as variações no Canva; acompanhe no palco." });
     } catch (e) {
-      toast({ title: "Não deu para refazer a camada", description: (e as Error).message, variant: "destructive" });
+      toast({ title: "Não deu para criar o post", description: (e as Error).message, variant: "destructive" });
     }
+  };
+
+  /** Passa para a próxima variação do mesmo lote. */
+  const handleNext = () => {
+    if (!stageDesign) return;
+    const i = variants.findIndex((v) => v.id === stageDesign.id);
+    const next = variants[(i + 1) % variants.length];
+    if (next) setActiveId(next.id);
   };
 
   const handleRetryCanva = async () => {
@@ -264,9 +303,9 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
             : "Mensagens são conversa sobre o trabalho — ligue para criar uma peça."}
         </span>
       </div>
-      <DesignQuickActions
-        onSend={askDesign}
-        disabled={streaming}
+      <DesignPostForm
+        onCreate={handleCreate}
+        creating={createDesign.isPending}
         assetReferences={assetRefs}
         onClearAssetReferences={() => setAssetRefs([])}
       />
@@ -316,15 +355,15 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
         ) : view === "atual" ? (
           <DesignStage
             design={stageDesign}
-            versions={threadDesigns}
+            variants={variants}
+            versions={batchHeads}
             onSelect={(d) => setActiveId(d.id)}
             onApprove={handleApprove}
             onAdjust={handleAdjust}
             onDiscard={handleDiscard}
             onRetryCanva={handleRetryCanva}
-            onRetryLayer={handleRetryLayer}
-            retryingLayer={retryLayer.isPending ? (retryLayer.variables?.layer ?? null) : null}
-            working={streaming || adjustCanva.isPending}
+            onNext={handleNext}
+            working={streaming || adjustCanva.isPending || createDesign.isPending}
             approving={approve.isPending}
             retryingCanva={retryCanva.isPending}
             statusLabel={adjustCanva.isPending ? "ajustando o design no Canva…" : status}
