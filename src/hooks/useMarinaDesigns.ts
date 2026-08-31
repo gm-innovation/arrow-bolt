@@ -18,16 +18,44 @@ export interface MarinaDesignStep {
 
 /** Briefing preenchido no formulário "Criar post". */
 export interface MarinaDesignForm {
-  size: "quadrado" | "story" | "feed";
+  size: "quadrado" | "feed" | "paisagem" | "story";
   theme?: string;
   title: string;
   subtitle?: string;
   cta?: string;
-  style: "moderno" | "corporativo" | "criativo" | "minimalista";
+  /** Cor predominante ou estilo, texto livre. */
+  style: string;
   background?: string;
+  /** Público-alvo da peça. */
+  audience?: string;
   logo?: boolean;
+  /** Logo enviada pelo usuário (URL assinada). */
+  logo_url?: string;
   variations?: number;
 }
+
+/** Sobe uma imagem do formulário e devolve uma URL assinada para o motor. */
+export async function uploadDesignImage(file: File): Promise<string> {
+  const { data: session } = await supabase.auth.getUser();
+  const userId = session.user?.id;
+  if (!userId) throw new Error("Sessão expirada.");
+  const safe = file.name
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9.\-_]/g, "-");
+  const path = `${userId}/briefing/${Date.now()}-${safe}`;
+  const { error } = await supabase.storage.from("marina-designs").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data, error: signError } = await supabase.storage
+    .from("marina-designs")
+    .createSignedUrl(path, 60 * 60 * 12);
+  if (signError || !data?.signedUrl) throw signError ?? new Error("Não consegui preparar a imagem enviada.");
+  return data.signedUrl;
+}
+
 
 export interface MarinaDesign {
   id: string;
