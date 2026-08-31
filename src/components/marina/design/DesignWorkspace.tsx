@@ -193,7 +193,7 @@ export function DesignWorkspace({ threadId, threadList, avatarUrl, agentName, pr
   const handleRetryCanva = async () => {
     if (!stageDesign || stageDesign.id === "streaming") return;
     try {
-      await retryCanva.mutateAsync({ id: stageDesign.id });
+      await retryCanva.mutateAsync({ id: stageDesign.id, force: true });
       toast({ title: "Preparação iniciada", description: "Estou gerando o design no Canva; leva cerca de um minuto e você acompanha as etapas no palco." });
     } catch (e) {
       toast({ title: "Canva ainda pendente", description: (e as Error).message, variant: "destructive" });
