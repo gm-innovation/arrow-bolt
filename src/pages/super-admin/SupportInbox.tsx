@@ -21,7 +21,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 
 // A ticket whose dev_prompt is "pending" for more than this many ms is
 // considered stale — the trigger likely failed silently and we allow retry.
-const STALE_PENDING_MS = 2 * 60 * 1000;
+const STALE_PENDING_MS = 5 * 60 * 1000;
 
 function isDevPromptStale(t: any): boolean {
   if (t?.dev_prompt_status !== "pending") return false;
