@@ -21,7 +21,7 @@ import { FunctionsHttpError } from "@supabase/supabase-js";
 
 // A ticket whose dev_prompt is "pending" for more than this many ms is
 // considered stale — the trigger likely failed silently and we allow retry.
-const STALE_PENDING_MS = 2 * 60 * 1000;
+const STALE_PENDING_MS = 5 * 60 * 1000;
 
 function isDevPromptStale(t: any): boolean {
   if (t?.dev_prompt_status !== "pending") return false;
@@ -316,10 +316,10 @@ export default function SupportInbox() {
               </div>
 
               <div className="border rounded-md p-3 bg-primary/5 space-y-2" data-tour="support-dev-prompt-panel">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-semibold">Prompt sugerido para correção</span>
+                    <span className="text-sm font-semibold">Prompt para Lovable</span>
                     {selected.suggested_area && (
                       <Badge variant="secondary" className="text-xs">
                         {selected.suggested_area}
@@ -327,7 +327,7 @@ export default function SupportInbox() {
                     )}
                     {selected.dev_prompt_status === "pending" && !isDevPromptStale(selected) && (
                       <Badge variant="secondary" className="text-xs gap-1">
-                        <Loader2 className="h-3 w-3 animate-spin" /> Gerando
+                        <Loader2 className="h-3 w-3 animate-spin" /> Gerando prompt...
                       </Badge>
                     )}
                     {selected.dev_prompt_status === "pending" && isDevPromptStale(selected) && (
@@ -340,52 +340,58 @@ export default function SupportInbox() {
                       <Badge variant="secondary" className="text-xs bg-green-100 text-green-700">Pronto</Badge>
                     )}
                   </div>
-                  <div className="flex gap-1">
-                    {selected.dev_prompt && (
-                      <Button
-                        data-tour="support-copy-prompt"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => copyPrompt(selected.dev_prompt)}
-                        className="h-7"
-                      >
-                        <Copy className="h-3 w-3 mr-1" /> Copiar
-                      </Button>
-                    )}
+                  {selected.dev_prompt && (
                     <Button
-                      data-tour="support-generate-prompt"
+                      data-tour="support-copy-prompt"
                       size="sm"
                       variant="outline"
-                      onClick={() => regenerateDevPrompt.mutate(selected.id)}
-                      disabled={
-                        regenerateDevPrompt.isPending ||
-                        (selected.dev_prompt_status === "pending" && !isDevPromptStale(selected))
-                      }
-                      className="h-7"
+                      onClick={() => copyPrompt(selected.dev_prompt)}
+                      className="h-7 w-full sm:w-auto"
                     >
-                      <RefreshCw className={`h-3 w-3 mr-1 ${regenerateDevPrompt.isPending ? "animate-spin" : ""}`} />
-                      {selected.dev_prompt ? "Regerar" : "Gerar"}
+                      <Copy className="h-3 w-3 mr-1" /> Copiar
                     </Button>
-                  </div>
+                  )}
                 </div>
 
                 {selected.dev_prompt ? (
-                  <pre className="whitespace-pre-wrap text-xs bg-background border rounded p-2 max-h-72 overflow-auto">
+                  <pre className="whitespace-pre-wrap break-words text-xs bg-background border rounded p-2 max-h-72 overflow-auto">
                     {selected.dev_prompt}
                   </pre>
                 ) : (
                   <p className="text-xs text-muted-foreground">
                     {selected.dev_prompt_status === "pending" && !isDevPromptStale(selected)
-                      ? "A Marina está interpretando o chamado e escrevendo o prompt..."
+                      ? "Gerando prompt... isso pode levar alguns minutos."
                       : selected.dev_prompt_status === "pending" && isDevPromptStale(selected)
-                      ? "A geração foi interrompida antes de concluir. Clique em Regerar."
-                      : "Ainda não há prompt para este chamado. Clique em Gerar."}
+                      ? "A geração foi interrompida antes de concluir. Tente novamente."
+                      : "Ainda não há prompt para este chamado."}
                   </p>
                 )}
 
                 {selected.dev_prompt_error && (
-                  <p className="text-xs text-destructive">{selected.dev_prompt_error}</p>
+                  <p className="text-xs text-destructive">
+                    Não consegui gerar o prompt agora. Tente novamente.
+                  </p>
                 )}
+
+                <Button
+                  data-tour="support-generate-prompt"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => regenerateDevPrompt.mutate(selected.id)}
+                  disabled={
+                    regenerateDevPrompt.isPending ||
+                    (selected.dev_prompt_status === "pending" && !isDevPromptStale(selected))
+                  }
+                  className="h-8 w-full sm:w-auto"
+                >
+                  <RefreshCw className={`h-3 w-3 mr-1 ${regenerateDevPrompt.isPending ? "animate-spin" : ""}`} />
+                  {selected.dev_prompt_status === "failed" || isDevPromptStale(selected)
+                    ? "Tentar novamente"
+                    : selected.dev_prompt
+                    ? "Regenerar prompt"
+                    : "Gerar prompt"}
+                </Button>
+
 
                 {Array.isArray(selected.suggested_files) && selected.suggested_files.length > 0 && (
                   <div className="flex flex-wrap gap-1 pt-1">
