@@ -1,40 +1,89 @@
-# Logs
-logs
+# ==========================================
+# 1. DEPENDÊNCIAS (Nunca devem ir para o Git)
+# ==========================================
+node_modules/
+jspm_packages/
+web_modules/
+.pnp/
+.pnp.js
+
+# ==========================================
+# 2. BUILDS E ARTEFATOS (Arquivos gerados automaticamente)
+# ==========================================
+dist/
+build/
+out/
+.next/
+.nuxt/
+.svelte-kit/
+.astro/
+.docusaurus/
+.cache/
+.parcel-cache/
+.turbo/
+.vercel/
+*.tsbuildinfo
+
+# ==========================================
+# 3. SEGURANÇA E SEGREDOS (Essencial manter fora do Git)
+# ==========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+*.pub
+*.cert
+**/*.private.key
+
+# Permitir apenas o arquivo de exemplo para servir de template [1, 2]
+!.env.example
+
+# ==========================================
+# 4. LOGS E ARQUIVOS TEMPORÁRIOS (Consomem espaço à toa)
+# ==========================================
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
+.eslintcache
+.stylelintcache
+.prettiercache
+.stylelintcache
+.rollup.cache/
 
-node_modules
-dist
-dist-ssr
-*.local
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# ==========================================
+# 5. SISTEMA OPERACIONAL (Arquivos inúteis criados pelo sistema)
+# ==========================================
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
 
-# Vite PWA dev output
-dev-dist
+# ==========================================
+# 6. BANCOS DE DADOS LOCAIS E TESTES
+# ==========================================
+*.db
+*.sqlite
+*.sqlite3
+supabase/.temp/
+.nyc_output/
+coverage/
 
-# Segredos e credenciais - NUNCA versionar
-.env.local
-.env.*.local
-*.keystore
-*.jks
-keystore.properties
-google-services.json
-GoogleService-Info.plist
-*.p8
-*.p12
-*.mobileprovision
-service-account*.json
+# ==========================================
+# 7. TRUQUE DO BOLT: EVITAR ESTOURAR O LIMITE DE IMPORTAÇÃO
+# ==========================================
+# Arquivos de lock do gerenciador de pacotes podem pesar de 2 MB a 5 MB em texto puro.
+# Se o seu projeto estiver tendo problemas para ser importado por tamanho (limite de 7.8 MB),
+# remova o comentário da linha correspondente abaixo antes de enviar para o GitHub.
+# package-lock.json
+# pnpm-lock.yaml
+# yarn.lock
