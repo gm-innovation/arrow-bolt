@@ -84,6 +84,6 @@ coverage/
 # Arquivos de lock do gerenciador de pacotes podem pesar de 2 MB a 5 MB em texto puro.
 # Se o seu projeto estiver tendo problemas para ser importado por tamanho (limite de 7.8 MB),
 # remova o comentário da linha correspondente abaixo antes de enviar para o GitHub.
-# package-lock.json
-# pnpm-lock.yaml
-# yarn.lock
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
