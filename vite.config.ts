@@ -42,9 +42,7 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       injectRegister: null,
       includeAssets: [
-        "favicon.ico",
-        "apple-touch-icon.png",
-        "mask-icon.svg",
+        "favicon.svg",
         "offline.html",
       ],
       manifest: {
@@ -62,10 +60,10 @@ export default defineConfig(({ mode }) => ({
         lang: "pt-BR",
         categories: ["business", "productivity"],
         icons: [
-          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-          { src: "/pwa-192x192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
-          { src: "/pwa-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "/pwa-192x192.svg", sizes: "192x192", type: "image/svg+xml", purpose: "any" },
+          { src: "/pwa-512x512.svg", sizes: "512x512", type: "image/svg+xml", purpose: "any" },
+          { src: "/pwa-192x192.svg", sizes: "192x192", type: "image/svg+xml", purpose: "maskable" },
+          { src: "/pwa-512x512.svg", sizes: "512x512", type: "image/svg+xml", purpose: "maskable" },
         ],
       },
       injectManifest: {

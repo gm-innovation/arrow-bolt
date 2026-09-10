@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Ship } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import logoLight from "@/assets/logo-light.png";
-
 const Index = () => {
   const navigate = useNavigate();
 
@@ -11,7 +9,7 @@ const Index = () => {
       <div className="w-full max-w-4xl animate-fade-in">
         <div className="text-center space-y-6">
           <div className="flex justify-center mb-4">
-            <img src={logoLight} alt="Arrow" className="h-24 w-auto" />
+            <span className="text-3xl font-bold text-white">Arrow</span>
           </div>
           <p className="text-xl text-white/80 max-w-2xl mx-auto">
             Sistema completo de gerenciamento de ordens de serviço para a indústria naval. Controle eficiente de

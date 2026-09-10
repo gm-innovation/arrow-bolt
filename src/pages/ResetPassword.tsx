@@ -78,7 +78,7 @@ const ResetPassword = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 to-purple-500/10 pointer-events-none" />
           <CardHeader className="space-y-1 relative">
             <div className="flex items-center justify-center mb-4">
-              <img src={logoDark} alt="Arrow" className="h-16 w-auto" />
+              <span className="text-2xl font-bold text-ocean-dark">Arrow</span>
             </div>
             <CardTitle className="text-2xl text-center font-bold">Nova Senha</CardTitle>
             <CardDescription className="text-center">

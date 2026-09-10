@@ -18,7 +18,6 @@ import {
   FileText,
   History,
 } from "lucide-react";
-import iconLight from "@/assets/icon-light.png";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -129,7 +128,7 @@ const CommercialAdminLayout = ({ children }: CommercialAdminLayoutProps) => {
         >
           {/* Header */}
           <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-orange-600 to-amber-600 border-b">
-            <img src={iconLight} alt="Arrow" className="h-8 w-8 flex-shrink-0" />
+            <LayoutDashboard className="h-8 w-8 flex-shrink-0 text-white" />
             {!collapsed && (
               <div className="flex flex-col min-w-0">
                 <span className="text-sm font-semibold text-white truncate">Admin Panel</span>
@@ -185,7 +184,7 @@ const CommercialAdminLayout = ({ children }: CommercialAdminLayoutProps) => {
         <SheetContent side="left" className="p-0 w-80 bg-card">
           <div className="flex items-center justify-between p-4 bg-gradient-to-r from-orange-600 to-amber-600">
             <div className="flex items-center gap-3">
-              <img src={iconLight} alt="Arrow" className="h-8 w-8" />
+              <LayoutDashboard className="h-8 w-8 text-white" />
               <span className="text-sm font-semibold text-white">Admin Panel</span>
             </div>
             <Button variant="ghost" size="icon" className="text-white hover:bg-white/20" onClick={() => setMobileMenuOpen(false)}>

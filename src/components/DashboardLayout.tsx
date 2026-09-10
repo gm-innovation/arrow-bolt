@@ -57,7 +57,6 @@ import {
   User,
   Layers,
   Compass, Gift, Clock } from "lucide-react";
-import iconLight from "@/assets/icon-light.png";
 import { Button } from "./ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -730,7 +729,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
           userColors[userType]
         )}>
           <div className="flex items-center gap-3">
-            <img src={iconLight} alt="Arrow" className="h-8 w-8" />
+            <Compass className="h-8 w-8 text-white" />
             <span className="text-xs text-white/80">{getUserTitle()}</span>
           </div>
           <Button
@@ -776,7 +775,7 @@ const DashboardLayout = ({ children, userType, pageTitle }: DashboardLayoutProps
             "flex items-center gap-3 p-4 bg-gradient-to-r border-b", 
             userColors[userType]
           )}>
-            <img src={iconLight} alt="Arrow" className="h-8 w-8 flex-shrink-0" />
+            <Compass className="h-8 w-8 flex-shrink-0 text-white" />
             {!collapsed && (
               <span className="text-xs text-white/80 truncate">{getUserTitle()}</span>
             )}
